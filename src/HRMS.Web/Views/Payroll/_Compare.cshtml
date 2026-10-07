@@ -1,0 +1,37 @@
+@model RunCompareModel
+@{
+    var totalA = Model.Rows.Sum(r => r.NetA ?? 0);
+    var totalB = Model.Rows.Sum(r => r.NetB ?? 0);
+}
+<div class="hrms-table-wrap">
+    <table class="hrms-table">
+        <caption class="hrms-sr-only">@L["pr.compare_two_payrolls"]</caption>
+        <thead>
+            <tr>
+                <th scope="col">@L["pr.employee"]</th>
+                <th scope="col" class="pr-money">@Model.RunA.RunCode</th>
+                <th scope="col" class="pr-money">@Model.RunB.RunCode</th>
+                <th scope="col" class="pr-money">@L["pr.difference"]</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.Rows.Take(200))
+            {
+                <tr>
+                    <td data-label="@L["pr.employee"]" class="hrms-nowrap">@PayrollFormat.EmployeeName(L, r.EmployeeName, r.ArabicName)<span class="pr-emp-sub">@r.EmployeeNo</span></td>
+                    <td data-label="@Model.RunA.RunCode" class="pr-money">@PayrollFormat.Money(r.NetA)</td>
+                    <td data-label="@Model.RunB.RunCode" class="pr-money">@PayrollFormat.Money(r.NetB)</td>
+                    <td data-label="@L["pr.difference"]" class="pr-money @(r.Difference > 0 ? "pr-pos" : (r.Difference < 0 ? "pr-neg" : null))">@PayrollFormat.Signed(r.Difference)</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr class="pr-total-row">
+                <td>@L["emp.n_employees", Model.Rows.Count]</td>
+                <td class="pr-money">@PayrollFormat.Money(totalA)</td>
+                <td class="pr-money">@PayrollFormat.Money(totalB)</td>
+                <td class="pr-money">@PayrollFormat.Signed(totalB - totalA)</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>

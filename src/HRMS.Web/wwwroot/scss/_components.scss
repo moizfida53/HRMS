@@ -1,0 +1,810 @@
+// ============================================================================
+// HRMS Kuwait - components: tabs, cards, tables, forms, badges, modal, toast
+// ============================================================================
+
+@use "sass:color";
+@use "sass:map";
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ------------------------------------------------------------------ tabs ----
+// Horizontal rail. On narrow screens it scrolls rather than wrapping, so the
+// grid below never gets pushed down the page by a three-line tab block.
+
+.hrms-tabs {
+  position: relative;
+  margin-block-end: space("5");
+  border-block-end: 1px solid $line-200;
+  @include scroll-fade-right($surface, 28px);
+
+  &__rail {
+    display: flex;
+    gap: space("1");
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+.hrms-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  flex: 0 0 auto;
+  padding: space("3") space("4");
+
+  border: 0;
+  background: transparent;
+  color: $ink-500;
+  font-family: inherit;
+  font-size: $fs-base;
+  font-weight: $fw-semibold;
+  white-space: nowrap;
+  cursor: pointer;
+
+  @include motion(color, background-color);
+  @include focus-ring;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline: space("3");
+    inset-block-end: -1px;
+    height: 2px;
+    border-radius: $radius-pill $radius-pill 0 0;
+    background: transparent;
+    @include motion(background-color);
+  }
+
+  &:hover {
+    color: $ink-900;
+  }
+
+  &.is-active {
+    color: $blue-700;
+
+    &::after {
+      background: $blue-600;
+    }
+  }
+
+  &__count {
+    padding: 1px space("2");
+    border-radius: $radius-pill;
+    background: $line-100;
+    color: $ink-500;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+    @include motion(background-color, color);
+  }
+
+  &.is-active &__count {
+    background: $blue-100;
+    color: $blue-700;
+  }
+}
+
+// ------------------------------------------------------------------ card ----
+.hrms-card {
+  @include card-surface;
+  overflow: hidden;
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    padding: space("4") space("5");
+    border-block-end: 1px solid $line-100;
+    flex-wrap: wrap;
+
+    @include down("md") {
+      padding: space("3") space("4");
+    }
+  }
+
+  &__filters {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  &__count {
+    margin-inline-start: auto;
+    flex: 0 0 auto;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $ink-500;
+    white-space: nowrap;
+  }
+
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: space("3");
+    padding: space("3") space("5");
+    border-block-start: 1px solid $line-100;
+    flex-wrap: wrap;
+
+    @include down("md") {
+      padding: space("3") space("4");
+      justify-content: center;
+    }
+  }
+}
+
+// ----------------------------------------------------------------- table ----
+.hrms-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  @include thin-scrollbar;
+}
+
+.hrms-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: $fs-base;
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: space("3") space("5");
+    background: $surface-2;
+    border-block-end: 1px solid $line-200;
+    text-align: start;
+    white-space: nowrap;
+    @include label-caps;
+    font-size: 0.68rem;
+  }
+
+  td {
+    padding: space("3") space("5");
+    border-block-end: 1px solid $line-100;
+    color: $ink-700;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    @include motion(background-color);
+
+    &:hover {
+      background: $blue-050;
+    }
+
+    &:last-child td {
+      border-block-end: 0;
+    }
+  }
+
+  &__sort {
+    display: inline-flex;
+    align-items: center;
+    gap: space("1");
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+    @include focus-ring;
+
+    svg {
+      width: 12px;
+      height: 12px;
+      opacity: 0.35;
+      @include motion(opacity, transform);
+    }
+
+    &:hover svg {
+      opacity: 0.7;
+    }
+
+    &.is-sorted {
+      color: $blue-700;
+
+      svg {
+        opacity: 1;
+      }
+    }
+
+    &.is-sorted-desc svg {
+      transform: rotate(180deg);
+    }
+  }
+
+  &__primary {
+    font-weight: $fw-semibold;
+    color: $ink-900;
+  }
+
+  &__meta {
+    font-size: $fs-xs;
+    color: $ink-400;
+    margin-block-start: 1px;
+  }
+
+  // Kept a real table cell (display:flex on a <td> breaks the row's height
+  // and borders); the buttons inside line up as inline-flex items.
+  &__actions {
+    text-align: end;
+    white-space: nowrap;
+
+    > * + * {
+      margin-inline-start: space("1");
+    }
+  }
+
+  // Narrow TABLE (phone, a desktop window at high zoom, or a table in a
+  // half-width panel): each row becomes a stacked card, with the column
+  // header repeated from the data-label attribute - every column stays
+  // readable instead of scrolling sideways.
+  @container table (max-width: 599.98px) {
+    display: block;
+
+    thead {
+      @include visually-hidden;
+    }
+
+    tbody,
+    tr,
+    td {
+      display: block;
+      width: 100%;
+    }
+
+    tr {
+      padding: space("3") space("4");
+      border-block-end: 1px solid $line-100;
+
+      &:hover {
+        background: transparent;
+      }
+    }
+
+    td {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: space("4");
+      padding: space("1") 0;
+      border: 0;
+
+      &::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        @include label-caps;
+        font-size: 0.65rem;
+      }
+
+      &:empty {
+        display: none;
+      }
+    }
+
+    &__actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: space("1");
+      padding-block-start: space("2");
+
+      > * + * {
+        margin-inline-start: 0;
+      }
+    }
+  }
+}
+
+.hrms-code-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px space("2");
+  border-radius: $radius-sm;
+  background: $line-100;
+  color: $ink-600;
+  font-family: $font-mono;
+  font-size: $fs-xs;
+  font-weight: $fw-medium;
+  letter-spacing: 0.02em;
+}
+
+// ---------------------------------------------------------------- badges ----
+.hrms-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: space("1");
+  padding: 2px space("2");
+  border-radius: $radius-pill;
+  font-size: $fs-xs;
+  font-weight: $fw-bold;
+  line-height: 1.5;
+  white-space: nowrap;
+
+  &--success { @include soft-badge($green-700, $green-050); }
+  &--warning { @include soft-badge($amber-700, $amber-050); }
+  &--danger  { @include soft-badge($red-700,   $red-050); }
+  &--info    { @include soft-badge($blue-700,  $blue-100); }
+  &--purple  { @include soft-badge($purple-700, $purple-050); }
+  &--muted   { @include soft-badge($ink-500,   $line-100); }
+
+  &__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+}
+
+// --------------------------------------------------------------- buttons ----
+// Layered on Bootstrap's .btn so utility classes still work.
+
+.btn {
+  --bs-btn-font-size: #{$fs-base};
+  --bs-btn-font-weight: #{$fw-semibold};
+  --bs-btn-border-radius: #{$radius};
+  --bs-btn-padding-y: 0.5rem;
+  --bs-btn-padding-x: 0.95rem;
+
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  font-family: $font-sans;
+  white-space: nowrap;
+  @include motion(background-color, border-color, color, box-shadow);
+
+  svg {
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+  }
+}
+
+.btn-primary {
+  --bs-btn-bg: #{$blue-600};
+  --bs-btn-border-color: #{$blue-600};
+  --bs-btn-hover-bg: #{$blue-700};
+  --bs-btn-hover-border-color: #{$blue-700};
+  --bs-btn-active-bg: #{$navy-800};
+  --bs-btn-active-border-color: #{$navy-800};
+  --bs-btn-disabled-bg: #{$blue-200};
+  --bs-btn-disabled-border-color: #{$blue-200};
+}
+
+.btn-outline-secondary {
+  --bs-btn-color: #{$ink-700};
+  --bs-btn-border-color: #{$line-300};
+  --bs-btn-bg: #{$white};
+  --bs-btn-hover-color: #{$ink-900};
+  --bs-btn-hover-bg: #{$surface};
+  --bs-btn-hover-border-color: #{$line-300};
+  --bs-btn-active-color: #{$ink-900};
+  --bs-btn-active-bg: #{$line-100};
+  --bs-btn-active-border-color: #{$line-300};
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+  border-radius: $radius-sm;
+  border: 1px solid transparent;
+  background: transparent;
+  color: $ink-500;
+  @include motion(background-color, color, border-color);
+  @include focus-ring;
+
+  &:hover {
+    background: $white;
+    border-color: $line-200;
+    color: $ink-900;
+    box-shadow: $shadow-xs;
+  }
+
+  &--danger:hover {
+    color: $red-700;
+    border-color: $red-300;
+    background: $red-050;
+  }
+
+  &--success:hover {
+    color: $green-700;
+    border-color: rgba($green-600, 0.4);
+    background: $green-050;
+  }
+}
+
+// ----------------------------------------------------------------- forms ----
+.form-label {
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  color: $ink-700;
+  margin-block-end: space("1");
+
+  .req {
+    color: $red-600;
+    margin-inline-start: 2px;
+  }
+}
+
+.form-control,
+.form-select {
+  font-size: $fs-base;
+  padding: 0.5rem 0.75rem;
+  border-color: $line-300;
+  border-radius: $radius;
+  color: $ink-900;
+  @include motion(border-color, box-shadow);
+
+  &::placeholder {
+    color: $ink-400;
+  }
+
+  &:focus {
+    border-color: $blue-500;
+    box-shadow: 0 0 0 3px rgba($blue-600, 0.16);
+  }
+
+  &:disabled,
+  &[readonly] {
+    background: $surface;
+    color: $ink-500;
+  }
+
+  &.input-validation-error,
+  &.is-invalid {
+    border-color: $red-300;
+
+    &:focus {
+      border-color: $red-600;
+      box-shadow: 0 0 0 3px rgba($red-600, 0.14);
+    }
+  }
+}
+
+.form-text {
+  font-size: $fs-xs;
+  color: $ink-400;
+}
+
+.field-validation-error {
+  display: block;
+  margin-block-start: space("1");
+  font-size: $fs-xs;
+  font-weight: $fw-medium;
+  color: $red-700;
+}
+
+.validation-summary-errors {
+  padding: space("3") space("4");
+  margin-block-end: space("4");
+  border: 1px solid $red-300;
+  border-radius: $radius;
+  background: $red-050;
+  color: $red-700;
+  font-size: $fs-sm;
+
+  ul {
+    margin: 0;
+    padding-inline-start: space("5");
+  }
+}
+
+.form-switch .form-check-input {
+  width: 2.4em;
+  height: 1.25em;
+  cursor: pointer;
+  border-color: $line-300;
+
+  &:checked {
+    background-color: $blue-600;
+    border-color: $blue-600;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba($blue-600, 0.16);
+  }
+}
+
+// A form section header inside the modal.
+.hrms-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 space("5");
+
+  &:last-of-type {
+    margin-block-end: 0;
+  }
+
+  > legend {
+    @include label-caps;
+    float: none;
+    width: auto;
+    padding: 0;
+    margin-block-end: space("3");
+    padding-block-end: space("2");
+    border-block-end: 1px solid $line-100;
+  }
+}
+
+// ----------------------------------------------------------------- modal ----
+.modal-content {
+  border: 0;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-lg;
+}
+
+.modal-header {
+  padding: space("4") space("5");
+  border-block-end: 1px solid $line-100;
+
+  .modal-title {
+    font-family: $font-display;
+    font-size: $fs-lg;
+    font-weight: $fw-semibold;
+  }
+}
+
+.modal-body {
+  padding: space("5");
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+  @include thin-scrollbar;
+}
+
+.modal-footer {
+  padding: space("3") space("5");
+  border-block-start: 1px solid $line-100;
+  gap: space("2");
+
+  > * {
+    margin: 0;
+  }
+}
+
+// ----------------------------------------------------------- empty state ----
+.hrms-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: space("12") space("6");
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    margin-block-end: space("4");
+    border-radius: 50%;
+    background: $blue-050;
+    color: $blue-600;
+  }
+
+  &__title {
+    font-family: $font-display;
+    font-size: $fs-lg;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+  }
+
+  &__text {
+    margin-block-start: space("2");
+    max-width: 380px;
+    color: $ink-500;
+    font-size: $fs-base;
+  }
+
+  .btn {
+    margin-block-start: space("5");
+  }
+}
+
+// ------------------------------------------------------------ pagination ----
+.hrms-pagination {
+  display: flex;
+  align-items: center;
+  gap: space("1");
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding-inline: space("2");
+    border: 1px solid $line-200;
+    border-radius: $radius-sm;
+    background: $white;
+    color: $ink-600;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    @include motion(background-color, color, border-color);
+    @include focus-ring;
+
+    &:hover:not(:disabled):not(.is-active) {
+      background: $surface;
+      color: $ink-900;
+      border-color: $line-300;
+      text-decoration: none;
+    }
+
+    &.is-active {
+      background: $blue-600;
+      border-color: $blue-600;
+      color: $white;
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  &__ellipsis {
+    padding-inline: space("1");
+    color: $ink-400;
+  }
+}
+
+// ----------------------------------------------------------------- toast ----
+.hrms-toast-host {
+  position: fixed;
+  inset-block-end: space("6");
+  inset-inline-end: space("6");
+  z-index: $z-toast;
+  display: flex;
+  flex-direction: column;
+  gap: space("2");
+  pointer-events: none;
+
+  @include down("sm") {
+    inset-inline: space("4");
+    inset-block-end: space("4");
+  }
+}
+
+.hrms-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: space("3");
+  min-width: 280px;
+  max-width: 420px;
+  padding: space("3") space("4");
+  border-radius: $radius;
+  background: $ink-900;
+  color: $white;
+  font-size: $fs-base;
+  box-shadow: $shadow-lg;
+  pointer-events: auto;
+
+  animation: hrms-toast-in $dur-slow $ease-out both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  svg {
+    flex: 0 0 auto;
+    width: 17px;
+    height: 17px;
+    margin-block-start: 1px;
+  }
+
+  &--success svg { color: #6ee7a8; }
+  &--error   svg { color: #fca5a5; }
+  &--info    svg { color: #93c5fd; }
+
+  &__text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__close {
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: rgba($white, 0.6);
+    padding: 0;
+    line-height: 1;
+    @include motion(color);
+
+    &:hover {
+      color: $white;
+    }
+  }
+
+  &.is-leaving {
+    animation: hrms-toast-out $dur $ease-out both;
+  }
+}
+
+@keyframes hrms-toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes hrms-toast-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px); }
+}
+
+// --------------------------------------------------------------- loading ----
+.hrms-grid-slot {
+  position: relative;
+  min-height: 220px;
+
+  &.is-loading::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba($white, 0.6);
+    backdrop-filter: blur(1px);
+    z-index: 2;
+    border-radius: $radius-lg;
+  }
+}
+
+.hrms-spinner {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 50%;
+  z-index: 3;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border: 2.5px solid $blue-100;
+  border-top-color: $blue-600;
+  border-radius: 50%;
+  opacity: 0;
+  visibility: hidden;
+  animation: hrms-spin 700ms linear infinite;
+
+  .is-loading > & {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 2s;
+  }
+}
+
+@keyframes hrms-spin {
+  to { transform: rotate(360deg); }
+}
+
+// Skeleton rows shown while a tab loads for the first time.
+.hrms-skeleton {
+  height: 12px;
+  border-radius: $radius-sm;
+  background: linear-gradient(90deg, $line-100 25%, $line-200 37%, $line-100 63%);
+  background-size: 400% 100%;
+  animation: hrms-shimmer 1.4s ease infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes hrms-shimmer {
+  from { background-position: 100% 50%; }
+  to   { background-position: 0 50%; }
+}

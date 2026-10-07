@@ -1,0 +1,40 @@
+@model PaginationModel
+@if (Model.TotalCount > 0)
+{
+    <div class="hrms-card__footer">
+        <span class="hrms-muted hrms-text-sm hrms-numeric">
+            @L["common.showing_range", Model.FirstRow.ToString("N0"), Model.LastRow.ToString("N0"), Model.TotalCount.ToString("N0")]
+        </span>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="hrms-pagination" aria-label="@L["common.pagination"]">
+                <button type="button" class="hrms-pagination__btn" data-page="@(Model.PageNumber - 1)"
+                        disabled="@(!Model.HasPrevious)" aria-label="@L["common.previous_page"]">
+                    @Html.Icon("chevron-left", 14)
+                </button>
+
+                @foreach (var pageNo in Model.Window())
+                {
+                    if (pageNo == -1)
+                    {
+                        <span class="hrms-pagination__ellipsis" aria-hidden="true">…</span>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="hrms-pagination__btn @(pageNo == Model.PageNumber ? "is-active" : null)"
+                                data-page="@pageNo"
+                                aria-label="@L["common.page_n", pageNo]"
+                                aria-current="@(pageNo == Model.PageNumber ? "page" : null)">@pageNo</button>
+                    }
+                }
+
+                <button type="button" class="hrms-pagination__btn" data-page="@(Model.PageNumber + 1)"
+                        disabled="@(!Model.HasNext)" aria-label="@L["common.next_page"]">
+                    @Html.Icon("chevron-right", 14)
+                </button>
+            </nav>
+        }
+    </div>
+}

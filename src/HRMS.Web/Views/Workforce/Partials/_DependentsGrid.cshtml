@@ -1,0 +1,80 @@
+@model IReadOnlyList<EmployeeDependent>
+@{
+    // Relationship pill colour, purely cosmetic grouping - immediate family
+    // (spouse/parents) reads as purple, children as blue, anything else muted.
+    static string RelationshipBadgeClass(string relationship) => relationship switch
+    {
+        "Spouse" or "Father" or "Mother" => "hrms-badge--purple",
+        "Son" or "Daughter"              => "hrms-badge--info",
+        _                                 => "hrms-badge--muted"
+    };
+}
+
+<div class="hrms-card">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" style="padding:1.1rem 1.25rem">
+        <h2 class="h6 mb-0">@L["emp.dependents"]</h2>
+        <button type="button" class="btn btn-primary btn-sm" data-action="add-dependent">
+            @Html.Icon("plus", 14)
+            <span>@L["emp.add_dependent"]</span>
+        </button>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="hrms-empty">
+            <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("heart", 26)</span>
+            <p class="hrms-empty__title">@L["emp.no_dependents_added_yet"]</p>
+            <p class="hrms-empty__text">@L["emp.register_a_spouse_children_or_other_dependents_u"]</p>
+        </div>
+    }
+    else
+    {
+        <div class="hrms-table-wrap">
+            <table class="hrms-table">
+                <caption class="hrms-sr-only">@L["emp.dependents"]</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">@L["emp.name"]</th>
+                        <th scope="col">@L["emp.relationship"]</th>
+                        <th scope="col">@L["emp.date_of_birth"]</th>
+                        <th scope="col">@L["emp.gender"]</th>
+                        <th scope="col">@L["emp.coverage"]</th>
+                        <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model)
+                    {
+                        <tr data-id="@row.DependentId" data-name="@row.FullName"
+                            data-fullname="@row.FullName" data-relationship="@row.Relationship"
+                            data-dob="@row.DateOfBirth?.ToString("yyyy-MM-dd")" data-gender="@row.Gender"
+                            data-coverage="@row.HasHealthInsurance.ToString().ToLowerInvariant()">
+                            <td data-label="@L.Tr("Name")"><span class="hrms-table__primary">@row.FullName</span></td>
+                            <td data-label="@L.Tr("Relationship")">
+                                <span class="hrms-badge @RelationshipBadgeClass(row.Relationship)">@L.Tr(row.Relationship)</span>
+                            </td>
+                            <td data-label="@L.Tr("Date of Birth")" class="col-date">@L.Date(row.DateOfBirth)</td>
+                            <td data-label="@L.Tr("Gender")">@(row.Gender == "M" ? L["common.male"] : row.Gender == "F" ? L["common.female"] : "—")</td>
+                            <td data-label="@L.Tr("Coverage")">
+                                @if (row.HasHealthInsurance)
+                                {
+                                    <span class="hrms-badge hrms-badge--success">@L["emp.health_insurance"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--muted">@L["emp.not_covered"]</span>
+                                }
+                            </td>
+                            <td class="hrms-table__actions">
+                                <button type="button" class="btn-icon" data-action="edit-dependent"
+                                        title="@L["common.edit"]" aria-label="@L["common.edit_named", row.FullName]">@Html.Icon("edit", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--danger" data-action="delete-dependent"
+                                        title="@L["common.delete"]" aria-label="@L["common.delete_named", row.FullName]">@Html.Icon("trash", 15)</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

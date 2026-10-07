@@ -1,0 +1,13 @@
+bin/
+obj/
+node_modules/
+*.user
+.vs/
+.vscode/
+appsettings.*.local.json
+
+# User-uploaded employee documents (Passport/Civil ID scans) - never source-controlled
+src/HRMS.Web/wwwroot/uploads/
+
+# Employee document uploads (db/22) - real ID scans, never commit
+**/App_Data/uploads/

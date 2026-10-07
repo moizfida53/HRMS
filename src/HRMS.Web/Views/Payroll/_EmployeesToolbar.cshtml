@@ -1,0 +1,29 @@
+@model bool
+@* Toolbar above the employee list (Create step 2 and the Payroll Register).
+   Model = the lines can be changed (bulk add shown). *@
+<div class="hrms-card__toolbar">
+    <div class="hrms-card__filters">
+        <label class="hrms-search" style="max-width:300px;flex:1 1 200px">
+            @Html.Icon("search", 16)
+            <input type="search" data-emp-search autocomplete="off" placeholder="@L["pr.search_employee_or_code"]" aria-label="@L["pr.search_employee_or_code"]" />
+        </label>
+        <select class="form-select" style="width:auto" data-emp-filter aria-label="@L["pr.show"]">
+            <option value="">@L["pr.all_employees"]</option>
+            <option value="added">@L["pr.with_lines_added_in_this_payroll"]</option>
+            <option value="moves">@L["pr.joiners_and_leavers"]</option>
+            <option value="missing">@L["pr.missing_salary_items"]</option>
+            <option value="changed">@L["pr.changed_vs_last_month"]</option>
+            <option value="excluded">@L["pr.excluded"]</option>
+        </select>
+        <button type="button" class="btn btn-outline-secondary" data-lines-expand-all aria-pressed="false"
+                data-text-show="@L["pr.show_all_lines"]" data-text-hide="@L["pr.hide_all_lines"]">@Html.Icon("chevron-down", 15)<span>@L["pr.show_all_lines"]</span></button>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="hrms-card__count" data-emp-count></span>
+        @if (Model)
+        {
+            <span class="hrms-muted hrms-text-sm" data-emp-selected hidden data-text="@L["pr.0_selected"]"></span>
+            <button type="button" class="btn btn-primary" data-bulk-open disabled>@Html.Icon("plus", 15)<span>@L["pr.add_line_to_selected"]</span></button>
+        }
+    </div>
+</div>

@@ -1,0 +1,34 @@
+@model PayItemSummary
+@{
+    var month = PayItemFormat.Month(L, Model.SummaryMonth);
+}
+<section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
+    <div class="hrms-card hrms-kpi">
+        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.monthly_salary"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("card", 16)</span></div>
+        <div class="hrms-kpi__value">@PayrollFormat.Money(Model.MonthlySalary)</div>
+        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_0_employees_1_salary_items", PayrollFormat.Count(Model.SalaryEmployees), PayrollFormat.Count(Model.SalaryItems)]</span></div>
+    </div>
+    <div class="hrms-card hrms-kpi">
+        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.earnings_0", month]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("percent", 16)</span></div>
+        <div class="hrms-kpi__value">@PayrollFormat.Money(Model.Earnings)</div>
+        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_0_items", PayrollFormat.Count(Model.EarningItems)]</span></div>
+    </div>
+    <div class="hrms-card hrms-kpi">
+        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.deductions_0", month]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("wallet", 16)</span></div>
+        <div class="hrms-kpi__value">@PayrollFormat.Money(Model.Deductions)</div>
+        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_0_items_pifss_not_included", PayrollFormat.Count(Model.DeductionItems)]</span></div>
+    </div>
+    <div class="hrms-card hrms-kpi">
+        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.loans_advances"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("inbox", 16)</span></div>
+        <div class="hrms-kpi__value">@PayrollFormat.Money(Model.LoanOutstanding)</div>
+        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_outstanding_0_running_1_pending", PayrollFormat.Count(Model.LoansRunning), PayrollFormat.Count(Model.LoansPending)]</span></div>
+    </div>
+</section>
+@if (Model.PendingApprovals > 0)
+{
+    <div class="pr-banner pr-banner--lock mt-3 pr-pi-pending">
+        @Html.Icon("clock", 18)
+        <div>@(Model.PendingApprovals == 1 ? L["pr.1_item_is_waiting_for_approval_it_is_not_paid_until_it_i"] : L["pr.0_items_are_waiting_for_approval_they_are_not_paid_until", PayrollFormat.Count(Model.PendingApprovals)])</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-pi-show-pending>@L["pr.show_them"]</button>
+    </div>
+}

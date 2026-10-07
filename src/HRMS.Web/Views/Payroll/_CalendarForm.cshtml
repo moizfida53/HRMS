@@ -1,0 +1,128 @@
+@using HRMS.Web.Models.Payroll
+@model CalendarFormModel
+@{
+    var c = Model.Calendar;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var monthly = c.PayFrequency == "MONTHLY";
+    var lockedAttr = Model.ScheduleLocked ? "disabled" : null;
+}
+<input type="hidden" name="PayrollCalendarId" value="@c.PayrollCalendarId" />
+@if (Model.ScheduleLocked)
+{
+    <div class="pr-banner pr-banner--lock mb-3">@Html.Icon("lock", 18)<div>@L["pr.periods_of_this_calendar_have_been_processed_so_its_comp"]</div></div>
+    <input type="hidden" name="CompanyId" value="@c.CompanyId" />
+    <input type="hidden" name="PayFrequency" value="@c.PayFrequency" />
+    <input type="hidden" name="FirstPeriodStartDate" value="@c.FirstPeriodStartDate?.ToString("yyyy-MM-dd", inv)" />
+}
+<fieldset class="hrms-fieldset">
+    <legend>@L["pr.calendar"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="cal-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="cal-company" name="@(Model.ScheduleLocked ? null : "CompanyId")" disabled="@lockedAttr">
+                @foreach (var co in Model.Companies)
+                {
+                    <option value="@co.Id" selected="@(co.Id == c.CompanyId)">@co.Text</option>
+                }
+            </select>
+            <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="cal-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="cal-code" name="CalendarCode" value="@c.CalendarCode" maxlength="30" autocomplete="off" />
+            <span class="field-validation-error" data-valmsg-for="CalendarCode"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="cal-name">@L["pr.calendar_name"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="cal-name" name="CalendarName" value="@c.CalendarName" maxlength="150" />
+            <span class="field-validation-error" data-valmsg-for="CalendarName"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="cal-ar">@L["pr.arabic_name"]</label>
+            <input class="form-control" id="cal-ar" name="ArabicName" value="@c.ArabicName" maxlength="150" dir="rtl" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="cal-freq">@L["pr.pay_frequency"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="cal-freq" name="@(Model.ScheduleLocked ? null : "PayFrequency")" data-cal-frequency disabled="@lockedAttr">
+                <option value="MONTHLY" selected="@(c.PayFrequency == "MONTHLY")">@L["pr.monthly"]</option>
+                <option value="BIWEEKLY" selected="@(c.PayFrequency == "BIWEEKLY")">@L["pr.bi_weekly"]</option>
+                <option value="WEEKLY" selected="@(c.PayFrequency == "WEEKLY")">@L["pr.weekly"]</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="cal-start">@L["pr.first_period_starts"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" type="date" id="cal-start" name="@(Model.ScheduleLocked ? null : "FirstPeriodStartDate")"
+                   value="@c.FirstPeriodStartDate?.ToString("yyyy-MM-dd", inv)" disabled="@lockedAttr" />
+            <span class="form-text">@L["pr.monthly_day_1_28_a_start_day_of_21_gives_21_sep_20_oct_o"]</span>
+            <span class="field-validation-error" data-valmsg-for="FirstPeriodStartDate"></span>
+        </div>
+    </div>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["pr.cut_off_and_pay_day"]</legend>
+    <div class="row g-3">
+        <div class="col-md-4" data-freq-monthly hidden="@(!monthly)">
+            <label class="form-label" for="cal-cut">@L["pr.cut_off_day"]</label>
+            <input class="form-control" type="number" min="1" max="31" id="cal-cut" name="CutOffDay" value="@c.CutOffDay" />
+            <span class="field-validation-error" data-valmsg-for="CutOffDay"></span>
+        </div>
+        <div class="col-md-4" data-freq-monthly hidden="@(!monthly)">
+            <label class="form-label" for="cal-pay">@L["pr.pay_day"]</label>
+            <input class="form-control" type="number" min="1" max="31" id="cal-pay" name="PaymentDay" value="@c.PaymentDay" />
+            <span class="field-validation-error" data-valmsg-for="PaymentDay"></span>
+        </div>
+        <div class="col-md-4 d-flex align-items-end" data-freq-monthly hidden="@(!monthly)">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="cal-next" name="PaymentNextMonth" value="true" checked="@c.PaymentNextMonth" />
+                <label class="form-check-label" for="cal-next">@L["pr.paid_the_following_month"]</label>
+            </div>
+        </div>
+        <div class="col-md-6" data-freq-weekly hidden="@(monthly)">
+            <label class="form-label" for="cal-cutoff">@L["pr.cut_off_days_from_period_end"]</label>
+            <input class="form-control" type="number" min="-60" max="60" id="cal-cutoff" name="CutOffOffsetDays" value="@c.CutOffOffsetDays" />
+        </div>
+        <div class="col-md-6" data-freq-weekly hidden="@(monthly)">
+            <label class="form-label" for="cal-payoff">@L["pr.payment_days_from_period_end"]</label>
+            <input class="form-control" type="number" min="-60" max="60" id="cal-payoff" name="PaymentOffsetDays" value="@c.PaymentOffsetDays" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="cal-basis">@L["pr.days_basis"]</label>
+            <select class="form-select" id="cal-basis" name="WorkingDaysBasis" data-cal-basis>
+                <option value="FIXED" selected="@(c.WorkingDaysBasis == "FIXED")">@L["pr.fixed_days_per_month"]</option>
+                <option value="CALENDAR" selected="@(c.WorkingDaysBasis == "CALENDAR")">@L["pr.calendar_days"]</option>
+                <option value="WORKING" selected="@(c.WorkingDaysBasis == "WORKING")">@L["pr.working_days"]</option>
+            </select>
+        </div>
+        <div class="col-md-6" data-basis-fixed hidden="@(c.WorkingDaysBasis != "FIXED")">
+            <label class="form-label" for="cal-days">@L["pr.days_per_month"]</label>
+            <input class="form-control" type="number" min="1" max="31" id="cal-days" name="FixedDaysPerMonth" value="@c.FixedDaysPerMonth" />
+            <span class="field-validation-error" data-valmsg-for="FixedDaysPerMonth"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="cal-cur">@L["pr.currency"]</label>
+            <select class="form-select" id="cal-cur" name="CurrencyId">
+                <option value="">@L["common.select"]</option>
+                @foreach (var cu in Model.Currencies)
+                {
+                    <option value="@cu.Id" selected="@(cu.Id == c.CurrencyId)">@cu.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="cal-desc">@L["org.description"]</label>
+            <textarea class="form-control" id="cal-desc" name="Description" rows="2" maxlength="500">@c.Description</textarea>
+        </div>
+        <div class="col-md-6">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="cal-default" name="IsDefault" value="true" checked="@c.IsDefault" />
+                <label class="form-check-label" for="cal-default">@L["pr.default_calendar_of_the_company"]</label>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="cal-active" name="IsActive" value="true" checked="@c.IsActive" />
+                <label class="form-check-label" for="cal-active">@L["org.active"]</label>
+            </div>
+        </div>
+    </div>
+</fieldset>

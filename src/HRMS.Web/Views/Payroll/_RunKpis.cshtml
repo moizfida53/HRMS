@@ -1,0 +1,64 @@
+@model PayrollRunSummary
+@{
+    var mode = ViewData["Mode"] as string ?? "register";
+    var run = (PayrollRun)ViewData["Run"]!;
+    var gross = Model.TotalSalary + Model.TotalEarnings;
+}
+@if (mode == "create")
+{
+    <section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["common.employees"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("users", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(Model.EmployeeCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.0_full_period_1_joined_2_leaving", Model.FullPeriodCount, Model.JoinerCount, Model.LeaverCount]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.salary"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("card", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Money(Model.TotalSalary)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_salary_items_prorated"]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.earnings"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("percent", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Money(Model.TotalEarnings)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_overtime_bonus_commission"]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.deductions"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("wallet", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Money(Model.TotalDeductions)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_pifss_loans_absence"]</span></div>
+        </div>
+    </section>
+    <div class="pr-run-added mt-3">
+        @Html.Icon("info", 16)
+        <span>
+            <strong>@L["pr.0_lines_added_in_this_payroll", Model.AddedLineCount]</strong>:
+            <span class="pr-pos">+@PayrollFormat.Money(Model.AddedPlus)</span> / <span class="pr-neg">-@PayrollFormat.Money(Model.AddedMinus)</span> @L["pr.kwd"].
+            <span class="hrms-muted">@L["pr.lines_added_here_belong_to_this_payroll_only_recurring_i"]</span>
+        </span>
+    </div>
+}
+else
+{
+    <section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["common.employees"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("users", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(Model.EmployeeCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.0_excluded_1_joined_2_leaving", Model.ExcludedCount, Model.JoinerCount, Model.LeaverCount]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.gross"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("card", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Money(gross)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_salary_0_earnings_1", PayrollFormat.Money(Model.TotalSalary), PayrollFormat.Money(Model.TotalEarnings)]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.deductions"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("wallet", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Money(Model.TotalDeductions)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_pifss_0_loans_1", PayrollFormat.Money(Model.PifssAmount), PayrollFormat.Money(Model.LoanAmount)]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.net_pay"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("bank", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Money(Model.TotalNet)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_calculated_0", L.Date(run.CalculatedDate)]</span></div>
+        </div>
+    </section>
+}

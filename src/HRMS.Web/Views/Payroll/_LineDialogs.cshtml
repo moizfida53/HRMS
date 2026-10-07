@@ -1,0 +1,40 @@
+@* "Add line to selected employees" - the item types are filled by payroll.js from the first loaded line form. *@
+<div class="modal fade" id="bulk-line-modal" tabindex="-1" aria-hidden="true" aria-labelledby="bulk-line-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" data-bulk-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="bulk-line-title">@L["pr.add_line_to_selected_employees"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="hrms-muted hrms-text-sm mb-3" data-bulk-intro data-text="@L["pr.the_same_line_is_added_to_0_selected_employees_in_this_p"]"></p>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="bulk-cls">@L["pr.class"] <span class="req" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="bulk-cls" data-bulk-cls>
+                            <option value="EARNING">@L["pr.earning"]</option>
+                            <option value="DEDUCTION">@L["pr.deduction"]</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="bulk-type">@L["pr.item_type"] <span class="req" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="bulk-type" data-bulk-type></select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="bulk-amt">@L["pr.amount_kwd"] <span class="req" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="bulk-amt" data-bulk-amt inputmode="decimal" placeholder="0.000" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="bulk-com">@L["pr.comment"] <span class="req" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="bulk-com" data-bulk-com maxlength="500" placeholder="@L["pr.comment_why_is_it_paid_or_deducted"]" />
+                    </div>
+                </div>
+                <span class="field-validation-error" data-bulk-error hidden>@L["pr.enter_an_amount_and_a_comment"]</span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="submit" class="btn btn-primary" data-bulk-add>@Html.Icon("plus", 15)<span>@L["pr.add_line"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>

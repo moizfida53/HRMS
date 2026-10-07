@@ -1,0 +1,150 @@
+// ============================================================================
+// HRMS Kuwait - Arabic (RTL) and the language toggle
+// ----------------------------------------------------------------------------
+// The layout sets <html lang="ar" dir="rtl"> and swaps in bootstrap.rtl.css
+// for Arabic. The app's own SCSS already uses logical properties
+// (margin-inline-start, inset-inline-end ...), so most of the UI mirrors on
+// its own; this file holds what logical properties cannot express.
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+$font-arabic-text: "Noto Sans Arabic", "Public Sans", "Segoe UI", Tahoma, sans-serif;
+$font-arabic-display: "Noto Kufi Arabic", "Noto Sans Arabic", "Lexend", "Segoe UI", Tahoma, sans-serif;
+
+// --------------------------------------------------------- language toggle ---
+.hrms-lang-toggle {
+  display: inline-flex;
+  margin: 0;
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: space("2");
+    height: 38px;
+    padding: 0 space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $white;
+    color: $ink-700;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    white-space: nowrap;
+    cursor: pointer;
+    @include motion(background-color, border-color, color);
+    @include focus-ring;
+
+    &:hover {
+      background: $surface;
+      border-color: $line-300;
+      color: $ink-900;
+    }
+
+    // The label is always in the OTHER language - give it that script's font.
+    &[lang="ar"] span { font-family: $font-arabic-text; }
+    &[lang="en"] span { font-family: $font-sans; }
+  }
+
+  &__text--short {
+    display: none;
+  }
+
+  // Narrow top bars (phones, and zoomed desktops between 992 and 1279 px)
+  // show the short form: "ع" / "EN".
+  @include down("md") {
+    &__text--long { display: none; }
+    &__text--short { display: inline; }
+  }
+
+  @media (min-width: 992px) and (max-width: 1279.98px) {
+    &__text--long { display: none; }
+    &__text--short { display: inline; }
+  }
+}
+
+// Sign-in page: top corner of the form panel.
+.hrms-auth__lang {
+  position: absolute;
+  inset-block-start: space("5");
+  inset-inline-end: space("5");
+  z-index: 2;
+}
+
+.hrms-auth__panel {
+  position: relative;
+}
+
+// --------------------------------------------------------------------- RTL ---
+[dir="rtl"] {
+  body {
+    font-family: $font-arabic-text;
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .hrms-display,
+  .hrms-kpi__value,
+  .hrms-auth__hero-title {
+    font-family: $font-arabic-display;
+  }
+
+  // Arabic is a joined script: letter-spacing breaks the joins and there is
+  // no upper case, so the small-caps label style becomes plain bold text.
+  *,
+  *::before,
+  *::after {
+    letter-spacing: normal !important;
+  }
+
+  .hrms-kpi__label,
+  .hrms-table th,
+  .hrms-sidebar__group-label,
+  .hrms-nav-group__toggle,
+  .form-label {
+    text-transform: none;
+  }
+
+  .hrms-table th {
+    font-size: $fs-xs;
+  }
+
+  // Arrows that mean "next / back" point the other way.
+  .hrms-flip-rtl {
+    transform: scaleX(-1);
+  }
+
+  // Values that are always Latin (codes, e-mail, phone, IBAN, URLs) keep
+  // left-to-right order inside the Arabic page.
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[data-code-field],
+  input[name*="Iban"],
+  input[name*="Email"],
+  .hrms-code-chip,
+  .hrms-ltr {
+    direction: ltr;
+    unicode-bidi: plaintext;
+  }
+
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[data-code-field],
+  input[name*="Iban"],
+  input[name*="Email"] {
+    text-align: right;
+  }
+
+  // Charts are drawn in SVG coordinates; keep their text anchoring as drawn.
+  .hrms-chart svg {
+    direction: ltr;
+  }
+
+  // Number + unit pairs ("KD 250K", "25%") stay in reading order.
+  .hrms-kpi__delta,
+  .hrms-figures dd,
+  .hrms-numeric {
+    unicode-bidi: isolate;
+  }
+}

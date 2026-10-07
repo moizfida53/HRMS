@@ -1,0 +1,104 @@
+@model RunLinesModel
+@{
+    string Cls(string c) => c switch
+    {
+        "SALARY" => L["pr.salary"], "EARNING" => L["pr.earning"], "DEDUCTION" => L["pr.deduction"],
+        "LOAN" => L["pr.loan_advance"], _ => L["pr.statutory"]
+    };
+    string Badge(string c) => c switch { "SALARY" => "info", "EARNING" => "success", "DEDUCTION" => "warning", "LOAN" => "purple", _ => "muted" };
+    string Src(string s) => s switch
+    {
+        "SALARY" => L["pr.salary_item"], "PROFILE" => L["pr.employee_profile"], "PAY_ITEM" => L["pr.pay_item"],
+        "LOAN" => L["pr.loan_advance"], "STATUTORY" => L["pr.calculated"], _ => L["pr.added_in_this_payroll"]
+    };
+}
+@if (Model.IsExcluded)
+{
+    <div class="pr-banner pr-banner--lock">@Html.Icon("lock", 18)<div><strong>@L["pr.excluded_from_this_payroll_2"]</strong> @Model.ExcludeReason
+        @if (Model.Editable)
+        {
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-2" data-emp-include="@Model.EmployeeId">@L["pr.include_again"]</button>
+        }
+    </div></div>
+}
+else
+{
+    @if (!Model.HasSalary && Model.Run.RunType == RunType.Regular)
+    {
+        <div class="pr-banner pr-banner--err">@Html.Icon("x-circle", 18)<div><strong>@L["pr.no_salary_items_2"]</strong> @L["pr.add_basic_salary_and_allowances_on_pay_items_or_the_sala"]
+            <a class="ms-1" href="@Url.Action("Index", "PayItems", new { emp = Model.EmployeeId })" target="_blank" rel="noopener">@L["pr.open_pay_items"]</a></div></div>
+    }
+    @if (Model.Lines.Count > 0)
+    {
+        <table class="pr-lines__table">
+            <thead>
+                <tr>
+                    <th scope="col">@L["pr.class"]</th>
+                    <th scope="col">@L["pr.item_type"]</th>
+                    <th scope="col">@L["pr.comment"]</th>
+                    <th scope="col">@L["pr.source"]</th>
+                    <th scope="col" class="pr-money">@L["pr.amount_kwd"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model.Lines)
+                {
+                    var comp = L.IsArabic && !string.IsNullOrWhiteSpace(l.ComponentArabicName) ? l.ComponentArabicName : l.ComponentName;
+                    <tr>
+                        <td data-label="@L["pr.class"]"><span class="hrms-badge hrms-badge--@Badge(l.ItemClass)"><span class="hrms-badge__dot"></span>@Cls(l.ItemClass)</span></td>
+                        <td data-label="@L["pr.item_type"]" class="hrms-nowrap">@comp</td>
+                        <td data-label="@L["pr.comment"]" class="pr-line-comment">
+                            @(string.IsNullOrWhiteSpace(l.Comment) ? "—" : L.Tr(l.Comment))
+                            @if (l.InstalmentNo is { } n)
+                            {
+                                <span class="pr-emp-sub">@(l.InstalmentCount is { } total ? L["pr.instalment_0_of_1", n, total] : L["pr.instalment_0", n])</span>
+                            }
+                        </td>
+                        <td data-label="@L["pr.source"]"><span class="pr-line-src @(l.IsAddedInRun ? "is-new" : null)">@Src(l.Source)</span></td>
+                        <td data-label="@L["pr.amount_kwd"]" class="pr-money @(l.Amount < 0 ? "pr-neg" : null)">@PayrollFormat.Money(l.Amount)</td>
+                        <td class="pr-line-act">
+                            @if (Model.Editable && l.IsAddedInRun)
+                            {
+                                <button type="button" class="btn-icon btn-icon--danger" data-line-remove="@l.RunLineId" title="@L["emp.remove"]" aria-label="@L["common.remove_named", comp]">@Html.Icon("trash", 14)</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="hrms-muted hrms-text-sm mb-0">@L["pr.no_lines_for_this_employee_in_this_payroll"]</p>
+    }
+    @if (Model.Editable)
+    {
+        <div class="pr-line-add" data-line-add="@Model.EmployeeId">
+            <select class="form-select form-select-sm" data-add-cls aria-label="@L["pr.class"]">
+                <option value="EARNING">@L["pr.earning"]</option>
+                <option value="DEDUCTION">@L["pr.deduction"]</option>
+            </select>
+            <select class="form-select form-select-sm" data-add-type aria-label="@L["pr.item_type"]">
+                @foreach (var c in Model.Components)
+                {
+                    <option value="@c.PayComponentId" data-cls="@c.ItemClass">@(L.IsArabic && !string.IsNullOrWhiteSpace(c.ArabicName) ? c.ArabicName : c.ComponentName)</option>
+                }
+            </select>
+            <input class="form-control form-control-sm pr-input-cell" data-add-amt inputmode="decimal" placeholder="0.000" aria-label="@L["pr.amount_kwd"]" />
+            <input class="form-control form-control-sm" data-add-com maxlength="500" placeholder="@L["pr.comment_why_is_it_paid_or_deducted"]" aria-label="@L["pr.comment"]" />
+            <button type="button" class="btn btn-sm btn-primary" data-add-line>@Html.Icon("plus", 14)<span>@L["pr.add_line"]</span></button>
+        </div>
+        <div>
+            <button type="button" class="btn btn-sm btn-link px-0 text-danger"
+                    data-reason-open
+                    data-reason-url="@Url.Action("Exclude", "Payroll", new { run = Model.Run.PayrollRunId, employeeId = Model.EmployeeId })"
+                    data-reason-title="@L["pr.exclude_from_this_payroll"]"
+                    data-reason-text="@L["pr.the_employee_stays_listed_with_your_reason_and_is_not_pa"]"
+                    data-reason-label="@L["pr.reason"]"
+                    data-reason-placeholder="@L["pr.why_is_the_employee_excluded"]"
+                    data-reason-button="@L["pr.exclude"]"
+                    data-reason-refresh="employees">@Html.Icon("x-circle", 14)<span>@L["pr.exclude_from_this_payroll"]</span></button>
+        </div>
+    }
+}

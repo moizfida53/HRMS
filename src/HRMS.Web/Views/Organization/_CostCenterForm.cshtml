@@ -1,0 +1,86 @@
+@model FormViewModel<CostCenter>
+
+<form id="record-form" data-tab="@Model.Tab.Key" novalidate>
+    <div class="modal-header">
+        <h2 class="modal-title h5" id="record-modal-title">@(Model.IsNew ? L["common.add_named", L.Tr(Model.Tab.Singular)] : L["common.edit_named", L.Tr(Model.Tab.Singular)])</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+    </div>
+
+    <div class="modal-body">
+        <input type="hidden" name="CostCenterId" value="@Model.Model.CostCenterId" />
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.identity"]</legend>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label" for="f-CompanyId">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="f-CompanyId" name="CompanyId" required>
+                        <option value="">@L["common.select"]</option>
+                        @foreach (var item in Model.Lookup(LookupType.Company))
+                        {
+                            <option value="@item.Id" selected="@(Model.Model.CompanyId == item.Id)">@item.Text</option>
+                        }
+                    </select>
+                    <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="f-CostCenterCode">@L["org.cost_center_code"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="f-CostCenterCode" name="CostCenterCode" type="text"
+                           value="@Model.Model.CostCenterCode" maxlength="50" required
+                           autocomplete="off" spellcheck="false"
+                           data-code-field data-scope-field="CompanyId" />
+                    <span class="form-text">@L["org.letters_numbers_hyphen_or_underscore_must_be_uni"]</span>
+                    <span class="field-validation-error" data-valmsg-for="CostCenterCode"></span>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="f-CostCenterName">@L["org.cost_center_name"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="f-CostCenterName" name="CostCenterName" type="text"
+                           value="@Model.Model.CostCenterName" maxlength="150" required />
+                    <span class="field-validation-error" data-valmsg-for="CostCenterName"></span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["org.structure"]</legend>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label" for="f-ParentCostCenterId">@L["org.rolls_up_to"]</label>
+                    <select class="form-select" id="f-ParentCostCenterId" name="ParentCostCenterId">
+                        <option value="">@L["org.top_level"]</option>
+                        @foreach (var item in Model.Lookup(LookupType.CostCenter))
+                        {
+                            <option value="@item.Id" selected="@(Model.Model.ParentCostCenterId == item.Id)">@item.Text</option>
+                        }
+                    </select>
+                    <span class="form-text">@L["org.leave_blank_for_a_top_level_cost_center"]</span>
+                    <span class="field-validation-error" data-valmsg-for="ParentCostCenterId"></span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.status"]</legend>
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="f-IsActive" name="IsActive" value="true" checked="@Model.Model.IsActive" />
+                        <input type="hidden" name="IsActive" value="false" />
+                        <label class="form-check-label" for="f-IsActive">@L["org.active"]</label>
+                    </div>
+                    <span class="form-text">@L["org.inactive_records_stay_in_the_system_and_in_histo"]</span>
+                </div>
+            </div>
+        </fieldset>
+
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+        <button type="submit" class="btn btn-primary" data-submit>
+            @Html.Icon("check", 15)
+            <span>@(Model.IsNew ? L["common.create"] : L["common.save_changes"])</span>
+        </button>
+    </div>
+</form>

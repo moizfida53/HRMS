@@ -1,0 +1,58 @@
+// ============================================================================
+// HRMS Kuwait - small utilities not covered by Bootstrap
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+.hrms-muted      { color: $ink-500 !important; }
+.hrms-subtle     { color: $ink-400 !important; }
+.hrms-strong     { color: $ink-900 !important; font-weight: $fw-semibold; }
+.hrms-numeric    { font-variant-numeric: tabular-nums; }
+.hrms-truncate   { @include truncate; }
+.hrms-nowrap     { white-space: nowrap; }
+
+.hrms-text-xs    { font-size: $fs-xs !important; }
+.hrms-text-sm    { font-size: $fs-sm !important; }
+
+.hrms-sr-only    { @include visually-hidden; }
+
+// Arabic content inside an otherwise LTR page.
+.hrms-arabic {
+  font-family: $font-arabic;
+  direction: rtl;
+  unicode-bidi: isolate;
+}
+
+// A dependency count shown next to a row - dimmed when zero so the eye skips it.
+.hrms-count {
+  font-variant-numeric: tabular-nums;
+  color: $ink-600;
+
+  &.is-zero {
+    color: $ink-300;
+  }
+}
+
+// Print: drop the chrome, keep the data.
+@media print {
+  .hrms-sidebar,
+  .hrms-topbar,
+  .hrms-tabs,
+  .hrms-card__toolbar,
+  .hrms-card__footer,
+  .hrms-page-head__actions,
+  .hrms-table__actions,
+  .hrms-toast-host {
+    display: none !important;
+  }
+
+  .hrms-main { margin-inline-start: 0 !important; }
+  .hrms-content { padding: 0 !important; }
+  .hrms-card { border: 0; box-shadow: none; }
+
+  .hrms-table {
+    th, td { padding: 6px 8px; font-size: 10pt; }
+    th { background: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
+  }
+}

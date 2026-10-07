@@ -1,0 +1,65 @@
+@model RunPageModel
+@{
+    ViewData["Title"] = "Payroll Processing";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "processing";
+    ViewData["Subtitle"] = L["pr.review_the_calculated_payroll_then_complete_registration"];
+    var run = Model.Run;
+    var editable = Model.IsEditable;
+}
+@await Html.PartialAsync("_Tabs", "register")
+
+@if (run is null)
+{
+    @await Html.PartialAsync("_NoRun")
+}
+else
+{
+    <div class="pr-stack" data-pr-page="register">
+        @await Html.PartialAsync("_RunBar", Model.Bar)
+        @if (run.Stage != RunStage.Registered)
+        {
+            <div class="pr-banner pr-banner--lock">@Html.Icon("lock", 18)<div>
+                <strong>@(run.IsCancelled ? L["pr.this_payroll_is_cancelled"] : L["pr.registration_is_complete"])</strong>
+                @(run.IsCancelled ? L["pr.it_keeps_its_number_and_is_read_only"] : L["pr.the_register_is_read_only_go_back_from_validation_to_cha"])
+            </div></div>
+        }
+        <div data-kpis-slot data-mode="register">@await Html.PartialAsync("_RunKpis", Model.Summary, new ViewDataDictionary(ViewData) { ["Mode"] = "register", ["Run"] = run })</div>
+        <div class="hrms-card" data-employees data-mode="register">
+            @await Html.PartialAsync("_EmployeesToolbar", editable)
+            <div data-employees-slot><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+        </div>
+        <div data-excluded-slot></div>
+    </div>
+
+    @if (run.Stage == RunStage.Registered && Model.CanProcess)
+    {
+        <div class="pr-actionbar">
+            <div class="pr-actionbar__status">
+                <span class="hrms-badge hrms-badge--info"><span class="hrms-badge__dot"></span>@L["pr.registered"]</span>
+                <span>@L["pr.calculated_0", L.Date(run.CalculatedDate)]</span>
+            </div>
+            <div class="pr-actionbar__spacer"></div>
+            <span class="pr-actionbar__note">@L["pr.next_validation_checks"]</span>
+            <button type="button" class="btn btn-outline-secondary" data-run-recalc>@Html.Icon("refresh", 15)<span>@L["pr.recalculate_all"]</span></button>
+            <a class="btn btn-outline-secondary" href="@Url.Action("Export", "Payroll", new { run = run.PayrollRunId })">@Html.Icon("download", 15)<span>@L["common.export"]</span></a>
+            <button type="button" class="btn btn-primary" data-run-stage="@RunStage.Validation">@Html.Icon("step-check", 15)<span>@L["pr.complete_registration"]</span></button>
+        </div>
+    }
+    else
+    {
+        <div class="pr-actionbar">
+            <div class="pr-actionbar__status"><span class="hrms-badge hrms-badge--@RunStage.Badge(run.Stage)"><span class="hrms-badge__dot"></span>@L.Tr(RunStage.Label(run.Stage))</span></div>
+            <div class="pr-actionbar__spacer"></div>
+            <a class="btn btn-outline-secondary" href="@Url.Action("Export", "Payroll", new { run = run.PayrollRunId })">@Html.Icon("download", 15)<span>@L["common.export"]</span></a>
+        </div>
+    }
+
+    @await Html.PartialAsync("_RunUrls", run)
+    @await Html.PartialAsync("_LineDialogs")
+}
+@await Html.PartialAsync("_Modals")
+
+@section Scripts {
+    <script src="~/js/payroll.js" asp-append-version="true"></script>
+}

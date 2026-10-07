@@ -1,0 +1,26 @@
+@model EmployeeGridViewModel
+<div class="hrms-empty">
+    <span class="hrms-empty__icon" aria-hidden="true">
+        @Html.Icon(Model.IsFiltered ? "search" : "users", 26)
+    </span>
+
+    @if (Model.IsFiltered)
+    {
+        <p class="hrms-empty__title">@L["emp.no_matching_employees"]</p>
+        <p class="hrms-empty__text">
+            @L["emp.nothing_matches_the_current_search_and_filter_tr"]
+        </p>
+        <button type="button" class="btn btn-outline-secondary" data-action="clear-filters">
+            @L["common.clear_filters"]
+        </button>
+    }
+    else
+    {
+        <p class="hrms-empty__title">@L["emp.no_employees_yet"]</p>
+        <p class="hrms-empty__text">@L["emp.add_the_first_employee_to_get_started"]</p>
+        <a class="btn btn-primary" asp-controller="Employees" asp-action="Add">
+            @Html.Icon("plus", 15)
+            <span>@L["emp.add_employee"]</span>
+        </a>
+    }
+</div>

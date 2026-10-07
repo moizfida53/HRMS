@@ -1,0 +1,355 @@
+using HRMS.Data.Infrastructure;
+using HRMS.Data.Repositories;
+using HRMS.Domain.Common;
+using HRMS.Domain.Organization;
+using HRMS.Web.Models.Organization;
+using HRMS.Web.Security;
+using Microsoft.AspNetCore.Mvc;
+
+namespace HRMS.Web.Controllers;
+
+/// <summary>
+/// Organization Setup - one page, eight tabs, every panel loaded over AJAX.
+/// <para>
+/// The eight masters differ only in their entity type, so the read/write plumbing
+/// lives in four private generics at the bottom of this file and each public
+/// action is a dispatch table. Adding a ninth master adds one line per switch.
+/// </para>
+/// </summary>
+[Route("organization")]
+public sealed class OrganizationController : Controller
+{
+    private readonly ICompanyRepository _companies;
+    private readonly IBranchRepository _branches;
+    private readonly IDepartmentRepository _departments;
+    private readonly ISectionRepository _sections;
+    private readonly IDesignationRepository _designations;
+    private readonly IJobPositionRepository _jobPositions;
+    private readonly ILocationRepository _locations;
+    private readonly ICostCenterRepository _costCenters;
+    private readonly ILookupRepository _lookups;
+    private readonly ICurrentUser _currentUser;
+    private readonly ICompanyFilter _companyFilter;
+    private readonly ILogger<OrganizationController> _logger;
+
+    public OrganizationController(
+        ICompanyRepository companies,
+        IBranchRepository branches,
+        IDepartmentRepository departments,
+        ISectionRepository sections,
+        IDesignationRepository designations,
+        IJobPositionRepository jobPositions,
+        ILocationRepository locations,
+        ICostCenterRepository costCenters,
+        ILookupRepository lookups,
+        ICurrentUser currentUser,
+        ICompanyFilter companyFilter,
+        ILogger<OrganizationController> logger)
+    {
+        _companies = companies;
+        _branches = branches;
+        _departments = departments;
+        _sections = sections;
+        _designations = designations;
+        _jobPositions = jobPositions;
+        _locations = locations;
+        _costCenters = costCenters;
+        _lookups = lookups;
+        _currentUser = currentUser;
+        _companyFilter = companyFilter;
+        _logger = logger;
+    }
+
+    private CancellationToken Ct => HttpContext.RequestAborted;
+
+    /// <summary>Company pre-selected on a new record: the user's own, else the one picked in the top-bar filter.</summary>
+    private int DefaultCompanyId => _currentUser.ActiveCompanyId ?? _companyFilter.SingleCompanyId ?? 0;
+
+    // =======================================================================
+    // Shell
+    // =======================================================================
+
+    // "/" used to be mapped here; it now belongs to DashboardController (the
+    // landing page). This screen lives at /organization.
+    [HttpGet("")]
+    [HttpGet("index")]
+    public IActionResult Index(string? tab)
+    {
+        var model = new OrganizationIndexViewModel
+        {
+            ActiveTab = OrganizationTabs.Resolve(tab)
+        };
+
+        return View(model);
+    }
+
+    // =======================================================================
+    // Grid - returns the table partial for one tab
+    // =======================================================================
+
+    [HttpGet("grid")]
+    public Task<IActionResult> Grid(string tab, [FromQuery] GridRequest request)
+    {
+        var descriptor = OrganizationTabs.Resolve(tab);
+
+        // Scope every grid to the user's active company once they have one.
+        request.CompanyId ??= _currentUser.ActiveCompanyId;
+
+        // Top-bar company filter (cookie). Companies tab ignores it (Core.usp_Company_Manage
+        // accepts but does not apply @CompanyIds) so every company stays listed there.
+        request.CompanyIds = _companyFilter.Csv;
+
+        return descriptor.Key switch
+        {
+            OrganizationTabs.Companies    => GridAsync(_companies,    descriptor, request),
+            OrganizationTabs.Branches     => GridAsync(_branches,     descriptor, request),
+            OrganizationTabs.Departments  => GridAsync(_departments,  descriptor, request),
+            OrganizationTabs.Sections     => GridAsync(_sections,     descriptor, request),
+            OrganizationTabs.Designations => GridAsync(_designations, descriptor, request),
+            OrganizationTabs.JobPositions => GridAsync(_jobPositions, descriptor, request),
+            OrganizationTabs.Locations    => GridAsync(_locations,    descriptor, request),
+            OrganizationTabs.CostCenters  => GridAsync(_costCenters,  descriptor, request),
+            _ => GridAsync(_companies, OrganizationTabs.All[0], request)
+        };
+    }
+
+    // =======================================================================
+    // Form - returns the add/edit partial, with its dropdowns pre-loaded
+    // =======================================================================
+
+    [HttpGet("form")]
+    public async Task<IActionResult> Form(string tab, long id = 0)
+    {
+        var descriptor = OrganizationTabs.Resolve(tab);
+        var isNew = id <= 0;
+
+        return descriptor.Key switch
+        {
+            OrganizationTabs.Companies => await FormAsync(
+                _companies, descriptor, id,
+                () => new Company(),
+                [LookupType.Country, LookupType.Currency]),
+
+            OrganizationTabs.Branches => await FormAsync(
+                _branches, descriptor, id,
+                () => new Branch { CompanyId = DefaultCompanyId },
+                [LookupType.Company, LookupType.Governorate]),
+
+            OrganizationTabs.Departments => await FormAsync(
+                _departments, descriptor, id,
+                () => new Department { CompanyId = DefaultCompanyId },
+                [LookupType.Company, LookupType.Department, LookupType.CostCenter]),
+
+            OrganizationTabs.Sections => await FormAsync(
+                _sections, descriptor, id,
+                () => new Section(),
+                [LookupType.Company, LookupType.Department]),
+
+            OrganizationTabs.Designations => await FormAsync(
+                _designations, descriptor, id,
+                () => new Designation { CompanyId = DefaultCompanyId },
+                [LookupType.Company, LookupType.Grade]),
+
+            OrganizationTabs.JobPositions => await FormAsync(
+                _jobPositions, descriptor, id,
+                () => new JobPosition { CompanyId = DefaultCompanyId },
+                [LookupType.Company, LookupType.Grade]),
+
+            OrganizationTabs.Locations => await FormAsync(
+                _locations, descriptor, id,
+                () => new Location { CompanyId = DefaultCompanyId },
+                [LookupType.Company, LookupType.Branch, LookupType.Governorate]),
+
+            OrganizationTabs.CostCenters => await FormAsync(
+                _costCenters, descriptor, id,
+                () => new CostCenter { CompanyId = DefaultCompanyId },
+                [LookupType.Company, LookupType.CostCenter]),
+
+            _ => NotFound()
+        };
+    }
+
+    // =======================================================================
+    // Write actions
+    // =======================================================================
+
+    [HttpPost("save")]
+    public Task<IActionResult> Save(string tab) =>
+        OrganizationTabs.Resolve(tab).Key switch
+        {
+            OrganizationTabs.Companies    => SaveAsync<Company>(_companies),
+            OrganizationTabs.Branches     => SaveAsync<Branch>(_branches),
+            OrganizationTabs.Departments  => SaveAsync<Department>(_departments),
+            OrganizationTabs.Sections     => SaveAsync<Section>(_sections),
+            OrganizationTabs.Designations => SaveAsync<Designation>(_designations),
+            OrganizationTabs.JobPositions => SaveAsync<JobPosition>(_jobPositions),
+            OrganizationTabs.Locations    => SaveAsync<Location>(_locations),
+            OrganizationTabs.CostCenters  => SaveAsync<CostCenter>(_costCenters),
+            _ => Task.FromResult<IActionResult>(BadRequest())
+        };
+
+    [HttpPost("delete")]
+    public Task<IActionResult> Delete(string tab, long id) =>
+        OrganizationTabs.Resolve(tab).Key switch
+        {
+            OrganizationTabs.Companies    => WriteAsync(ct => _companies.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Branches     => WriteAsync(ct => _branches.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Departments  => WriteAsync(ct => _departments.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Sections     => WriteAsync(ct => _sections.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Designations => WriteAsync(ct => _designations.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.JobPositions => WriteAsync(ct => _jobPositions.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Locations    => WriteAsync(ct => _locations.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.CostCenters  => WriteAsync(ct => _costCenters.DeleteAsync(id, _currentUser.UserId, ct)),
+            _ => Task.FromResult<IActionResult>(BadRequest())
+        };
+
+    [HttpPost("toggle")]
+    public Task<IActionResult> Toggle(string tab, long id) =>
+        OrganizationTabs.Resolve(tab).Key switch
+        {
+            OrganizationTabs.Companies    => WriteAsync(ct => _companies.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Branches     => WriteAsync(ct => _branches.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Departments  => WriteAsync(ct => _departments.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Sections     => WriteAsync(ct => _sections.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Designations => WriteAsync(ct => _designations.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.JobPositions => WriteAsync(ct => _jobPositions.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Locations    => WriteAsync(ct => _locations.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.CostCenters  => WriteAsync(ct => _costCenters.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            _ => Task.FromResult<IActionResult>(BadRequest())
+        };
+
+    // =======================================================================
+    // Shared endpoints
+    // =======================================================================
+
+    /// <summary>Feeds cascading dropdowns. Read-only, so no anti-forgery token needed.</summary>
+    [HttpGet("lookup")]
+    public async Task<IActionResult> Lookup(string type, int? companyId, int? parentId, bool includeInactive = false)
+    {
+        try
+        {
+            var items = await _lookups.GetAsync(type, companyId, parentId, includeInactive, Ct);
+            return Json(items);
+        }
+        catch (ArgumentException)
+        {
+            // Unknown lookup type - a wiring mistake, not something to leak detail about.
+            return BadRequest();
+        }
+    }
+
+    /// <summary>Inline uniqueness check fired when the user leaves the Code field.</summary>
+    [HttpGet("check-duplicate")]
+    public async Task<IActionResult> CheckDuplicate(string tab, string? code, long id = 0, int? scopeId = null)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return Json(new { isDuplicate = false });
+        }
+
+        var descriptor = OrganizationTabs.Resolve(tab);
+
+        var isDuplicate = await _lookups.IsDuplicateCodeAsync(
+            descriptor.DuplicateEntity, code, id, scopeId, Ct);
+
+        return Json(new { isDuplicate });
+    }
+
+    // =======================================================================
+    // Private generics - the actual work, written once
+    // =======================================================================
+
+    private async Task<IActionResult> GridAsync<T>(
+        IMasterRepository<T> repository,
+        OrgTab tab,
+        GridRequest request) where T : class
+    {
+        var page = await repository.ListAsync(request, Ct);
+
+        return PartialView(tab.GridPartial, new GridViewModel<T>
+        {
+            Tab = tab,
+            Page = page,
+            Request = request
+        });
+    }
+
+    private async Task<IActionResult> FormAsync<T>(
+        IMasterRepository<T> repository,
+        OrgTab tab,
+        long id,
+        Func<T> createNew,
+        string[] lookupTypes) where T : class
+    {
+        var isNew = id <= 0;
+        T? model = isNew ? createNew() : await repository.GetByIdAsync(id, Ct);
+
+        if (model is null)
+        {
+            return NotFound();
+        }
+
+        var lookups = new Dictionary<string, IReadOnlyList<LookupItem>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var type in lookupTypes)
+        {
+            // includeInactive on edit, so a value pointing at a deactivated row
+            // does not silently disappear from its dropdown.
+            lookups[type] = await _lookups.GetAsync(
+                type,
+                companyId: null,
+                parentId: null,
+                includeInactive: !isNew,
+                cancellationToken: Ct);
+        }
+
+        return PartialView(tab.FormPartial, new FormViewModel<T>
+        {
+            Tab = tab,
+            Model = model,
+            IsNew = isNew,
+            Lookups = lookups
+        });
+    }
+
+    private async Task<IActionResult> SaveAsync<T>(IMasterRepository<T> repository)
+        where T : class, new()
+    {
+        var model = new T();
+
+        // Binds the posted form to a fresh instance and runs data annotations.
+        if (!await TryUpdateModelAsync(model))
+        {
+            return Json(ActionResponse.Invalid(CollectErrors()));
+        }
+
+        var result = await repository.SaveAsync(model, _currentUser.UserId, Ct);
+
+        if (!result.Success)
+        {
+            _logger.LogInformation(
+                "Save of {Entity} rejected by the database with {Code}.",
+                typeof(T).Name, result.ErrorCode);
+        }
+
+        return Json(result.Success
+            ? ActionResponse.Ok(result.Id, result.Message)
+            : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    private async Task<IActionResult> WriteAsync(Func<CancellationToken, Task<SaveResult>> operation)
+    {
+        var result = await operation(Ct);
+
+        return Json(result.Success
+            ? ActionResponse.Ok(result.Id, result.Message)
+            : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    private Dictionary<string, string[]> CollectErrors() =>
+        ModelState
+            .Where(entry => entry.Value?.Errors.Count > 0)
+            .ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
+}

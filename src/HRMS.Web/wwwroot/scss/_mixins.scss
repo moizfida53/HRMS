@@ -1,0 +1,183 @@
+// ============================================================================
+// HRMS Kuwait - mixins and functions
+// ============================================================================
+
+@use "sass:map";
+@use "sass:color";
+@use "tokens" as *;
+
+// ---------------------------------------------------------- breakpoints ----
+// Mobile-first. `up` opens at the breakpoint, `down` closes just below it,
+// so the two never overlap on the boundary pixel.
+
+@mixin up($name) {
+  @if not map.has-key($bp, $name) {
+    @error "Unknown breakpoint '#{$name}'.";
+  }
+  @media (min-width: map.get($bp, $name)) {
+    @content;
+  }
+}
+
+@mixin down($name) {
+  @if not map.has-key($bp, $name) {
+    @error "Unknown breakpoint '#{$name}'.";
+  }
+  @media (max-width: (map.get($bp, $name) - 0.02px)) {
+    @content;
+  }
+}
+
+// Container queries against the main content column (.hrms-content).
+@mixin cq-up($name) {
+  @container content (min-width: #{map.get($cq, $name)}) {
+    @content;
+  }
+}
+
+@mixin cq-down($name) {
+  @container content (max-width: #{map.get($cq, $name) - 0.02px}) {
+    @content;
+  }
+}
+
+// Short viewports: a 1080p laptop at 150 % zoom is ~620px tall.
+@mixin short-screen {
+  @media (min-width: 992px) and (max-height: 760px) {
+    @content;
+  }
+}
+
+@mixin between($lower, $upper) {
+  @media (min-width: map.get($bp, $lower)) and (max-width: (map.get($bp, $upper) - 0.02px)) {
+    @content;
+  }
+}
+
+// --------------------------------------------------------- accessibility ----
+// One focus treatment for the whole app. Uses :focus-visible so a mouse click
+// does not paint a ring, but keyboard traversal always does.
+
+@mixin focus-ring($colour: $blue-600, $width: 3px) {
+  &:focus {
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 $width rgba($colour, 0.28);
+    border-color: $colour;
+  }
+}
+
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ---------------------------------------------------------------- text ----
+@mixin truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin clamp-lines($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@mixin label-caps {
+  font-size: $fs-xs;
+  font-weight: $fw-bold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $ink-400;
+}
+
+// --------------------------------------------------------------- shapes ----
+@mixin card-surface($radius-size: $radius-lg) {
+  background: $white;
+  border: 1px solid $line-200;
+  border-radius: $radius-size;
+  box-shadow: $shadow-sm;
+}
+
+// Soft-tinted status pill. Derives its own background from the given hue so a
+// new status needs one line, not three hand-picked hex values.
+@mixin soft-badge($ink, $bg) {
+  color: $ink;
+  background-color: $bg;
+  border: 1px solid rgba($ink, 0.12);
+}
+
+// -------------------------------------------------------------- scroll ----
+@mixin thin-scrollbar($thumb: $line-300, $track: transparent) {
+  scrollbar-width: thin;
+  scrollbar-color: $thumb $track;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $track;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: $thumb;
+    border-radius: $radius-pill;
+    border: 2px solid transparent;
+    background-clip: content-box;
+
+    &:hover {
+      background-color: $ink-300;
+    }
+  }
+}
+
+// Fades the right edge of a horizontally scrollable strip so it is visually
+// obvious there is more content off-screen (used by the tab rail).
+@mixin scroll-fade-right($bg: $white, $width: 32px) {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    width: $width;
+    pointer-events: none;
+    background: linear-gradient(to right, rgba($bg, 0), $bg 85%);
+
+    [dir="rtl"] & {
+      background: linear-gradient(to left, rgba($bg, 0), $bg 85%);
+    }
+  }
+}
+
+// --------------------------------------------------------------- motion ----
+// Every transition in the app goes through here, so "reduce motion" is honoured
+// once instead of being forgotten per component.
+
+@mixin motion($properties...) {
+  transition-property: $properties;
+  transition-duration: $dur;
+  transition-timing-function: $ease-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}

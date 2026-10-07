@@ -1,0 +1,188 @@
+@model PayItemFormModel
+@{
+    var i = Model.Item;
+    var mode = Model.Mode;
+    var locked = mode == "locked";
+    var revise = mode == "revise";
+    var cls = Model.ItemClass;
+    var start = revise ? Model.DefaultMonth : i?.StartMonth ?? Model.DefaultMonth;
+    var applies = i?.AppliesMode ?? (cls == ItemClass.Loan ? AppliesMode.Instalment : cls == ItemClass.Salary ? AppliesMode.Monthly : AppliesMode.Once);
+    var amount = i is null ? "" : PayrollFormat.Money(i.Amount);
+    var lockAttr = locked ? "disabled" : null;
+    var classInfo = new (string Value, string Label, string Hint)[]
+    {
+        (ItemClass.Salary, L["pr.salary"], L["pr.paid_every_month_basic_and_allowances"]),
+        (ItemClass.Earning, L["pr.earning"], L["pr.overtime_bonus_commission"]),
+        (ItemClass.Deduction, L["pr.deduction"], L["pr.absence_penalty_recovery"]),
+        (ItemClass.Loan, L["pr.loan_advance"], L["pr.paid_back_in_monthly_instalments"])
+    };
+    string MonthOptions(DateTime? selected) => string.Concat(Model.Months.Select(m =>
+        $"<option value=\"{PayItemFormat.MonthValue(m)}\"{(selected is { } s && s.Year == m.Year && s.Month == m.Month ? " selected" : "")}>{System.Net.WebUtility.HtmlEncode(L.MonthYear(m))}</option>"));
+}
+<input type="hidden" name="EmployeePayItemId" value="@(i?.EmployeePayItemId ?? 0)" />
+<div data-pi-mode="@mode" data-pi-figures-of="@(Model.EmployeeId ?? 0)">
+
+@if (revise)
+{
+    <div class="pr-banner pr-banner--info mb-3">@Html.Icon("info", 18)<div>@L["pr.a_salary_change_is_saved_as_a_new_amount_from_the_month", PayrollFormat.Money(i!.Amount)]</div></div>
+}
+else if (locked)
+{
+    <div class="pr-banner pr-banner--lock mb-3">@Html.Icon("lock", 18)<div>@(i!.IsUsed
+        ? L["pr.a_payroll_has_already_paid_this_item_so_its_amount_and_m"]
+        : L["pr.an_approved_loan_keeps_its_terms_you_can_change_the_comm"])</div></div>
+}
+else if (i?.IsPending == true)
+{
+    <div class="pr-banner pr-banner--lock mb-3">@Html.Icon("clock", 18)<div>@L["pr.waiting_for_approval_saving_a_change_sends_it_for_approv"]</div></div>
+}
+
+<div class="row g-3">
+    <div class="col-12">
+        <label class="form-label" for="pi-employee">@L["pr.employee"] <span class="req" aria-hidden="true">*</span></label>
+        @if (i is not null)
+        {
+            <input type="hidden" name="EmployeeId" value="@i.EmployeeId" />
+            <select class="form-select" id="pi-employee" data-pi-employee disabled>
+                <option value="@i.EmployeeId" data-company="@i.CompanyId" selected>@PayItemFormat.EmployeeName(L, i.EmployeeName, i.EmployeeArabicName) · @i.EmployeeNo</option>
+            </select>
+        }
+        else
+        {
+            <select class="form-select" id="pi-employee" name="EmployeeId" data-pi-employee required>
+                <option value="">@L["pr.select_an_employee"]</option>
+                @foreach (var e in Model.Employees.Where(x => x.IsActive || x.EmployeeId == Model.EmployeeId))
+                {
+                    <option value="@e.EmployeeId" data-company="@e.CompanyId" selected="@(e.EmployeeId == Model.EmployeeId)">@PayItemFormat.EmployeeName(L, e.EmployeeName, e.EmployeeArabicName) · @e.EmployeeNo</option>
+                }
+            </select>
+        }
+    </div>
+
+    <div class="col-12">
+        <span class="form-label d-block">@L["pr.class"] <span class="req" aria-hidden="true">*</span></span>
+        <div class="pr-choice pr-choice--4" data-pi-class-choice role="radiogroup" aria-label="@L["pr.class"]">
+            @foreach (var c in classInfo)
+            {
+                var on = c.Value == cls;
+                var off = i is not null && !on;
+                <label class="@(on ? "is-selected" : null) @(off ? "is-disabled" : null)">
+                    <input type="radio" name="pi-class" value="@c.Value" class="form-check-input" checked="@on" disabled="@(off ? "disabled" : null)" />
+                    <span><strong>@c.Label</strong><span>@c.Hint</span></span>
+                </label>
+            }
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label" for="pi-type">@L["pr.item_type"] <span class="req" aria-hidden="true">*</span></label>
+        @if (locked || revise || (i is not null && cls == ItemClass.Salary))
+        {
+            <input type="hidden" name="PayComponentId" value="@i!.PayComponentId" />
+        }
+        <select class="form-select" id="pi-type" name="@(locked || revise || (i is not null && cls == ItemClass.Salary) ? null : "PayComponentId")" data-pi-type disabled="@(locked || revise || (i is not null && cls == ItemClass.Salary) ? "disabled" : null)">
+            <option value="">@L["pr.select_an_item_type"]</option>
+            @foreach (var t in Model.Types.Where(x => x.IsActive || x.PayComponentId == i?.PayComponentId))
+            {
+                <option value="@t.PayComponentId" data-cls="@t.ItemClass" data-company="@t.CompanyId" selected="@(t.PayComponentId == i?.PayComponentId)">@PayItemFormat.TypeName(L, t.ComponentName, t.ArabicName)</option>
+            }
+        </select>
+    </div>
+
+    @* amount: salary, earnings, deductions (a loan's instalment is calculated) *@
+    <div class="col-md-6" data-show-for="SALARY EARNING DEDUCTION">
+        <label class="form-label" for="pi-amount"><span data-pi-amount-label>@L["pr.amount_kwd"]</span> <span class="req" aria-hidden="true">*</span></label>
+        @if (locked)
+        {
+            <input type="hidden" name="Amount" value="@i!.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+        }
+        <input class="form-control pr-input-money" id="pi-amount" name="@(locked ? null : "Amount")" inputmode="decimal" placeholder="0.000" value="@amount" autocomplete="off" disabled="@lockAttr" data-pi-amount
+               data-label-instalment="@L["pr.amount_per_instalment_kwd"]" data-label-default="@L["pr.amount_kwd"]" />
+    </div>
+
+    @* salary: every month from *@
+    <div class="col-md-6" data-show-for="SALARY">
+        <label class="form-label" for="pi-from-salary">@L["pr.effective_from"] <span class="req" aria-hidden="true">*</span></label>
+        <select class="form-select" id="pi-from-salary" data-pi-start="SALARY" disabled="@lockAttr">@Html.Raw(MonthOptions(start))</select>
+    </div>
+    <div class="col-12" data-show-for="SALARY">
+        @if (!revise)
+        {
+            <div class="pr-banner pr-banner--info">@Html.Icon("info", 18)<div>@L["pr.salary_items_are_paid_every_month_from_this_month_after"]</div></div>
+        }
+    </div>
+
+    @* earnings and deductions *@
+    <div class="col-md-6" data-show-for="EARNING DEDUCTION">
+        <label class="form-label" for="pi-applies">@L["pr.applies"] <span class="req" aria-hidden="true">*</span></label>
+        @if (locked)
+        {
+            <input type="hidden" name="AppliesMode" value="@applies" />
+        }
+        <select class="form-select" id="pi-applies" data-pi-applies disabled="@lockAttr">
+            <option value="ONCE" selected="@(applies == AppliesMode.Once)">@L["pr.one_time"]</option>
+            <option value="MONTHLY" selected="@(applies == AppliesMode.Monthly)">@L["pr.every_month"]</option>
+            <option value="INSTALMENT" selected="@(applies == AppliesMode.Instalment)" data-cls-only="DEDUCTION">@L["pr.in_instalments"]</option>
+        </select>
+    </div>
+    <div class="col-md-6" data-show-for="EARNING DEDUCTION">
+        <label class="form-label" for="pi-from"><span data-pi-from-label data-once="@L["pr.month"]" data-many="@L["pr.from_month"]">@L["pr.month"]</span> <span class="req" aria-hidden="true">*</span></label>
+        <select class="form-select" id="pi-from" data-pi-start="EARNING DEDUCTION" disabled="@lockAttr">@Html.Raw(MonthOptions(start))</select>
+    </div>
+    <div class="col-md-6" data-show-for="EARNING DEDUCTION" data-show-applies="MONTHLY">
+        <label class="form-label" for="pi-until">@L["pr.until_month"]</label>
+        <select class="form-select" id="pi-until" name="EndMonth" data-pi-until>
+            <option value="">@L["pr.no_end_every_month"]</option>
+            @Html.Raw(MonthOptions(i?.EndMonth))
+        </select>
+    </div>
+    <div class="col-md-6" data-show-for="DEDUCTION" data-show-applies="INSTALMENT">
+        <label class="form-label" for="pi-count-ded">@L["pr.instalments"] <span class="req" aria-hidden="true">*</span></label>
+        <input class="form-control" type="number" min="1" max="600" id="pi-count-ded" data-pi-count="DEDUCTION" value="@(i?.InstalmentCount ?? 2)" disabled="@lockAttr" />
+        <span class="form-text" data-pi-ded-total></span>
+    </div>
+
+    @* loans and advances *@
+    <div class="col-md-4" data-show-for="LOAN">
+        <label class="form-label" for="pi-total">@L["pr.total_amount_kwd"] <span class="req" aria-hidden="true">*</span></label>
+        <input class="form-control pr-input-money" id="pi-total" name="@(locked ? null : "TotalAmount")" inputmode="decimal" placeholder="0.000" autocomplete="off"
+               value="@(i?.TotalAmount is { } tot ? PayrollFormat.Money(tot) : "")" disabled="@lockAttr" data-pi-total />
+        @if (locked)
+        {
+            <input type="hidden" name="TotalAmount" value="@i!.TotalAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
+        }
+    </div>
+    <div class="col-md-4" data-show-for="LOAN">
+        <label class="form-label" for="pi-count-loan">@L["pr.instalments"] <span class="req" aria-hidden="true">*</span></label>
+        <input class="form-control" type="number" min="1" max="600" id="pi-count-loan" data-pi-count="LOAN" value="@(i?.InstalmentCount ?? 12)" disabled="@lockAttr" />
+    </div>
+    <div class="col-md-4" data-show-for="LOAN">
+        <label class="form-label" for="pi-from-loan">@L["pr.first_deduction"] <span class="req" aria-hidden="true">*</span></label>
+        <select class="form-select" id="pi-from-loan" data-pi-start="LOAN" disabled="@lockAttr">@Html.Raw(MonthOptions(i is null ? Model.DefaultMonth.AddMonths(1) : start))</select>
+    </div>
+    <div class="col-12" data-show-for="LOAN">
+        <ul class="pr-check" data-pi-loan-checks>
+            <li><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text">@L["pr.monthly_instalment"]</span><span class="pr-check__meta"><strong>@L["pr.kwd"] <span data-pi-loan-monthly>—</span></strong></span></li>
+            <li data-pi-check="cap"><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text">@L["pr.within_3_monthly_salary"]</span><span class="pr-check__meta" data-pi-check-meta></span></li>
+            <li data-pi-check="share"><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text">@L["pr.instalment_other_deductions_share_of_salary"]</span><span class="pr-check__meta" data-pi-check-meta></span></li>
+        </ul>
+        <span class="form-text">@L["pr.these_checks_are_a_guide_the_approvers_decide"]</span>
+    </div>
+
+    @* the fields actually posted for the class / applies chosen (filled by payroll.js) *@
+    <input type="hidden" name="@(locked ? null : "AppliesMode")" data-pi-out="applies" value="@applies" />
+    <input type="hidden" name="@(locked ? null : "StartMonth")" data-pi-out="start" value="@PayItemFormat.MonthValue(start)" />
+    <input type="hidden" name="@(locked ? null : "InstalmentCount")" data-pi-out="count" value="@i?.InstalmentCount" />
+    @if (locked)
+    {
+        <input type="hidden" name="StartMonth" value="@PayItemFormat.MonthValue(i!.StartMonth)" />
+        <input type="hidden" name="InstalmentCount" value="@i.InstalmentCount" />
+    }
+
+    <div class="col-12">
+        <label class="form-label" for="pi-comment">@L["pr.comment"] <span class="req" aria-hidden="true">*</span></label>
+        <textarea class="form-control" id="pi-comment" name="Comment" rows="2" maxlength="500" required
+                  placeholder="@L["pr.why_is_it_paid_or_deducted_it_is_shown_on_the_payroll_an"]">@(revise ? "" : i?.Comment)</textarea>
+    </div>
+</div>
+</div>

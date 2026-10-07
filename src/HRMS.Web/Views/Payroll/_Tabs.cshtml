@@ -1,0 +1,29 @@
+@using HRMS.Web.Models.Payroll
+@using HRMS.Domain.Payroll
+@model string
+@{
+    // Tab rail of a payroll section. On Payroll Processing the Register /
+    // Validation / Approval tabs belong to the payroll selected at the top and
+    // only appear once that payroll has reached the stage.
+    var section = PayrollNav.SectionOfSlug(Model);
+    var run = ViewData["ActiveRun"] as PayrollRun;
+    var reached = run is null ? 0 : (run.IsCancelled ? 0 : Math.Min(run.StageIndex, 2));
+}
+@if (section is not null && section.Tabs.Count > 1)
+{
+    <nav class="hrms-tabs pr-tabs" aria-label="@L.Tr(section.Title)">
+        <div class="hrms-tabs__rail" role="tablist">
+            @foreach (var tab in section.Tabs)
+            {
+                var stage = tab.Slug switch { "register" => 0, "validation" => 1, "approval" => 2, _ => -1 };
+                if (stage > 0 && stage > reached)
+                {
+                    continue;
+                }
+                var href = Context.Request.PathBase + PayrollNav.Url(tab.Slug) + (stage >= 0 && run is not null ? "?run=" + run.PayrollRunId : "");
+                var active = tab.Slug == Model;
+                <a role="tab" class="hrms-tab @(active ? "is-active" : null)" href="@href" aria-selected="@(active ? "true" : "false")">@L.Tr(tab.Title)</a>
+            }
+        </div>
+    </nav>
+}

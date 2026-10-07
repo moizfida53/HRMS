@@ -1,0 +1,92 @@
+@using HRMS.Web.Models.Organization
+@model RunIssuesGridModel
+@{
+    var pg = Model.Page;
+    string? FixLink(PayrollRunIssue i) => i.RuleCode switch
+    {
+        "V01" or "V02" or "V07" or "V11" or "V17" or "V19" when i.EmployeeId is { } id => Url.Action("Profile", "Employees", new { id }),
+        _ => null
+    };
+    string FixText(string rule) => rule switch
+    {
+        "V01" or "V02" => L["pr.employee_salary"],
+        "V07" => L["pr.employee_bank_account"],
+        "V11" => L["pr.employee_cost_center"],
+        "V17" => L["common.kuwait_compliance"],
+        "V19" => L["pr.employee_status"],
+        _ => L["pr.open"]
+    };
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["pr.1_issue"] : L["pr.0_issues", pg.TotalCount])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "step-check", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["pr.no_issues_match_the_filters"] : L["pr.all_checks_passed"])</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table">
+            <caption class="hrms-sr-only">@L["pr.validation_results"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["pr.severity"]</th>
+                    <th scope="col" class="col-p3">@L["pr.rule"]</th>
+                    <th scope="col">@L["pr.issue"]</th>
+                    <th scope="col">@L["pr.employee"]</th>
+                    <th scope="col" class="col-p2">@L["pr.fix"]</th>
+                    <th scope="col" class="col-p2">@L["pr.acknowledged"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in pg.Items)
+                {
+                    var link = FixLink(i);
+                    <tr class="@(i.IsError ? "pr-row-error" : null)">
+                        <td data-label="@L["pr.severity"]">
+                            <span class="hrms-badge hrms-badge--@(i.IsError ? "danger" : "warning")"><span class="hrms-badge__dot"></span>@(i.IsError ? L["pr.error"] : L["pr.warning"])</span>
+                        </td>
+                        <td data-label="@L["pr.rule"]" class="col-p3"><span class="hrms-code-chip">@i.RuleCode</span></td>
+                        <td data-label="@L["pr.issue"]">@L.Tr(i.Message)</td>
+                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">@(i.EmployeeId is null ? L["pr.whole_payroll"] : PayrollFormat.EmployeeName(L, i.EmployeeName, i.ArabicName) + " · " + i.EmployeeNo)</td>
+                        <td data-label="@L["pr.fix"]" class="col-p2">@if (link is not null) { <a href="@link" target="_blank" rel="noopener">@FixText(i.RuleCode)</a> } else { <span class="hrms-muted">—</span> }</td>
+                        <td data-label="@L["pr.acknowledged"]" class="col-p2 hrms-text-sm">
+                            @if (i.IsAcknowledged)
+                            {
+                                <span>@i.AcknowledgedByName · @L.Date(i.AcknowledgedDate)</span><br /><span class="hrms-muted">“@i.AcknowledgeReason”</span>
+                            }
+                            else
+                            {
+                                <span class="hrms-muted">—</span>
+                            }
+                        </td>
+                        <td class="hrms-table__actions">
+                            @if (Model.CanAcknowledge && !i.IsError && !i.IsAcknowledged)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-reason-open
+                                        data-reason-url="@Url.Action("Acknowledge", "Payroll", new { run = Model.Run.PayrollRunId, issueId = i.RunIssueId })"
+                                        data-reason-field="reason"
+                                        data-reason-title="@L["pr.acknowledge_warning"]"
+                                        data-reason-text="@L.Tr(i.Message)"
+                                        data-reason-label="@L["pr.reason"]"
+                                        data-reason-placeholder="@L["pr.why_is_this_acceptable"]"
+                                        data-reason-button="@L["pr.acknowledge"]"
+                                        data-reason-refresh="issues">@L["pr.acknowledge"]</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

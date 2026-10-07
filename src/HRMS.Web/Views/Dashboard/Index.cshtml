@@ -1,0 +1,338 @@
+@model HRMS.Web.Models.Dashboard.DashboardViewModel
+@using HRMS.Web.Models.Dashboard
+@inject ICurrentUser CurrentUser
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["ActiveArea"] = "dashboard";
+    ViewData["Subtitle"] = $"{L.Tr(Model.CompanyLabel)} · {L.MonthYear(Model.Data.MonthStart)}";
+
+    var d = Model.Data;
+    var k = d.Kpis;
+    var a = d.Actions;
+    var isCurrentMonth = d.MonthStart.Year == DateTime.Today.Year && d.MonthStart.Month == DateTime.Today.Month;
+
+    // One KPI tile: label, value, change vs last month (null = no comparison), and
+    // whether "up" is good news (separations going up is not).
+    var tiles = new (string Label, int Value, decimal? Change, bool UpIsGood, string Icon, string Note)[]
+    {
+        (L["dash.total_employees"], k.TotalEmployees, DashboardViewModel.Change(k.TotalEmployees, k.PrevTotalEmployees), true, "users",
+            isCurrentMonth ? L["dash.on_books_today"] : L["dash.on_books_month_end"]),
+        (L["dash.active_employees"], k.ActiveEmployees, null, true, "step-check", L["dash.active_probation"]),
+        (L["dash.on_leave"], k.OnLeave, null, false, "calendar", L["dash.status_on_leave"]),
+        (L["dash.new_joiners"], k.NewJoiners, DashboardViewModel.Change(k.NewJoiners, k.PrevNewJoiners), true, "plus", L["dash.hired_this_month"]),
+        (L["dash.separations"], k.Separations, DashboardViewModel.Change(k.Separations, k.PrevSeparations), false, "exit", L["dash.left_this_month"])
+    };
+
+    static string EventIcon(string type) => type switch
+    {
+        "BIRTHDAY" => "heart",
+        "ANNIVERSARY" => "badge",
+        "EXPIRY" => "id-card",
+        "PROBATION" => "clock",
+        _ => "calendar"
+    };
+
+    string EventLabel(string type) => type switch
+    {
+        "BIRTHDAY" => L["dash.ev_birthday"],
+        "ANNIVERSARY" => L["dash.ev_anniversary"],
+        "EXPIRY" => L["dash.ev_expiry"],
+        "PROBATION" => L["dash.ev_probation"],
+        _ => type
+    };
+
+    static string StatusClass(string status) => status switch
+    {
+        "Completed" => "hrms-badge--success",
+        "Uploaded" => "hrms-badge--info",
+        "Pending" => "hrms-badge--warning",
+        _ => "hrms-badge--muted"
+    };
+
+    string When(DateTime date)
+    {
+        var days = (date.Date - DateTime.Today).Days;
+        return days switch
+        {
+            0 => L["common.today"],
+            1 => L["common.tomorrow"],
+            < 7 => L["common.in_n_days", days],
+            _ => L.DayMonth(date)
+        };
+    }
+}
+
+@section PageActions {
+    <form method="get" action="/dashboard" class="hrms-dash-month">
+        <label class="hrms-sr-only" for="dash-month">@L["dash.month"]</label>
+        <select id="dash-month" name="month" class="form-select" data-dash-month>
+            @foreach (var m in Model.MonthOptions)
+            {
+                <option value="@DashboardViewModel.MonthKey(m)" selected="@(m == d.MonthStart)">@L.MonthYear(m)</option>
+            }
+        </select>
+        <noscript><button type="submit" class="btn btn-outline-secondary">@L["dash.show"]</button></noscript>
+    </form>
+}
+
+<div class="hrms-dash">
+
+    @* ------------------------------------------------------------ KPIs *@
+    <section class="hrms-dash__kpis" aria-label="@L["dash.key_figures"]">
+        @foreach (var t in tiles)
+        {
+            <div class="hrms-card hrms-kpi">
+                <div class="hrms-kpi__head">
+                    <span class="hrms-kpi__label">@t.Label</span>
+                    <span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon(t.Icon, 16)</span>
+                </div>
+                <div class="hrms-kpi__value">@t.Value.ToString("N0")</div>
+                <div class="hrms-kpi__foot">
+                    @if (t.Change is { } change)
+                    {
+                        var up = change > 0;
+                        var good = change == 0 ? (bool?)null : (up == t.UpIsGood);
+                        <span class="hrms-kpi__delta @(good == true ? "is-good" : good == false ? "is-bad" : null)"
+                              title="@L["dash.compared_with_last_month"]">
+                            <span aria-hidden="true">@(change > 0 ? "↑" : change < 0 ? "↓" : "→")</span>
+                            @Math.Abs(change).ToString("0.#")%
+                            <span class="hrms-sr-only">@(up ? L["dash.increase_vs_last_month"] : L["dash.decrease_vs_last_month"])</span>
+                        </span>
+                    }
+                    <span class="hrms-kpi__note">@t.Note</span>
+                </div>
+            </div>
+        }
+    </section>
+
+    @* ------------------------------------ employees by company | HR actions required *@
+    <div class="hrms-dash__row">
+        <section class="hrms-card hrms-panel" aria-labelledby="p-company">
+            <header class="hrms-panel__head">
+                <h2 id="p-company" class="hrms-panel__title">@L["dash.employees_by_company"]</h2>
+                <span class="hrms-panel__meta">
+                    @(isCurrentMonth ? L["dash.n_employees_today", Model.AllCompaniesHeadcount.ToString("N0")] : L["dash.n_employees_end_of", Model.AllCompaniesHeadcount.ToString("N0"), L.MonthYear(d.MonthStart)])
+                </span>
+            </header>
+            @if (d.Companies.Count == 0)
+            {
+                <p class="hrms-panel__empty">@L["dash.no_companies_yet"]</p>
+            }
+            else
+            {
+                @* All companies are listed; when the top-bar filter is narrowed, the
+                   selected companies stay blue and the rest are greyed. *@
+                <div class="hrms-columns" role="list" aria-label="@L["dash.employees_by_company"]">
+                    @foreach (var co in d.Companies)
+                    {
+                        // Bar height in px (plot area is 150px tall) so the value sits right on top of it.
+                        var barPx = Math.Max(2, (int)Math.Round(co.Headcount * 150.0 / Model.MaxCompanyHeadcount));
+                        var on = Model.IsHighlighted(co.CompanyId);
+                        <div class="hrms-columns__item @(on ? null : "is-dim")" role="listitem" tabindex="0"
+                             title="@L["dash.company_headcount_tip", co.CompanyName, co.Headcount.ToString("N0")]">
+                            <span class="hrms-columns__plot">
+                                <span class="hrms-columns__value">@co.Headcount.ToString("N0")</span>
+                                <span class="hrms-columns__bar" style="height:@(barPx)px"></span>
+                            </span>
+                            <span class="hrms-columns__label">@co.CompanyName</span>
+                        </div>
+                    }
+                </div>
+                @if (Model.SelectedCompanyIds.Count > 0)
+                {
+                    <p class="hrms-panel__note">
+                        @Html.Icon("info", 14)
+                        <span>@L["dash.highlighted_the_companies_selected_in_the_compan"]</span>
+                    </p>
+                }
+            }
+        </section>
+
+        <section class="hrms-card hrms-panel" aria-labelledby="p-actions">
+            <header class="hrms-panel__head">
+                <h2 id="p-actions" class="hrms-panel__title">@L["dash.hr_actions_required"]</h2>
+                <span class="hrms-panel__meta">@L["dash.next_30_days"]</span>
+            </header>
+            <ul class="hrms-actions">
+                <li class="hrms-actions__item is-critical">
+                    <span class="hrms-actions__icon" aria-hidden="true">@Html.Icon("alert", 16)</span>
+                    <span class="hrms-actions__text">@Html.Raw(L["dash.employees_with_expired"])</span>
+                    <span class="hrms-actions__count">@a.DocumentsExpired</span>
+                </li>
+                <li class="hrms-actions__item is-serious">
+                    <span class="hrms-actions__icon" aria-hidden="true">@Html.Icon("id-card", 16)</span>
+                    <span class="hrms-actions__text">@L["dash.documents_expiring_within_30_days"]</span>
+                    <span class="hrms-actions__count">@a.DocumentsExpiring</span>
+                </li>
+                <li class="hrms-actions__item is-warning">
+                    <span class="hrms-actions__icon" aria-hidden="true">@Html.Icon("clock", 16)</span>
+                    <span class="hrms-actions__text">@L["dash.probation_ending_within_30_days"]</span>
+                    <span class="hrms-actions__count">@a.ProbationEnding</span>
+                </li>
+                <li class="hrms-actions__item is-info">
+                    <span class="hrms-actions__icon" aria-hidden="true">@Html.Icon("folder", 16)</span>
+                    <span class="hrms-actions__text">@L["dash.employees_missing_a_mandatory_document_upload"]</span>
+                    <span class="hrms-actions__count">@(a.MandatoryDocumentsMissing?.ToString() ?? "—")</span>
+                </li>
+                <li class="hrms-actions__item is-pending">
+                    <span class="hrms-actions__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span>
+                    <span class="hrms-actions__text">@L["dash.leave_approvals_pending"]</span>
+                    <span class="hrms-actions__count" title="@L["dash.available_once_the_leave_module_is_built"]">@L["common.soon"]</span>
+                </li>
+            </ul>
+            <a class="hrms-panel__link" href="/employees">@L["dash.open_employees"] @Html.Icon("chevron-right", 14)</a>
+        </section>
+    </div>
+
+    @* ------------------------------------------- payroll summary | leave summary *@
+    <div class="hrms-dash__row">
+        <section class="hrms-card hrms-panel" aria-labelledby="p-payroll">
+            <header class="hrms-panel__head">
+                <h2 id="p-payroll" class="hrms-panel__title">@L["dash.payroll_summary"]</h2>
+                <span class="hrms-panel__meta">@L["dash.monthly_current_salaries"]</span>
+            </header>
+            <dl class="hrms-figures">
+                <div><dt>@L["dash.gross"]</dt><dd>@DashboardViewModel.Kwd(d.Payroll.Gross)</dd></div>
+                <div><dt>@L["dash.basic_salary"]</dt><dd>@DashboardViewModel.Kwd(d.Payroll.TotalBasic)</dd></div>
+                <div><dt>@L["dash.allowances"]</dt><dd>@DashboardViewModel.Kwd(d.Payroll.TotalAllowances)</dd></div>
+                <div><dt>@L["dash.employees_with_salary"]</dt><dd>@d.Payroll.EmployeesWithSalary.ToString("N0")</dd></div>
+            </dl>
+            <p class="hrms-panel__note">
+                @Html.Icon("info", 14)
+                <span>@L["dash.deductions_net_pay_and_employer_cost_pifss_appea"]</span>
+            </p>
+        </section>
+
+        <section class="hrms-card hrms-panel" aria-labelledby="p-leave">
+            <header class="hrms-panel__head">
+                <h2 id="p-leave" class="hrms-panel__title">@L["dash.leave_summary"]</h2>
+                <span class="hrms-panel__meta">@L.MonthYear(d.MonthStart)</span>
+            </header>
+            <dl class="hrms-figures is-pending">
+                <div><dt>@L["dash.annual_leave"]</dt><dd>—</dd></div>
+                <div><dt>@L["dash.sick_leave"]</dt><dd>—</dd></div>
+                <div><dt>@L["dash.emergency_leave"]</dt><dd>—</dd></div>
+                <div><dt>@L["dash.other"]</dt><dd>—</dd></div>
+            </dl>
+            <p class="hrms-panel__note">
+                @Html.Icon("info", 14)
+                <span>@Html.Raw(L["dash.leave_counts_note", k.OnLeave])</span>
+            </p>
+        </section>
+    </div>
+
+    @* --------------------------------------------------------- payroll trend *@
+    <section class="hrms-card hrms-panel" aria-labelledby="p-paytrend">
+        <header class="hrms-panel__head">
+            <h2 id="p-paytrend" class="hrms-panel__title">@L["dash.payroll_trend"]</h2>
+            <span class="hrms-panel__meta">@L["dash.gross_payroll_last_12_months"]</span>
+        </header>
+        @if (Model.HasPayrollTrend)
+        {
+            <div class="hrms-chart hrms-chart--short" data-chart="payroll" role="img"
+                 aria-label="@L["dash.gross_payroll_by_month_for_the_last_12_months"]"></div>
+        }
+        else
+        {
+            <p class="hrms-panel__empty">@L["dash.no_salaries_recorded_yet_add_basic_salary_on_an"]</p>
+        }
+        <p class="hrms-panel__note">
+            @Html.Icon("info", 14)
+            <span>@L["dash.based_on_the_current_basic_allowances_of_the_emp"]</span>
+        </p>
+    </section>
+
+    @* ------------------------------------------- employees by department | upcoming events *@
+    <div class="hrms-dash__row">
+        <section class="hrms-card hrms-panel" aria-labelledby="p-dept">
+            <header class="hrms-panel__head">
+                <h2 id="p-dept" class="hrms-panel__title">@L["dash.employees_by_department"]</h2>
+                <span class="hrms-panel__meta">@L["dash.today_2"]</span>
+            </header>
+            @if (d.Departments.Count == 0)
+            {
+                <p class="hrms-panel__empty">@L["dash.no_employees_yet"]</p>
+            }
+            else
+            {
+                <ul class="hrms-hbars">
+                    @foreach (var dept in Model.TopDepartments)
+                    {
+                        var pct = dept.Headcount * 100.0 / Model.MaxDepartmentHeadcount;
+                        <li class="hrms-hbars__row" tabindex="0" title="@dept.DepartmentName: @dept.Headcount">
+                            <span class="hrms-hbars__label">@L.Tr(dept.DepartmentName)</span>
+                            <span class="hrms-hbars__track"><span class="hrms-hbars__bar" style="width:@(pct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></span></span>
+                            <span class="hrms-hbars__value">@dept.Headcount</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+
+        <section class="hrms-card hrms-panel" aria-labelledby="p-events">
+            <header class="hrms-panel__head">
+                <h2 id="p-events" class="hrms-panel__title">@L["dash.upcoming_events"]</h2>
+                <span class="hrms-panel__meta">@L["dash.next_30_days"]</span>
+            </header>
+            @if (d.Events.Count == 0)
+            {
+                <p class="hrms-panel__empty">@L["dash.nothing_in_the_next_30_days_no_birthdays_anniver"]</p>
+            }
+            else
+            {
+                <ul class="hrms-events">
+                    @foreach (var ev in d.Events)
+                    {
+                        <li class="hrms-events__item">
+                            <span class="hrms-events__icon hrms-events__icon--@ev.EventType.ToLowerInvariant()" aria-hidden="true">@Html.Icon(EventIcon(ev.EventType), 15)</span>
+                            <span class="hrms-events__body">
+                                <a class="hrms-events__name" href="/employees/profile/@ev.EmployeeId">@ev.EmployeeName</a>
+                                <span class="hrms-events__detail"><span class="hrms-sr-only">@EventLabel(ev.EventType): </span>@L.Tr(ev.Detail)</span>
+                            </span>
+                            <span class="hrms-events__when" title="@L.Date(ev.EventDate)">@When(ev.EventDate)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+
+    @* ------------------------------------------------- recent HR activities *@
+    <section class="hrms-card hrms-panel hrms-panel--flush" aria-labelledby="p-activity">
+        <header class="hrms-panel__head">
+            <h2 id="p-activity" class="hrms-panel__title">@L["dash.recent_hr_activities"]</h2>
+        </header>
+        @if (d.Activity.Count == 0)
+        {
+            <p class="hrms-panel__empty">@L["dash.no_activity_yet"]</p>
+        }
+        else
+        {
+            <div class="hrms-table-wrap">
+                <table class="hrms-table">
+                    <thead>
+                        <tr><th scope="col">@L["dash.employee"]</th><th scope="col">@L["dash.activity"]</th><th scope="col">@L["dash.date"]</th><th scope="col">@L["common.status"]</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var act in d.Activity)
+                        {
+                            <tr>
+                                <td data-label="@L.Tr("Employee")"><a class="hrms-table__primary" href="/employees/profile/@act.EmployeeId">@act.EmployeeName</a></td>
+                                <td data-label="@L.Tr("Activity")">@L.Tr(act.Activity)</td>
+                                <td data-label="@L.Tr("Date")"><span title="@L["dash.utc_suffix", L.Date(act.ActivityDate) + " " + act.ActivityDate.ToString("HH:mm")]">@L.DayMonth(act.ActivityDate)</span></td>
+                                <td data-label="@L.Tr("Status")"><span class="hrms-badge @StatusClass(act.Status)">@L.Tr(act.Status)</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@* Chart data - read by dashboard.js; type="application/json" is never executed (CSP-safe). *@
+<script type="application/json" id="dashboard-data">@Html.Raw(Model.ChartJsonFor(m => L.Month(m.Month, shortName: true) + " " + (m.Year % 100).ToString("00"), L.MonthYear))</script>
+
+@section Scripts {
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+}

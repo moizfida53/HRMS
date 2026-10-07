@@ -1,0 +1,58 @@
+@model PayItemHistoryModel
+@{
+    var i = Model.Item;
+    string Title(PayItemHistoryEntry h) => h.ActionCode switch
+    {
+        "CREATED" => L["pr.created"],
+        "REVISED" => L["pr.salary_change_from_0", PayItemFormat.Month(L, h.StartMonth)],
+        "CHANGED" => L["pr.changed"],
+        "APPROVED" => h.ApprovalLevel == 1 ? L["pr.approved_by_hr"] : L["pr.approved_by_finance_active"],
+        "REJECTED" => L["pr.rejected"],
+        "ENDED" when h.Status == PayItemStatus.Active && h.AppliesMode == AppliesMode.Monthly && h.EndMonth is { } last => L["pr.last_month_0", PayItemFormat.Month(L, last)],
+        "ENDED" => L["pr.ended"],
+        "DELETED" => L["pr.deleted"],
+        _ => h.ActionCode
+    };
+    string State(PayItemHistoryEntry h) => h.ActionCode switch
+    {
+        "REJECTED" or "DELETED" => "is-rejected",
+        "ENDED" => "is-todo",
+        _ => "is-done"
+    };
+}
+<div class="pr-pi-head mb-3">
+    <div><strong>@PayItemFormat.TypeName(L, i.ComponentName, i.ComponentArabicName)</strong> · @PayItemFormat.EmployeeName(L, i.EmployeeName, i.EmployeeArabicName) (@i.EmployeeNo)</div>
+    <div class="hrms-muted hrms-text-sm">@PayItemFormat.Applies(L, i)@if (i.SourceRef is not null) { <span> · @i.SourceRef</span> }</div>
+</div>
+@if (Model.Entries.Count == 0)
+{
+    <p class="hrms-muted">@L["pr.no_history_recorded_for_this_item_yet"]</p>
+}
+else
+{
+    <ol class="pr-timeline">
+        @foreach (var h in Model.Entries)
+        {
+            var local = DateTime.SpecifyKind(h.ActionDate, DateTimeKind.Utc).ToLocalTime();
+            <li class="@State(h)">
+                <span class="pr-timeline__dot"></span>
+                <div class="pr-timeline__title">
+                    @Title(h)
+                    @if (h.OldAmount is { } o && h.NewAmount is { } n && o != n)
+                    {
+                        <span class="pr-diff ms-1"><del>@PayrollFormat.Money(o)</del> <ins>@PayrollFormat.Money(n)</ins></span>
+                    }
+                    else if (h.NewAmount is { } a)
+                    {
+                        <span class="hrms-muted ms-1">@L["pr.kwd"] @PayrollFormat.Money(a)</span>
+                    }
+                </div>
+                <div class="pr-timeline__meta">@h.ActionByName · @L.Date(local) @local.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
+                @if (!string.IsNullOrWhiteSpace(h.Comment))
+                {
+                    <div class="pr-timeline__note">@L.Tr(h.Comment)</div>
+                }
+            </li>
+        }
+    </ol>
+}

@@ -1,0 +1,35 @@
+@using HRMS.Web.Models.Payroll
+@model PeriodFormModel
+@{
+    var p = Model.Period;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+<input type="hidden" name="PayrollPeriodId" value="@p.PayrollPeriodId" />
+<div class="row g-3">
+    <div class="col-12">
+        <label class="form-label" for="per-name">@L["pr.period_name"]</label>
+        <input class="form-control" id="per-name" name="PeriodName" value="@p.PeriodName" maxlength="100" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label" for="per-start">@L["pr.start"] <span class="req" aria-hidden="true">*</span></label>
+        <input class="form-control" type="date" id="per-start" name="StartDate" value="@p.StartDate?.ToString("yyyy-MM-dd", inv)" />
+        <span class="field-validation-error" data-valmsg-for="StartDate"></span>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label" for="per-end">@L["pr.end"] <span class="req" aria-hidden="true">*</span></label>
+        <input class="form-control" type="date" id="per-end" name="EndDate" value="@p.EndDate?.ToString("yyyy-MM-dd", inv)" />
+        <span class="field-validation-error" data-valmsg-for="EndDate"></span>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label" for="per-cut">@L["pr.cut_off"]</label>
+        <input class="form-control" type="date" id="per-cut" name="CutOffDate" value="@p.CutOffDate?.ToString("yyyy-MM-dd", inv)" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label" for="per-pay">@L["pr.pay_date"]</label>
+        <input class="form-control" type="date" id="per-pay" name="PaymentDate" value="@p.PaymentDate?.ToString("yyyy-MM-dd", inv)" />
+    </div>
+    <div class="col-12">
+        <label class="form-label" for="per-rem">@L["pr.remarks"]</label>
+        <textarea class="form-control" id="per-rem" name="Remarks" rows="2" maxlength="500">@p.Remarks</textarea>
+    </div>
+</div>

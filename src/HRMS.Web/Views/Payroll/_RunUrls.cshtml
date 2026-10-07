@@ -1,0 +1,18 @@
+@model PayrollRun
+<div hidden data-run-urls
+     data-run="@Model.PayrollRunId"
+     data-open="@Url.Action("Open", "Payroll", new { id = 0 })"
+     data-employees="@Url.Action("EmployeesGrid", "Payroll")"
+     data-lines="@Url.Action("Lines", "Payroll")"
+     data-kpis="@Url.Action("Kpis", "Payroll")"
+     data-excluded="@Url.Action("Excluded", "Payroll")"
+     data-components="@Url.Action("Components", "Payroll")"
+     data-addline="@Url.Action("AddLine", "Payroll")"
+     data-removeline="@Url.Action("RemoveLine", "Payroll")"
+     data-include="@Url.Action("Include", "Payroll")"
+     data-stage="@Url.Action("Stage", "Payroll")"
+     data-recalc="@Url.Action("Recalc", "Payroll")"
+     data-revalidate="@Url.Action("Revalidate", "Payroll")"
+     data-approve="@Url.Action("Approve", "Payroll")"
+     data-issues="@Url.Action("IssuesGrid", "Payroll")"
+     data-ack="@Url.Action("Acknowledge", "Payroll")"></div>

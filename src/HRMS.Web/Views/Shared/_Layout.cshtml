@@ -1,0 +1,432 @@
+@inject ICurrentUser CurrentUser
+@inject ICompanyFilter CompanyFilter
+@inject Microsoft.Extensions.Options.IOptions<AuthenticationPolicyOptions> AuthPolicy
+@{
+    var activeArea = ViewData["ActiveArea"] as string ?? "organization";
+
+    // Page header, shown in the top bar (no separate page-head block in the
+    // content any more - saves a full row on every screen).
+    //   ViewData["Heading"]   top-bar title (defaults to ViewData["Title"])
+    //   ViewData["Subtitle"]  one muted line under it (optional)
+    //   ViewData["BackUrl"]   shows a back arrow before the title (optional)
+    //   @section PageActions  buttons on the right of the top bar (optional)
+    var heading = L.Tr(ViewData["Heading"] as string ?? ViewData["Title"] as string) is { Length: > 0 } h ? h : L["layout.app_name"];
+    var subtitle = L.Tr(ViewData["Subtitle"] as string);
+    var backUrl = ViewData["BackUrl"] as string;
+    var backLabel = L.Tr(ViewData["BackLabel"] as string) is { Length: > 0 } b ? b : L["layout.back"];
+
+    // Top-bar company filter - choice kept in the hrms_companies cookie.
+    var filterCompanies = await CompanyFilter.GetCompaniesAsync();
+    var filterLabel = await CompanyFilter.GetLabelAsync();
+    var filterSelected = CompanyFilter.SelectedIds;
+
+    // Authentication:SimplePassword - no strength rules, max 50 characters.
+    var simplePassword = AuthPolicy.Value.SimplePassword;
+}
+<!DOCTYPE html>
+<html lang="@L.Lang" dir="@L.Dir">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <title>@L.Tr(ViewData["Title"] as string) &middot; @L["layout.app_name"]</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Kufi+Arabic:wght@500;600;700&amp;family=Noto+Sans+Arabic:wght@400;500;600;700&amp;display=swap" />
+
+    @* Arabic: Bootstrap's own RTL build flips margins, floats, dropdowns, etc. *@
+    @if (L.IsArabic)
+    {
+        <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    }
+    else
+    {
+        <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    }
+    <link rel="stylesheet" href="~/css/hrms.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+<a class="hrms-skip-link" href="#main-content">@L["layout.skip_to_main_content"]</a>
+
+<div class="hrms-shell" id="app-shell">
+
+    @* ------------------------------------------------------------ sidebar *@
+    <aside class="hrms-sidebar" id="app-sidebar">
+        <div class="hrms-sidebar__header">
+            <span class="hrms-sidebar__logo" aria-hidden="true">HR</span>
+            <span class="hrms-sidebar__wordmark">
+                <strong>@L["common.hr_payroll"]</strong>
+                <span>@L["common.kuwait_edition"]</span>
+            </span>
+            <button type="button" class="hrms-sidebar__close" data-nav-close aria-label="@L["layout.close_navigation"]">
+                @Html.Icon("close", 15)
+            </button>
+        </div>
+
+        @{
+            // Dashboard is a single top-level link. The groups below are
+            // collapsible and start collapsed. The one
+            // exception is the group holding the current page, which opens so
+            // you can see where you are.
+            var openWorkforce = activeArea == "workforce";
+            var openSetup = activeArea == "organization";
+            var openPayroll = activeArea == "payroll";
+
+            // Time & Attendance is hidden for now (Attendance, Overtime).
+            // Set to true to bring the group back.
+            var showTimeAttendance = false;
+        }
+
+        <nav class="hrms-sidebar__nav" aria-label="@L["layout.main_navigation"]">
+
+            @* Dashboard sits on its own at the top - no group header. *@
+            <a class="hrms-nav-link hrms-nav-link--main @(activeArea == "dashboard" ? "is-active" : null)"
+               asp-controller="Dashboard" asp-action="Index">
+                @Html.Icon("grid")<span>@L["layout.dashboard"]</span>
+            </a>
+
+            <div class="hrms-nav-group">
+                <button type="button" class="hrms-nav-group__toggle @(openWorkforce ? null : "collapsed")" data-bs-toggle="collapse"
+                        data-bs-target="#nav-workforce" aria-expanded="@(openWorkforce ? "true" : "false")" aria-controls="nav-workforce">
+                    <span>@L["layout.workforce"]</span>@Html.Icon("chevron-down", 14)
+                </button>
+                <div class="collapse hrms-nav-group__items @(openWorkforce ? "show" : null)" id="nav-workforce">
+                    <a class="hrms-nav-link @(activeArea == "workforce" ? "is-active" : null)"
+                       asp-controller="Employees" asp-action="Index">
+                        @Html.Icon("users")<span>@L["common.employees"]</span>
+                    </a>
+                    <a class="hrms-nav-link is-disabled" aria-disabled="true" title="@L["layout.open_an_employee_s_profile_for_their_kuwait_comp"]">
+                        @Html.Icon("shield")<span>@L["common.kuwait_compliance"]</span><span class="hrms-nav-soon">@L["layout.per_employee"]</span>
+                    </a>
+                </div>
+            </div>
+
+            @if (showTimeAttendance)
+            {
+                <div class="hrms-nav-group">
+                    <button type="button" class="hrms-nav-group__toggle collapsed" data-bs-toggle="collapse"
+                            data-bs-target="#nav-time" aria-expanded="false" aria-controls="nav-time">
+                        <span>@L["layout.time_attendance"]</span>@Html.Icon("chevron-down", 14)
+                    </button>
+                    <div class="collapse hrms-nav-group__items" id="nav-time">
+                        <a class="hrms-nav-link is-disabled" aria-disabled="true">
+                            @Html.Icon("clock")<span>@L["layout.attendance"]</span><span class="hrms-nav-soon">@L["common.soon"]</span>
+                        </a>
+                        <a class="hrms-nav-link is-disabled" aria-disabled="true">
+                            @Html.Icon("bolt")<span>@L["layout.overtime"]</span><span class="hrms-nav-soon">@L["common.soon"]</span>
+                        </a>
+                    </div>
+                </div>
+            }
+
+            @* Payroll: one link per section (db/34+). Payroll Processing is live; the
+               other sections are previews of the approved designs, wired up one by one. *@
+            <div class="hrms-nav-group">
+                <button type="button" class="hrms-nav-group__toggle @(openPayroll ? null : "collapsed")" data-bs-toggle="collapse"
+                        data-bs-target="#nav-payroll" aria-expanded="@(openPayroll ? "true" : "false")" aria-controls="nav-payroll">
+                    <span>@L["layout.payroll"]</span>@Html.Icon("chevron-down", 14)
+                </button>
+                <div class="collapse hrms-nav-group__items @(openPayroll ? "show" : null)" id="nav-payroll">
+                    @foreach (var section in HRMS.Web.Models.Payroll.PayrollNav.Sections)
+                    {
+                        <a class="hrms-nav-link @(openPayroll && section.Key == (ViewData["PayrollSection"] as string) ? "is-active" : null)"
+                           href="@(Context.Request.PathBase + HRMS.Web.Models.Payroll.PayrollNav.Url(section.Tabs[0].Slug))">
+                            @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>
+                        </a>
+                    }
+                    <a class="hrms-nav-link is-disabled" aria-disabled="true">
+                        @Html.Icon("calendar")<span>@L["layout.leave"]</span><span class="hrms-nav-soon">@L["common.soon"]</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="hrms-nav-group">
+                <button type="button" class="hrms-nav-group__toggle collapsed" data-bs-toggle="collapse"
+                        data-bs-target="#nav-system" aria-expanded="false" aria-controls="nav-system">
+                    <span>@L["layout.system"]</span>@Html.Icon("chevron-down", 14)
+                </button>
+                <div class="collapse hrms-nav-group__items" id="nav-system">
+                    <a class="hrms-nav-link is-disabled" aria-disabled="true">
+                        @Html.Icon("chart")<span>@L["layout.reports"]</span><span class="hrms-nav-soon">@L["common.soon"]</span>
+                    </a>
+                    <a class="hrms-nav-link is-disabled" aria-disabled="true">
+                        @Html.Icon("sliders")<span>@L["layout.system_admin"]</span><span class="hrms-nav-soon">@L["common.soon"]</span>
+                    </a>
+                </div>
+            </div>
+
+            @* Formerly "Organization" - the company/branch/department masters. *@
+            <div class="hrms-nav-group">
+                <button type="button" class="hrms-nav-group__toggle @(openSetup ? null : "collapsed")" data-bs-toggle="collapse"
+                        data-bs-target="#nav-setup" aria-expanded="@(openSetup ? "true" : "false")" aria-controls="nav-setup">
+                    <span>@L["layout.setup"]</span>@Html.Icon("chevron-down", 14)
+                </button>
+                <div class="collapse hrms-nav-group__items @(openSetup ? "show" : null)" id="nav-setup">
+                    @foreach (var tab in OrganizationTabs.All)
+                    {
+                        <a class="hrms-nav-link @(activeArea == "organization" && tab.Key == (ViewData["ActiveTab"] as string) ? "is-active" : null)"
+                           asp-controller="Organization" asp-action="Index" asp-route-tab="@tab.Key">
+                            @Html.Icon(tab.Icon)<span>@L.Tr(tab.Title)</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        </nav>
+
+        @* Account menu - lives here (bottom-left) instead of the top bar. *@
+        <div class="hrms-sidebar__footer dropup">
+            <button type="button" class="hrms-user" id="account-menu"
+                    data-bs-toggle="dropdown" aria-expanded="false" aria-label="@L["layout.account_menu"]">
+                <span class="hrms-avatar">@CurrentUser.Initials</span>
+                <span class="hrms-user__meta">
+                    <strong>@CurrentUser.DisplayName</strong>
+                    <span>@L.Tr(CurrentUser.RoleName)</span>
+                </span>
+                <span class="hrms-user__chev" aria-hidden="true">@Html.Icon("chevron-down", 14)</span>
+            </button>
+
+            <div class="dropdown-menu hrms-account-menu" aria-labelledby="account-menu">
+                <div class="hrms-account-menu__header">
+                    <strong>@CurrentUser.DisplayName</strong>
+                    <span>@CurrentUser.UserName</span>
+                    <span>@(CurrentUser.ActiveCompanyName == "All companies" ? L.Tr("All companies") : CurrentUser.ActiveCompanyName)</span>
+                </div>
+
+                <div class="dropdown-divider"></div>
+
+                <button type="button" class="dropdown-item hrms-account-menu__item" data-bs-toggle="modal" data-bs-target="#change-password-modal">
+                    @Html.Icon("lock", 16)
+                    <span>@L["layout.change_password"]</span>
+                </button>
+
+                <form method="post" asp-controller="Account" asp-action="Logout">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="dropdown-item hrms-account-menu__signout">
+                        @Html.Icon("logout", 16)
+                        <span>@L["layout.sign_out"]</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+    <div class="hrms-backdrop" data-nav-close aria-hidden="true"></div>
+
+    @* --------------------------------------------------------- main column *@
+    <div class="hrms-main">
+        <header class="hrms-topbar">
+            <button type="button" class="hrms-topbar__toggle" data-nav-toggle
+                    aria-label="@L["layout.open_navigation"]" aria-controls="app-sidebar" aria-expanded="false">
+                @Html.Icon("menu", 18)
+            </button>
+
+            @if (!string.IsNullOrEmpty(backUrl))
+            {
+                <a class="hrms-topbar__back" href="@backUrl" title="@backLabel" aria-label="@backLabel">
+                    @Html.Icon("chevron-left", 18)
+                </a>
+            }
+
+            <div class="hrms-topbar__heading">
+                <h1 class="hrms-topbar__title">@heading</h1>
+                @if (!string.IsNullOrWhiteSpace(subtitle))
+                {
+                    <p class="hrms-topbar__subtitle" data-tab-description>@subtitle</p>
+                }
+            </div>
+
+            @if (IsSectionDefined("PageActions"))
+            {
+                @* Keeps the hrms-page-head__actions class: organization.js and
+                   employee.js find their Add/Export buttons through it. *@
+                <div class="hrms-topbar__page-actions hrms-page-head__actions">
+                    @await RenderSectionAsync("PageActions")
+                </div>
+            }
+
+            <div class="hrms-topbar__actions">
+                @* Company filter: applies to Dashboard, Employees and the Setup grids. *@
+                <div class="dropdown hrms-company-filter" data-company-filter data-cookie="@CookieCompanyFilter.CookieName">
+                    <button type="button" class="hrms-company-filter__btn @(filterSelected.Count > 0 ? "is-filtered" : null)"
+                            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                            title="@(CompanyFilter.IsLocked ? L["layout.company_locked"] : L["layout.filter_by_company"])"
+                            disabled="@(CompanyFilter.IsLocked || filterCompanies.Count < 2 ? "disabled" : null)">
+                        @Html.Icon("building", 16)
+                        <span class="hrms-company-filter__label">@(filterSelected.Count == 1 ? filterLabel : L.Tr(filterLabel))</span>
+                        @if (filterSelected.Count > 1)
+                        {
+                            <span class="hrms-company-filter__count">@filterSelected.Count</span>
+                        }
+                        @if (CompanyFilter.IsLocked)
+                        {
+                            @Html.Icon("lock", 13)
+                        }
+                        else
+                        {
+                            @Html.Icon("chevron-down", 14)
+                        }
+                    </button>
+
+                    @if (!CompanyFilter.IsLocked && filterCompanies.Count > 1)
+                    {
+                        <div class="dropdown-menu dropdown-menu-end hrms-company-filter__menu">
+                            <p class="hrms-company-filter__heading">@L["layout.show_data_for"]</p>
+                            <label class="hrms-company-filter__option is-all">
+                                <input type="checkbox" class="form-check-input" data-company-all checked="@(filterSelected.Count == 0)" />
+                                <span>@L["layout.all_companies"]</span>
+                            </label>
+                            <div class="hrms-company-filter__list">
+                                @foreach (var company in filterCompanies)
+                                {
+                                    <label class="hrms-company-filter__option">
+                                        <input type="checkbox" class="form-check-input" data-company-id value="@company.Id"
+                                               checked="@(filterSelected.Contains(company.Id))" />
+                                        <span>@company.Text</span>
+                                    </label>
+                                }
+                            </div>
+                            <div class="hrms-company-filter__foot">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-company-clear>@L["layout.show_all"]</button>
+                                <button type="button" class="btn btn-sm btn-primary" data-company-apply>@L["layout.apply"]</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="hrms-topsearch" data-topsearch>
+                    <button type="button" class="hrms-icon-button" data-topsearch-toggle
+                            aria-label="@L["layout.search_ctrl_k"]" title="@L["layout.search_ctrl_k"]"
+                            aria-expanded="false" aria-controls="global-search-panel">
+                        @Html.Icon("search", 18)
+                    </button>
+                    <div class="hrms-topsearch__panel" id="global-search-panel" hidden>
+                        <label class="hrms-search" for="global-search">
+                            @Html.Icon("search", 16)
+                            <input id="global-search" type="search" autocomplete="off"
+                                   placeholder="@L["layout.search_employees_documents_requests"]"
+                                   aria-label="@L["layout.global_search"]" />
+                            <kbd>Esc</kbd>
+                        </label>
+                    </div>
+                </div>
+
+                @* Language toggle - saves Security.Users.PreferredLanguage and reloads this page. *@
+                <form method="post" asp-controller="Account" asp-action="SetLanguage" class="hrms-lang-toggle">
+                    <input type="hidden" name="lang" value="@(L.IsArabic ? "en" : "ar")" />
+                    <input type="hidden" name="returnUrl" value="@(Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString)" />
+                    <button type="submit" class="hrms-lang-toggle__btn" title="@L["layout.switch_language"]" aria-label="@L["layout.switch_language"]"
+                            lang="@(L.IsArabic ? "en" : "ar")">
+                        @Html.Icon("globe", 16)<span class="hrms-lang-toggle__text--long">@(L.IsArabic ? "English" : "العربية")</span><span class="hrms-lang-toggle__text--short" aria-hidden="true">@(L.IsArabic ? "EN" : "ع")</span>
+                    </button>
+                </form>
+
+                <button type="button" class="hrms-icon-button" aria-label="@L["layout.notifications"]" title="@L["layout.notifications"]">
+                    @Html.Icon("bell", 19)
+                    <span class="hrms-icon-button__dot" aria-hidden="true"></span>
+                </button>
+            </div>
+        </header>
+
+        <main class="hrms-content" id="main-content">
+            @if (CurrentUser.MustChangePassword)
+            {
+                <div class="hrms-password-banner" role="alert">
+                    @Html.Icon("alert", 17)
+                    <span>
+                        <strong>@L["layout.this_account_is_still_using_its_initial_password"]</strong>
+                        @L["layout.change_it_now_to_keep_the_account_secure"]
+                    </span>
+                    <button type="button" class="btn btn-sm hrms-password-banner__action"
+                            data-bs-toggle="modal" data-bs-target="#change-password-modal">
+                        @L["layout.change_password"]
+                    </button>
+                </div>
+            }
+
+            @RenderBody()
+        </main>
+    </div>
+</div>
+
+@* ------------------------------------------------------- Change password *@
+@* Opened from the account menu (bottom-left) or the initial-password banner.
+   Submitted with fetch() by site.js to POST /account/change-password. *@
+<div class="modal fade" id="change-password-modal" tabindex="-1" aria-hidden="true" aria-labelledby="change-password-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="change-password-form" action="/account/change-password" method="post" novalidate autocomplete="off"
+                  data-simple="@(simplePassword ? "true" : "false")">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="change-password-title">@L["layout.change_password"]</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body">
+                    @* Lets password managers pair the new password with this account. *@
+                    <input type="text" name="username" value="@CurrentUser.UserName" autocomplete="username" hidden readonly />
+
+                    <div class="mb-3">
+                        <label class="form-label" for="cp-current">@L["layout.current_password"]</label>
+                        <div class="hrms-pw">
+                            <input class="form-control" id="cp-current" name="CurrentPassword" type="password"
+                                   autocomplete="current-password" maxlength="256" required />
+                            <button type="button" class="hrms-pw__toggle" data-pw-toggle aria-label="@L["common.show_password"]">@Html.Icon("eye", 16)</button>
+                        </div>
+                        <span class="field-validation-error" data-valmsg-for="CurrentPassword"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="cp-new">@L["layout.new_password"]</label>
+                        <div class="hrms-pw">
+                            <input class="form-control" id="cp-new" name="NewPassword" type="password"
+                                   autocomplete="new-password" maxlength="@(simplePassword ? 50 : 128)" required
+                                   aria-describedby="@(simplePassword ? null : "cp-rules")" />
+                            <button type="button" class="hrms-pw__toggle" data-pw-toggle aria-label="@L["common.show_password"]">@Html.Icon("eye", 16)</button>
+                        </div>
+                        @if (!simplePassword)
+                        {
+                            <ul class="hrms-pw-rules" id="cp-rules" aria-live="polite">
+                                <li data-rule="length">@L["layout.at_least_8_characters"]</li>
+                                <li data-rule="case">@L["layout.upper_and_lower_case_letters"]</li>
+                                <li data-rule="digit">@L["layout.at_least_one_number"]</li>
+                            </ul>
+                        }
+                        <span class="field-validation-error" data-valmsg-for="NewPassword"></span>
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="cp-confirm">@L["layout.confirm_new_password"]</label>
+                        <div class="hrms-pw">
+                            <input class="form-control" id="cp-confirm" name="ConfirmPassword" type="password"
+                                   autocomplete="new-password" maxlength="@(simplePassword ? 50 : 128)" required />
+                            <button type="button" class="hrms-pw__toggle" data-pw-toggle aria-label="@L["common.show_password"]">@Html.Icon("eye", 16)</button>
+                        </div>
+                        <span class="field-validation-error" data-valmsg-for="ConfirmPassword"></span>
+                    </div>
+
+                    <p class="hrms-pw-note">@L["layout.your_other_signed_in_sessions_other_browsers_or"]</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                    <button type="submit" class="btn btn-primary" data-cp-submit>
+                        @Html.Icon("check", 15)<span>@L["layout.change_password"]</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="hrms-toast-host" id="toast-host" role="status" aria-live="polite" aria-atomic="false"></div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+@* Text used by the page scripts (keys "js.*" in Core.UiLabels) - read by HRMS.t() in site.js.
+   A JSON data block, not a script, so the strict CSP (script-src 'self') is unaffected. *@
+<script type="application/json" id="hrms-labels">@L.ScriptLabelsJson()</script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

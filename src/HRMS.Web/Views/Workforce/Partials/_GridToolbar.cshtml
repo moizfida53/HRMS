@@ -1,0 +1,28 @@
+@model EmployeeGridViewModel
+@{
+    var active = Model.Request.IsActive;
+}
+<div class="hrms-card__toolbar">
+    <div class="hrms-card__filters">
+        <label class="hrms-search" style="max-width:320px;flex:1 1 220px" for="grid-search">
+            @Html.Icon("search", 16)
+            <input id="grid-search"
+                   type="search"
+                   value="@Model.Request.Search"
+                   data-grid-search
+                   autocomplete="off"
+                   placeholder="@L["emp.search_employees"]"
+                   aria-label="@L["emp.search_employees_2"]" />
+        </label>
+
+        <select class="form-select" style="width:auto;min-width:150px" data-grid-status aria-label="@L["common.filter_by_status"]">
+            <option value="" selected="@(active is null)">@L["common.all_statuses"]</option>
+            <option value="true" selected="@(active == true)">@L["common.active_only"]</option>
+            <option value="false" selected="@(active == false)">@L["common.inactive_only"]</option>
+        </select>
+    </div>
+
+    <div class="hrms-card__count">
+        @(Model.TotalCount == 1 ? L["emp.one_employee"] : L["emp.n_employees", Model.TotalCount.ToString("N0")])
+    </div>
+</div>

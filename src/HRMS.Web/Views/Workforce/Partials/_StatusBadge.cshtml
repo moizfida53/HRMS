@@ -1,0 +1,14 @@
+@model string
+@{
+    var (cssClass, label) = (Model ?? "Active") switch
+    {
+        "Active"     => ("hrms-badge--success", "Active"),
+        "Probation"  => ("hrms-badge--info", "Probation"),
+        "OnLeave"    => ("hrms-badge--warning", "On Leave"),
+        "Suspended"  => ("hrms-badge--warning", "Suspended"),
+        "Terminated" => ("hrms-badge--danger", "Terminated"),
+        "Resigned"   => ("hrms-badge--muted", "Resigned"),
+        _            => ("hrms-badge--muted", Model ?? "—")
+    };
+}
+<span class="hrms-badge @cssClass"><span class="hrms-badge__dot"></span>@L.Tr(label)</span>

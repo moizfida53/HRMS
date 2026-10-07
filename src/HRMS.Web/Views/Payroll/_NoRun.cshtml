@@ -1,0 +1,9 @@
+@* Register / Validation / Approval with no payroll yet *@
+<div class="hrms-card">
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("calculator", 26)</span>
+        <p class="hrms-empty__title">@L["pr.no_payrolls_yet"]</p>
+        <p class="hrms-empty__text">@L["pr.create_the_first_payroll_of_a_period_it_starts_as_regist"]</p>
+        <a class="btn btn-primary" asp-controller="Payroll" asp-action="Create">@Html.Icon("plus", 15)<span>@L["pr.create_payroll"]</span></a>
+    </div>
+</div>

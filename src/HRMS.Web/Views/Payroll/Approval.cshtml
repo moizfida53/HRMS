@@ -1,0 +1,192 @@
+@model RunPageModel
+@{
+    ViewData["Title"] = "Payroll Processing";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "processing";
+    ViewData["Subtitle"] = L["pr.two_level_approval_of_the_selected_payroll_hr_manager_fi"];
+    var run = Model.Run!;
+    var waiting = run.Stage == RunStage.AwaitingApproval;
+    var gross = run.TotalSalary + run.TotalEarnings;
+    string Action(string code) => code switch
+    {
+        "CREATED" => L["pr.created"], "RECALCULATED" => L["pr.recalculated"], "REGISTRATION_DONE" => L["pr.registration_completed"],
+        "BACK_TO_REGISTER" => L["pr.back_to_register"], "SUBMITTED" => L["pr.submitted_for_approval"], "RETURNED" => L["pr.returned_for_correction"],
+        "APPROVED" => L["pr.approved"], "REJECTED" => L["pr.rejected"], "CANCELLED" => L["emp.cancelled"], "REOPENED" => L["pr.reopened"],
+        _ => code
+    };
+    var lastSubmit = Model.History.LastOrDefault(h => h.ActionCode == "SUBMITTED");
+    var approvals = lastSubmit is null ? new List<PayrollRunHistoryEntry>() :
+        Model.History.Where(h => h.ActionDate >= lastSubmit.ActionDate && h.ActionCode == "APPROVED").ToList();
+    var l1 = approvals.LastOrDefault(h => h.ApprovalLevel == 1);
+    var l2 = approvals.LastOrDefault(h => h.ApprovalLevel == 2);
+}
+@await Html.PartialAsync("_Tabs", "approval")
+
+<div class="pr-stack" data-pr-page="approval">
+    @await Html.PartialAsync("_RunBar", Model.Bar)
+    @if (run.IsClosed)
+    {
+        <div class="pr-banner pr-banner--ok">@Html.Icon("check", 18)<div><strong>@L["pr.this_payroll_is_closed"]</strong> @L["pr.closed_by_0_on_1_payslips_the_bank_file_and_the_journal", run.ClosedByName ?? "—", L.Date(run.ClosedDate)]</div></div>
+    }
+    <div class="pr-row pr-row--wide-left">
+        <div class="hrms-card">
+            <div class="pr-card-body">
+                <h2 class="pr-card-title">@L["pr.summary"]</h2>
+                <dl class="pr-dl">
+                    <div><dt>@L["common.employees"]</dt><dd>@PayrollFormat.Count(run.EmployeeCount)</dd></div>
+                    <div><dt>@L["pr.gross"]</dt><dd>@L["pr.kwd"] @PayrollFormat.Money(gross)</dd></div>
+                    <div><dt>@L["pr.deductions"]</dt><dd>@L["pr.kwd"] @PayrollFormat.Money(run.TotalDeductions)</dd></div>
+                    <div><dt>@L["pr.net_pay"]</dt><dd>@L["pr.kwd"] @PayrollFormat.Money(run.TotalNet)</dd></div>
+                    <div><dt>@L["pr.errors"]</dt><dd>@run.ErrorCount</dd></div>
+                    <div><dt>@L["pr.warnings"]</dt><dd>@L["pr.0_1_acknowledged", run.WarningCount, run.AcknowledgedCount]</dd></div>
+                    <div><dt>@L["pr.excluded"]</dt><dd>@PayrollFormat.Count(run.ExcludedCount)</dd></div>
+                    <div><dt>@L["pr.submitted_by"]</dt><dd>@(run.SubmittedByName ?? "—") · @L.Date(run.SubmittedDate)</dd></div>
+                </dl>
+                <p class="pr-section-label mt-4">@L["pr.biggest_changes_vs_last_month"]</p>
+                @if (Model.BiggestChanges.Count == 0)
+                {
+                    <p class="hrms-muted hrms-text-sm">@L["pr.no_previous_closed_payroll_to_compare_with_or_no_changes"]</p>
+                }
+                else
+                {
+                    <div class="hrms-table-wrap">
+                        <table class="hrms-table">
+                            <caption class="hrms-sr-only">@L["pr.biggest_changes_vs_last_month"]</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">@L["pr.employee"]</th>
+                                    <th scope="col" class="pr-money col-p3">@L["pr.last_net"]</th>
+                                    <th scope="col" class="pr-money">@L["pr.net"]</th>
+                                    <th scope="col" class="pr-money">@L["pr.change"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var e in Model.BiggestChanges)
+                                {
+                                    var diff = e.NetPay - (e.PreviousNet ?? 0);
+                                    <tr>
+                                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">@PayrollFormat.EmployeeName(L, e.EmployeeName, e.ArabicName)<span class="pr-emp-sub">@e.EmployeeNo</span></td>
+                                        <td data-label="@L["pr.last_net"]" class="pr-money col-p3">@PayrollFormat.Money(e.PreviousNet)</td>
+                                        <td data-label="@L["pr.net"]" class="pr-money">@PayrollFormat.Money(e.NetPay)</td>
+                                        <td data-label="@L["pr.change"]" class="pr-money @(diff > 0 ? "pr-pos" : "pr-neg")">@PayrollFormat.Signed(diff)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                <div class="mt-3 d-flex gap-2 flex-wrap">
+                    <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Register", "Payroll", new { run = run.PayrollRunId })">@Html.Icon("eye", 15)<span>@L["pr.open_full_register_read_only"]</span></a>
+                    <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Export", "Payroll", new { run = run.PayrollRunId })">@Html.Icon("download", 15)<span>@L["common.export"]</span></a>
+                </div>
+            </div>
+        </div>
+        <div class="pr-stack">
+            <section class="hrms-card hrms-panel">
+                <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["pr.approval_timeline"]</h2></header>
+                <div class="pr-card-body pt-0">
+                    <ol class="pr-timeline">
+                        <li class="@(lastSubmit is not null ? "is-done" : "is-todo")">
+                            <span class="pr-timeline__dot"></span>
+                            <div class="pr-timeline__title">@L["pr.submitted_by_0", lastSubmit?.ActionByName ?? "—"]</div>
+                            <div class="pr-timeline__meta">@(lastSubmit is null ? "—" : L.Date(lastSubmit.ActionDate))</div>
+                            @if (!string.IsNullOrWhiteSpace(lastSubmit?.Comment)) { <div class="pr-timeline__note">@lastSubmit.Comment</div> }
+                        </li>
+                        <li class="@(l1 is not null ? "is-done" : (waiting && run.ApprovalLevel == 0 ? "is-current" : "is-todo"))">
+                            <span class="pr-timeline__dot"></span>
+                            <div class="pr-timeline__title">@L["pr.level_1_hr_manager"]</div>
+                            <div class="pr-timeline__meta">@(l1 is null ? L["pr.waiting"] : L["pr.approved_by_0_1", l1.ActionByName, L.Date(l1.ActionDate)])</div>
+                            @if (!string.IsNullOrWhiteSpace(l1?.Comment)) { <div class="pr-timeline__note">@l1.Comment</div> }
+                        </li>
+                        <li class="@(l2 is not null ? "is-done" : (waiting && run.ApprovalLevel == 1 ? "is-current" : "is-todo"))">
+                            <span class="pr-timeline__dot"></span>
+                            <div class="pr-timeline__title">@L["pr.level_2_finance_manager"]</div>
+                            <div class="pr-timeline__meta">@(l2 is null ? L["pr.waiting"] : L["pr.approved_by_0_1", l2.ActionByName, L.Date(l2.ActionDate)])</div>
+                            @if (!string.IsNullOrWhiteSpace(l2?.Comment)) { <div class="pr-timeline__note">@l2.Comment</div> }
+                        </li>
+                        <li class="@(run.IsClosed ? "is-done" : "is-todo")">
+                            <span class="pr-timeline__dot"></span>
+                            <div class="pr-timeline__title">@L["pr.closed"]</div>
+                            <div class="pr-timeline__meta">@L["pr.payslips_bank_file_and_journal_can_be_generated"]</div>
+                        </li>
+                    </ol>
+                </div>
+            </section>
+
+            @if (waiting)
+            {
+                <div class="hrms-card">
+                    <div class="pr-card-body">
+                        <h2 class="pr-card-title">@L["pr.your_decision"] <span class="hrms-badge hrms-badge--purple ms-1">@L["pr.level_0_of_1", run.ApprovalLevel + 1, 2]</span></h2>
+                        @if (Model.CanApproveLevel == 0)
+                        {
+                            <p class="hrms-muted mb-0">@(run.ApprovalLevel == 0 ? L["pr.waiting_for_the_hr_manager"] : L["pr.waiting_for_the_finance_manager"]) @L["pr.you_are_not_an_approver_for_this_level"]</p>
+                        }
+                        else if (Model.IsSelfApprovalBlocked)
+                        {
+                            <p class="hrms-muted mb-0">@L["pr.you_cannot_approve_a_payroll_you_submitted_or_already_ap"]</p>
+                        }
+                        else
+                        {
+                            <label class="form-label" for="decision-comment">@L["pr.comment"]</label>
+                            <textarea class="form-control mb-3" id="decision-comment" rows="3" maxlength="500" data-decision-comment
+                                      placeholder="@L["pr.required_when_rejecting_or_returning"]"></textarea>
+                            <span class="field-validation-error" data-decision-error hidden>@L["pr.enter_a_comment_explaining_your_decision"]</span>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-primary" data-decision="approve">@Html.Icon("check", 15)<span>@L["pr.approve"]</span></button>
+                                <button type="button" class="btn btn-outline-secondary" data-decision="return">@Html.Icon("undo", 15)<span>@L["pr.return_for_correction"]</span></button>
+                                <button type="button" class="btn btn-outline-danger" data-decision="reject">@Html.Icon("x-circle", 15)<span>@L["pr.reject"]</span></button>
+                            </div>
+                            <p class="hrms-muted hrms-text-xs mt-2 mb-0">@L["pr.return_sends_the_payroll_back_to_validation_reject_cance"]</p>
+                        }
+                    </div>
+                </div>
+            }
+
+            <section class="hrms-card hrms-panel">
+                <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["pr.history"]</h2></header>
+                <div class="pr-card-body pt-0">
+                    <ol class="pr-timeline">
+                        @foreach (var h in Model.History.Reverse())
+                        {
+                            <li class="@(h.ActionCode is "REJECTED" or "CANCELLED" or "RETURNED" ? "is-rejected" : "is-done")">
+                                <span class="pr-timeline__dot"></span>
+                                <div class="pr-timeline__title">@Action(h.ActionCode)@(h.ApprovalLevel is { } lv && h.ActionCode is "APPROVED" or "RETURNED" or "REJECTED" ? " " + L["pr.level_0", lv] : "")</div>
+                                <div class="pr-timeline__meta">@h.ActionByName · @L.Date(h.ActionDate) @h.ActionDate.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
+                                @if (!string.IsNullOrWhiteSpace(h.Comment)) { <div class="pr-timeline__note">@h.Comment</div> }
+                            </li>
+                        }
+                    </ol>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+
+@if (Model.CanReopen)
+{
+    <div class="pr-actionbar">
+        <div class="pr-actionbar__status"><span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["pr.closed"]</span></div>
+        <div class="pr-actionbar__spacer"></div>
+        <button type="button" class="btn btn-outline-secondary"
+                data-reason-open
+                data-reason-url="@Url.Action("Reopen", "Payroll", new { run = run.PayrollRunId })"
+                data-reason-title="@L["pr.reopen_payroll"]"
+                data-reason-text="@L["pr.reopen_is_possible_only_before_the_bank_file_and_the_jou"]"
+                data-reason-label="@L["pr.reason"]"
+                data-reason-placeholder="@L["pr.why_is_this_payroll_reopened"]"
+                data-reason-button="@L["pr.reopen_payroll"]"
+                data-reason-redirect="validation">@Html.Icon("undo", 15)<span>@L["pr.reopen_payroll"]</span></button>
+    </div>
+}
+
+<div hidden data-decision-urls
+     data-approve="@Url.Action("Approve", "Payroll", new { run = run.PayrollRunId })"
+     data-return="@Url.Action("ReturnForCorrection", "Payroll", new { run = run.PayrollRunId })"
+     data-reject="@Url.Action("CancelRun", "Payroll", new { run = run.PayrollRunId })"></div>
+@await Html.PartialAsync("_RunUrls", run)
+@await Html.PartialAsync("_Modals")
+
+@section Scripts {
+    <script src="~/js/payroll.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,80 @@
+@using HRMS.Web.Models.Payroll
+@using HRMS.Web.Models.Organization
+@model CalendarsGridModel
+@{
+    var pg = Model.Page;
+    string Freq(string f) => f switch { "WEEKLY" => L["pr.weekly"], "BIWEEKLY" => L["pr.bi_weekly"], _ => L["pr.monthly"] };
+    string Basis(PayrollCalendar c) => c.WorkingDaysBasis switch
+    {
+        "FIXED" => L["pr.fixed_0", c.FixedDaysPerMonth ?? 0],
+        "CALENDAR" => L["pr.calendar_days"],
+        _ => L["pr.working_days"]
+    };
+    string Schedule(PayrollCalendar c) => c.PayFrequency == "MONTHLY"
+        ? L["pr.cut_off_0_pay_day_1", c.CutOffDay ?? 0, c.PaymentDay ?? 0] + (c.PaymentNextMonth ? " " + L["pr.next_month"] : "")
+        : L["pr.cut_off_0_pay_1_days_from_period_end", c.CutOffOffsetDays ?? 0, c.PaymentOffsetDays ?? 0];
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["common.one_record"] : L["common.n_records", PayrollFormat.Count(pg.TotalCount)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "calendar", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["pr.no_calendars_match_the_search"] : L["pr.no_payroll_calendars_yet"])</p>
+        <p class="hrms-empty__text">@L["pr.a_payroll_calendar_is_a_pay_group_with_its_own_frequency"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table">
+            <caption class="hrms-sr-only">@L["pr.payroll_calendars"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["common.code"]</th>
+                    <th scope="col">@L["pr.calendar"]</th>
+                    <th scope="col">@L["common.company"]</th>
+                    <th scope="col">@L["pr.frequency"]</th>
+                    <th scope="col" class="col-p2">@L["pr.cut_off_pay_day"]</th>
+                    <th scope="col" class="col-p3">@L["pr.days_basis"]</th>
+                    <th scope="col" class="col-p2">@L["pr.first_open_period"]</th>
+                    <th scope="col" class="text-center col-p3">@L["pr.default"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in pg.Items)
+                {
+                    var name = PayrollFormat.Calendar(L, c.CalendarName, c.ArabicName);
+                    <tr data-id="@c.PayrollCalendarId" data-name="@name">
+                        <td data-label="@L["common.code"]"><span class="hrms-code-chip">@c.CalendarCode</span></td>
+                        <td data-label="@L["pr.calendar"]"><span class="hrms-table__primary">@name</span></td>
+                        <td data-label="@L["common.company"]" class="hrms-muted">@c.CompanyName</td>
+                        <td data-label="@L["pr.frequency"]">@Freq(c.PayFrequency)</td>
+                        <td data-label="@L["pr.cut_off_pay_day"]" class="col-p2 hrms-text-sm">@Schedule(c)</td>
+                        <td data-label="@L["pr.days_basis"]" class="col-p3">@Basis(c)</td>
+                        <td data-label="@L["pr.first_open_period"]" class="col-p2">@(c.CurrentPeriodName ?? "—")</td>
+                        <td data-label="@L["pr.default"]" class="text-center col-p3">@if (c.IsDefault) { @Html.Icon("check", 15) }</td>
+                        <td data-label="@L["common.status"]">
+                            <span class="hrms-badge hrms-badge--@(c.IsActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(c.IsActive ? L["org.active"] : L["org.inactive"])</span>
+                        </td>
+                        <td class="hrms-table__actions">
+                            @if (Model.CanSetup)
+                            {
+                                <button type="button" class="btn-icon" data-cal-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--success" data-cal-toggle title="@(c.IsActive ? L["common.deactivate"] : L["common.activate"])" aria-label="@(c.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--danger" data-cal-delete title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

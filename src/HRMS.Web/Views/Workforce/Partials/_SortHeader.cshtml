@@ -1,0 +1,10 @@
+@model EmployeeSortHeaderModel
+<th scope="col" class="@Model.CssClass" aria-sort="@(Model.IsSorted ? (Model.IsDescending ? "descending" : "ascending") : "none")">
+    <button type="button"
+            class="hrms-table__sort @(Model.IsSorted ? "is-sorted" : null) @(Model.IsSorted && Model.IsDescending ? "is-sorted-desc" : null)"
+            data-sort="@Model.Column"
+            data-direction="@Model.NextDirection">
+        @L.Tr(Model.Label)
+        @Html.Icon("sort", 12)
+    </button>
+</th>

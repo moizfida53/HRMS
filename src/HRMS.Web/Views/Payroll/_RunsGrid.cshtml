@@ -1,0 +1,98 @@
+@using HRMS.Web.Models.Payroll
+@using HRMS.Web.Models.Organization
+@using HRMS.Domain.Payroll
+@model RunsGridModel
+@{
+    var history = Model.Mode == "history";
+    var pg = Model.Page;
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["pr.1_payroll"] : L["pr.0_payrolls", PayrollFormat.Count(pg.TotalCount)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "calculator", 26)</span>
+        @if (Model.IsFiltered)
+        {
+            <p class="hrms-empty__title">@L["pr.no_payrolls_match_the_filters"]</p>
+            <p class="hrms-empty__text">@L["pr.change_the_period_or_stage_to_see_more_payrolls"]</p>
+        }
+        else
+        {
+            <p class="hrms-empty__title">@L["pr.no_payrolls_yet"]</p>
+            <p class="hrms-empty__text">@L["pr.create_the_first_payroll_of_a_period_it_starts_as_regist"]</p>
+            <a class="btn btn-primary" asp-controller="Payroll" asp-action="Create">@Html.Icon("plus", 15)<span>@L["pr.create_payroll"]</span></a>
+        }
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table">
+            <caption class="hrms-sr-only">@L["pr.payrolls"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["layout.payroll"]</th>
+                    <th scope="col" class="col-p2">@L["pr.period"]</th>
+                    <th scope="col" class="col-p3">@L["pr.calendar"]</th>
+                    <th scope="col" class="col-p3">@L["org.type"]</th>
+                    <th scope="col" class="text-center col-p3">@L["common.employees"]</th>
+                    <th scope="col" class="pr-money col-p2">@L["pr.net_kwd"]</th>
+                    <th scope="col">@L["pr.stage"]</th>
+                    @if (history)
+                    {
+                        <th scope="col" class="col-p2">@L["pr.closed_cancelled_by"]</th>
+                    }
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in pg.Items)
+                {
+                    var idx = r.IsCancelled ? -1 : r.StageIndex;
+                    <tr class="@(r.IsCancelled ? "pr-row-cancelled" : null)" data-run-id="@r.PayrollRunId">
+                        <td data-label="@L["layout.payroll"]" class="hrms-nowrap">
+                            <a class="pr-run-link" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })"><span class="hrms-code-chip">@r.RunCode</span></a>
+                            <span class="pr-emp-sub pr-run-desc">@(string.IsNullOrWhiteSpace(r.Description) ? L["pr.regular_payroll"] : r.Description)</span>
+                        </td>
+                        <td data-label="@L["pr.period"]" class="col-p2">@PayrollFormat.Period(L, r)</td>
+                        <td data-label="@L["pr.calendar"]" class="col-p3">@PayrollFormat.Calendar(L, r.CalendarName, r.CalendarArabicName)</td>
+                        <td data-label="@L["org.type"]" class="col-p3">@L.Tr(RunType.Label(r.RunType))</td>
+                        <td data-label="@L["common.employees"]" class="text-center col-p3">@PayrollFormat.Count(r.EmployeeCount)</td>
+                        <td data-label="@L["pr.net_kwd"]" class="pr-money col-p2">@(r.IsCancelled ? "—" : PayrollFormat.Money(r.TotalNet))</td>
+                        <td data-label="@L["pr.stage"]" class="hrms-nowrap">
+                            @if (!r.IsCancelled)
+                            {
+                                <span class="pr-mini-stages" aria-hidden="true">
+                                    @for (var i = 0; i < 4; i++)
+                                    {
+                                        <i class="@(i < idx || (r.IsClosed && i <= idx) ? "is-done" : (i == idx ? "is-current" : null))"></i>
+                                    }
+                                </span>
+                            }
+                            <span class="hrms-badge hrms-badge--@RunStage.Badge(r.Stage)"><span class="hrms-badge__dot"></span>@L.Tr(RunStage.Label(r.Stage))@(r.Stage == RunStage.AwaitingApproval ? " " + L["pr.level_0_of_2", r.ApprovalLevel + 1] : "")</span>
+                        </td>
+                        @if (history)
+                        {
+                            <td data-label="@L["pr.closed_cancelled_by"]" class="col-p2 hrms-text-sm">
+                                @(r.IsCancelled ? r.CancelledByName : r.ClosedByName) · @L.Date(r.IsCancelled ? r.CancelledDate : r.ClosedDate)
+                            </td>
+                        }
+                        <td class="hrms-table__actions">
+                            <a class="btn-icon" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })" title="@L["pr.open"]" aria-label="@L["common.open_named", r.RunCode]">@Html.Icon(r.IsEditable ? "edit" : "eye", 15)</a>
+                            @if (history && !r.IsCancelled)
+                            {
+                                <a class="btn-icon" href="@Url.Action("Export", "Payroll", new { run = r.PayrollRunId })" title="@L["common.export"]" aria-label="@L["pr.export_0", r.RunCode]">@Html.Icon("download", 15)</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

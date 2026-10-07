@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="@L.Lang" dir="@L.Dir">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>@L.Tr(ViewData["Title"] as string) &middot; @L["layout.app_name"]</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Kufi+Arabic:wght@500;600;700&amp;family=Noto+Sans+Arabic:wght@400;500;600;700&amp;display=swap" />
+
+    @* Arabic: Bootstrap's own RTL build flips margins, floats, dropdowns, etc. *@
+    @if (L.IsArabic)
+    {
+        <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    }
+    else
+    {
+        <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    }
+    <link rel="stylesheet" href="~/css/hrms.css" asp-append-version="true" />
+</head>
+<body class="hrms-auth-body">
+
+@RenderBody()
+
+<div class="hrms-toast-host" id="toast-host" role="status" aria-live="polite" aria-atomic="false"></div>
+
+@* Text used by the page scripts (keys "js.*" in Core.UiLabels) - read by HRMS.t() in site.js.
+   A JSON data block, not a script, so the strict CSP (script-src 'self') is unaffected. *@
+<script type="application/json" id="hrms-labels">@L.ScriptLabelsJson()</script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+<script src="~/js/auth.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

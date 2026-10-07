@@ -1,0 +1,1304 @@
+@model EmployeeProfileViewModel
+@{
+    ViewData["Title"] = Model.DisplayName;
+    ViewData["ActiveArea"] = "workforce";
+    // Top bar shows the screen name; the employee's own name appears once,
+    // in the employee card below - not twice.
+    ViewData["Heading"] = Model.IsNew ? "New Employee" : "Employee Profile";
+    ViewData["BackUrl"] = "/employees";
+    ViewData["BackLabel"] = "Back to Employees";
+
+    var e = Model.Employee;
+    var c = Model.Compliance;
+
+    // Wizard mode (Add Employee, and the steps after the employee is created):
+    // the very same sections as the tabs, shown one at a time with Previous / Next.
+    var wizard = Model.Wizard;
+    var wizardTabs = new[] {
+        ("personal", "Personal Info"), ("employment", "Employment"),
+        ("compliance", "Kuwait Compliance"), ("dependents", "Dependents"),
+        ("documents", "Documents") };
+}
+
+
+@* ------------------------------------------- basic employee info strip *@
+@* The only place the employee's name is shown - the top bar carries the
+   screen name ("Employee Profile"). Save sits here, next to the record it saves. *@
+<div class="hrms-card hrms-emp-strip">
+    <span class="hrms-profile-photo" title="@L["emp.photo_upload_is_coming_soon"]" aria-label="@L["emp.employee_photo_placeholder"]">
+        <span class="hrms-avatar hrms-emp-strip__avatar">@Model.Initials</span>
+        <span class="hrms-profile-photo__badge" aria-hidden="true">@Html.Icon("camera", 11)</span>
+    </span>
+
+    <div class="hrms-emp-strip__who">
+        <div class="hrms-emp-strip__name-row">
+            <h2 class="hrms-emp-strip__name">@L.Tr(Model.DisplayName)</h2>
+            @if (!Model.IsNew)
+            {
+                @await Html.PartialAsync("~/Views/Workforce/Partials/_StatusBadge.cshtml", e.EmploymentStatus)
+                if (!e.IsActive)
+                {
+                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["emp.deactivated"]</span>
+                }
+            }
+        </div>
+        <div class="hrms-emp-strip__meta">
+            <span>@(string.IsNullOrWhiteSpace(e.EmployeeCode) ? L["emp.no_code_assigned"] : L["emp.emp_code", e.EmployeeCode])</span>
+            @if (!string.IsNullOrWhiteSpace(e.DepartmentName))
+            {
+                <span class="hrms-info-chip">@Html.Icon("building", 13)<span>@e.DepartmentName</span></span>
+            }
+            @if (!string.IsNullOrWhiteSpace(e.DesignationName))
+            {
+                <span class="hrms-info-chip">@Html.Icon("badge", 13)<span>@e.DesignationName</span></span>
+            }
+        </div>
+    </div>
+
+    <div class="hrms-emp-strip__actions" hidden="@(wizard ? "hidden" : null)">
+        <button type="submit" form="employee-form" class="btn btn-primary" data-submit="employee">
+            @Html.Icon("check", 15)
+            <span>@(Model.IsNew ? L["emp.create_employee"] : L["emp.save_changes"])</span>
+        </button>
+    </div>
+</div>
+
+@if (wizard)
+{
+    <div class="hrms-wizard-steps" role="list" aria-label="@L["emp.employee_steps"]" data-wizard
+         data-start="@Model.ActiveTab" data-employee-id="@e.EmployeeId">
+        @for (var i = 0; i < wizardTabs.Length; i++)
+        {
+            if (i > 0) { <div class="hrms-wizard-step__line" aria-hidden="true"></div> }
+            <div class="hrms-wizard-step" data-step-indicator="@wizardTabs[i].Item1" role="listitem">
+                <span class="hrms-wizard-step__circle">@(i + 1)</span>
+                <span class="hrms-wizard-step__label">@L.Tr(wizardTabs[i].Item2)</span>
+            </div>
+        }
+    </div>
+}
+
+@* -------------------------------------------------------------- tabs === *@
+<ul class="nav nav-tabs hrms-profile-tabs @(wizard ? "d-none" : null)" id="profile-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "personal" ? "active" : null)" id="tab-personal-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-personal" type="button" role="tab"
+                aria-controls="tab-personal" aria-selected="@(Model.ActiveTab == "personal" ? "true" : "false")">
+            @Html.Icon("user", 15)<span>@L["emp.personal_info"]</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "employment" ? "active" : null)" id="tab-employment-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-employment" type="button" role="tab"
+                aria-controls="tab-employment" aria-selected="@(Model.ActiveTab == "employment" ? "true" : "false")">
+            @Html.Icon("briefcase", 15)<span>@L["emp.employment"]</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "compliance" ? "active" : null)" id="tab-compliance-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-compliance" type="button" role="tab"
+                aria-controls="tab-compliance" aria-selected="@(Model.ActiveTab == "compliance" ? "true" : "false")"
+                disabled="@(Model.IsNew && !wizard ? "disabled" : null)"
+                title="@(Model.IsNew ? L["emp.save_employee_first"] : null)">
+            @Html.Icon("shield", 15)<span>@L["common.kuwait_compliance"]</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "dependents" ? "active" : null)" id="tab-dependents-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-dependents" type="button" role="tab"
+                aria-controls="tab-dependents" aria-selected="@(Model.ActiveTab == "dependents" ? "true" : "false")"
+                disabled="@(Model.IsNew && !wizard ? "disabled" : null)"
+                title="@(Model.IsNew ? L["emp.save_employee_first"] : null)">
+            @Html.Icon("heart", 15)<span>@L["emp.dependents"]</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "documents" ? "active" : null)" id="tab-documents-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-documents" type="button" role="tab"
+                aria-controls="tab-documents" aria-selected="@(Model.ActiveTab == "documents" ? "true" : "false")"
+                disabled="@(Model.IsNew && !wizard ? "disabled" : null)"
+                title="@(Model.IsNew ? L["emp.save_employee_first"] : null)">
+            @Html.Icon("folder", 15)<span>@L["emp.documents"]</span>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content hrms-profile-tab-content">
+
+    @* The employee-form element itself is declared empty, further down the
+       page, outside these tab panes. Every Personal Info and Employment
+       field below uses the HTML5 form="employee-form" attribute to attach
+       to it without nesting a <form> inside another - Bootstrap's tab
+       plugin needs .tab-pane elements to stay plain siblings, and a
+       Kuwait Compliance <form> lives in its own pane a few lines down. *@
+
+    <div class="tab-pane fade @(Model.ActiveTab == "personal" ? "show active" : null)" id="tab-personal" role="tabpanel" aria-labelledby="tab-personal-btn">
+        <div class="hrms-card"><div class="p-3 p-md-4">
+
+            <input type="hidden" form="employee-form" name="EmployeeId" value="@e.EmployeeId" />
+
+            <div class="accordion hrms-accordion" id="acc-personal">
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-personal-identity" aria-expanded="true" aria-controls="acc-personal-identity">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("user", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["common.identity"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-personal-identity" class="accordion-collapse collapse show" data-bs-parent="#acc-personal">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                @* Row 1: Employee No | Employee Code | Arabic Name *@
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-EmployeeNo">@L["emp.employee_no"] <span class="req" aria-hidden="true">*</span></label>
+                                    <input class="form-control" id="f-EmployeeNo" form="employee-form" name="EmployeeNo" type="text"
+                                           value="@e.EmployeeNo" maxlength="20" required autocomplete="off" spellcheck="false" />
+                                    <span class="field-validation-error" data-valmsg-for="EmployeeNo"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-EmployeeCode">@L["emp.employee_code"]</label>
+                                    <input class="form-control" id="f-EmployeeCode" form="employee-form" name="EmployeeCode" type="text"
+                                           value="@e.EmployeeCode" maxlength="20" autocomplete="off" spellcheck="false" />
+                                    <span class="form-text">@L["emp.leave_blank_to_assign_later_must_be_unique_per_c"]</span>
+                                    <span class="field-validation-error" data-valmsg-for="EmployeeCode"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="f-ArabicName">@L["emp.name_arabic"]</label>
+                                    <input class="form-control" id="f-ArabicName" form="employee-form" name="ArabicName" type="text"
+                                           value="@e.ArabicName" maxlength="300" dir="rtl" style="font-family:var(--hrms-font-arabic,inherit)" />
+                                    <span class="field-validation-error" data-valmsg-for="ArabicName"></span>
+                                </div>
+                                @* Row 2: First | Middle | Last name - one row *@
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-FirstName">@L["emp.first_name"] <span class="req" aria-hidden="true">*</span></label>
+                                    <input class="form-control" id="f-FirstName" form="employee-form" name="FirstName" type="text"
+                                           value="@e.FirstName" maxlength="100" required />
+                                    <span class="field-validation-error" data-valmsg-for="FirstName"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-MiddleName">@L["emp.middle_name"]</label>
+                                    <input class="form-control" id="f-MiddleName" form="employee-form" name="MiddleName" type="text"
+                                           value="@e.MiddleName" maxlength="100" />
+                                    <span class="field-validation-error" data-valmsg-for="MiddleName"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-LastName">@L["emp.last_name"]</label>
+                                    <input class="form-control" id="f-LastName" form="employee-form" name="LastName" type="text"
+                                           value="@e.LastName" maxlength="100" />
+                                    <span class="field-validation-error" data-valmsg-for="LastName"></span>
+                                </div>
+                                @* Row 3: Gender, DOB, Marital Status, Nationality, Religion, Blood Group - one row *@
+                                <div class="col-6 col-md-4 col-xl-2">
+                                    <label class="form-label" for="f-Gender">@L["emp.gender"]</label>
+                                    <select class="form-select" id="f-Gender" form="employee-form" name="Gender">
+                                        <option value="">@L["common.select"]</option>
+                                        <option value="M" selected="@(e.Gender == "M")">@L["emp.male"]</option>
+                                        <option value="F" selected="@(e.Gender == "F")">@L["emp.female"]</option>
+                                    </select>
+                                    <span class="field-validation-error" data-valmsg-for="Gender"></span>
+                                </div>
+                                <div class="col-6 col-md-4 col-xl-2">
+                                    <label class="form-label" for="f-DateOfBirth">@L["emp.date_of_birth"]</label>
+                                    <input class="form-control" id="f-DateOfBirth" form="employee-form" name="DateOfBirth" type="date"
+                                           value="@e.DateOfBirth?.ToString("yyyy-MM-dd")" />
+                                    <span class="field-validation-error" data-valmsg-for="DateOfBirth"></span>
+                                </div>
+                                <div class="col-6 col-md-4 col-xl-2">
+                                    <label class="form-label" for="f-MaritalStatus">@L["emp.marital_status"]</label>
+                                    <select class="form-select" id="f-MaritalStatus" form="employee-form" name="MaritalStatus">
+                                        <option value="">@L["common.select"]</option>
+                                        @foreach (var status in new[] { "Single", "Married", "Divorced", "Widowed" })
+                                        {
+                                            <option value="@status" selected="@(e.MaritalStatus == status)">@L.Tr(status)</option>
+                                        }
+                                    </select>
+                                    <span class="field-validation-error" data-valmsg-for="MaritalStatus"></span>
+                                </div>
+                                <div class="col-6 col-md-4 col-xl-2">
+                                    <label class="form-label" for="f-NationalityCountryId">@L["emp.nationality"]</label>
+                                    <select class="form-select" id="f-NationalityCountryId" form="employee-form" name="NationalityCountryId">
+                                        <option value="">@L["common.select"]</option>
+                                        @foreach (var item in Model.Lookup(LookupType.Country))
+                                        {
+                                            <option value="@item.Id" selected="@(e.NationalityCountryId == item.Id)">@item.Text</option>
+                                        }
+                                    </select>
+                                    <span class="field-validation-error" data-valmsg-for="NationalityCountryId"></span>
+                                </div>
+                                <div class="col-6 col-md-4 col-xl-2">
+                                    <label class="form-label" for="f-Religion">@L["emp.religion"]</label>
+                                    <input class="form-control" id="f-Religion" form="employee-form" name="Religion" type="text"
+                                           value="@e.Religion" maxlength="50" />
+                                    <span class="field-validation-error" data-valmsg-for="Religion"></span>
+                                </div>
+                                <div class="col-6 col-md-4 col-xl-2">
+                                    <label class="form-label" for="f-BloodGroup">@L["emp.blood_group"]</label>
+                                    <select class="form-select" id="f-BloodGroup" form="employee-form" name="BloodGroup">
+                                        <option value="">@L["common.select"]</option>
+                                        @foreach (var type in new[] { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-" })
+                                        {
+                                            <option value="@type" selected="@(e.BloodGroup == type)">@L.Tr(type)</option>
+                                        }
+                                    </select>
+                                    <span class="field-validation-error" data-valmsg-for="BloodGroup"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-personal-contact" aria-expanded="false" aria-controls="acc-personal-contact">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("phone", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["common.contact"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-personal-contact" class="accordion-collapse collapse" data-bs-parent="#acc-personal">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                @* Mobile, Extension, Personal Email and Work Email share one row. *@
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-MobileNumber">@L["emp.mobile_number"]</label>
+                                    <input class="form-control" id="f-MobileNumber" form="employee-form" name="MobileNumber" type="tel"
+                                           value="@e.MobileNumber" maxlength="20" placeholder="+965 …" />
+                                    <span class="field-validation-error" data-valmsg-for="MobileNumber"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-Extension">@L["emp.extension"]</label>
+                                    <input class="form-control" id="f-Extension" form="employee-form" name="Extension" type="text"
+                                           value="@e.Extension" maxlength="10" placeholder="@L["emp.e_g_4521"]" />
+                                    <span class="field-validation-error" data-valmsg-for="Extension"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-PersonalEmail">@L["emp.personal_email"]</label>
+                                    <input class="form-control" id="f-PersonalEmail" form="employee-form" name="PersonalEmail" type="email"
+                                           value="@e.PersonalEmail" maxlength="150" />
+                                    <span class="field-validation-error" data-valmsg-for="PersonalEmail"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-WorkEmail">@L["emp.work_email"]</label>
+                                    <input class="form-control" id="f-WorkEmail" form="employee-form" name="WorkEmail" type="email"
+                                           value="@e.WorkEmail" maxlength="150" />
+                                    <span class="field-validation-error" data-valmsg-for="WorkEmail"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-CompanyPhone">@L["emp.company_phone"]</label>
+                                    <input class="form-control" id="f-CompanyPhone" form="employee-form" name="CompanyPhone" type="tel"
+                                           value="@e.CompanyPhone" maxlength="20" placeholder="+965 …" />
+                                    <span class="field-validation-error" data-valmsg-for="CompanyPhone"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-personal-address" aria-expanded="false" aria-controls="acc-personal-address">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("pin", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["common.address"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-personal-address" class="accordion-collapse collapse" data-bs-parent="#acc-personal">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-Neighborhood">@L["emp.neighborhood"]</label>
+                                    <input class="form-control" id="f-Neighborhood" form="employee-form" name="Neighborhood" type="text"
+                                           value="@e.Neighborhood" maxlength="100" />
+                                    <span class="field-validation-error" data-valmsg-for="Neighborhood"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-Block">@L["common.block"]</label>
+                                    <input class="form-control" id="f-Block" form="employee-form" name="Block" type="text"
+                                           value="@e.Block" maxlength="20" />
+                                    <span class="field-validation-error" data-valmsg-for="Block"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-StreetName">@L["emp.street_name"]</label>
+                                    <input class="form-control" id="f-StreetName" form="employee-form" name="StreetName" type="text"
+                                           value="@e.StreetName" maxlength="150" />
+                                    <span class="field-validation-error" data-valmsg-for="StreetName"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-BuildingNumber">@L["emp.building_villa_number"]</label>
+                                    <input class="form-control" id="f-BuildingNumber" form="employee-form" name="BuildingNumber" type="text"
+                                           value="@e.BuildingNumber" maxlength="30" />
+                                    <span class="field-validation-error" data-valmsg-for="BuildingNumber"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-FloorNumber">@L["emp.floor_number"]</label>
+                                    <input class="form-control" id="f-FloorNumber" form="employee-form" name="FloorNumber" type="text"
+                                           value="@e.FloorNumber" maxlength="20" />
+                                    <span class="field-validation-error" data-valmsg-for="FloorNumber"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-FlatNumber">@L["emp.flat_number"]</label>
+                                    <input class="form-control" id="f-FlatNumber" form="employee-form" name="FlatNumber" type="text"
+                                           value="@e.FlatNumber" maxlength="20" />
+                                    <span class="field-validation-error" data-valmsg-for="FlatNumber"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-PersonalPaciNumber">@L["emp.paci_number"]</label>
+                                    <input class="form-control" id="f-PersonalPaciNumber" form="employee-form" name="PaciNumber" type="text"
+                                           value="@e.PaciNumber" maxlength="20" />
+                                    <span class="field-validation-error" data-valmsg-for="PaciNumber"></span>
+                                </div>
+                                <div class="col-md-9">
+                                    <label class="form-label" for="f-Landmark">@L["emp.landmark"]</label>
+                                    <input class="form-control" id="f-Landmark" form="employee-form" name="Landmark" type="text"
+                                           value="@e.Landmark" maxlength="200" placeholder="@L["emp.nearby_landmark_to_help_locate_the_address"]" />
+                                    <span class="field-validation-error" data-valmsg-for="Landmark"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-personal-emergency" aria-expanded="false" aria-controls="acc-personal-emergency">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("shield", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.emergency_contact"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-personal-emergency" class="accordion-collapse collapse" data-bs-parent="#acc-personal">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                <div class="col-md-5">
+                                    <label class="form-label" for="f-EmergencyContactName">@L["emp.contact_name"]</label>
+                                    <input class="form-control" id="f-EmergencyContactName" form="employee-form" name="EmergencyContactName" type="text"
+                                           value="@e.EmergencyContactName" maxlength="150" />
+                                    <span class="field-validation-error" data-valmsg-for="EmergencyContactName"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-EmergencyContactPhone">@L["emp.contact_phone"]</label>
+                                    <input class="form-control" id="f-EmergencyContactPhone" form="employee-form" name="EmergencyContactPhone" type="tel"
+                                           value="@e.EmergencyContactPhone" maxlength="20" />
+                                    <span class="field-validation-error" data-valmsg-for="EmergencyContactPhone"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label" for="f-EmergencyContactRelation">@L["emp.relationship"]</label>
+                                    <input class="form-control" id="f-EmergencyContactRelation" form="employee-form" name="EmergencyContactRelation" type="text"
+                                           value="@e.EmergencyContactRelation" maxlength="50" />
+                                    <span class="field-validation-error" data-valmsg-for="EmergencyContactRelation"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-personal-father" aria-expanded="false" aria-controls="acc-personal-father">
+                            <span class="hrms-acc-ico hrms-acc-ico--family" aria-hidden="true">@Html.Icon("users", 15)</span>
+                            <span class="hrms-acc-text">
+                                <span class="hrms-acc-title">@L["emp.father_s_details"]</span>
+                                <span class="hrms-acc-sub">@L["emp.name_occupation_and_contact_number_of_the_employ"]</span>
+                            </span>
+                        </button>
+                    </h2>
+                    <div id="acc-personal-father" class="accordion-collapse collapse" data-bs-parent="#acc-personal">
+                        <div class="accordion-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-FatherName">@L["emp.father_s_name"]</label>
+                                    <input class="form-control" id="f-FatherName" form="employee-form" name="FatherName" type="text"
+                                           value="@e.FatherName" maxlength="150" />
+                                    <span class="field-validation-error" data-valmsg-for="FatherName"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-FatherOccupation">@L["emp.father_s_occupation"]</label>
+                                    <input class="form-control" id="f-FatherOccupation" form="employee-form" name="FatherOccupation" type="text"
+                                           value="@e.FatherOccupation" maxlength="100" />
+                                    <span class="field-validation-error" data-valmsg-for="FatherOccupation"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-FatherMobileNumber">@L["emp.father_s_mobile_number"]</label>
+                                    <input class="form-control" id="f-FatherMobileNumber" form="employee-form" name="FatherMobileNumber" type="tel"
+                                           value="@e.FatherMobileNumber" maxlength="20" />
+                                    <span class="field-validation-error" data-valmsg-for="FatherMobileNumber"></span>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="f-CurrentResidenceCountryId">@L["emp.currently_residing_in"]</label>
+                                    <select class="form-select" id="f-CurrentResidenceCountryId" form="employee-form" name="CurrentResidenceCountryId">
+                                        <option value="">@L["common.select"]</option>
+                                        @foreach (var item in Model.Lookup(LookupType.Country))
+                                        {
+                                            <option value="@item.Id" selected="@(e.CurrentResidenceCountryId == item.Id)">@item.Text</option>
+                                        }
+                                    </select>
+                                    <span class="field-validation-error" data-valmsg-for="CurrentResidenceCountryId"></span>
+                                </div>
+                                <div class="col-md-4 d-flex align-items-center">
+                                    <div class="form-check" style="margin-top:1.9rem">
+                                        <input class="form-check-input" id="f-FatherIsDeceased" form="employee-form" name="FatherIsDeceased"
+                                               type="checkbox" value="true" checked="@(e.FatherIsDeceased)" />
+                                        <input type="hidden" form="employee-form" name="FatherIsDeceased" value="false" />
+                                        <label class="form-check-label" for="f-FatherIsDeceased">@L["emp.deceased"]</label>
+                                    </div>
+                                    <span class="field-validation-error" data-valmsg-for="FatherIsDeceased"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div></div>
+    </div>
+
+    <div class="tab-pane fade @(Model.ActiveTab == "employment" ? "show active" : null)" id="tab-employment" role="tabpanel" aria-labelledby="tab-employment-btn">
+        <div class="hrms-card"><div class="p-3 p-md-4">
+
+            <div class="accordion hrms-accordion" id="acc-employment">
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-employment-org" aria-expanded="true" aria-controls="acc-employment-org">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("building", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.organization"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-employment-org" class="accordion-collapse collapse show" data-bs-parent="#acc-employment">
+                        <div class="accordion-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-CompanyId">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="f-CompanyId" form="employee-form" name="CompanyId" required>
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.Company))
+                            {
+                                <option value="@item.Id" selected="@(e.CompanyId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-BranchId">@L["common.branch"]</label>
+                        <select class="form-select" id="f-BranchId" form="employee-form" name="BranchId">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.Branch))
+                            {
+                                <option value="@item.Id" selected="@(e.BranchId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="BranchId"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-WorkLocationId">@L["emp.work_location"]</label>
+                        <select class="form-select" id="f-WorkLocationId" form="employee-form" name="WorkLocationId">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.Location))
+                            {
+                                <option value="@item.Id" selected="@(e.WorkLocationId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="WorkLocationId"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-DepartmentId">@L["common.department"]</label>
+                        <select class="form-select" id="f-DepartmentId" form="employee-form" name="DepartmentId">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.Department))
+                            {
+                                <option value="@item.Id" selected="@(e.DepartmentId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="DepartmentId"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-SectionId">@L["emp.section"]</label>
+                        <select class="form-select" id="f-SectionId" form="employee-form" name="SectionId">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.Section))
+                            {
+                                <option value="@item.Id" selected="@(e.SectionId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="SectionId"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-CostCenterId">@L["common.cost_center"]</label>
+                        <select class="form-select" id="f-CostCenterId" form="employee-form" name="CostCenterId">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.CostCenter))
+                            {
+                                <option value="@item.Id" selected="@(e.CostCenterId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="CostCenterId"></span>
+                    </div>
+                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-employment-role" aria-expanded="false" aria-controls="acc-employment-role">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("badge", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.role"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-employment-role" class="accordion-collapse collapse" data-bs-parent="#acc-employment">
+                        <div class="accordion-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-PositionId">@L["emp.job_position"]</label>
+                        <select class="form-select" id="f-PositionId" form="employee-form" name="PositionId">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.JobPosition))
+                            {
+                                <option value="@item.Id" selected="@(e.PositionId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="PositionId"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-DesignationId">@L["emp.designation"]</label>
+                        <select class="form-select" id="f-DesignationId" form="employee-form" name="DesignationId">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.Designation))
+                            {
+                                <option value="@item.Id" selected="@(e.DesignationId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="DesignationId"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-GradeId">@L["common.grade"]</label>
+                        <select class="form-select" id="f-GradeId" form="employee-form" name="GradeId">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.Grade))
+                            {
+                                <option value="@item.Id" selected="@(e.GradeId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="GradeId"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="f-ReportingManagerId">@L["emp.reporting_manager"]</label>
+                        <select class="form-select" id="f-ReportingManagerId" form="employee-form" name="ReportingManagerId">
+                            <option value="">@L["emp.none"]</option>
+                            @foreach (var item in Model.Lookup(LookupType.Employee))
+                            {
+                                if (item.Id == e.EmployeeId) { continue; }
+                                <option value="@item.Id" selected="@(e.ReportingManagerId == item.Id)">@item.Text</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="ReportingManagerId"></span>
+                    </div>
+                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-employment-terms" aria-expanded="false" aria-controls="acc-employment-terms">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("calendar", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.employment_terms"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-employment-terms" class="accordion-collapse collapse" data-bs-parent="#acc-employment">
+                        <div class="accordion-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label" for="f-HireDate">@L["emp.hire_date"]</label>
+                        <input class="form-control" id="f-HireDate" form="employee-form" name="HireDate" type="date"
+                               value="@e.HireDate?.ToString("yyyy-MM-dd")" />
+                        <span class="field-validation-error" data-valmsg-for="HireDate"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="f-ProbationEndDate">@L["emp.probation_end_date"]</label>
+                        <input class="form-control" id="f-ProbationEndDate" form="employee-form" name="ProbationEndDate" type="date"
+                               value="@e.ProbationEndDate?.ToString("yyyy-MM-dd")" />
+                        <span class="field-validation-error" data-valmsg-for="ProbationEndDate"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="f-TerminationDate">@L["emp.termination_date"]</label>
+                        <input class="form-control" id="f-TerminationDate" form="employee-form" name="TerminationDate" type="date"
+                               value="@e.TerminationDate?.ToString("yyyy-MM-dd")" />
+                        <span class="field-validation-error" data-valmsg-for="TerminationDate"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="f-EmploymentType">@L["emp.employment_type"]</label>
+                        <select class="form-select" id="f-EmploymentType" form="employee-form" name="EmploymentType">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var type in new[] { "Full-Time", "Part-Time", "Temporary", "Contract" })
+                            {
+                                <option value="@type" selected="@(e.EmploymentType == type)">@L.Tr(type)</option>
+                            }
+                        </select>
+                        <span class="field-validation-error" data-valmsg-for="EmploymentType"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-EmploymentStatus">@L["emp.employment_status"]</label>
+                        <select class="form-select" id="f-EmploymentStatus" form="employee-form" name="EmploymentStatus">
+                            @foreach (var status in new[] { "Active", "Probation", "OnLeave", "Suspended", "Terminated", "Resigned" })
+                            {
+                                <option value="@status" selected="@(e.EmploymentStatus == status)">@L.Tr(status)</option>
+                            }
+                        </select>
+                        <span class="form-text">@L["emp.independent_of_active_deactivated_below_an_emplo"]</span>
+                        <span class="field-validation-error" data-valmsg-for="EmploymentStatus"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="f-NoticePeriodDays">@L["emp.notice_period_days"]</label>
+                        <input class="form-control" id="f-NoticePeriodDays" form="employee-form" name="NoticePeriodDays" type="number"
+                               value="@e.NoticePeriodDays" min="0" max="365" />
+                        <span class="field-validation-error" data-valmsg-for="NoticePeriodDays"></span>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="f-CompanyAssets">@L["emp.company_assets"]</label>
+                        <input class="form-control" id="f-CompanyAssets" form="employee-form" name="CompanyAssets" type="text"
+                               value="@e.CompanyAssets" maxlength="300" placeholder="@L["emp.e_g_laptop_mobile_company_vehicle"]" />
+                        <span class="form-text">@L["emp.separate_items_with_commas"]</span>
+                        <span class="field-validation-error" data-valmsg-for="CompanyAssets"></span>
+                    </div>
+                </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-employment-payroll" aria-expanded="false" aria-controls="acc-employment-payroll">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("wallet", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.payroll_bank"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-employment-payroll" class="accordion-collapse collapse" data-bs-parent="#acc-employment">
+                        <div class="accordion-body">
+                <div class="row g-3">
+                    <div class="col-sm-6 col-md-3">
+                        <label class="form-label" for="f-BasicSalary">@L["emp.basic_salary_kwd"]</label>
+                        <input class="form-control text-end" id="f-BasicSalary" form="employee-form" name="BasicSalary" type="number"
+                               value="@e.BasicSalary?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)" min="0" step="0.001" inputmode="decimal" />
+                        <span class="field-validation-error" data-valmsg-for="BasicSalary"></span>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <label class="form-label" for="f-Allowances">@L["emp.allowances_kwd"]</label>
+                        <input class="form-control text-end" id="f-Allowances" form="employee-form" name="Allowances" type="number"
+                               value="@e.Allowances?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)" min="0" step="0.001" inputmode="decimal" />
+                        <span class="field-validation-error" data-valmsg-for="Allowances"></span>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <label class="form-label" for="f-GrossSalary">@L["emp.gross_monthly_kwd"]</label>
+                        <input class="form-control text-end" id="f-GrossSalary" type="text" readonly tabindex="-1"
+                               value="@(e.GrossSalary?.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) ?? "—")" />
+                        <span class="form-text">@L["emp.basic_allowances_updates_after_saving"]</span>
+                    </div>
+                    <div class="col-sm-6 col-md-3">
+                        <label class="form-label" for="f-BankName">@L["emp.bank_name"]</label>
+                        <input class="form-control" id="f-BankName" form="employee-form" name="BankName" type="text"
+                               value="@e.BankName" maxlength="100" list="kw-banks" placeholder="@L["emp.e_g_nbk"]" />
+                        <datalist id="kw-banks">
+                            @foreach (var bank in new[] { "NBK", "Gulf Bank", "CBK", "ABK", "Burgan Bank", "KFH", "Boubyan Bank", "Warba Bank", "KIB", "Ahli United Bank" })
+                            {
+                                <option value="@bank"></option>
+                            }
+                        </datalist>
+                        <span class="field-validation-error" data-valmsg-for="BankName"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="f-Iban">@L["emp.iban_account_no"]</label>
+                        <input class="form-control font-monospace" id="f-Iban" form="employee-form" name="Iban" type="text"
+                               value="@e.Iban" maxlength="34" placeholder="KW.." autocomplete="off" spellcheck="false" />
+                        <span class="field-validation-error" data-valmsg-for="Iban"></span>
+                    </div>
+                </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div></div>
+    </div>
+
+    <div class="tab-pane fade @(Model.ActiveTab == "compliance" ? "show active" : null)" id="tab-compliance" role="tabpanel" aria-labelledby="tab-compliance-btn">
+        <div class="hrms-card"><div class="p-3 p-md-4">
+        @if (Model.IsNew)
+        {
+            <p class="hrms-muted">@L["emp.save_the_employee_s_personal_info_first_then_add"]</p>
+        }
+        else
+        {
+            <form id="compliance-form" novalidate>
+                <input type="hidden" name="EmployeeId" value="@e.EmployeeId" />
+
+                <div class="accordion hrms-accordion" id="acc-compliance">
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-compliance-civil" aria-expanded="true" aria-controls="acc-compliance-civil">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("id-card", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.civil_id"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-compliance-civil" class="accordion-collapse collapse show" data-bs-parent="#acc-compliance">
+                        <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-CivilIdNumber">@L["emp.civil_id_number"]</label>
+                            <input class="form-control" id="f-CivilIdNumber" name="CivilIdNumber" type="text"
+                                   value="@c?.CivilIdNumber" maxlength="12" inputmode="numeric" />
+                            <span class="field-validation-error" data-valmsg-for="CivilIdNumber"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-CivilIdExpiryDate">@L["emp.civil_id_expiry"]</label>
+                            <input class="form-control" id="f-CivilIdExpiryDate" name="CivilIdExpiryDate" type="date"
+                                   value="@c?.CivilIdExpiryDate?.ToString("yyyy-MM-dd")" />
+                            <span class="field-validation-error" data-valmsg-for="CivilIdExpiryDate"></span>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-compliance-passport" aria-expanded="false" aria-controls="acc-compliance-passport">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("card", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.passport"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-compliance-passport" class="accordion-collapse collapse" data-bs-parent="#acc-compliance">
+                        <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-PassportNumber">@L["emp.passport_number"]</label>
+                            <input class="form-control" id="f-PassportNumber" name="PassportNumber" type="text"
+                                   value="@c?.PassportNumber" maxlength="30" />
+                            <span class="field-validation-error" data-valmsg-for="PassportNumber"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-PassportCountryId">@L["emp.issuing_country"]</label>
+                            <select class="form-select" id="f-PassportCountryId" name="PassportCountryId">
+                                <option value="">@L["common.select"]</option>
+                                @foreach (var item in Model.Lookup(LookupType.Country))
+                                {
+                                    <option value="@item.Id" selected="@(c?.PassportCountryId == item.Id)">@item.Text</option>
+                                }
+                            </select>
+                            <span class="field-validation-error" data-valmsg-for="PassportCountryId"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-PassportExpiryDate">@L["emp.passport_expiry"]</label>
+                            <input class="form-control" id="f-PassportExpiryDate" name="PassportExpiryDate" type="date"
+                                   value="@c?.PassportExpiryDate?.ToString("yyyy-MM-dd")" />
+                            <span class="field-validation-error" data-valmsg-for="PassportExpiryDate"></span>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-compliance-residency" aria-expanded="false" aria-controls="acc-compliance-residency">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("badge", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.residency_iqama_sponsorship"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-compliance-residency" class="accordion-collapse collapse" data-bs-parent="#acc-compliance">
+                        <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-ResidencyNumber">@L["emp.residency_number"]</label>
+                            <input class="form-control" id="f-ResidencyNumber" name="ResidencyNumber" type="text"
+                                   value="@c?.ResidencyNumber" maxlength="30" />
+                            <span class="field-validation-error" data-valmsg-for="ResidencyNumber"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-ResidencyType">@L["emp.residency_type"]</label>
+                            <input class="form-control" id="f-ResidencyType" name="ResidencyType" type="text"
+                                   value="@c?.ResidencyType" maxlength="50" placeholder="@L["emp.e_g_article_18"]" />
+                            <span class="field-validation-error" data-valmsg-for="ResidencyType"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-ResidencyExpiryDate">@L["emp.residency_expiry"]</label>
+                            <input class="form-control" id="f-ResidencyExpiryDate" name="ResidencyExpiryDate" type="date"
+                                   value="@c?.ResidencyExpiryDate?.ToString("yyyy-MM-dd")" />
+                            <span class="field-validation-error" data-valmsg-for="ResidencyExpiryDate"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-SponsorName">@L["emp.sponsor_name"]</label>
+                            <input class="form-control" id="f-SponsorName" name="SponsorName" type="text"
+                                   value="@c?.SponsorName" maxlength="200" />
+                            <span class="field-validation-error" data-valmsg-for="SponsorName"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-SponsorFileNumber">@L["emp.sponsor_file_number"]</label>
+                            <input class="form-control" id="f-SponsorFileNumber" name="SponsorFileNumber" type="text"
+                                   value="@c?.SponsorFileNumber" maxlength="50" />
+                            <span class="field-validation-error" data-valmsg-for="SponsorFileNumber"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-SponsorStatus">@L["emp.sponsor_status"]</label>
+                            <select class="form-select" id="f-SponsorStatus" name="SponsorStatus">
+                                <option value="">@L["common.select"]</option>
+                                @{
+                                    var sponsorOptions = new List<string> { "Company Sponsor", "Family Sponsor", "Self Sponsor", "Government Sponsor" };
+                                    if (!string.IsNullOrWhiteSpace(c?.SponsorStatus) && !sponsorOptions.Contains(c!.SponsorStatus!)) { sponsorOptions.Add(c.SponsorStatus!); }
+                                }
+                                @foreach (var opt in sponsorOptions)
+                                {
+                                    <option value="@opt" selected="@(c?.SponsorStatus == opt)">@L.Tr(opt)</option>
+                                }
+                            </select>
+                            <span class="field-validation-error" data-valmsg-for="SponsorStatus"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-ResidencyStatus">@L["emp.residency_status"]</label>
+                            <select class="form-select" id="f-ResidencyStatus" name="ResidencyStatus">
+                                <option value="">@L["common.select"]</option>
+                                @{
+                                    var residencyOptions = new List<string> { "Valid", "Under Process", "Expired", "Cancelled" };
+                                    if (!string.IsNullOrWhiteSpace(c?.ResidencyStatus) && !residencyOptions.Contains(c!.ResidencyStatus!)) { residencyOptions.Add(c.ResidencyStatus!); }
+                                }
+                                @foreach (var opt in residencyOptions)
+                                {
+                                    <option value="@opt" selected="@(c?.ResidencyStatus == opt)">@L.Tr(opt)</option>
+                                }
+                            </select>
+                            <span class="field-validation-error" data-valmsg-for="ResidencyStatus"></span>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-compliance-mol" aria-expanded="false" aria-controls="acc-compliance-mol">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("briefcase", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.ministry_of_labour_work_permit"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-compliance-mol" class="accordion-collapse collapse" data-bs-parent="#acc-compliance">
+                        <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-MolFileNumber">@L["emp.mol_file_number"]</label>
+                            <input class="form-control" id="f-MolFileNumber" name="MolFileNumber" type="text"
+                                   value="@c?.MolFileNumber" maxlength="50" />
+                            <span class="field-validation-error" data-valmsg-for="MolFileNumber"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-WorkPermitNumber">@L["emp.work_permit_number"]</label>
+                            <input class="form-control" id="f-WorkPermitNumber" name="WorkPermitNumber" type="text"
+                                   value="@c?.WorkPermitNumber" maxlength="50" />
+                            <span class="field-validation-error" data-valmsg-for="WorkPermitNumber"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-WorkPermitExpiryDate">@L["emp.work_permit_expiry"]</label>
+                            <input class="form-control" id="f-WorkPermitExpiryDate" name="WorkPermitExpiryDate" type="date"
+                                   value="@c?.WorkPermitExpiryDate?.ToString("yyyy-MM-dd")" />
+                            <span class="field-validation-error" data-valmsg-for="WorkPermitExpiryDate"></span>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-compliance-paci" aria-expanded="false" aria-controls="acc-compliance-paci">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("pin", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.paci_civil_address"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-compliance-paci" class="accordion-collapse collapse" data-bs-parent="#acc-compliance">
+                        <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-PaciNumber">@L["emp.paci_number"]</label>
+                            <input class="form-control" id="f-PaciNumber" name="PaciNumber" type="text"
+                                   value="@c?.PaciNumber" maxlength="20" />
+                            <span class="field-validation-error" data-valmsg-for="PaciNumber"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="f-PaciAddress">@L["emp.paci_address"]</label>
+                            <input class="form-control" id="f-PaciAddress" name="PaciAddress" type="text"
+                                   value="@c?.PaciAddress" maxlength="300" />
+                            <span class="field-validation-error" data-valmsg-for="PaciAddress"></span>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#acc-compliance-medical" aria-expanded="false" aria-controls="acc-compliance-medical">
+                            <span class="hrms-acc-ico" aria-hidden="true">@Html.Icon("shield", 15)</span><span class="hrms-acc-text"><span class="hrms-acc-title">@L["emp.driving_medical"]</span></span>
+                        </button>
+                    </h2>
+                    <div id="acc-compliance-medical" class="accordion-collapse collapse" data-bs-parent="#acc-compliance">
+                        <div class="accordion-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-DrivingLicenseNumber">@L["emp.driving_license_number"]</label>
+                            <input class="form-control" id="f-DrivingLicenseNumber" name="DrivingLicenseNumber" type="text"
+                                   value="@c?.DrivingLicenseNumber" maxlength="30" />
+                            <span class="field-validation-error" data-valmsg-for="DrivingLicenseNumber"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-DrivingLicenseExpiryDate">@L["emp.driving_license_expiry"]</label>
+                            <input class="form-control" id="f-DrivingLicenseExpiryDate" name="DrivingLicenseExpiryDate" type="date"
+                                   value="@c?.DrivingLicenseExpiryDate?.ToString("yyyy-MM-dd")" />
+                            <span class="field-validation-error" data-valmsg-for="DrivingLicenseExpiryDate"></span>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label" for="f-BloodType">@L["emp.blood_type"]</label>
+                            <select class="form-select" id="f-BloodType" name="BloodType">
+                                <option value="">— —</option>
+                                @foreach (var type in new[] { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-" })
+                                {
+                                    <option value="@type" selected="@(c?.BloodType == type)">@L.Tr(type)</option>
+                                }
+                            </select>
+                            <span class="field-validation-error" data-valmsg-for="BloodType"></span>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label" for="f-HealthCertificateExpiry">@L["emp.health_cert_expiry"]</label>
+                            <input class="form-control" id="f-HealthCertificateExpiry" name="HealthCertificateExpiry" type="date"
+                                   value="@c?.HealthCertificateExpiry?.ToString("yyyy-MM-dd")" />
+                            <span class="field-validation-error" data-valmsg-for="HealthCertificateExpiry"></span>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+                </div>
+
+                <div class="d-flex justify-content-end pt-2">
+                    <button type="submit" class="btn btn-primary" data-submit="compliance">
+                        @Html.Icon("check", 15)
+                        <span>@L["emp.save_compliance_details"]</span>
+                    </button>
+                </div>
+            </form>
+        }
+        </div></div>
+    </div>
+
+    <div class="tab-pane fade @(Model.ActiveTab == "dependents" ? "show active" : null)" id="tab-dependents" role="tabpanel" aria-labelledby="tab-dependents-btn">
+        @if (Model.IsNew)
+        {
+            <div class="hrms-card"><div class="p-3 p-md-4">
+                <p class="hrms-muted">@L["emp.save_the_employee_s_personal_info_first_then_add_2"]</p>
+            </div></div>
+        }
+        else
+        {
+            <div id="dependents-slot" data-grid-url="/employees/dependents/@e.EmployeeId/grid" data-employee-id="@e.EmployeeId" aria-busy="true">
+                <div class="hrms-spinner" aria-hidden="true"></div>
+            </div>
+        }
+    </div>
+
+    <div class="tab-pane fade @(Model.ActiveTab == "documents" ? "show active" : null)" id="tab-documents" role="tabpanel" aria-labelledby="tab-documents-btn">
+        @if (Model.IsNew)
+        {
+            <div class="hrms-card"><div class="p-3 p-md-4">
+                <p class="hrms-muted">@L["emp.save_the_employee_s_personal_info_first_then_upl"]</p>
+            </div></div>
+        }
+        else
+        {
+            @* Filled by employee.js (initDocuments) from Partials/_DocumentsGrid.cshtml,
+               and reloaded after every upload / remove. *@
+            <div id="documents-slot" class="@(wizard ? "is-wizard" : null)" data-grid-url="/employees/documents/@e.EmployeeId/grid" data-employee-id="@e.EmployeeId" aria-busy="true">
+                <div class="hrms-spinner" aria-hidden="true"></div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (wizard)
+{
+    <div class="hrms-card hrms-wizard-footer" data-wizard-footer>
+        <a class="btn btn-outline-secondary" href="@(Model.IsNew ? "/employees" : "/employees/profile/" + e.EmployeeId)">@(Model.IsNew ? "Cancel" : "Exit wizard")</a>
+        <div class="d-flex gap-2 ms-auto">
+            <button type="button" class="btn btn-outline-secondary" data-wizard-back>
+                @Html.Icon("chevron-left", 15)<span>@L["emp.previous"]</span>
+            </button>
+            <button type="button" class="btn btn-primary" data-wizard-next>
+                <span data-wizard-next-label>@L["emp.next"]</span>@Html.Icon("chevron-right", 15)
+            </button>
+            <button type="button" class="btn btn-primary d-none" data-wizard-finish>
+                @Html.Icon("check", 15)<span>@L["emp.finish"]</span>
+            </button>
+        </div>
+    </div>
+
+    @if (Model.IsNew)
+    {
+        <div class="modal fade" id="create-employee-modal" tabindex="-1" aria-hidden="true" aria-labelledby="create-employee-modal-title">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title h5" id="create-employee-modal-title">@L["emp.create_employee"]</h2>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">@L["emp.are_you_sure_you_want_to_create_employee"]</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                        <button type="button" class="btn btn-primary" data-create-employee-accept>@L["emp.yes_create_employee"]</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@* The Personal Info and Employment fields above attach here via form="employee-form". *@
+<form id="employee-form" novalidate></form>
+
+@* ------------------------------------------------------- Add/Edit Dependent *@
+@* A single static modal, reused for both Add and Edit - JS clears or
+   populates it from the clicked row's data attributes rather than fetching
+   a server-rendered form partial each time, since the field set is small
+   and fixed (unlike Organization Setup's per-master modal forms). *@
+<div class="modal fade" id="dependent-modal" tabindex="-1" aria-hidden="true" aria-labelledby="dependent-modal-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="dependent-form" novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="dependent-modal-title">@L["emp.add_dependent"]</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="DependentId" value="0" />
+                    <input type="hidden" name="EmployeeId" value="@e.EmployeeId" />
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="f-dep-FullName">@L["emp.full_name"] <span class="req" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="f-dep-FullName" name="FullName" type="text" maxlength="150" required />
+                            <span class="field-validation-error" data-valmsg-for="FullName"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-dep-Relationship">@L["emp.relationship"] <span class="req" aria-hidden="true">*</span></label>
+                            <select class="form-select" id="f-dep-Relationship" name="Relationship" required>
+                                @foreach (var relationship in new[] { "Spouse", "Son", "Daughter", "Father", "Mother", "Other" })
+                                {
+                                    <option value="@relationship">@L.Tr(relationship)</option>
+                                }
+                            </select>
+                            <span class="field-validation-error" data-valmsg-for="Relationship"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-dep-Gender">@L["emp.gender"]</label>
+                            <select class="form-select" id="f-dep-Gender" name="Gender">
+                                <option value="">@L["common.select"]</option>
+                                <option value="M">@L["emp.male"]</option>
+                                <option value="F">@L["emp.female"]</option>
+                            </select>
+                            <span class="field-validation-error" data-valmsg-for="Gender"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="f-dep-DateOfBirth">@L["emp.date_of_birth"]</label>
+                            <input class="form-control" id="f-dep-DateOfBirth" name="DateOfBirth" type="date" />
+                            <span class="field-validation-error" data-valmsg-for="DateOfBirth"></span>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" role="switch" id="f-dep-HasHealthInsurance"
+                                       name="HasHealthInsurance" value="true" />
+                                <input type="hidden" name="HasHealthInsurance" value="false" />
+                                <label class="form-check-label" for="f-dep-HasHealthInsurance">@L["emp.health_insurance_coverage"]</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                    <button type="submit" class="btn btn-primary" data-submit>
+                        @Html.Icon("check", 15)
+                        <span>@L["emp.save"]</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="dependent-confirm-modal" tabindex="-1" aria-hidden="true" aria-labelledby="dependent-confirm-modal-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="dependent-confirm-modal-title">@L["emp.delete_dependent"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">@L["emp.are_you_sure_you_want_to_remove"] <strong data-dependent-confirm-name></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="button" class="btn btn-primary" data-dependent-confirm-accept
+                        style="--bs-btn-bg:#b42318;--bs-btn-border-color:#b42318;--bs-btn-hover-bg:#912018;--bs-btn-hover-border-color:#912018">
+                    @Html.Icon("trash", 15)
+                    <span>@L["common.delete"]</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ------------------------------------------------------- Remove document *@
+<div class="modal fade" id="document-confirm-modal" tabindex="-1" aria-hidden="true" aria-labelledby="document-confirm-modal-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="document-confirm-modal-title">@L["emp.remove_document"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">@L["emp.remove_the_uploaded_file_for"] <strong data-document-confirm-name></strong>@L["emp.you_can_upload_a_new_one_afterwards"]</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="button" class="btn btn-danger" data-document-confirm-accept>@L["emp.remove"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <style>
+        .hrms-profile-tabs {
+            border-bottom-color: var(--hrms-line-200); margin-bottom: 1rem;
+            /* one line that scrolls sideways on narrow screens, instead of wrapping */
+            flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+        }
+        .hrms-profile-tabs::-webkit-scrollbar { display: none; }
+        .hrms-profile-tabs .nav-item { flex: 0 0 auto; }
+        .hrms-profile-tabs .nav-link { white-space: nowrap; }
+        .hrms-profile-tabs .nav-link {
+            display: inline-flex; align-items: center; gap: .4rem;
+            color: var(--hrms-ink-600); font-weight: 600; font-size: .85rem;
+            border: 1px solid transparent; border-bottom: none;
+        }
+        .hrms-profile-tabs .nav-link.active {
+            color: var(--hrms-blue-700);
+            background: #fff;
+            border-color: var(--hrms-line-200);
+            box-shadow: inset 0 2px 0 var(--hrms-blue-600);
+        }
+        .hrms-profile-tabs .nav-link:disabled { color: var(--hrms-ink-400); cursor: not-allowed; }
+        .hrms-profile-tab-content .hrms-card { margin-bottom: 0; }
+
+        /* Add Employee wizard: the document summary tiles and the search/filter bar are hidden. */
+        #documents-slot.is-wizard .hrms-docs__summary,
+        #documents-slot.is-wizard .hrms-docs .hrms-card__toolbar { display: none; }
+
+        /* Wizard stepper + footer (Add Employee). */
+        .hrms-wizard-steps { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; padding: 0 .25rem; overflow-x: auto; }
+        .hrms-wizard-step { display: flex; align-items: center; gap: .55rem; color: var(--hrms-ink-400); font-weight: 600; font-size: .85rem; flex: 0 0 auto; }
+        .hrms-wizard-step__circle {
+            display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%;
+            border: 2px solid var(--hrms-line-200); background: #fff; color: var(--hrms-ink-400);
+            font-size: .85rem; font-weight: 700; flex: 0 0 auto;
+        }
+        .hrms-wizard-step__label { white-space: nowrap; }
+        .hrms-wizard-step__line { flex: 1 1 24px; min-width: 16px; height: 2px; background: var(--hrms-line-200); }
+        .hrms-wizard-step.is-active { color: var(--hrms-blue-700); }
+        .hrms-wizard-step.is-active .hrms-wizard-step__circle { border-color: var(--hrms-blue-600); background: var(--hrms-blue-600); color: #fff; }
+        .hrms-wizard-step.is-complete { color: var(--hrms-blue-700); }
+        .hrms-wizard-step.is-complete .hrms-wizard-step__circle { border-color: var(--hrms-blue-600); background: var(--hrms-blue-050); color: var(--hrms-blue-600); }
+        .hrms-wizard-footer { display: flex; align-items: center; gap: .5rem; padding: .85rem 1.25rem; margin: 1rem 0 0; }
+        @@media (max-width: 767.98px) { .hrms-wizard-step__label { display: none; } .hrms-wizard-step.is-active .hrms-wizard-step__label { display: inline; } }
+
+        /* Accordion headers: icon chip + title (+ optional subtitle). */
+        .hrms-acc-ico {
+            display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+            width: 28px; height: 28px; border-radius: 8px;
+            background: #fff; color: var(--hrms-blue-600); border: 1px solid var(--hrms-line-200);
+        }
+        .hrms-acc-ico--family { width: 38px; height: 38px; border-radius: 10px; background: var(--hrms-blue-600); color: #fff; border-color: var(--hrms-blue-600); }
+        .hrms-acc-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; text-align: start; }
+        .hrms-acc-title { font-weight: 700; }
+        .hrms-acc-sub { font-weight: 400; font-size: .76rem; color: var(--hrms-ink-500); margin-top: .1rem; }
+
+        /* Basic Employee Info strip: photo placeholder + Department/Designation chips. */
+        .hrms-profile-photo { position: relative; display: inline-flex; flex: 0 0 auto; }
+        .hrms-profile-photo__badge {
+            position: absolute; inset-inline-end: -3px; bottom: -3px;
+            width: 20px; height: 20px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--hrms-blue-600); color: #fff;
+            border: 2px solid #fff;
+        }
+        .hrms-info-chip {
+            display: inline-flex; align-items: center; gap: .35rem;
+            padding: .35rem .7rem; border-radius: 999px;
+            background: var(--hrms-blue-050); color: var(--hrms-blue-700);
+            font-size: .8rem; font-weight: 600; white-space: nowrap;
+        }
+
+        /* Collapsible sections inside each tab, shaded so they read as
+           distinct from the surrounding card (per the Edit-mode request). */
+        .hrms-accordion .accordion-item {
+            border: 1px solid var(--hrms-line-200);
+            border-radius: var(--hrms-radius, 10px);
+            overflow: hidden;
+            margin-bottom: .75rem;
+        }
+        .hrms-accordion .accordion-item:last-child { margin-bottom: 0; }
+        .hrms-accordion .accordion-header { margin: 0; }
+        .hrms-accordion .accordion-button {
+            display: inline-flex; align-items: center; gap: .5rem;
+            font-weight: 600; font-size: .88rem; color: var(--hrms-blue-700);
+            background: var(--hrms-blue-050);
+            padding: .8rem 1.1rem;
+            box-shadow: none;
+        }
+        .hrms-accordion .accordion-button:not(.collapsed) {
+            background: var(--hrms-blue-100);
+            box-shadow: inset 0 -1px 0 var(--hrms-line-200);
+        }
+        .hrms-accordion .accordion-button:focus { box-shadow: 0 0 0 3px rgba(29, 95, 191, 0.16); }
+        .hrms-accordion .accordion-button::after { margin-inline-start: auto; }
+        .hrms-accordion .accordion-body { padding: 1.25rem 1.1rem; background: #fff; }
+
+        /* Employee card: avatar | name + code/department/designation | Save. */
+        .hrms-emp-strip {
+            display: flex; align-items: center; flex-wrap: wrap; gap: .75rem 1.25rem;
+            padding: 1rem 1.25rem; margin-bottom: 1rem;
+        }
+        .hrms-emp-strip__avatar { width: 52px; height: 52px; font-size: 1.15rem; }
+        .hrms-emp-strip__who { flex: 1 1 180px; min-width: 0; }
+        .hrms-emp-strip__name-row { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+        .hrms-emp-strip__name { margin: 0; font-size: 1.1rem; font-weight: 600; }
+        .hrms-emp-strip__meta {
+            display: flex; align-items: center; flex-wrap: wrap; gap: .4rem .5rem;
+            margin-top: .35rem; font-size: .8rem; color: var(--hrms-ink-500);
+        }
+        .hrms-emp-strip__meta > span:first-child { margin-inline-end: .25rem; font-variant-numeric: tabular-nums; }
+        .hrms-emp-strip__meta .hrms-info-chip { padding: .2rem .6rem; font-size: .75rem; }
+        .hrms-emp-strip__actions { margin-inline-start: auto; }
+        @@media (max-width: 575.98px) {
+            .hrms-emp-strip__actions { width: 100%; }
+            .hrms-emp-strip__actions .btn { width: 100%; justify-content: center; }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="~/js/employee.js" asp-append-version="true"></script>
+}

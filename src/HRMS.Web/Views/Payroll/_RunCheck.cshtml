@@ -1,0 +1,42 @@
+@model PayrollRunSummary
+@{
+    var run = (PayrollRun)ViewData["Run"]!;
+    var regular = run.RunType == RunType.Regular;
+}
+<ul class="pr-check">
+    @if (regular)
+    {
+        if (Model.MissingSalaryCount == 0)
+        {
+            <li><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text"><strong>@L["pr.salary"]</strong> - @L["pr.every_included_employee_has_a_salary_for_the_period"]</span><span class="pr-check__meta">@PayrollFormat.Count(Model.EmployeeCount)</span></li>
+        }
+        else
+        {
+            <li><span class="pr-check__icon is-err">@Html.Icon("x-circle", 14)</span><span class="pr-check__text"><strong>@L["pr.missing_salary_items"]</strong> - @Model.MissingSalaryNames</span><span class="pr-check__meta"><a href="#" data-goto-filter="missing">@L["pr.review"]</a></span></li>
+        }
+        if (Model.ProfileSalaryCount > 0)
+        {
+            <li><span class="pr-check__icon is-warn">@Html.Icon("alert", 14)</span><span class="pr-check__text"><strong>@L["pr.salary_from_the_employee_profile"]</strong> - @L["pr.0_employees_have_no_salary_items_yet_their_basic_salary", Model.ProfileSalaryCount]</span><span class="pr-check__meta">@PayrollFormat.Count(Model.ProfileSalaryCount)</span></li>
+        }
+    }
+    <li><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text"><strong>@L["pr.lines_added_in_this_payroll"]</strong> - @L["pr.step_2"]</span><span class="pr-check__meta">@L["pr.0_lines", Model.AddedLineCount] · +@PayrollFormat.Money(Model.AddedPlus) / -@PayrollFormat.Money(Model.AddedMinus)</span></li>
+    @if (regular)
+    {
+        <li><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text"><strong>@L["pr.pay_items_for_the_period"]</strong> - @L["pr.earnings_and_deductions_entered_on_pay_items"]</span><span class="pr-check__meta">@L["pr.0_items", Model.PayItemCount] · @L["pr.kwd"] @PayrollFormat.Money(Model.PayItemAmount)</span></li>
+        <li><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text"><strong>@L["pr.loan_and_advance_instalments_due"]</strong></span><span class="pr-check__meta">@L["pr.0_instalments", Model.LoanCount] · @L["pr.kwd"] @PayrollFormat.Money(Model.LoanAmount)</span></li>
+        <li><span class="pr-check__icon @(Model.PifssUnverified ? "is-warn" : "is-ok")">@Html.Icon(Model.PifssUnverified ? "alert" : "check", 14)</span><span class="pr-check__text"><strong>@L["pr.social_security_pifss"]</strong> - @(Model.PifssUnverified ? L["pr.the_rates_in_force_are_not_verified_yet_payroll_settings"] : L["pr.employee_share_for_kuwaiti_employees"])</span><span class="pr-check__meta">@L["emp.n_employees", Model.PifssCount] · @L["pr.kwd"] @PayrollFormat.Money(Model.PifssAmount)</span></li>
+        <li><span class="pr-check__icon is-warn">@Html.Icon("alert", 14)</span><span class="pr-check__text"><strong>@L["pr.absence_and_unpaid_leave"]</strong> - @L["pr.attendance_is_not_integrated_enter_absences_as_deduction"]</span><span class="pr-check__meta"><a href="#" data-goto-step="1">@L["pr.review"]</a></span></li>
+    }
+    @if (Model.NoBankCount > 0)
+    {
+        <li><span class="pr-check__icon is-warn">@Html.Icon("alert", 14)</span><span class="pr-check__text"><strong>@L["pr.no_bank_account_iban"]</strong> - @L["pr.these_employees_cannot_be_paid_by_bank_transfer"]</span><span class="pr-check__meta">@PayrollFormat.Count(Model.NoBankCount)</span></li>
+    }
+    @if (Model.ExcludedCount > 0)
+    {
+        <li><span class="pr-check__icon is-ok">@Html.Icon("info", 14)</span><span class="pr-check__text"><strong>@L["pr.excluded_from_this_payroll"]</strong></span><span class="pr-check__meta">@PayrollFormat.Count(Model.ExcludedCount)</span></li>
+    }
+</ul>
+@if (Model.EmployeeCount == 0)
+{
+    <div class="pr-banner pr-banner--err mt-3">@Html.Icon("x-circle", 18)<div>@(regular ? L["pr.no_employees_match_the_scope_of_this_payroll"] : L["pr.an_off_cycle_payroll_needs_at_least_one_line_add_an_earn"])</div></div>
+}

@@ -1,0 +1,448 @@
+// ============================================================================
+// HRMS Kuwait - Employee Profile > Documents tab
+// ----------------------------------------------------------------------------
+// One DataTable: Document Section header rows (blue bands, collapsible) with
+// one row per document type beneath, each carrying its own upload slot.
+// Builds on .hrms-table (and its phone card layout) from _components.
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+$docs-red: $red-600;
+
+.hrms-docs {
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: space("2");
+    padding: 1.1rem 1.25rem;
+  }
+
+  &__sub {
+    margin: 2px 0 0;
+    font-size: $fs-xs;
+    color: $ink-400;
+  }
+
+  &__legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: space("4");
+    font-size: $fs-xs;
+    color: $ink-500;
+  }
+
+  &__swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-inline-end: space("1");
+    border-radius: 2px;
+    background: $docs-red;
+    vertical-align: -1px;
+  }
+
+  &__req {
+    margin-inline-start: 2px;
+    color: $docs-red;
+    font-weight: $fw-bold;
+  }
+
+  &__name-ar {
+    display: block;
+    margin-top: 2px;
+    font-family: $font-arabic;
+    font-size: 0.78rem;
+    color: $ink-500;
+    text-align: left;
+  }
+
+  &__none { color: $ink-400; }
+
+  // ---- summary tiles ----
+  &__summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: space("3");
+    padding: space("4") 1.25rem;
+    border-block: 1px solid $line-100;
+    background: $surface-2;
+
+    @include cq-down("md") { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @include cq-down("xs") { padding: space("3") space("4"); gap: space("2"); }
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    min-width: 0;
+    padding: space("3") 0.9rem;
+    border: 1px solid $line-200;
+    border-radius: $radius-md;
+    background: $white;
+
+    @include down("sm") { padding: 0.6rem; gap: space("2"); }
+  }
+
+  &__stat-body { flex: 1 1 auto; min-width: 0; }
+
+  &__stat-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: $radius;
+
+    &--blue  { background: $blue-100;  color: $blue-700; }
+    &--green { background: $green-050; color: $green-700; }
+    &--red   { background: $red-050;   color: $red-700; }
+    &--amber { background: $amber-050; color: $amber-700; }
+
+    @include down("sm") { width: 30px; height: 30px; }
+  }
+
+  &__stat-value {
+    font-family: $font-display;
+    font-size: 1.15rem;
+    font-weight: $fw-semibold;
+    line-height: 1.1;
+    color: $ink-900;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__stat-label {
+    @include truncate;
+    font-size: 0.72rem;
+    font-weight: $fw-semibold;
+    color: $ink-500;
+
+    @include down("sm") { white-space: normal; }
+  }
+
+  &__progress {
+    height: 6px;
+    margin-top: 0.35rem;
+    overflow: hidden;
+    border-radius: $radius-pill;
+    background: $line-100;
+
+    > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, $blue-600, $blue-500);
+      @include motion(width);
+    }
+  }
+
+  // ---- alert strip ----
+  &__alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    margin: space("4") 1.25rem space("1");
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgba($red-700, 0.18);
+    border-radius: $radius;
+    background: $red-050;
+    color: $red-700;
+    font-size: $fs-sm;
+
+    svg { flex: 0 0 auto; margin-top: 1px; }
+
+    &.is-success {
+      border-color: rgba($green-700, 0.18);
+      background: $green-050;
+      color: $green-700;
+    }
+
+    @include down("md") { margin-inline: space("4"); }
+  }
+}
+
+// ---------------------------------------------------------------- table ----
+
+.hrms-docs-table {
+  th.col-no     { width: 56px; text-align: center; }
+  th.col-req    { width: 130px; }
+  th.col-file   { width: 34%; }
+  th.col-date   { width: 130px; }
+  th.col-status { width: 120px; }
+  td.col-no     { text-align: center; color: $ink-400; font-weight: $fw-semibold; font-variant-numeric: tabular-nums; }
+  td.col-name   { min-width: 220px; }
+  td.col-actions,
+  th.col-actions { width: 1%; }
+
+  tbody tr.hrms-docs-section:hover { background: $blue-050; }
+}
+
+.hrms-docs-section {
+  > td {
+    padding: 0 !important;
+    background: $blue-050;
+    border-block: 1px solid $blue-100 !important;
+  }
+
+  &__btn {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    width: 100%;
+    padding: 0.65rem 1.25rem;
+    border: 0;
+    background: transparent;
+    color: $navy-900;
+    text-align: start;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: inset 0 0 0 2px rgba($blue-600, 0.4);
+    }
+  }
+
+  &__chev {
+    display: inline-flex;
+    color: $blue-700;
+    @include motion(transform);
+  }
+
+  &.is-collapsed &__chev { transform: rotate(-90deg); }
+
+  &__seq {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 0.4rem;
+    border-radius: 6px;
+    background: $blue-700;
+    color: $white;
+    font-size: 0.72rem;
+    font-weight: $fw-bold;
+  }
+
+  &__title {
+    font-size: $fs-base;
+    font-weight: $fw-bold;
+    letter-spacing: 0.01em;
+  }
+
+  &__title-ar {
+    margin-inline-start: auto;
+    font-family: $font-arabic;
+    font-size: 0.82rem;
+    font-weight: $fw-semibold;
+    color: $blue-700;
+  }
+
+  &__count {
+    flex: 0 0 auto;
+    padding: 1px 0.55rem;
+    border: 1px solid $line-200;
+    border-radius: $radius-pill;
+    background: $white;
+    color: $ink-600;
+    font-size: 0.72rem;
+    font-weight: $fw-bold;
+
+    &.is-complete {
+      border-color: rgba($green-700, 0.15);
+      background: $green-050;
+      color: $green-700;
+    }
+  }
+}
+
+.hrms-docs-row {
+  &.is-missing-required {
+    background: #fffbfa;
+
+    td:first-child { box-shadow: inset 3px 0 0 $docs-red; }
+  }
+
+  &.is-uploading {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+// ---------------------------------------------------------- upload slot ----
+
+// The real <input type="file"> stays in the tab order (keyboard users focus
+// it and press Space/Enter); it is only visually hidden. Its focus ring is
+// drawn on the slot next to it.
+.hrms-docs__file-input {
+  @include visually-hidden;
+
+  &:focus-visible + .hrms-upload,
+  &:focus-visible + .hrms-file {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($blue-600, 0.28);
+    border-color: $blue-600;
+  }
+}
+
+.hrms-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1.5px dashed $line-300;
+  border-radius: $radius;
+  background: $white;
+  cursor: pointer;
+  @include motion(border-color, background-color);
+
+  &:hover,
+  &.is-dragover {
+    border-color: $blue-500;
+    background: $blue-050;
+  }
+
+  &.is-required { border-color: rgba($docs-red, 0.55); }
+
+  &.is-invalid {
+    border-color: $docs-red;
+    background: $red-050;
+  }
+
+  &__icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: $line-100;
+    color: $ink-500;
+
+    svg { transform: rotate(180deg); }  // "download" glyph flipped = upload
+  }
+
+  &__text {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    color: $ink-500;
+
+    strong { color: $blue-700; font-weight: $fw-semibold; }
+  }
+
+  &__hint {
+    display: block;
+    font-size: 0.68rem;
+    color: $ink-400;
+  }
+
+  .btn { flex: 0 0 auto; pointer-events: none; }
+
+  &__error {
+    display: block;
+    margin-top: space("1");
+    font-size: 0.7rem;
+    font-weight: $fw-semibold;
+    color: $red-700;
+
+    &:empty { display: none; }
+  }
+}
+
+.hrms-file {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  background: $surface-2;
+
+  &__type {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+
+    &--pdf { background: $red-050;    color: $red-700; }
+    &--img { background: $purple-050; color: $purple-700; }
+  }
+
+  &__meta { flex: 1 1 auto; min-width: 0; }
+
+  &__name {
+    @include truncate;
+    display: block;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+    text-decoration: none;
+
+    &:hover { color: $blue-700; text-decoration: underline; }
+  }
+
+  &__size {
+    display: block;
+    font-size: 0.68rem;
+    color: $ink-400;
+  }
+
+  .btn { flex: 0 0 auto; }
+}
+
+// --------------------------------------------------------------- phones ----
+// .hrms-table already turns rows into stacked cards in a narrow table; the
+// section bands and the upload cell need a few adjustments on top of that.
+
+@container table (max-width: 599.98px) {
+  .hrms-docs-table {
+    tr.hrms-docs-section { padding: 0; border: 0; }
+    tr.hrms-docs-section > td { display: block; }
+    tr.hrms-docs-section > td::before { content: none; }
+
+    td.col-no { display: none; }
+    td.col-name { display: block; }
+    td.col-name::before { content: none; }
+    td.col-file { display: block; }
+    td.col-file::before { display: block; margin-bottom: 0.35rem; }
+  }
+
+  .hrms-docs-section__btn {
+    flex-wrap: wrap;
+    row-gap: space("1");
+    padding: 0.7rem space("4");
+  }
+
+  .hrms-docs-section__title-ar {
+    order: 5;
+    width: 100%;
+    margin-inline-start: 0;
+    padding-inline-start: 2.6rem;
+    text-align: start;
+  }
+
+  .hrms-docs-row.is-missing-required {
+    box-shadow: inset 3px 0 0 $docs-red;
+
+    td:first-child { box-shadow: none; }
+  }
+}

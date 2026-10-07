@@ -1,0 +1,114 @@
+@model FormViewModel<Branch>
+
+<form id="record-form" data-tab="@Model.Tab.Key" novalidate>
+    <div class="modal-header">
+        <h2 class="modal-title h5" id="record-modal-title">@(Model.IsNew ? L["common.add_named", L.Tr(Model.Tab.Singular)] : L["common.edit_named", L.Tr(Model.Tab.Singular)])</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+    </div>
+
+    <div class="modal-body">
+        <input type="hidden" name="BranchId" value="@Model.Model.BranchId" />
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.identity"]</legend>
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label" for="f-CompanyId">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="f-CompanyId" name="CompanyId" required>
+                        <option value="">@L["common.select"]</option>
+                        @foreach (var item in Model.Lookup(LookupType.Company))
+                        {
+                            <option value="@item.Id" selected="@(Model.Model.CompanyId == item.Id)">@item.Text</option>
+                        }
+                    </select>
+                    <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="f-BranchCode">@L["org.branch_code"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="f-BranchCode" name="BranchCode" type="text"
+                           value="@Model.Model.BranchCode" maxlength="30" required
+                           autocomplete="off" spellcheck="false"
+                           data-code-field data-scope-field="CompanyId" />
+                    <span class="form-text">@L["org.letters_numbers_hyphen_or_underscore_must_be_uni"]</span>
+                    <span class="field-validation-error" data-valmsg-for="BranchCode"></span>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="f-BranchName">@L["org.branch_name"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="f-BranchName" name="BranchName" type="text"
+                           value="@Model.Model.BranchName" maxlength="150" required />
+                    <span class="field-validation-error" data-valmsg-for="BranchName"></span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.address"]</legend>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="f-Governorate">@L["org.governorate"]</label>
+                    <select class="form-select" id="f-Governorate" name="Governorate">
+                        <option value="">@L["common.select"]</option>
+                        @foreach (var item in Model.Lookup(LookupType.Governorate))
+                        {
+                            <option value="@item.Text" selected="@(Model.Model.Governorate == item.Text)">@item.Text</option>
+                        }
+                    </select>
+                    <span class="field-validation-error" data-valmsg-for="Governorate"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="f-Area">@L["org.area"]</label>
+                    <input class="form-control" id="f-Area" name="Area" type="text"
+                           value="@Model.Model.Area" maxlength="100" />
+                    <span class="field-validation-error" data-valmsg-for="Area"></span>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="f-Address">@L["common.address"]</label>
+                    <textarea class="form-control" id="f-Address" name="Address" rows="2" maxlength="500">@Model.Model.Address</textarea>
+                    <span class="field-validation-error" data-valmsg-for="Address"></span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.contact"]</legend>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="f-Telephone">@L["org.telephone"]</label>
+                    <input class="form-control" id="f-Telephone" name="Telephone" type="tel"
+                           value="@Model.Model.Telephone" maxlength="50" placeholder="+965 …" />
+                    <span class="field-validation-error" data-valmsg-for="Telephone"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="f-Email">@L["org.email"]</label>
+                    <input class="form-control" id="f-Email" name="Email" type="email"
+                           value="@Model.Model.Email" maxlength="150" />
+                    <span class="field-validation-error" data-valmsg-for="Email"></span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.status"]</legend>
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="f-IsActive" name="IsActive" value="true" checked="@Model.Model.IsActive" />
+                        <input type="hidden" name="IsActive" value="false" />
+                        <label class="form-check-label" for="f-IsActive">@L["org.active"]</label>
+                    </div>
+                    <span class="form-text">@L["org.inactive_records_stay_in_the_system_and_in_histo"]</span>
+                </div>
+            </div>
+        </fieldset>
+
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+        <button type="submit" class="btn btn-primary" data-submit>
+            @Html.Icon("check", 15)
+            <span>@(Model.IsNew ? L["common.create"] : L["common.save_changes"])</span>
+        </button>
+    </div>
+</form>

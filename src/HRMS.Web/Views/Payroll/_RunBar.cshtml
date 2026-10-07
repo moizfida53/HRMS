@@ -1,0 +1,61 @@
+@using HRMS.Web.Models.Payroll
+@using HRMS.Domain.Payroll
+@model RunBarModel
+@{
+    var run = Model.Run;
+    var idx = run.IsCancelled ? -1 : run.StageIndex;
+    string[] stages = [L["pr.registered"], L["pr.validation"], L["pr.awaiting_approval"], L["pr.closed"]];
+}
+<section class="hrms-card pr-runbar @(run.IsCancelled ? "is-cancelled" : null)" data-runbar data-run="@run.PayrollRunId" data-stage="@run.Stage">
+    <div class="pr-runbar__pick">
+        <label class="form-label mb-1" for="run-select">@L["layout.payroll"]</label>
+        <select class="form-select" id="run-select" data-run-select>
+            @foreach (var r in Model.Runs)
+            {
+                <option value="@r.PayrollRunId" selected="@(r.PayrollRunId == run.PayrollRunId)">@r.RunCode · @L.Tr(RunStage.Label(r.Stage))</option>
+            }
+        </select>
+    </div>
+    <div class="pr-runbar__meta">
+        <div class="pr-runbar__desc">@(string.IsNullOrWhiteSpace(run.Description) ? L["pr.regular_payroll"] : run.Description)</div>
+        <div class="pr-runbar__sub">
+            @PayrollFormat.Calendar(L, run.CalendarName, run.CalendarArabicName) · @PayrollFormat.Period(L, run) ·
+            @L.Tr(RunType.Label(run.RunType)) · @L["emp.n_employees", PayrollFormat.Count(run.EmployeeCount)]
+            @if (run.IsCancelled && !string.IsNullOrWhiteSpace(run.CancelReason))
+            {
+                <span> · @L["pr.cancelled_0", run.CancelReason]</span>
+            }
+        </div>
+    </div>
+    <ol class="pr-stages" aria-label="@L["pr.stage"]">
+        @for (var i = 0; i < stages.Length; i++)
+        {
+            var done = i < idx || (run.IsClosed && i <= idx);
+            var current = i == idx && !run.IsClosed;
+            <li class="pr-stage @(done ? "is-done" : null) @(current ? "is-current" : null) @(run.IsClosed && i == stages.Length - 1 ? "is-label" : null)" aria-current="@(current ? "step" : null)">
+                <span class="pr-stage__dot">@if (done) { @Html.Icon("check", 12) } else { @(i + 1) }</span>
+                <span class="pr-stage__label">@stages[i]</span>
+            </li>
+        }
+    </ol>
+    <div class="pr-runbar__actions">
+        @if (run.IsCancelled)
+        {
+            <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["emp.cancelled"]</span>
+        }
+        @if (Model.CanCancel)
+        {
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    data-reason-open
+                    data-reason-url="@Url.Action("CancelRun", "Payroll", new { run = run.PayrollRunId })"
+                    data-reason-title="@L["pr.cancel_payroll"]"
+                    data-reason-text="@L["pr.the_payroll_keeps_its_number_it_still_counts_for_the_mon"]"
+                    data-reason-label="@L["pr.reason"]"
+                    data-reason-placeholder="@L["pr.why_is_this_payroll_cancelled"]"
+                    data-reason-button="@L["pr.cancel_payroll"]"
+                    data-reason-danger="true">
+                @Html.Icon("x-circle", 14)<span>@L["pr.cancel_payroll"]</span>
+            </button>
+        }
+    </div>
+</section>

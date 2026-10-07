@@ -1,0 +1,187 @@
+// ============================================================================
+// HRMS Kuwait - design tokens
+// ----------------------------------------------------------------------------
+// Single source of truth for the Corporate Blue & White theme. Every colour,
+// radius, shadow and spacing step used anywhere in the app resolves back to a
+// token declared here. Nothing below this file should contain a raw hex value.
+//
+// Tokens are emitted twice: as Sass variables (compile-time maths, colour
+// functions) and as CSS custom properties on :root (runtime theming, and so
+// Bootstrap utilities can be overridden without recompiling).
+// ============================================================================
+
+@use "sass:color";
+@use "sass:map";
+
+// ---------------------------------------------------------------- brand ----
+$navy-900: #0f2a4d;
+$navy-800: #15396a;
+$blue-700: #1b4f91;
+$blue-600: #1d5fbf;
+$blue-500: #3373d6;
+$blue-200: #c7dbf7;
+$blue-100: #e4edfb;
+$blue-050: #f2f7fd;
+
+// ------------------------------------------------------------- neutrals ----
+$ink-900: #101828;
+$ink-800: #1d2939;
+$ink-700: #344054;
+$ink-600: #475467;
+$ink-500: #667085;
+$ink-400: #98a2b3;
+$ink-300: #b4bcc8;
+
+$line-300: #d0d5dd;
+$line-200: #e4e7ec;
+$line-100: #eef1f5;
+
+$surface:   #f5f7fa;
+$surface-2: #fafbfc;
+$white:     #ffffff;
+
+// ------------------------------------------------------------- semantic ----
+$green-700: #0b7a3b;
+$green-600: #16a34a;
+$green-050: #ecfdf3;
+
+$amber-700: #b54708;
+$amber-600: #d97706;
+$amber-050: #fffaeb;
+
+$red-700: #b42318;
+$red-600: #dc2626;
+$red-300: #fda29b;
+$red-050: #fef3f2;
+
+$purple-700: #6941c6;
+$purple-050: #f9f5ff;
+
+// ----------------------------------------------------------------- type ----
+$font-sans: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  "Helvetica Neue", Arial, sans-serif;
+$font-display: "Lexend", "Public Sans", -apple-system, "Segoe UI", sans-serif;
+$font-arabic: "Noto Kufi Arabic", "Segoe UI", Tahoma, sans-serif;
+$font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace;
+
+$fs-xs:   0.725rem;   // 11.6px  - table meta, chips
+$fs-sm:   0.8rem;     // 12.8px  - secondary text
+$fs-base: 0.85rem;    // 13.6px  - body, table cells
+$fs-md:   0.9rem;     // 14.4px  - form values
+$fs-lg:   1.05rem;    // 16.8px  - card titles
+$fs-xl:   1.3125rem;  // 21px    - page title
+$fs-2xl:  1.5rem;     // 24px    - stat figures
+
+$fw-regular:  400;
+$fw-medium:   500;
+$fw-semibold: 600;
+$fw-bold:     700;
+
+// -------------------------------------------------------------- spacing ----
+// 4px base step. Named rather than numbered so intent survives refactors.
+$space: (
+  "0":  0,
+  "1":  0.25rem,   //  4px
+  "2":  0.5rem,    //  8px
+  "3":  0.75rem,   // 12px
+  "4":  1rem,      // 16px
+  "5":  1.25rem,   // 20px
+  "6":  1.5rem,    // 24px
+  "7":  1.75rem,   // 28px
+  "8":  2rem,      // 32px
+  "10": 2.5rem,    // 40px
+  "12": 3rem       // 48px
+);
+
+@function space($step) {
+  @if not map.has-key($space, $step) {
+    @error "Unknown spacing step '#{$step}'. Valid steps: #{map.keys($space)}.";
+  }
+  @return map.get($space, $step);
+}
+
+// --------------------------------------------------------------- shapes ----
+$radius-sm: 5px;
+$radius:    8px;
+$radius-md: 10px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+$radius-pill: 999px;
+
+$shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+$shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+$shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+$shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.12), 0 4px 8px rgba(16, 24, 40, 0.05);
+
+// --------------------------------------------------------------- layout ----
+// Content-width breakpoints (container queries on .hrms-content).
+// The viewport is the wrong measure on desktop: at 125-200 % browser zoom a
+// 1920px monitor reports 1536-960px, and the sidebar takes 224-260px of it.
+// Components that lay out in columns ask how wide the CONTENT is instead.
+$cq: (
+  "xs": 480px,
+  "sm": 640px,
+  "md": 820px,
+  "lg": 1040px,
+  "xl": 1280px
+);
+
+$sidebar-width:           260px;
+$sidebar-width-condensed: 224px;
+$sidebar-width-collapsed: 72px;
+$topbar-height:           64px;
+
+$z-sidebar:  1030;
+$z-backdrop: 1035;
+$z-topbar:   1020;
+$z-toast:    1080;
+
+// ---------------------------------------------------------- breakpoints ----
+$bp: (
+  "sm": 576px,
+  "md": 768px,
+  "lg": 992px,
+  "xl": 1200px,
+  "xxl": 1400px
+);
+
+// --------------------------------------------------------------- motion ----
+$ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+$dur-fast: 120ms;
+$dur:      180ms;
+$dur-slow: 280ms;
+
+// ------------------------------------------------- runtime custom props ----
+:root {
+  --hrms-navy-900: #{$navy-900};
+  --hrms-blue-700: #{$blue-700};
+  --hrms-blue-600: #{$blue-600};
+  --hrms-blue-100: #{$blue-100};
+  --hrms-blue-050: #{$blue-050};
+
+  --hrms-ink-900: #{$ink-900};
+  --hrms-ink-600: #{$ink-600};
+  --hrms-ink-500: #{$ink-500};
+  --hrms-ink-400: #{$ink-400};
+
+  --hrms-line-200: #{$line-200};
+  --hrms-line-100: #{$line-100};
+  --hrms-surface: #{$surface};
+
+  --hrms-radius: #{$radius};
+  --hrms-radius-lg: #{$radius-lg};
+
+  --hrms-sidebar-width: #{$sidebar-width};
+  --hrms-topbar-height: #{$topbar-height};
+
+  // Re-point the Bootstrap 5.3 theme variables at our palette so stock
+  // components (modal, dropdown, form-control) inherit the theme for free.
+  --bs-primary: #{$blue-600};
+  --bs-primary-rgb: #{color.channel($blue-600, "red", $space: rgb)}, #{color.channel($blue-600, "green", $space: rgb)}, #{color.channel($blue-600, "blue", $space: rgb)};
+  --bs-body-color: #{$ink-900};
+  --bs-body-bg: #{$surface};
+  --bs-border-color: #{$line-200};
+  --bs-border-radius: #{$radius};
+  --bs-font-sans-serif: #{$font-sans};
+  --bs-body-font-size: #{$fs-base};
+}

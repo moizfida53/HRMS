@@ -1,0 +1,23 @@
+@{
+    ViewData["Title"] = "Access denied";
+    Layout = "_AuthLayout";
+}
+
+<div class="hrms-auth__denied">
+    <div class="hrms-card">
+        <div class="hrms-empty">
+            <span class="hrms-empty__icon" style="background:#fef3f2;color:#b42318" aria-hidden="true">
+                @Html.Icon("lock", 26)
+            </span>
+
+            <h1 class="hrms-empty__title">@L["auth.you_do_not_have_access_to_that_page"]</h1>
+            <p class="hrms-empty__text">
+                @L["auth.your_account_is_signed_in_but_it_does_not_hold_t"]
+            </p>
+
+            <a class="btn btn-primary" asp-controller="Organization" asp-action="Index">
+                @L["common.back_to_organization_setup"]
+            </a>
+        </div>
+    </div>
+</div>

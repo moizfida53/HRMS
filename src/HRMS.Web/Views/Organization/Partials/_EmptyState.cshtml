@@ -1,0 +1,26 @@
+@model IGridView
+<div class="hrms-empty">
+    <span class="hrms-empty__icon" aria-hidden="true">
+        @Html.Icon(Model.IsFiltered ? "search" : Model.Tab.Icon, 26)
+    </span>
+
+    @if (Model.IsFiltered)
+    {
+        <p class="hrms-empty__title">@L["org.no_matching_x", L.IsArabic ? L.Tr(Model.Tab.Title) : Model.Tab.Title.ToLowerInvariant()]</p>
+        <p class="hrms-empty__text">
+            @L["org.nothing_matches_the_current_search_and_filter_tr"]
+        </p>
+        <button type="button" class="btn btn-outline-secondary" data-action="clear-filters">
+            @L["common.clear_filters"]
+        </button>
+    }
+    else
+    {
+        <p class="hrms-empty__title">@L["org.no_x_yet", L.IsArabic ? L.Tr(Model.Tab.Title) : Model.Tab.Title.ToLowerInvariant()]</p>
+        <p class="hrms-empty__text">@L["org.empty_add_first", L.Tr(Model.Tab.Description)]</p>
+        <button type="button" class="btn btn-primary" data-action="add">
+            @Html.Icon("plus", 15)
+            <span>@L["common.add_named", L.Tr(Model.Tab.Singular)]</span>
+        </button>
+    }
+</div>

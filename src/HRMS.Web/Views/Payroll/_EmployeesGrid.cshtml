@@ -1,0 +1,108 @@
+@using HRMS.Web.Models.Organization
+@model RunEmployeesGridModel
+@{
+    var pg = Model.Page;
+    var run = Model.Run;
+    var editable = Model.Editable;
+    var register = Model.Mode != "create";
+    var colspan = (editable ? 1 : 0) + 7 + (register ? 1 : 0);
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["emp.one_employee"] : L["emp.n_employees", PayrollFormat.Count(pg.TotalCount)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("users", 26)</span>
+        <p class="hrms-empty__title">@L["pr.no_employees_to_show"]</p>
+        <p class="hrms-empty__text">@(run.RunType == RunType.OffCycle && register ? L["pr.an_off_cycle_payroll_only_contains_employees_with_lines"] : L["pr.nobody_matches_the_scope_or_the_filter"])</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table pr-emp-table">
+            <caption class="hrms-sr-only">@L["pr.employees_in_this_payroll"]</caption>
+            <thead>
+                <tr>
+                    @if (editable)
+                    {
+                        <th scope="col" class="pr-sel"><input class="form-check-input" type="checkbox" data-emp-check-all aria-label="@L["pr.select_all"]" /></th>
+                    }
+                    <th scope="col">@L["pr.employee"]</th>
+                    <th scope="col" class="col-p3">@L["pr.days"]</th>
+                    <th scope="col" class="pr-money col-p2">@L["pr.salary"]</th>
+                    <th scope="col" class="pr-money col-p2">@L["pr.earnings"]</th>
+                    <th scope="col" class="pr-money col-p2">@L["pr.deductions"]</th>
+                    <th scope="col" class="pr-money">@L["pr.net"]</th>
+                    @if (register)
+                    {
+                        <th scope="col" class="text-center col-p3">@L["pr.vs_last"]</th>
+                    }
+                    <th scope="col"><span class="hrms-sr-only">@L["pr.lines"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in pg.Items)
+                {
+                    var name = PayrollFormat.EmployeeName(L, e.EmployeeName, e.ArabicName);
+                    var missing = !e.HasSalary && !e.IsExcluded && run.RunType == RunType.Regular;
+                    <tr class="pr-emp-row @(missing ? "is-missing" : null) @(e.IsExcluded ? "is-excluded" : null)" data-emp="@e.EmployeeId">
+                        @if (editable)
+                        {
+                            <td class="pr-sel">@if (!e.IsExcluded) {<input class="form-check-input" type="checkbox" data-emp-check aria-label="@L["pr.select_0", name]" />}</td>
+                        }
+                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">
+                            <span class="hrms-table__primary">@name</span>
+                            <span class="pr-emp-sub">@e.EmployeeNo@(string.IsNullOrWhiteSpace(e.DepartmentName) ? "" : " · " + e.DepartmentName)</span>
+                            @if (e.IsJoiner || e.IsLeaver || e.IsExcluded || missing || e.ErrorCount > 0)
+                            {
+                                <span class="pr-emp-flag">
+                                    @if (e.IsJoiner && e.HireDate is { } hd)
+                                    {
+                                        <span class="hrms-badge hrms-badge--info"><span class="hrms-badge__dot"></span>@L["pr.joined_0", L.DayMonth(hd)]</span>
+                                    }
+                                    @if (e.IsLeaver && e.TerminationDate is { } td)
+                                    {
+                                        <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["pr.leaving_0", L.DayMonth(td)]</span>
+                                    }
+                                    @if (e.IsExcluded)
+                                    {
+                                        <span class="hrms-badge hrms-badge--muted" title="@e.ExcludeReason"><span class="hrms-badge__dot"></span>@L["pr.excluded"]</span>
+                                    }
+                                    else if (missing)
+                                    {
+                                        <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["pr.no_salary_items"]</span>
+                                    }
+                                </span>
+                            }
+                        </td>
+                        <td data-label="@L["pr.days"]" class="col-p3"><span class="pr-days">@e.PaidDays / @e.PeriodDays</span></td>
+                        <td data-label="@L["pr.salary"]" class="pr-money col-p2">@PayrollFormat.Money(e.SalaryTotal)</td>
+                        <td data-label="@L["pr.earnings"]" class="pr-money col-p2">@PayrollFormat.Money(e.EarningsTotal)</td>
+                        <td data-label="@L["pr.deductions"]" class="pr-money col-p2 @(e.DeductionsTotal < 0 ? "pr-neg" : null)">@PayrollFormat.Money(e.DeductionsTotal)</td>
+                        <td data-label="@L["pr.net"]" class="pr-money pr-strong @(e.NetPay < 0 ? "pr-neg" : null)">@PayrollFormat.Money(e.NetPay)</td>
+                        @if (register)
+                        {
+                            var pct = PayrollFormat.ChangePercent(e.NetPay, e.PreviousNet);
+                            <td data-label="@L["pr.vs_last"]" class="text-center col-p3 @(e.PreviousNet is { } pn && e.NetPay > pn ? "pr-pos" : (e.PreviousNet is { } pn2 && e.NetPay < pn2 ? "pr-neg" : "hrms-muted"))">@pct</td>
+                        }
+                        <td class="hrms-table__actions">
+                            <button type="button" class="btn btn-sm btn-outline-secondary pr-lines-toggle" data-lines-toggle="@e.EmployeeId" aria-expanded="false"
+                                    aria-controls="lines-@e.EmployeeId">
+                                <span>@L["pr.0_lines", e.LineCount]</span>@Html.Icon("chevron-down", 14)
+                            </button>
+                        </td>
+                    </tr>
+                    <tr class="pr-lines-row" id="lines-@e.EmployeeId" data-lines-for="@e.EmployeeId" hidden>
+                        <td colspan="@colspan"><div class="pr-lines" data-lines-slot></div></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

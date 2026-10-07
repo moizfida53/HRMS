@@ -1,0 +1,642 @@
+// ============================================================================
+// HRMS Kuwait - sign-in screen
+// ----------------------------------------------------------------------------
+// Split layout: a navy brand panel that carries the product story, and a white
+// form panel. Below the lg breakpoint the brand panel collapses to a slim
+// header strip so the form gets the whole screen on a phone.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+.hrms-auth-body {
+  margin: 0;
+  background: $white;
+}
+
+.hrms-auth {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;   // avoids the mobile browser chrome cropping the form
+
+  @include down("lg") {
+    flex-direction: column;
+  }
+}
+
+// ------------------------------------------------------------------ hero ----
+.hrms-auth__hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 0 0 44%;
+  max-width: 44%;
+  padding: space("12") space("10");
+  background: $navy-900;
+  overflow: hidden;
+
+  @include between("lg", "xl") {
+    flex-basis: 40%;
+    max-width: 40%;
+    padding: space("8") space("7");
+  }
+
+  // On small screens the hero becomes a compact banner: keep the badge and the
+  // headline, drop the feature list and the footer.
+  @include down("lg") {
+    flex: 0 0 auto;
+    max-width: none;
+    padding: space("6") space("5");
+  }
+}
+
+.hrms-auth__hero-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1.4px, transparent 1.4px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+
+.hrms-auth__hero-body {
+  position: relative;
+  z-index: 1;
+}
+
+.hrms-auth__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  padding: space("1") space("3");
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: $radius-pill;
+  background: rgba(255, 255, 255, 0.08);
+  color: #cfe0fa;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+}
+
+.hrms-auth__hero-title {
+  margin-block-start: space("6");
+  max-width: 22ch;
+  color: $white;
+  font-family: $font-display;
+  font-size: clamp(1.6rem, 2.4vw, 2.25rem);
+  font-weight: $fw-semibold;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+
+  @include down("lg") {
+    margin-block-start: space("4");
+    font-size: 1.35rem;
+    max-width: none;
+  }
+}
+
+.hrms-auth__hero-lede {
+  margin-block-start: space("4");
+  max-width: 44ch;
+  color: #a9c0e4;
+  font-size: $fs-md;
+  line-height: 1.6;
+
+  @include down("lg") {
+    display: none;
+  }
+}
+
+.hrms-auth__features {
+  list-style: none;
+  margin: space("8") 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: space("5");
+
+  @include down("lg") {
+    display: none;
+  }
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: space("3");
+  }
+
+  strong {
+    display: block;
+    color: $white;
+    font-size: $fs-md;
+    font-weight: $fw-semibold;
+  }
+
+  span span,
+  li > span:last-child {
+    color: #a9c0e4;
+    font-size: $fs-sm;
+    line-height: 1.55;
+  }
+}
+
+.hrms-auth__feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.1);
+  color: #dce8fb;
+}
+
+.hrms-auth__hero-footer {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #7c97c2;
+  font-size: $fs-sm;
+
+  @include down("lg") {
+    display: none;
+  }
+}
+
+// ----------------------------------------------------------------- panel ----
+.hrms-auth__panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  padding: space("10") space("6");
+  background: $white;
+
+  @include down("lg") {
+    padding: space("8") space("5") space("10");
+  }
+
+  @include down("sm") {
+    padding: space("6") space("4") space("8");
+  }
+}
+
+.hrms-auth__form-wrap {
+  width: 100%;
+  max-width: 400px;
+}
+
+.hrms-auth__brand {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  margin-block-end: space("7");
+}
+
+.hrms-auth__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: $radius-md;
+  background: $blue-600;
+  color: $white;
+  font-family: $font-display;
+  font-weight: $fw-bold;
+  font-size: $fs-md;
+}
+
+.hrms-auth__brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+
+  strong {
+    font-family: $font-display;
+    font-size: $fs-md;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+  }
+
+  span {
+    font-size: $fs-xs;
+    color: $ink-400;
+  }
+}
+
+.hrms-auth__title {
+  font-family: $font-display;
+  font-size: 1.5rem;
+  font-weight: $fw-semibold;
+  color: $ink-900;
+  letter-spacing: -0.015em;
+}
+
+.hrms-auth__subtitle {
+  margin-block-start: space("2");
+  margin-block-end: 0;
+  color: $ink-500;
+  font-size: $fs-md;
+}
+
+// ---------------------------------------------------------------- alerts ----
+.hrms-auth__alert {
+  display: flex;
+  align-items: flex-start;
+  gap: space("2");
+  margin-block-start: space("5");
+  padding: space("3") space("4");
+  border-radius: $radius;
+  font-size: $fs-base;
+  line-height: 1.5;
+
+  svg {
+    flex: 0 0 auto;
+    margin-block-start: 1px;
+  }
+
+  &--error {
+    background: $red-050;
+    border: 1px solid $red-300;
+    color: $red-700;
+  }
+
+  &--info {
+    background: $blue-050;
+    border: 1px solid $blue-100;
+    color: $blue-700;
+  }
+
+  &--warning {
+    background: $amber-050;
+    border: 1px solid #fec84b;
+    color: $amber-700;
+  }
+}
+
+// ----------------------------------------------------------------- form ----
+.hrms-auth__field {
+  margin-block-start: space("5");
+
+  .form-label {
+    margin-block-end: space("2");
+  }
+
+  // 44px minimum target height on the sign-in controls.
+  .form-control-lg {
+    min-height: 46px;
+    font-size: $fs-md;
+    border-radius: $radius;
+  }
+}
+
+.hrms-auth__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space("3");
+}
+
+.hrms-auth__link {
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  color: $blue-600;
+
+  &:hover {
+    color: $blue-700;
+  }
+}
+
+.hrms-auth__password {
+  position: relative;
+
+  .form-control {
+    padding-inline-end: 46px;
+  }
+}
+
+.hrms-auth__reveal {
+  position: absolute;
+  inset-inline-end: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+
+  border: 0;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $ink-400;
+  cursor: pointer;
+
+  @include motion(color, background-color);
+  @include focus-ring;
+
+  &:hover {
+    color: $ink-700;
+    background: $line-100;
+  }
+}
+
+.hrms-auth__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space("3");
+  margin-block-start: space("5");
+
+  .form-check-input {
+    width: 1.05em;
+    height: 1.05em;
+    margin-block-start: 0.18em;
+    border-color: $line-300;
+    cursor: pointer;
+
+    &:checked {
+      background-color: $blue-600;
+      border-color: $blue-600;
+    }
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($blue-600, 0.16);
+    }
+  }
+
+  .form-check-label {
+    font-size: $fs-base;
+    color: $ink-600;
+    cursor: pointer;
+  }
+}
+
+.hrms-auth__submit {
+  width: 100%;
+  min-height: 48px;
+  margin-block-start: space("6");
+  justify-content: center;
+  font-size: $fs-md;
+
+  &[disabled] {
+    opacity: 0.75;
+  }
+}
+
+.hrms-auth__note {
+  display: flex;
+  align-items: flex-start;
+  gap: space("2");
+  margin-block-start: space("6");
+  padding: space("3") space("4");
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  background: $surface;
+  color: $ink-600;
+  font-size: $fs-sm;
+  line-height: 1.5;
+
+  svg {
+    flex: 0 0 auto;
+    margin-block-start: 1px;
+    color: $ink-400;
+  }
+}
+
+.hrms-auth__footer {
+  margin-block-start: space("6");
+  margin-block-end: 0;
+  text-align: center;
+  color: $ink-500;
+  font-size: $fs-base;
+}
+
+// -------------------------------------------------------- access denied ----
+.hrms-auth__denied {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: space("6");
+  background: $surface;
+
+  .hrms-card {
+    width: 100%;
+    max-width: 480px;
+  }
+}
+
+// ------------------------------------------- must-change-password banner ----
+.hrms-password-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: space("3");
+  margin-block-end: space("5");
+  padding: space("3") space("4");
+  border: 1px solid #fec84b;
+  border-radius: $radius;
+  background: $amber-050;
+  color: $amber-700;
+  font-size: $fs-base;
+  line-height: 1.5;
+
+  svg {
+    flex: 0 0 auto;
+    margin-block-start: 2px;
+  }
+
+  strong {
+    font-weight: $fw-bold;
+  }
+
+  > span {
+    flex: 1 1 auto;
+  }
+
+  &__action {
+    flex: 0 0 auto;
+    align-self: center;
+    border: 1px solid $amber-700;
+    background: $white;
+    color: $amber-700;
+    font-weight: $fw-semibold;
+
+    &:hover,
+    &:focus-visible {
+      background: $amber-700;
+      color: $white;
+    }
+  }
+
+  @include down("sm") {
+    flex-wrap: wrap;
+
+    &__action {
+      width: 100%;
+    }
+  }
+}
+
+// ------------------------------------------------- change password modal ----
+.hrms-pw {
+  position: relative;
+
+  .form-control {
+    padding-inline-end: 2.6rem;
+
+    // Bootstrap's red "!" icon would sit under the show/hide button.
+    &.is-invalid {
+      background-image: none;
+      padding-inline-end: 2.6rem;
+    }
+  }
+
+  &__toggle {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-end: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    border: 0;
+    background: transparent;
+    color: $ink-400;
+    @include focus-ring;
+
+    &:hover,
+    &.is-on {
+      color: $blue-700;
+    }
+  }
+}
+
+.hrms-pw-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space("1") space("3");
+  margin: space("2") 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: $fs-xs;
+  color: $ink-500;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: space("1");
+
+    &::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1.5px solid $ink-300;
+    }
+
+    &.is-met {
+      color: $green-700;
+
+      &::before {
+        border-color: $green-600;
+        background: $green-600;
+      }
+    }
+  }
+}
+
+.hrms-pw-note {
+  margin: space("4") 0 0;
+  font-size: $fs-xs;
+  color: $ink-500;
+}
+
+// -------------------------------------------------- sidebar account menu ----
+.hrms-account-menu {
+  min-width: 260px;
+  padding: 0;
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: space("4") space("4") space("3");
+
+    strong {
+      font-family: $font-display;
+      font-size: $fs-md;
+      font-weight: $fw-semibold;
+      color: $ink-900;
+    }
+
+    span {
+      font-size: $fs-sm;
+      color: $ink-500;
+    }
+  }
+
+  .dropdown-divider {
+    margin: 0;
+    border-top-color: $line-100;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    padding: space("3") space("4");
+    font-size: $fs-base;
+    font-weight: $fw-semibold;
+    color: $ink-700;
+
+    svg {
+      color: $ink-400;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: $blue-050;
+      color: $blue-700;
+
+      svg { color: $blue-700; }
+    }
+  }
+
+  &__signout {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    padding: space("3") space("4");
+    font-size: $fs-base;
+    font-weight: $fw-semibold;
+    color: $ink-700;
+    border: 0;
+    width: 100%;
+    background: transparent;
+    text-align: start;
+    cursor: pointer;
+
+    svg {
+      color: $ink-400;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: $red-050;
+      color: $red-700;
+
+      svg { color: $red-700; }
+    }
+  }
+}

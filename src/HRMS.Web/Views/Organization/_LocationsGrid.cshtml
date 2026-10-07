@@ -1,0 +1,66 @@
+@model GridViewModel<Location>
+
+<div class="hrms-card">
+    @await Html.PartialAsync("Partials/_GridToolbar", (IGridView)Model)
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        @await Html.PartialAsync("Partials/_EmptyState", (IGridView)Model)
+    }
+    else
+    {
+        <div class="hrms-table-wrap">
+            <table class="hrms-table">
+                <caption class="hrms-sr-only">@L["common.records_page_of", Model.PageNumber, Model.TotalPages]</caption>
+                <thead>
+                    <tr>
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "LocationCode", "Code"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "LocationName", "Location"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "LocationType", "Type", "col-p3"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "CompanyName", "Company"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "BranchName", "Branch"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "Governorate", "Governorate", "col-p2"))
+                        <th scope="col" class="col-p3">@L["org.area"]</th>
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "IsActive", "Status"))
+                        <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Page.Items)
+                    {
+                        <tr data-id="@row.LocationId" data-name="@row.LocationName" data-active="@row.IsActive.ToString().ToLowerInvariant()">
+                            <td data-label="@L.Tr("Code")"><span class="hrms-code-chip">@row.LocationCode</span></td>
+                            <td data-label="@L.Tr("Location")"><span class="hrms-table__primary">@row.LocationName</span></td>
+                            <td data-label="@L.Tr("Type")" class="col-p3">@(string.IsNullOrWhiteSpace(row.LocationType) ? "—" : row.LocationType)</td>
+                            <td data-label="@L.Tr("Company")" class="hrms-muted">@(string.IsNullOrWhiteSpace(row.CompanyName) ? "—" : row.CompanyName)</td>
+                            <td data-label="@L.Tr("Branch")">@(string.IsNullOrWhiteSpace(row.BranchName) ? "—" : row.BranchName)</td>
+                            <td data-label="@L.Tr("Governorate")" class="col-p2">@(string.IsNullOrWhiteSpace(row.Governorate) ? "—" : row.Governorate)</td>
+                            <td data-label="@L.Tr("Area")" class="col-p3">@(string.IsNullOrWhiteSpace(row.Area) ? "—" : row.Area)</td>
+                            <td data-label="@L.Tr("Status")">
+                                @if (row.IsActive)
+                                {
+                                    <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["org.active"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["org.inactive"]</span>
+                                }
+                            </td>
+                            <td class="hrms-table__actions">
+                                <button type="button" class="btn-icon" data-action="edit"
+                                        title="@L["common.edit"]" aria-label="@L["common.edit_named", row.LocationName]">@Html.Icon("edit", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--success" data-action="toggle"
+                                        title="@(row.IsActive ? L["common.deactivate"] : L["common.activate"])"
+                                        aria-label="@(row.IsActive ? L["common.deactivate_named", row.LocationName] : L["common.activate_named", row.LocationName])">@Html.Icon("power", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--danger" data-action="delete"
+                                        title="@L["common.delete"]" aria-label="@L["common.delete_named", row.LocationName]">@Html.Icon("trash", 15)</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @await Html.PartialAsync("Partials/_Pagination", PaginationModel.From(Model))
+    }
+</div>

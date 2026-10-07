@@ -1,0 +1,127 @@
+@using HRMS.Web.Models.Organization
+@model PayItemsGridModel
+@{
+    var pg = Model.Page;
+    var r = Model.Rights;
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["pr.1_item"] : L["pr.0_items", PayrollFormat.Count(pg.TotalCount)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "card", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["pr.no_pay_items_match_the_filters"] : L["pr.no_pay_items_yet"])</p>
+        <p class="hrms-empty__text">@L["pr.add_salary_earnings_deductions_and_loans_with_add_item_o"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table pr-pi-table">
+            <caption class="hrms-sr-only">@L["pr.pay_items"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["pr.employee"]</th>
+                    <th scope="col">@L["pr.class"]</th>
+                    <th scope="col">@L["pr.item_type"]</th>
+                    <th scope="col" class="pr-money">@L["pr.amount_kwd"]</th>
+                    <th scope="col" class="col-p2">@L["pr.applies"]</th>
+                    <th scope="col" class="col-p3">@L["pr.comment"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in pg.Items)
+                {
+                    var emp = PayItemFormat.EmployeeName(L, i.EmployeeName, i.EmployeeArabicName);
+                    var type = PayItemFormat.TypeName(L, i.ComponentName, i.ComponentArabicName);
+                    var perMonth = i.AppliesMode == AppliesMode.Instalment || i.AppliesMode == AppliesMode.Monthly && i.ItemClass != ItemClass.Salary;
+                    <tr data-id="@i.EmployeePayItemId" data-name="@type · @emp" data-mode="@i.AppliesMode" data-start="@PayItemFormat.MonthValue(i.StartMonth)"
+                        class="@(i.IsEnded ? "is-ended" : null)">
+                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">
+                            <span class="hrms-table__primary">@emp</span>
+                            <span class="pr-emp-sub">@i.EmployeeNo@(Model.ManyCompanies && i.CompanyName is not null ? " · " + i.CompanyName : "")</span>
+                        </td>
+                        <td data-label="@L["pr.class"]"><span class="hrms-badge hrms-badge--@ItemClass.Badge(i.ItemClass)"><span class="hrms-badge__dot"></span>@PayItemFormat.ClassLabel(L, i.ItemClass)</span></td>
+                        <td data-label="@L["pr.item_type"]" class="hrms-nowrap">
+                            @type
+                            @if (i.SourceRef is not null && i.ItemClass == ItemClass.Loan)
+                            {
+                                <span class="hrms-code-chip ms-1">@i.SourceRef</span>
+                            }
+                        </td>
+                        <td data-label="@L["pr.amount_kwd"]" class="pr-money@(i.IsPositive ? "" : " pr-neg")">
+                            @PayrollFormat.Money(i.SignedAmount)
+                            @if (perMonth)
+                            {
+                                <span class="pr-per">@L["pr.month_2"]</span>
+                            }
+                            @if (i.ReplacedAmount is { } was && i.IsPending)
+                            {
+                                <span class="pr-was">@L["pr.was_0", PayrollFormat.Money(was)]</span>
+                            }
+                        </td>
+                        <td data-label="@L["pr.applies"]" class="col-p2">@PayItemFormat.Applies(L, i)</td>
+                        <td data-label="@L["pr.comment"]" class="pr-line-comment col-p3">
+                            @if (i.ItemClass == ItemClass.Loan && i.TotalAmount is { } total)
+                            {
+                                <span class="pr-pi-loan">@L["pr.total_0_balance_1", PayrollFormat.Money(total), PayrollFormat.Money(i.Balance ?? total)]</span>
+                            }
+                            @(string.IsNullOrWhiteSpace(i.Comment) ? "—" : i.Comment)
+                        </td>
+                        <td data-label="@L["common.status"]">
+                            <span class="hrms-badge hrms-badge--@PayItemFormat.StatusBadge(i)"><span class="hrms-badge__dot"></span>@PayItemFormat.StatusLabel(L, i)</span>
+                            @if (i.IsPending)
+                            {
+                                <span class="pr-pi-level">@(i.ApprovalLevel == 0 ? L["pr.waiting_for_hr"] : L["pr.hr_approved_waiting_for_finance"])</span>
+                            }
+                        </td>
+                        <td class="hrms-table__actions">
+                            @if (i.IsPending && r.CanApprove(i))
+                            {
+                                <button type="button" class="btn-icon btn-icon--success" data-pi-approve title="@L["pr.approve"]" aria-label="@L["pr.approve_0", type]" disabled="@(r.IsOwnSubmission(i) ? "disabled" : null)">@Html.Icon("check", 15)</button>
+                            }
+                            @if (i.IsPending && r.IsApprover)
+                            {
+                                <button type="button" class="btn-icon btn-icon--danger" title="@L["pr.reject"]" aria-label="@L["pr.reject_0", type]"
+                                        data-reason-open data-reason-url="@Url.Action("Reject", "PayItems", new { id = i.EmployeePayItemId })"
+                                        data-reason-title="@L["pr.reject_pay_item"]" data-reason-text="@L["pr.the_item_is_removed_and_is_not_paid_enter_the_reason_it"]"
+                                        data-reason-label="@L["pr.reason"]" data-reason-button="@L["pr.reject"]" data-reason-danger="true" data-reason-refresh="payitems">@Html.Icon("x-circle", 15)</button>
+                            }
+                            @if (!i.IsEnded && r.CanEdit && !(i.ItemClass == ItemClass.Salary && i.Status == PayItemStatus.Active && i.EndMonth is not null))
+                            {
+                                <button type="button" class="btn-icon" data-pi-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", type]">@Html.Icon("edit", 15)</button>
+                            }
+                            @{
+                                var canEnd = !i.IsEnded && !i.IsPending && r.CanEdit;
+                                var canDelete = !i.IsUsed && !i.IsEnded && r.CanDelete;
+                            }
+                            <div class="dropdown d-inline-block">
+                                <button type="button" class="btn-icon" data-bs-toggle="dropdown" aria-expanded="false" data-bs-popper-config='{"strategy":"fixed"}'
+                                        title="@L["pr.more"]" aria-label="@L["pr.more_actions_for_0", type]">@Html.Icon("more", 15)</button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><button type="button" class="dropdown-item" data-pi-history>@Html.Icon("history", 15)<span>@L["pr.history"]</span></button></li>
+                                    @if (canEnd)
+                                    {
+                                        <li><button type="button" class="dropdown-item" data-pi-end>@Html.Icon("power", 15)<span>@L["pr.end_item"]</span></button></li>
+                                    }
+                                    @if (canDelete)
+                                    {
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><button type="button" class="dropdown-item text-danger" data-pi-delete>@Html.Icon("trash", 15)<span>@L["common.delete"]</span></button></li>
+                                    }
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

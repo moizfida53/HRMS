@@ -1,0 +1,27 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "Something went wrong";
+}
+
+<div class="hrms-card" style="max-width:640px;margin:3rem auto">
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" style="background:#fef3f2;color:#b42318" aria-hidden="true">
+            @Html.Icon("alert", 26)
+        </span>
+        <h1 class="hrms-empty__title">@L["layout.something_went_wrong"]</h1>
+        <p class="hrms-empty__text">
+            @L["layout.the_request_could_not_be_completed_nothing_was_s"]
+        </p>
+
+        @if (Model?.ShowRequestId == true)
+        {
+            <p class="hrms-muted hrms-text-sm" style="margin-top:1rem">
+                @L["layout.reference"] <code>@Model.RequestId</code>
+            </p>
+        }
+
+        <a class="btn btn-primary" asp-controller="Organization" asp-action="Index">
+            @L["common.back_to_organization_setup"]
+        </a>
+    </div>
+</div>

@@ -1,0 +1,563 @@
+// ============================================================================
+// HRMS Kuwait - Dashboard (landing page)
+// ----------------------------------------------------------------------------
+// KPI strip, two-column panel rows, hand-drawn SVG line charts (dashboard.js),
+// HTML horizontal bars, HR action list, upcoming events, activity table.
+// One accent hue for data ($blue-600); status colours only on the HR actions,
+// always with an icon + text.
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+.hrms-dash {
+  display: flex;
+  flex-direction: column;
+  gap: space("4");
+
+  &__kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: space("3");
+
+    // Five tiles, sized by the width the content really has (zoom + sidebar),
+    // not the viewport - and never a lonely tile on the last row:
+    //   >= 900px  one row of 5
+    //   560-899   3 + 2 (6-column grid, the last two tiles span 3)
+    //   < 560     2 + 2 + 1 (the last tile spans the row)
+    @container content (max-width: 899.98px) {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+
+      > * { grid-column: span 2; }
+      > :nth-child(4):nth-last-child(2),
+      > :nth-child(5):nth-last-child(1) { grid-column: span 3; }
+    }
+
+    @container content (max-width: 559.98px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      > *,
+      > :nth-child(4):nth-last-child(2) { grid-column: span 1; }
+      > :nth-child(odd):last-child { grid-column: 1 / -1; }
+    }
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: space("4");
+
+    &--wide-left { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+
+    @include cq-down("md") {
+      grid-template-columns: minmax(0, 1fr);
+
+      &--wide-left { grid-template-columns: minmax(0, 1fr); }
+    }
+  }
+}
+
+// Month picker in the top bar
+.hrms-dash-month .form-select {
+  min-width: 170px;
+  font-weight: $fw-semibold;
+}
+
+// --------------------------------------------------------------- KPI tile ---
+.hrms-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: space("1");
+  min-width: 0;
+  padding: space("4");
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: space("2");
+  }
+
+  &__label {
+    @include label-caps;
+    @include truncate;
+
+    @include cq-down("sm") { white-space: normal; }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: $radius;
+    background: $blue-050;
+    color: $blue-700;
+  }
+
+  &__value {
+    font-family: $font-display;
+    font-size: $fs-2xl;
+    font-weight: $fw-semibold;
+    line-height: 1.15;
+    color: $ink-900;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: space("1") space("2");
+    font-size: $fs-xs;
+    color: $ink-500;
+  }
+
+  &__delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 6px;
+    border-radius: $radius-pill;
+    background: $line-100;
+    color: $ink-600;
+    font-weight: $fw-bold;
+    font-variant-numeric: tabular-nums;
+
+    &.is-good { background: $green-050; color: $green-700; }
+    &.is-bad  { background: $red-050;   color: $red-700; }
+  }
+
+  &__note { @include truncate; }
+}
+
+// ------------------------------------------------------------------ panel ---
+.hrms-panel {
+  display: flex;
+  flex-direction: column;
+  gap: space("3");
+  min-width: 0;
+  padding: space("4") space("5");
+
+  &--flush {
+    padding: 0;
+
+    .hrms-panel__head { padding: space("4") space("5") 0; }
+    .hrms-panel__empty { padding: 0 space("5") space("4"); }
+  }
+
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: space("3");
+    flex-wrap: wrap;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: $fs-md;
+    font-weight: $fw-semibold;
+  }
+
+  &__meta {
+    font-size: $fs-xs;
+    color: $ink-400;
+  }
+
+  &__note {
+    display: flex;
+    align-items: flex-start;
+    gap: space("2");
+    margin: auto 0 0;
+    font-size: $fs-xs;
+    color: $ink-500;
+
+    svg { flex: 0 0 auto; margin-top: 1px; color: $ink-400; }
+  }
+
+  &__empty {
+    margin: 0;
+    padding: space("4") 0;
+    color: $ink-500;
+    font-size: $fs-sm;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: space("1");
+    align-self: flex-start;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $blue-700;
+    text-decoration: none;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  &__table {
+    font-size: $fs-xs;
+
+    summary {
+      color: $ink-500;
+      cursor: pointer;
+    }
+
+    .hrms-table { margin-top: space("2"); }
+  }
+}
+
+// ------------------------------------------------------------------ chart ---
+.hrms-chart {
+  position: relative;
+  height: 240px;
+
+  &--short { height: 200px; }
+
+  svg { display: block; overflow: visible; }
+
+  rect[tabindex]:focus { outline: none; }
+  rect[tabindex]:focus-visible { outline: 2px solid rgba($blue-600, 0.4); }
+
+  &__tip {
+    position: absolute;
+    z-index: 2;
+    min-width: 140px;
+    padding: space("2") space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $white;
+    box-shadow: $shadow-md;
+    font-size: $fs-xs;
+    pointer-events: none;
+  }
+
+  &__tip-head {
+    margin-bottom: space("1");
+    color: $ink-500;
+    font-weight: $fw-semibold;
+  }
+
+  &__tip-row {
+    display: flex;
+    align-items: baseline;
+    gap: space("2");
+    line-height: 1.6;
+
+    strong {
+      color: $ink-900;
+      font-size: $fs-sm;
+      font-variant-numeric: tabular-nums;
+    }
+
+    span { color: $ink-500; }
+  }
+}
+
+// -------------------------------------------------- horizontal bar list ----
+.hrms-hbars {
+  display: flex;
+  flex-direction: column;
+  gap: space("2");
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__row {
+    display: grid;
+    grid-template-columns: minmax(90px, 38%) minmax(0, 1fr) 2.5rem;
+    align-items: center;
+    gap: space("3");
+    padding: 2px space("1");
+    border-radius: $radius-sm;
+    font-size: $fs-sm;
+    @include motion(background-color);
+
+    &:hover,
+    &:focus-visible {
+      outline: none;
+      background: $blue-050;
+
+      .hrms-hbars__bar { background: $blue-700; }
+    }
+  }
+
+  &__label {
+    @include truncate;
+    color: $ink-700;
+  }
+
+  &__track {
+    height: 12px;
+    border-radius: 0 4px 4px 0;
+    background: $line-100;
+    overflow: hidden;
+  }
+
+  &__bar {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    border-radius: 0 4px 4px 0;
+    background: $blue-600;
+    @include motion(background-color);
+  }
+
+  &__value {
+    text-align: end;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// --------------------------------------------------------- figures list ----
+.hrms-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space("3");
+  margin: 0;
+
+  > div {
+    padding: space("3");
+    border: 1px solid $line-100;
+    border-radius: $radius;
+    background: $surface-2;
+  }
+
+  dt {
+    @include label-caps;
+    margin-bottom: 2px;
+  }
+
+  dd {
+    margin: 0;
+    font-family: $font-display;
+    font-size: $fs-lg;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.is-pending dd { color: $ink-300; }
+}
+
+// ------------------------------------------------------------ HR actions ---
+.hrms-actions {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    padding: space("2") 0;
+    border-bottom: 1px solid $line-100;
+    font-size: $fs-sm;
+
+    &:last-child { border-bottom: 0; }
+
+    --tone: #{$ink-500};
+    --tone-bg: #{$line-100};
+
+    &.is-critical { --tone: #{$red-700};   --tone-bg: #{$red-050}; }
+    &.is-serious  { --tone: #{$amber-700}; --tone-bg: #{$amber-050}; }
+    &.is-warning  { --tone: #{$amber-600}; --tone-bg: #{$amber-050}; }
+    &.is-info     { --tone: #{$blue-700};  --tone-bg: #{$blue-050}; }
+    &.is-pending  { --tone: #{$ink-400};   --tone-bg: #{$line-100}; }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: $radius;
+    background: var(--tone-bg);
+    color: var(--tone);
+  }
+
+  &__text {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: $ink-700;
+  }
+
+  &__count {
+    flex: 0 0 auto;
+    min-width: 2.25rem;
+    text-align: end;
+    font-family: $font-display;
+    font-size: $fs-lg;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+    font-variant-numeric: tabular-nums;
+
+    .is-pending & {
+      font-family: inherit;
+      font-size: $fs-xs;
+      font-weight: $fw-bold;
+      color: $ink-400;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+  }
+}
+
+// --------------------------------------------------------------- events ----
+.hrms-events {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+  @include thin-scrollbar;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    padding: space("2") 0;
+    border-bottom: 1px solid $line-100;
+
+    &:last-child { border-bottom: 0; }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: $blue-050;
+    color: $blue-700;
+
+    &--expiry    { background: $amber-050;  color: $amber-700; }
+    &--probation { background: $purple-050; color: $purple-700; }
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.3;
+  }
+
+  &__name {
+    @include truncate;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+    text-decoration: none;
+
+    &:hover { color: $blue-700; text-decoration: underline; }
+  }
+
+  &__detail {
+    @include truncate;
+    font-size: $fs-xs;
+    color: $ink-500;
+  }
+
+  &__when {
+    flex: 0 0 auto;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    color: $ink-600;
+    white-space: nowrap;
+  }
+}
+
+// -------------------------------------------- vertical columns (companies) --
+// One column per company: value on top, bar, name underneath (2 lines max).
+// Scrolls sideways when there are more companies than fit.
+.hrms-columns {
+  display: flex;
+  align-items: stretch;
+  gap: space("3");
+  padding-block-start: space("2");
+  overflow-x: auto;
+  @include thin-scrollbar;
+
+  &__item {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    gap: space("1");
+    min-width: 72px;
+    max-width: 140px;
+    padding: space("1");
+    border-radius: $radius;
+    @include motion(background-color, opacity);
+
+    &:hover,
+    &:focus-visible {
+      outline: none;
+      background: $blue-050;
+
+      .hrms-columns__bar { background: $blue-700; }
+    }
+
+    &.is-dim {
+      .hrms-columns__bar { background: $line-300; }
+      .hrms-columns__value,
+      .hrms-columns__label { color: $ink-400; }
+    }
+  }
+
+  &__value {
+    font-family: $font-display;
+    font-size: $fs-md;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__plot {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: space("1");
+    width: 100%;
+    min-height: 180px;   // 150px tallest bar + its value label
+    border-bottom: 1px solid $line-200;
+  }
+
+  &__bar {
+    display: block;
+    width: min(44px, 70%);
+    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+    background: $blue-600;
+    @include motion(background-color);
+  }
+
+  &__label {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.5em;
+    font-size: $fs-xs;
+    line-height: 1.25;
+    color: $ink-600;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+}

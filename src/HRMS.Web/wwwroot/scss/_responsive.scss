@@ -1,0 +1,154 @@
+// ============================================================================
+// HRMS Kuwait - responsive behaviour for desktop zoom levels
+// ----------------------------------------------------------------------------
+// Browser zoom shrinks the CSS viewport: a 1920 x 1080 monitor is 1536 px wide
+// at 125 %, 1280 at 150 %, 1097 at 175 % and 960 at 200 %, and only ~620 px
+// tall at 150 %. Media queries alone see the viewport, not the room a
+// component actually has once the 224-260 px sidebar is taken away, so grids
+// broke between "desktop" and "tablet" sizes.
+//
+//   1. .hrms-content is a query container ("content"). Grids, KPI strips,
+//      tables and toolbars respond to the content width (see cq-up/cq-down).
+//   2. Optional table columns can be marked .col-p2 / .col-p3 and step aside
+//      as the TABLE narrows (each .hrms-table-wrap is a "table" container),
+//      before the rows turn into stacked cards.
+//   3. Short viewports (high zoom on a laptop) get a tighter shell.
+// ============================================================================
+
+@use "sass:map";
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ----------------------------------------------------------- 1. container ---
+.hrms-content {
+  container: content / inline-size;
+  min-width: 0;
+  // Gutters scale with the window instead of jumping at one breakpoint.
+  // Exposed as --hrms-gutter so full-bleed bars (sticky action bars) can
+  // cancel it exactly with a negative margin.
+  --hrms-gutter: clamp(1rem, 1.6vw, 1.5rem);
+  padding: var(--hrms-gutter) var(--hrms-gutter) space("12");
+}
+
+// Tables never squeeze short values onto two lines (dates, codes, money,
+// badges) - the table scrolls inside its card instead.
+.hrms-table {
+  .hrms-code-chip,
+  .hrms-badge,
+  .hrms-count,
+  .hrms-numeric,
+  .col-nowrap,
+  td.col-date,
+  td.col-money {
+    white-space: nowrap;
+  }
+
+  // The main name column keeps a sensible minimum before wrapping.
+  .hrms-table__primary {
+    display: inline-block;
+    min-width: 9ch;
+  }
+}
+
+// ------------------------------------------------- 2. column priorities ---
+// Every table wrapper is its own query container ("table"), so a table in a
+// half-width panel adapts to the panel, not to the page.
+//   <th|td class="col-p3">  hidden when the table has < 1240 px
+//   <th|td class="col-p2">  hidden when the table has <  900 px
+//   below 600 px the rows become stacked cards (see _components.scss)
+.hrms-table-wrap {
+  container: table / inline-size;
+}
+
+@container table (max-width: 1239.98px) {
+  .hrms-table .col-p3 { display: none; }
+
+  // Tighter cells before anything has to scroll.
+  .hrms-table th,
+  .hrms-table td {
+    padding-inline: space("3");
+  }
+}
+
+@container table (max-width: 899.98px) {
+  .hrms-table .col-p2 { display: none; }
+}
+
+// Card toolbar: search takes the full row on narrow content.
+@include cq-down("sm") {
+  .hrms-card__filters > .hrms-search {
+    max-width: none !important;
+    flex: 1 1 100% !important;
+  }
+
+  .hrms-card__filters > .form-select {
+    flex: 1 1 auto;
+  }
+}
+
+// Bootstrap columns inside the content follow the content width too: a
+// col-md-* field is full width once the content is phone-narrow, even when
+// the viewport is still "md" (zoomed desktop, sidebar open).
+@include cq-down("xs") {
+  .hrms-content .row > [class*="col-md-"],
+  .hrms-content .row > [class*="col-lg-"],
+  .hrms-content .row > [class*="col-xl-"] {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+}
+
+// ------------------------------------------------------ 3. short screens ---
+@include short-screen {
+  .hrms-topbar {
+    min-height: 56px;
+  }
+
+  .hrms-sidebar__header {
+    padding-block: space("3");
+  }
+
+  .hrms-nav-link {
+    padding-block: 0.4rem;
+  }
+
+  .hrms-nav-group__toggle {
+    padding-block: 0.45rem;
+  }
+
+  .hrms-content {
+    padding-block-start: space("4");
+  }
+
+  .hrms-kpi {
+    padding: space("3");
+  }
+
+  .hrms-kpi__value {
+    font-size: $fs-xl;
+  }
+}
+
+// --------------------------------------------- top bar between lg and xl ---
+// 992-1279 px (zoomed desktops): keep the title readable by letting the
+// secondary controls shrink to their icons.
+@media (min-width: 992px) and (max-width: 1279.98px) {
+  .hrms-company-filter__label {
+    max-width: 9rem;
+  }
+
+  .hrms-topbar__page-actions .btn > span:not(:only-child) {
+    @include visually-hidden;
+  }
+
+}
+
+// KPI tiles: labels and notes wrap onto a second line instead of being cut
+// off with an ellipsis when the tile is narrow (zoomed desktop).
+.hrms-kpi__label,
+.hrms-kpi__note {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}

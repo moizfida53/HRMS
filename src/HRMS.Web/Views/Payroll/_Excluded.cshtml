@@ -1,0 +1,38 @@
+@model IReadOnlyList<ExcludedEmployee>
+@{
+    var editable = ViewData["Editable"] is true;
+}
+@if (Model.Count > 0)
+{
+    <p class="pr-section-label">@L["pr.excluded_from_this_payroll"]</p>
+    <div class="hrms-table-wrap">
+        <table class="hrms-table">
+            <caption class="hrms-sr-only">@L["pr.excluded_from_this_payroll"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["pr.employee"]</th>
+                    <th scope="col">@L["pr.reason"]</th>
+                    <th scope="col" class="col-p2">@L["pr.by"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var x in Model)
+                {
+                    var name = PayrollFormat.EmployeeName(L, x.EmployeeName, x.ArabicName);
+                    <tr>
+                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">@name · @x.EmployeeNo</td>
+                        <td data-label="@L["pr.reason"]">@x.ExcludeReason</td>
+                        <td data-label="@L["pr.by"]" class="col-p2">@x.ExcludedByName · @L.Date(x.ExcludedDate)</td>
+                        <td class="hrms-table__actions">
+                            @if (editable)
+                            {
+                                <button type="button" class="btn-icon" data-emp-include="@x.EmployeeId" title="@L["pr.include_again"]" aria-label="@L["pr.include_0_again", name]">@Html.Icon("undo", 15)</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

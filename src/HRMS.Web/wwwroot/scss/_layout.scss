@@ -1,0 +1,910 @@
+// ============================================================================
+// HRMS Kuwait - application shell: sidebar, topbar, content column
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ------------------------------------------------------------------ base ----
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: $surface;
+  color: $ink-900;
+  font-family: $font-sans;
+  font-size: $fs-base;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6,
+.hrms-display {
+  font-family: $font-display;
+  font-weight: $fw-semibold;
+  color: $ink-900;
+  margin: 0;
+}
+
+a {
+  color: $blue-600;
+  text-decoration: none;
+  @include motion(color);
+
+  &:hover {
+    color: $blue-700;
+    text-decoration: underline;
+  }
+}
+
+// Skip link for keyboard and screen-reader users.
+.hrms-skip-link {
+  @include visually-hidden;
+
+  &:focus {
+    position: fixed;
+    top: space("3");
+    inset-inline-start: space("3");
+    z-index: $z-toast + 1;
+    width: auto;
+    height: auto;
+    clip: auto;
+    padding: space("2") space("4");
+    background: $blue-600;
+    color: $white;
+    border-radius: $radius;
+    font-weight: $fw-semibold;
+    box-shadow: $shadow-lg;
+  }
+}
+
+// ----------------------------------------------------------------- shell ----
+.hrms-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+// ---------------------------------------------------------------- sidebar ---
+.hrms-sidebar {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: $z-sidebar;
+
+  display: flex;
+  flex-direction: column;
+  width: $sidebar-width;
+  background: $white;
+  border-inline-end: 1px solid $line-200;
+
+  @include motion(transform, width);
+
+  @include between("lg", "xl") {
+    width: $sidebar-width-condensed;
+  }
+
+  // Below lg the sidebar becomes an off-canvas drawer.
+  @include down("lg") {
+    transform: translateX(-100%);
+    box-shadow: $shadow-lg;
+
+    [dir="rtl"] & {
+      transform: translateX(100%);
+    }
+
+    .hrms-shell.is-nav-open & {
+      transform: translateX(0);
+    }
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    padding: space("4") space("4") space("4");
+    border-block-end: 1px solid $line-100;
+    min-height: $topbar-height;
+  }
+
+  &__logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: $radius;
+    background: $blue-600;
+    color: $white;
+    font-family: $font-display;
+    font-weight: $fw-bold;
+    font-size: $fs-md;
+    letter-spacing: -0.02em;
+  }
+
+  &__wordmark {
+    min-width: 0;
+    flex: 1 1 auto;
+
+    strong {
+      display: block;
+      font-family: $font-display;
+      font-weight: $fw-semibold;
+      font-size: $fs-md;
+      line-height: 1.15;
+      color: $ink-900;
+      @include truncate;
+    }
+
+    span {
+      display: block;
+      font-size: $fs-xs;
+      color: $ink-400;
+      margin-block-start: 1px;
+      @include truncate;
+    }
+  }
+
+  &__close {
+    display: none;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid $line-200;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: $ink-500;
+    @include focus-ring;
+
+    @include down("lg") {
+      display: inline-flex;
+    }
+  }
+
+  &__nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding-block: space("2") space("4");
+    @include thin-scrollbar;
+  }
+
+  &__group-label {
+    @include label-caps;
+    padding: space("4") space("5") space("2");
+  }
+
+  // Account menu trigger (moved here from the top bar). Opens upwards.
+  &__footer {
+    position: relative;
+    flex: 0 0 auto;
+    padding: space("2");
+    border-block-start: 1px solid $line-100;
+
+    .hrms-account-menu {
+      width: calc(100% - #{space("4")});
+      min-width: 0;
+    }
+  }
+}
+
+
+// Top-level link above the groups (Dashboard).
+.hrms-nav-link--main {
+  margin-block: space("1") space("2");
+  font-weight: $fw-semibold;
+}
+
+// Collapsible sidebar groups (Overview, Workforce, Payroll, System, Setup).
+// Bootstrap's collapse plugin does the open/close; all start collapsed except
+// the group holding the current page.
+.hrms-nav-group {
+  & + & {
+    margin-block-start: space("1");
+  }
+
+  &__toggle {
+    @include label-caps;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: calc(100% - #{space("4")});
+    margin-inline: space("2");
+    padding: space("2") space("3");
+    border: 0;
+    border-radius: $radius;
+    background: transparent;
+    text-align: start;
+    cursor: pointer;
+    @include motion(background-color, color);
+    @include focus-ring;
+
+    &:hover {
+      background: $surface;
+      color: $ink-700;
+    }
+
+    &:not(.collapsed) {
+      color: $blue-700;
+    }
+
+    svg {
+      flex: 0 0 auto;
+      @include motion(transform);
+    }
+
+    &.collapsed svg {
+      transform: rotate(-90deg);
+    }
+  }
+
+  &__items {
+    padding-block: space("1");
+  }
+}
+
+.hrms-user {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  width: 100%;
+  padding: space("2");
+  border: 1px solid transparent;
+  border-radius: $radius;
+  background: transparent;
+  text-align: start;
+  @include motion(background-color, border-color);
+  @include focus-ring;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    background: $surface;
+    border-color: $line-200;
+  }
+
+  &__meta {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.25;
+
+    strong {
+      @include truncate;
+      font-size: $fs-sm;
+      font-weight: $fw-semibold;
+      color: $ink-900;
+    }
+
+    span {
+      @include truncate;
+      font-size: $fs-xs;
+      color: $ink-400;
+    }
+  }
+
+  &__chev {
+    display: inline-flex;
+    flex: 0 0 auto;
+    color: $ink-400;
+    transform: rotate(180deg);   // points up: the menu opens upwards
+    @include motion(transform);
+  }
+
+  &[aria-expanded="true"] &__chev { transform: rotate(0deg); }
+}
+
+.hrms-nav-link {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  margin-inline: space("2");
+  padding: space("2") space("3");
+  border-radius: $radius;
+
+  color: $ink-600;
+  font-size: $fs-base;
+  font-weight: $fw-medium;
+  text-decoration: none;
+
+  @include motion(background-color, color);
+
+  svg {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    color: $ink-400;
+    @include motion(color);
+  }
+
+  span {
+    min-width: 0;
+    @include truncate;
+  }
+
+  &:hover {
+    background: $surface;
+    color: $ink-900;
+    text-decoration: none;
+
+    svg {
+      color: $ink-600;
+    }
+  }
+
+  @include focus-ring;
+
+  &.is-active {
+    background: $blue-100;
+    color: $blue-700;
+    font-weight: $fw-semibold;
+
+    svg {
+      color: $blue-700;
+    }
+  }
+
+  &.is-disabled {
+    color: $ink-300;
+    pointer-events: none;
+
+    svg {
+      color: $ink-300;
+    }
+  }
+}
+
+.hrms-nav-soon {
+  margin-inline-start: auto;
+  padding: 1px space("2");
+  border-radius: $radius-sm;
+  background: $line-100;
+  color: $ink-400;
+  font-size: 0.65rem;
+  font-weight: $fw-bold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+// Backdrop shown behind the drawer on small screens.
+.hrms-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-backdrop - 1;
+  background: rgba($ink-900, 0.45);
+  opacity: 0;
+  visibility: hidden;
+  @include motion(opacity, visibility);
+
+  .hrms-shell.is-nav-open & {
+    @include down("lg") {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+}
+
+// ------------------------------------------------------------ main column ---
+.hrms-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-inline-start: $sidebar-width;
+  @include motion(margin-inline-start);
+
+  @include between("lg", "xl") {
+    margin-inline-start: $sidebar-width-condensed;
+  }
+
+  @include down("lg") {
+    margin-inline-start: 0;
+  }
+}
+
+// ----------------------------------------------------------------- topbar ---
+.hrms-topbar {
+  position: sticky;
+  top: 0;
+  z-index: $z-topbar;
+
+  display: flex;
+  align-items: center;
+  gap: space("4");
+  min-height: $topbar-height;
+  padding-inline: space("6");
+  background: rgba($white, 0.92);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-block-end: 1px solid $line-200;
+
+  @include down("md") {
+    padding-inline: space("4");
+    gap: space("3");
+  }
+
+  &__toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $white;
+    color: $ink-600;
+    @include focus-ring;
+
+    @include down("lg") {
+      display: inline-flex;
+    }
+  }
+
+  &__back {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-inline-end: calc(-1 * #{space("2")});
+    border-radius: $radius;
+    color: $ink-500;
+    @include motion(background-color, color);
+    @include focus-ring;
+
+    &:hover {
+      background: $surface;
+      color: $ink-900;
+    }
+  }
+
+  // Page title + subtitle - replaces the old page-head block in the content.
+  &__heading {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.2;
+  }
+
+  &__title {
+    @include truncate;
+    margin: 0;
+    font-size: $fs-lg;
+    font-weight: $fw-semibold;
+    letter-spacing: -0.01em;
+  }
+
+  &__subtitle {
+    @include truncate;
+    margin: 2px 0 0;
+    font-size: $fs-xs;
+    color: $ink-500;
+
+    @include down("md") {
+      display: none;
+    }
+  }
+
+  // Page buttons (Add, Export, ...). Below md they drop to their own row.
+  &__page-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: space("2");
+
+    .btn {
+      white-space: nowrap;
+    }
+
+    @include down("md") {
+      order: 10;
+      width: 100%;
+      padding-block-end: space("3");
+
+      .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+    }
+  }
+
+  &__actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: space("1");
+    flex: 0 0 auto;
+  }
+
+  @include down("md") {
+    flex-wrap: wrap;
+  }
+}
+
+// Company filter (top bar). Multi-select; the choice is kept in a cookie.
+.hrms-company-filter {
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: space("2");
+    max-width: 240px;
+    height: 38px;
+    padding: 0 space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $white;
+    color: $ink-700;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    @include motion(background-color, border-color, color);
+    @include focus-ring;
+
+    svg { flex: 0 0 auto; color: $ink-400; }
+
+    &:hover:not(:disabled) {
+      background: $surface;
+      border-color: $line-300;
+    }
+
+    &.is-filtered {
+      border-color: $blue-200;
+      background: $blue-050;
+      color: $blue-700;
+
+      svg { color: $blue-700; }
+    }
+
+    &:disabled {
+      opacity: 1;
+      cursor: default;
+      background: $surface;
+    }
+
+    @include down("md") {
+      padding: 0 space("2");
+    }
+  }
+
+  &__label {
+    @include truncate;
+
+    @include down("md") {
+      display: none;
+    }
+  }
+
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: $radius-pill;
+    background: $blue-600;
+    color: $white;
+    font-size: 0.68rem;
+    font-weight: $fw-bold;
+
+    @include up("md") {
+      display: none;   // the label already says "3 companies"
+    }
+  }
+
+  &__menu {
+    width: 280px;
+    padding: space("2") 0 0;
+    border: 1px solid $line-200;
+    border-radius: $radius-md;
+    box-shadow: $shadow-lg;
+  }
+
+  &__heading {
+    @include label-caps;
+    margin: 0;
+    padding: space("1") space("4") space("2");
+  }
+
+  &__list {
+    max-height: 280px;
+    overflow-y: auto;
+    border-block: 1px solid $line-100;
+    padding-block: space("1");
+    @include thin-scrollbar;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    margin: 0;
+    padding: space("2") space("4");
+    font-size: $fs-sm;
+    color: $ink-700;
+    cursor: pointer;
+
+    &:hover { background: $surface; }
+
+    .form-check-input { margin: 0; flex: 0 0 auto; }
+
+    span { @include truncate; }
+
+    &.is-all { font-weight: $fw-semibold; }
+  }
+
+  &__foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: space("2");
+    padding: space("3") space("4");
+  }
+}
+
+// Top-right search: an icon button that opens a search field under it
+// (Ctrl/Cmd+K also opens it, Esc closes it).
+.hrms-topsearch {
+  position: relative;
+
+  &__panel {
+    position: absolute;
+    inset-block-start: calc(100% + #{space("2")});
+    inset-inline-end: 0;
+    z-index: $z-topbar + 1;
+    width: min(420px, calc(100vw - #{space("8")}));
+    padding: space("2");
+    border: 1px solid $line-200;
+    border-radius: $radius-md;
+    background: $white;
+    box-shadow: $shadow-lg;
+
+    .hrms-search {
+      background: $white;
+    }
+  }
+
+  &.is-open > .hrms-icon-button {
+    background: $blue-050;
+    color: $blue-700;
+    border-color: $blue-100;
+  }
+}
+
+.hrms-search {
+  display: flex;
+  align-items: center;
+  gap: space("2");
+  width: 100%;
+  padding: space("2") space("3");
+  background: $surface;
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  color: $ink-400;
+  @include motion(border-color, background-color, box-shadow);
+
+  svg {
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+  }
+
+  input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: $ink-900;
+    font-size: $fs-base;
+    font-family: inherit;
+
+    &::placeholder {
+      color: $ink-400;
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &:focus-within {
+    background: $white;
+    border-color: $blue-500;
+    box-shadow: 0 0 0 3px rgba($blue-600, 0.16);
+  }
+
+  kbd {
+    flex: 0 0 auto;
+    padding: 1px 6px;
+    border: 1px solid $line-200;
+    border-block-end-width: 2px;
+    border-radius: $radius-sm;
+    background: $white;
+    color: $ink-400;
+    font-family: $font-mono;
+    font-size: 0.65rem;
+
+    @include down("md") {
+      display: none;
+    }
+  }
+}
+
+.hrms-icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid transparent;
+  border-radius: $radius;
+  background: transparent;
+  color: $ink-500;
+  @include motion(background-color, color, border-color);
+  @include focus-ring;
+
+  &:hover {
+    background: $surface;
+    color: $ink-900;
+    border-color: $line-200;
+  }
+
+  &__dot {
+    position: absolute;
+    top: 7px;
+    inset-inline-end: 8px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $red-600;
+    border: 2px solid $white;
+  }
+}
+
+.hrms-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: $navy-800;
+  color: $white;
+  font-family: $font-display;
+  font-weight: $fw-semibold;
+  font-size: $fs-sm;
+
+  &--square {
+    width: 34px;
+    height: 34px;
+    border-radius: $radius;
+    background: $blue-100;
+    color: $blue-700;
+    font-size: $fs-xs;
+  }
+}
+
+.hrms-profile {
+  display: flex;
+  align-items: center;
+  gap: space("2");
+  padding: space("1") space("3") space("1") space("1");
+  border: 1px solid $line-200;
+  border-radius: $radius-pill;
+  background: $white;
+  @include motion(background-color, border-color);
+  @include focus-ring;
+
+  &:hover {
+    background: $surface;
+    border-color: $line-300;
+  }
+
+  &__meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    text-align: start;
+
+    @include down("md") {
+      display: none;
+    }
+
+    strong {
+      font-size: $fs-sm;
+      font-weight: $fw-semibold;
+      color: $ink-900;
+    }
+
+    span {
+      font-size: $fs-xs;
+      color: $ink-400;
+    }
+  }
+
+  > svg:last-child {
+    color: $ink-400;
+
+    @include down("md") {
+      display: none;
+    }
+  }
+}
+
+// ---------------------------------------------------------------- content ---
+.hrms-content {
+  flex: 1 1 auto;
+  padding: space("6") space("6") space("12");
+
+  @include down("md") {
+    padding: space("4") space("4") space("10");
+  }
+}
+
+.hrms-page-head {
+  display: flex;
+  align-items: flex-start;
+  gap: space("4");
+  margin-block-end: space("6");
+  flex-wrap: wrap;
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    border-radius: $radius-lg;
+    background: $white;
+    border: 1px solid $line-200;
+    color: $blue-700;
+    box-shadow: $shadow-xs;
+
+    @include down("md") {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  &__text {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: $fs-xl;
+    font-weight: $fw-semibold;
+    letter-spacing: -0.01em;
+  }
+
+  &__subtitle {
+    margin-block-start: space("1");
+    color: $ink-500;
+    font-size: $fs-base;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    margin-inline-start: auto;
+    flex-wrap: wrap;
+
+    @include down("sm") {
+      width: 100%;
+      margin-inline-start: 0;
+
+      .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+    }
+  }
+}

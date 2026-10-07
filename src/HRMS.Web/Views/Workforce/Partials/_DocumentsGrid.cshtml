@@ -1,0 +1,288 @@
+@model EmployeeDocumentsViewModel
+@{
+    static string FileSize(long? bytes) => bytes switch
+    {
+        null => "",
+        >= 1024 * 1024 => $"{bytes.Value / 1024d / 1024d:0.0} MB",
+        _ => $"{Math.Max(1, (int)Math.Round(bytes.Value / 1024d))} KB"
+    };
+
+    static string FileBadge(string? contentType) => contentType switch
+    {
+        "application/pdf" => "PDF",
+        "image/png" => "PNG",
+        "image/jpeg" => "JPG",
+        _ => "FILE"
+    };
+
+    var number = 0;
+    var missing = Model.Rows.Where(r => r.IsMissingRequired).ToList();
+    var fileUrl = $"/employees/documents/{Model.EmployeeId}/file/";
+
+    // Arabic UI shows the Arabic document name first (English when there is none).
+    string DocName(string? english, string? arabic) =>
+        L.IsArabic && !string.IsNullOrWhiteSpace(arabic) ? arabic! : english ?? string.Empty;
+}
+
+<div class="hrms-card hrms-docs" data-docs-root data-employee-id="@Model.EmployeeId" data-max-mb="@Model.MaxFileSizeMb">
+
+    <div class="hrms-docs__head">
+        <div>
+            <h2 class="h6 mb-0">@L["emp.employee_documents"]</h2>
+            <p class="hrms-docs__sub">@L["emp.docs_sub", Model.MaxFileSizeMb]</p>
+        </div>
+        <div class="hrms-docs__legend">
+            <span><span class="hrms-docs__req" aria-hidden="true">*</span> @L["emp.mandatory_attachment"]</span>
+            <span><i class="hrms-docs__swatch" aria-hidden="true"></i>@L["emp.missing_required"]</span>
+        </div>
+    </div>
+
+    @if (Model.TotalCount == 0)
+    {
+        <div class="hrms-empty">
+            <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("folder", 26)</span>
+            <p class="hrms-empty__title">@L["emp.no_document_types_are_set_up_yet"]</p>
+            <p class="hrms-empty__text">
+                @L["emp.add_rows_to_documents_documenttypes_and_assign_e"]
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="hrms-docs__summary">
+            <div class="hrms-docs__stat">
+                <span class="hrms-docs__stat-icon hrms-docs__stat-icon--blue" aria-hidden="true">@Html.Icon("folder", 18)</span>
+                <div class="hrms-docs__stat-body">
+                    <div class="hrms-docs__stat-value">@Model.TotalCount</div>
+                    <div class="hrms-docs__stat-label">@L["emp.document_types"]</div>
+                </div>
+            </div>
+            <div class="hrms-docs__stat">
+                <span class="hrms-docs__stat-icon hrms-docs__stat-icon--green" aria-hidden="true">@Html.Icon("step-check", 18)</span>
+                <div class="hrms-docs__stat-body">
+                    <div class="hrms-docs__stat-value">@Model.UploadedCount</div>
+                    <div class="hrms-docs__stat-label">@L["emp.uploaded"]</div>
+                </div>
+            </div>
+            <div class="hrms-docs__stat">
+                <span class="hrms-docs__stat-icon hrms-docs__stat-icon--red" aria-hidden="true">@Html.Icon("alert", 18)</span>
+                <div class="hrms-docs__stat-body">
+                    <div class="hrms-docs__stat-value">@Model.MandatoryMissingCount</div>
+                    <div class="hrms-docs__stat-label">@L["emp.mandatory_missing"]</div>
+                </div>
+            </div>
+            <div class="hrms-docs__stat">
+                <span class="hrms-docs__stat-icon hrms-docs__stat-icon--amber" aria-hidden="true">@Html.Icon("chart", 18)</span>
+                <div class="hrms-docs__stat-body">
+                    <div class="hrms-docs__stat-value">@Model.MandatoryPercent%</div>
+                    <div class="hrms-docs__stat-label">@L["emp.mandatory_complete"]</div>
+                    <div class="hrms-docs__progress" role="progressbar" aria-label="@L["emp.mandatory_documents_complete"]"
+                         aria-valuenow="@Model.MandatoryPercent" aria-valuemin="0" aria-valuemax="100">
+                        <span style="width:@(Model.MandatoryPercent)%"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hrms-card__toolbar">
+            <div class="hrms-card__filters">
+                <label class="hrms-search" style="max-width:320px;flex:1 1 220px" for="docs-search">
+                    @Html.Icon("search", 16)
+                    <input id="docs-search" type="search" autocomplete="off" data-docs-search
+                           placeholder="@L["emp.search_document_types"]" aria-label="@L["emp.search_document_types_2"]" />
+                </label>
+                <select class="form-select" style="width:auto;min-width:160px" data-docs-filter-req aria-label="@L["emp.filter_by_requirement"]">
+                    <option value="">@L["emp.all_requirements"]</option>
+                    <option value="m">@L["emp.mandatory_only"]</option>
+                    <option value="o">@L["emp.optional_only"]</option>
+                </select>
+                <select class="form-select" style="width:auto;min-width:150px" data-docs-filter-status aria-label="@L["common.filter_by_status"]">
+                    <option value="">@L["common.all_statuses"]</option>
+                    <option value="up">@L["emp.uploaded"]</option>
+                    <option value="miss">@L["emp.not_uploaded"]</option>
+                </select>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-docs-toggle-all>@L["emp.collapse_all"]</button>
+                <div class="hrms-card__count" data-docs-count>@L["emp.docs_count_of", Model.TotalCount, Model.TotalCount]</div>
+            </div>
+        </div>
+
+        @if (missing.Count > 0)
+        {
+            <div class="hrms-docs__alert" role="status">
+                @Html.Icon("alert", 16)
+                <span>
+                    <strong>@(missing.Count == 1 ? L["emp.docs_missing_one"] : L["emp.docs_missing_many", missing.Count])</strong>
+                    @string.Join(L["common.list_separator"], missing.Select(m => DocName(m.DocumentTypeName, m.DocumentTypeNameAr))).
+                </span>
+            </div>
+        }
+        else if (Model.MandatoryCount > 0)
+        {
+            <div class="hrms-docs__alert is-success" role="status">
+                @Html.Icon("check", 16)
+                <span>@L["emp.all_mandatory_documents_are_attached"]</span>
+            </div>
+        }
+
+        <div class="hrms-table-wrap">
+            <table class="hrms-table hrms-docs-table">
+                <caption class="hrms-sr-only">@L["emp.employee_documents_grouped_by_section"]</caption>
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-no">#</th>
+                        <th scope="col" class="col-name">@L["emp.document_type"]</th>
+                        <th scope="col" class="col-req">@L["emp.requirement"]</th>
+                        <th scope="col" class="col-file">@L["emp.attachment"]</th>
+                        <th scope="col" class="col-date">@L["emp.uploaded_on"]</th>
+                        <th scope="col" class="col-status">@L["common.status"]</th>
+                        <th scope="col" class="col-actions"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in Model.Groups)
+                    {
+                        var sectionKey = group.SectionId?.ToString() ?? "other";
+                        <tr class="hrms-docs-section" data-section-row="@sectionKey">
+                            <td colspan="7">
+                                <button type="button" class="hrms-docs-section__btn" data-docs-section="@sectionKey" aria-expanded="true">
+                                    <span class="hrms-docs-section__chev" aria-hidden="true">@Html.Icon("chevron-down", 16)</span>
+                                    <span class="hrms-docs-section__seq">@(group.Seq?.ToString() ?? "–")</span>
+                                    <span class="hrms-docs-section__title">@(L.IsArabic && !string.IsNullOrWhiteSpace(group.NameArb) ? group.NameArb : L.Tr(group.NameEng))</span>
+                                    <span class="hrms-docs-section__count @(group.MandatoryComplete ? "is-complete" : null)">
+                                        @L["emp.docs_uploaded_of", group.UploadedCount, group.Rows.Count]
+                                    </span>
+                                    @if (!L.IsArabic && !string.IsNullOrWhiteSpace(group.NameArb))
+                                    {
+                                        <span class="hrms-docs-section__title-ar" dir="rtl" lang="ar">@group.NameArb</span>
+                                    }
+                                </button>
+                            </td>
+                        </tr>
+
+                        @foreach (var row in group.Rows)
+                        {
+                            number++;
+                            var inputId = $"doc-file-{row.DocumentTypeId}";
+                            <tr class="hrms-docs-row @(row.IsMissingRequired ? "is-missing-required" : null)"
+                                data-section="@sectionKey"
+                                data-type-id="@row.DocumentTypeId"
+                                data-name="@($"{row.DocumentTypeName} {row.DocumentTypeNameAr}".ToLowerInvariant())"
+                                data-label-name="@DocName(row.DocumentTypeName, row.DocumentTypeNameAr)"
+                                data-mandatory="@(row.AttachmentMandatory ? "true" : "false")"
+                                data-uploaded="@(row.HasFile ? "true" : "false")">
+                                <td class="col-no" data-label="#">@number</td>
+                                <td class="col-name" data-label="@L.Tr("Document Type")">
+                                    <span class="hrms-table__primary">
+                                        @DocName(row.DocumentTypeName, row.DocumentTypeNameAr)
+                                        @if (row.AttachmentMandatory)
+                                        {
+                                            <span class="hrms-docs__req" title="@L["emp.mandatory"]">*</span>
+                                        }
+                                    </span>
+                                    @if (!string.IsNullOrWhiteSpace(row.DocumentTypeNameAr))
+                                    {
+                                        <span class="hrms-docs__name-ar" dir="@(L.IsArabic ? "ltr" : "rtl")" lang="@(L.IsArabic ? "en" : "ar")">@(L.IsArabic ? row.DocumentTypeName : row.DocumentTypeNameAr)</span>
+                                    }
+                                </td>
+                                <td data-label="@L.Tr("Requirement")">
+                                    @if (row.AttachmentMandatory)
+                                    {
+                                        <span class="hrms-badge hrms-badge--danger">@L["emp.mandatory"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="hrms-badge hrms-badge--muted">@L["emp.optional"]</span>
+                                    }
+                                </td>
+                                <td class="col-file" data-label="@L.Tr("Attachment")">
+                                    <input type="file" class="hrms-docs__file-input" id="@inputId"
+                                           accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                           data-docs-file="@row.DocumentTypeId"
+                                           aria-label="@(row.HasFile ? L["common.replace_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)] : L["common.upload_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)])" />
+                                    @if (row.HasFile)
+                                    {
+                                        var badge = FileBadge(row.ContentType);
+                                        <div class="hrms-file">
+                                            <span class="hrms-file__type @(badge == "PDF" ? "hrms-file__type--pdf" : "hrms-file__type--img")" aria-hidden="true">@badge</span>
+                                            <span class="hrms-file__meta">
+                                                <a class="hrms-file__name" href="@(fileUrl + row.AttachmentId)" target="_blank" rel="noopener" title="@row.OriginalFileName">@row.OriginalFileName</a>
+                                                <span class="hrms-file__size">@FileSize(row.FileSizeBytes)</span>
+                                            </span>
+                                            <label class="btn btn-outline-primary btn-sm mb-0" for="@inputId">@L["emp.replace"]</label>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <label class="hrms-upload @(row.IsMissingRequired ? "is-required" : null)" for="@inputId" data-docs-drop="@row.DocumentTypeId">
+                                            <span class="hrms-upload__icon" aria-hidden="true">@Html.Icon("download", 16)</span>
+                                            <span class="hrms-upload__text">
+                                                <strong>@L["emp.choose_file"]</strong> @L["emp.or_drag_drop"]
+                                                <span class="hrms-upload__hint">@L["emp.docs_hint", Model.MaxFileSizeMb]</span>
+                                            </span>
+                                            <span class="btn btn-light btn-sm border">@L["emp.browse"]</span>
+                                        </label>
+                                    }
+                                    <span class="hrms-upload__error" data-docs-error aria-live="polite"></span>
+                                </td>
+                                <td data-label="@L.Tr("Uploaded On")">
+                                    @if (row.UploadedDate is not null)
+                                    {
+                                        <span title="@L["dash.utc_suffix", L.Date(row.UploadedDate) + " " + row.UploadedDate.Value.ToString("HH:mm")]">@L.Date(row.UploadedDate)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="hrms-docs__none">—</span>
+                                    }
+                                </td>
+                                <td data-label="@L.Tr("Status")">
+                                    @if (row.HasFile)
+                                    {
+                                        <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["emp.uploaded"]</span>
+                                    }
+                                    else if (row.AttachmentMandatory)
+                                    {
+                                        <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["emp.required"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["emp.pending"]</span>
+                                    }
+                                </td>
+                                <td class="col-actions">
+                                    <div class="hrms-table__actions">
+                                        @if (row.HasFile)
+                                        {
+                                            <a class="btn-icon" href="@(fileUrl + row.AttachmentId)" target="_blank" rel="noopener"
+                                               title="@L["emp.view"]" aria-label="@L["common.view_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("eye", 15)</a>
+                                            <a class="btn-icon" href="@(fileUrl + row.AttachmentId)?download=true"
+                                               title="@L["emp.download"]" aria-label="@L["common.download_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("download", 15)</a>
+                                            <button type="button" class="btn-icon btn-icon--danger" data-docs-remove="@row.AttachmentId"
+                                                    title="@L["emp.remove"]" aria-label="@L["common.remove_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("trash", 15)</button>
+                                        }
+                                        else
+                                        {
+                                            <label class="btn-icon mb-0" for="@inputId" title="@L["emp.upload"]" aria-label="@L["common.upload_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">
+                                                @Html.Icon("plus", 15)
+                                            </label>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    <tr class="hrms-docs-noresults" data-docs-noresults hidden>
+                        <td colspan="7">
+                            <div class="hrms-empty">
+                                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("inbox", 26)</span>
+                                <p class="hrms-empty__title">@L["emp.no_document_types_match"]</p>
+                                <p class="hrms-empty__text">@L["emp.try_a_different_search_or_filter"]</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

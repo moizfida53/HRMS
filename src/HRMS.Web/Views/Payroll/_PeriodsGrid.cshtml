@@ -1,0 +1,78 @@
+@using HRMS.Web.Models.Payroll
+@using HRMS.Web.Controllers
+@model PeriodsGridModel
+@{
+    string Badge(string s) => s switch { "OPEN" => "info", "PROCESSING" => "warning", "APPROVED" => "success", "POSTED" => "purple", _ => "muted" };
+}
+@if (Model.Calendar is null)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("calendar", 26)</span>
+        <p class="hrms-empty__title">@L["pr.add_a_payroll_calendar_first"]</p>
+        <p class="hrms-empty__text">@L["pr.periods_are_generated_per_calendar_and_year"]</p>
+    </div>
+}
+else if (Model.Periods.Count == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("calendar", 26)</span>
+        <p class="hrms-empty__title">@L["pr.no_periods_for_0", Model.Year]</p>
+        <p class="hrms-empty__text">@L["pr.use_generate_periods_to_create_the_pay_periods_of_this_y"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table">
+            <caption class="hrms-sr-only">@L["pr.periods"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["common.company"]</th>
+                    <th scope="col">@L["pr.period"]</th>
+                    <th scope="col">@L["pr.start"]</th>
+                    <th scope="col" class="col-p3">@L["pr.end"]</th>
+                    <th scope="col" class="col-p2">@L["pr.cut_off"]</th>
+                    <th scope="col">@L["pr.pay_date"]</th>
+                    <th scope="col">@L["pr.payrolls"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Periods)
+                {
+                    var month = p.RunMonth.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+                    <tr data-id="@p.PayrollPeriodId">
+                        <td data-label="@L["common.company"]" class="hrms-muted">@Model.CompanyName</td>
+                        <td data-label="@L["pr.period"]"><span class="hrms-table__primary">@PayrollFormat.Period(L, p)</span></td>
+                        <td data-label="@L["pr.start"]" class="col-date">@L.Date(p.StartDate)</td>
+                        <td data-label="@L["pr.end"]" class="col-p3 col-date">@L.Date(p.EndDate)</td>
+                        <td data-label="@L["pr.cut_off"]" class="col-p2 col-date">@L.Date(p.CutOffDate)</td>
+                        <td data-label="@L["pr.pay_date"]" class="col-date">@L.Date(p.PaymentDate)</td>
+                        <td data-label="@L["pr.payrolls"]">
+                            @if (p.RunCount == 0)
+                            {
+                                <span class="hrms-muted">—</span>
+                            }
+                            else
+                            {
+                                <a href="#" data-runs-filter-month="@month">@PayrollFormat.Count(p.RunCount)@(p.CancelledCount > 0 ? " " + L["pr.0_cancelled", p.CancelledCount] : "")</a>
+                            }
+                        </td>
+                        <td data-label="@L["common.status"]"><span class="hrms-badge hrms-badge--@Badge(p.Status)"><span class="hrms-badge__dot"></span>@L.Tr(PayrollController.PeriodStatusLabel(p.Status))</span></td>
+                        <td class="hrms-table__actions">
+                            @if (Model.CanSetup && p.Status == "OPEN")
+                            {
+                                <button type="button" class="btn-icon" data-period-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", PayrollFormat.Period(L, p)]">@Html.Icon("edit", 15)</button>
+                                @if (p.RunCount == 0)
+                                {
+                                    <button type="button" class="btn-icon btn-icon--danger" data-period-delete title="@L["common.delete"]" aria-label="@L["common.delete_named", PayrollFormat.Period(L, p)]">@Html.Icon("trash", 15)</button>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

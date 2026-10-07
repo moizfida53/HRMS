@@ -1,0 +1,17 @@
+@model PayItemEmployeeSummary
+@{
+    var name = PayItemFormat.EmployeeName(L, Model.EmployeeName, Model.EmployeeArabicName);
+    var sub = string.Join(" · ", new[] { Model.EmployeeNo, Model.DepartmentName, Model.DesignationName }.Where(x => !string.IsNullOrWhiteSpace(x)));
+}
+<div class="hrms-card pr-emp-sum">
+    <span class="hrms-avatar">@PayItemFormat.Initials(Model.EmployeeName)</span>
+    <div class="pr-emp-sum__who"><strong>@name</strong><span>@sub</span></div>
+    <dl class="pr-dl">
+        <div><dt>@L["pr.monthly_salary"]</dt><dd>@L["pr.kwd"] @PayrollFormat.Money(Model.MonthlySalary)</dd></div>
+        <div><dt>@L["pr.loans_and_advances_balance"]</dt><dd>@L["pr.kwd"] @PayrollFormat.Money(Model.LoanBalance)@if (Model.LoanPending > 0)
+            {
+                <span class="hrms-muted"> · @L["pr.0_pending", PayrollFormat.Money(Model.LoanPending)]</span>
+            }</dd></div>
+        <div><dt>@L["pr.payment"]</dt><dd>@(Model.HasIban ? (string.IsNullOrWhiteSpace(Model.BankName) ? L["pr.bank_wps"] : L["pr.bank_wps"] + " · " + Model.BankName) : L["pr.no_iban_on_the_profile"])</dd></div>
+    </dl>
+</div>

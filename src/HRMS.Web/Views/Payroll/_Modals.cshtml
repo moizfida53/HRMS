@@ -1,0 +1,39 @@
+@* Shared dialogs of the payroll pages. Filled by payroll.js from the data-*
+   attributes of the button that opens them (all text is already translated). *@
+<div class="modal fade" id="reason-modal" tabindex="-1" aria-hidden="true" aria-labelledby="reason-modal-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" data-reason-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="reason-modal-title" data-reason-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="hrms-muted hrms-text-sm" data-reason-text></p>
+                <label class="form-label" for="reason-input"><span data-reason-label>@L["pr.reason"]</span> <span class="req" aria-hidden="true" data-reason-req>*</span></label>
+                <textarea class="form-control" id="reason-input" rows="3" maxlength="500" data-reason-input></textarea>
+                <span class="field-validation-error" data-reason-error hidden>@L["pr.this_field_is_required"]</span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="submit" class="btn btn-primary" data-reason-submit><span data-reason-button>@L["pr.confirm"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="confirm-modal" tabindex="-1" aria-hidden="true" aria-labelledby="confirm-modal-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="confirm-modal-title" data-confirm-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body"><p class="mb-0" data-confirm-text></p></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="button" class="btn btn-danger" data-confirm-accept><span data-confirm-button>@L["pr.confirm"]</span></button>
+            </div>
+        </div>
+    </div>
+</div>
+@Html.AntiForgeryToken()
