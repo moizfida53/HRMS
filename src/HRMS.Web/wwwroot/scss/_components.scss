@@ -118,13 +118,43 @@
     min-width: 0;
   }
 
+  // Record count at the end of a toolbar ("12 payrolls"), as a badge with
+  // the number in bold - filled in by the page scripts (empty until loaded).
   &__count {
+    display: inline-flex;
+    align-items: center;
+    gap: space("2");
     margin-inline-start: auto;
     flex: 0 0 auto;
+    padding: 5px space("3") 5px space("2");
+    border: 1px solid $blue-200;
+    border-radius: $radius-pill;
+    background: linear-gradient(180deg, $white 0%, $blue-050 100%);
+    color: $blue-700;
     font-size: $fs-sm;
     font-weight: $fw-semibold;
-    color: $ink-500;
+    line-height: 1.2;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    box-shadow: $shadow-xs;
+
+    // a small "list" glyph in a blue disc before the text
+    &::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background:
+        linear-gradient($white, $white) center 6px / 9px 1.5px no-repeat,
+        linear-gradient($white, $white) center 9.25px / 9px 1.5px no-repeat,
+        linear-gradient($white, $white) center 12.5px / 9px 1.5px no-repeat,
+        $blue-600;
+    }
+
+    &:empty { display: none; }
+
+    strong { font-weight: $fw-bold; color: $navy-900; }
   }
 
   &__footer {

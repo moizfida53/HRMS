@@ -16,7 +16,7 @@
     <section class="hrms-card" data-runs data-url="@Url.Action("RunsGrid", "Payroll")" data-mode="payrolls">
         <div class="hrms-card__toolbar">
             <div class="hrms-card__filters">
-                <select class="form-select pr-filter" data-runs-stage aria-label="@L["pr.stage"]">
+                <select class="form-select pr-filter" data-runs-stage data-searchable aria-label="@L["pr.stage"]">
                     <option value="LIVE" selected="@(Model.SelectedStage == "LIVE")">@L["pr.open_payrolls"]</option>
                     @foreach (var s in stageOptions)
                     {
@@ -24,7 +24,7 @@
                     }
                     <option value="" selected="@(Model.SelectedStage == "")">@L["pr.all_stages"]</option>
                 </select>
-                <select class="form-select pr-filter" data-runs-month aria-label="@L["pr.period"]">
+                <select class="form-select pr-filter" data-runs-month data-searchable aria-label="@L["pr.period"]">
                     <option value="all" selected="@(selectedMonth is null)">@L["pr.all_periods"]</option>
                     @foreach (var m in Model.Months)
                     {

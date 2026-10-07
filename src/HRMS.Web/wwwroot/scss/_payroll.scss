@@ -429,3 +429,17 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
 .pr-pi-table .hrms-table__actions { white-space: nowrap; }
 .pr-seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
 @media (max-width: 575.98px) { .pr-pi-emp, .pr-pi-status { width: 100%; max-width: none; } }
+
+
+/* ------------------------------------------------- toolbar filter controls --
+   One row: filters (and an action button) on the start side, the record count
+   badge on the end. A select keeps its content width; the search box grows.
+   On narrow content every control takes the full row. */
+.pr-filter { width: auto; min-width: 170px; max-width: 280px; flex: 0 1 auto; }
+.pr-search { flex: 1 1 240px; max-width: 340px; min-width: 200px; }
+.hrms-card__filters .hrms-combo:has(> .pr-filter) { min-width: 170px; max-width: 280px; }
+.pr-toolbar-action { flex: 0 0 auto; display: inline-flex; align-items: center; gap: .4rem; }
+@container content (max-width: 639.98px) {
+  .pr-filter, .pr-search, .hrms-card__filters .hrms-combo:has(> .pr-filter) { flex: 1 1 100%; max-width: none; }
+  .pr-toolbar-action { flex: 1 1 100%; justify-content: center; }
+}

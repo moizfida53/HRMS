@@ -225,7 +225,7 @@
             slot.innerHTML = html;
             slot.removeAttribute("aria-busy");
             var holder = $("[data-total]", slot);
-            if (countEl) { countEl.textContent = holder ? holder.getAttribute("data-count-text") : ""; }
+            if (countEl) { HRMS.setCountText(countEl, holder ? holder.getAttribute("data-count-text") : ""); }
             remember();
         }, function (error) {
             if (mine !== seq) { return; }

@@ -431,6 +431,7 @@
         var id = "hrms-combo-" + (++comboSeq);
         var wrap = document.createElement("div");
         wrap.className = "hrms-combo";
+        if (select.hidden) { wrap.hidden = true; }   // a select hidden on purpose (e.g. only one company) stays hidden
         select.parentNode.insertBefore(wrap, select);
         wrap.appendChild(select);
         select.classList.add("hrms-combo__native");
@@ -627,6 +628,20 @@
     };
 
     Array.prototype.forEach.call(document.querySelectorAll("select[data-searchable]"), HRMS.searchable);
+
+    /** Puts "12 payrolls" in a toolbar count badge with the number in bold (text only - never HTML). */
+    HRMS.setCountText = function (el, text) {
+        if (!el) { return; }
+        el.textContent = "";
+        if (!text) { return; }
+        var m = /[0-9][0-9,.]*/.exec(text);
+        if (!m) { el.textContent = text; return; }
+        el.appendChild(document.createTextNode(text.slice(0, m.index)));
+        var strong = document.createElement("strong");
+        strong.textContent = m[0];
+        el.appendChild(strong);
+        el.appendChild(document.createTextNode(text.slice(m.index + m[0].length)));
+    };
 
     HRMS.debounce = function (fn, wait) {
         var timer = null;

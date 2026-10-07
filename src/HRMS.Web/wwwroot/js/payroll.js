@@ -67,7 +67,7 @@
     }
     function setCount(slot, counter) {
         var holder = slot && slot.querySelector("[data-count-text]");
-        if (counter) { counter.textContent = holder ? holder.getAttribute("data-count-text") : ""; }
+        if (counter) { HRMS.setCountText(counter, holder ? holder.getAttribute("data-count-text") : ""); }
     }
     function num(v) { return parseFloat(String(v || "").replace(/,/g, "")); }
     var debounce = HRMS.debounce || function (fn, wait) {
@@ -575,6 +575,7 @@
                 perCal.innerHTML = "";
                 mine.forEach(function (o) { perCal.appendChild(o); });
                 perCal.value = wanted;
+                perCal.dispatchEvent(new Event("hrms:refresh"));
             };
             if (perCompany) {
                 fillCalendars(true);

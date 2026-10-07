@@ -15,30 +15,30 @@
     <section class="hrms-card" data-periods data-url="@Url.Action("PeriodsGrid", "Payroll")">
         <div class="hrms-card__toolbar">
             <div class="hrms-card__filters">
-                <select class="form-select pr-filter" data-period-company aria-label="@L["common.company"]" @(companies.Count <= 1 ? "hidden" : null)>
+                <select class="form-select pr-filter" data-period-company data-searchable aria-label="@L["common.company"]" @(companies.Count <= 1 ? "hidden" : null)>
                     @foreach (var co in companies)
                     {
                         <option value="@co.CompanyId" selected="@(co.CompanyId == selCal?.CompanyId)">@co.CompanyName</option>
                     }
                 </select>
-                <select class="form-select pr-filter" data-period-calendar aria-label="@L["pr.payroll_calendar"]">
+                <select class="form-select pr-filter" data-period-calendar data-searchable aria-label="@L["pr.payroll_calendar"]">
                     @foreach (var c in Model.Calendars)
                     {
                         <option value="@c.PayrollCalendarId" data-company="@c.CompanyId" selected="@(c.PayrollCalendarId == Model.SelectedCalendarId)">@PayrollFormat.Calendar(L, c.CalendarName, c.ArabicName)</option>
                     }
                 </select>
-                <select class="form-select pr-filter" data-period-year aria-label="@L["pr.year"]">
+                <select class="form-select pr-filter" data-period-year data-searchable aria-label="@L["pr.year"]">
                     @for (var y = Math.Max(year, DateTime.Today.Year) + 1; y >= Math.Min(year, DateTime.Today.Year) - 3; y--)
                     {
                         <option value="@y" selected="@(y == year)">@y</option>
                     }
                 </select>
+                @if (Model.CanSetup && Model.Calendars.Count > 0)
+                {
+                    <button type="button" class="btn btn-primary pr-toolbar-action" data-periods-generate
+                            data-url="@Url.Action("PeriodsGenerate", "Payroll")">@Html.Icon("plus", 15)<span>@L["pr.generate_periods"]</span></button>
+                }
             </div>
-            @if (Model.CanSetup && Model.Calendars.Count > 0)
-            {
-                <button type="button" class="btn btn-outline-primary" data-periods-generate
-                        data-url="@Url.Action("PeriodsGenerate", "Payroll")">@Html.Icon("plus", 15)<span>@L["pr.generate_periods"]</span></button>
-            }
         </div>
         @if (Model.Calendars.Count == 0)
         {

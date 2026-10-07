@@ -203,7 +203,7 @@
                 slot.innerHTML = html;
                 slot.removeAttribute("aria-busy");
                 var holder = slot.querySelector("[data-count-text]");
-                if (counter) { counter.textContent = holder ? holder.getAttribute("data-count-text") : ""; }
+                if (counter) { HRMS.setCountText(counter, holder ? holder.getAttribute("data-count-text") : ""); }
             }, function (error) {
                 slot.removeAttribute("aria-busy");
                 slot.innerHTML = '<div class="hrms-empty"><p class="hrms-empty__title">' +
