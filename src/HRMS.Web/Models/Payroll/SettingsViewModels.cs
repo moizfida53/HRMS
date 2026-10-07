@@ -130,3 +130,17 @@ public static class StatutoryFormat
     public static string Pct(decimal v) => v.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) + "%";
     public static string Num(decimal? v) => v?.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) ?? "—";
 }
+
+public sealed class BankFormModel
+{
+    public required Bank Bank { get; init; }
+    public IReadOnlyList<LookupItem> Countries { get; init; } = Array.Empty<LookupItem>();
+}
+
+public sealed class AccountFormModel
+{
+    public required CompanyBankAccount Account { get; init; }
+    public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
+    public IReadOnlyList<Bank> Banks { get; init; } = Array.Empty<Bank>();
+    public IReadOnlyList<LookupItem> Currencies { get; init; } = Array.Empty<LookupItem>();
+}

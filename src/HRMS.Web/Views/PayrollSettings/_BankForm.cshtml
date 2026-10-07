@@ -1,0 +1,59 @@
+@model BankFormModel
+@{ var b = Model.Bank; }
+<input type="hidden" name="BankId" value="@b.BankId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.bank"]</legend>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="bk-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control text-uppercase" id="bk-code" name="BankCode" value="@b.BankCode" maxlength="20" dir="ltr" placeholder="NBK" />
+            <span class="field-validation-error" data-valmsg-for="BankCode"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="bk-name">@L["st.name_english"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="bk-name" name="BankName" value="@b.BankName" maxlength="150" dir="ltr" />
+            <span class="field-validation-error" data-valmsg-for="BankName"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="bk-ar">@L["st.name_arabic"]</label>
+            <input class="form-control" id="bk-ar" name="ArabicName" value="@b.ArabicName" maxlength="150" dir="rtl" lang="ar" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="bk-short">@L["st.short_name"]</label>
+            <input class="form-control" id="bk-short" name="ShortName" value="@b.ShortName" maxlength="30" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="bk-country">@L["st.country"]</label>
+            <select class="form-select" id="bk-country" name="CountryId" data-searchable>
+                <option value="">—</option>
+                @foreach (var c in Model.Countries)
+                {
+                    <option value="@c.Id" selected="@(c.Id == b.CountryId)">@c.Text</option>
+                }
+            </select>
+        </div>
+    </div>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.bank_codes"]</legend>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="bk-swift">@L["st.swift"]</label>
+            <input class="form-control text-uppercase font-monospace" id="bk-swift" name="SwiftCode" value="@b.SwiftCode" maxlength="11" dir="ltr" placeholder="NBOKKWKW" />
+            <span class="field-validation-error" data-valmsg-for="SwiftCode"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="bk-iban">@L["st.iban_code"]</label>
+            <input class="form-control text-uppercase font-monospace" id="bk-iban" name="IbanBankCode" value="@b.IbanBankCode" maxlength="10" dir="ltr" placeholder="NBOK" />
+            <span class="form-text">@L["st.iban_code_hint"]</span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="bk-wps">@L["st.wps_code"]</label>
+            <input class="form-control font-monospace" id="bk-wps" name="WpsBankCode" value="@b.WpsBankCode" maxlength="20" dir="ltr" />
+            <span class="form-text">@L["st.wps_code_hint"]</span>
+        </div>
+        <div class="col-12">
+            <div class="st-switches">@await Html.PartialAsync("_Switch", new SettingsSwitch("IsActive", L["org.active"], b.IsActive))</div>
+        </div>
+    </div>
+</fieldset>

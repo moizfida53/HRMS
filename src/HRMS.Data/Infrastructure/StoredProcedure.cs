@@ -103,6 +103,12 @@ public static class StoredProcedure
     /// <summary>Overtime multipliers (statutory default or a company's own).</summary>
     public const string OvertimeRateManage = "Payroll.usp_OvertimeRate_Manage";
 
+    /// <summary>The bank master (SWIFT, IBAN bank code, WPS code).</summary>
+    public const string BankManage = "Payroll.usp_Bank_Manage";
+
+    /// <summary>The company's own salary accounts (IBAN mod-97 checked, one default per company).</summary>
+    public const string CompanyBankAccountManage = "Payroll.usp_CompanyBankAccount_Manage";
+
     // ---- Payslips (db/42-43) ----
 
     /// <summary>Payslips: payrolls, list, payslip header, generate, email queue and delivery results.</summary>

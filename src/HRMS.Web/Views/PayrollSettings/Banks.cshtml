@@ -1,0 +1,58 @@
+@model SettingsPageModel
+@{
+    // Payroll Settings > Banks & Accounts (db/29-30): the bank master and the
+    // company's own salary accounts the WPS salary file is paid from.
+    ViewData["Title"] = "Banks & Accounts";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settings";
+    ViewData["PayrollPage"] = "st-banks";
+    ViewData["Subtitle"] = L["st.banks_subtitle"];
+    var statusFilter = new SettingsFilter("status", L["common.status"],
+        [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])]);
+    var canAdd = Model.Rights.CanCreate;
+}
+<div class="pr-stack st-page" data-st-page>
+    <div class="pr-banner pr-banner--info" role="note">
+        @Html.Icon("bank", 18)
+        <div><strong>@L["st.wps_banner_title"]</strong> @L["st.wps_banner_text"]</div>
+    </div>
+
+    <section class="hrms-card" id="st-accounts" data-st-master
+             data-grid="@Url.Action("AccountsGrid", "PayrollSettings")" data-form="@Url.Action("AccountForm", "PayrollSettings")"
+             data-save="@Url.Action("AccountSave", "PayrollSettings")" data-toggle="@Url.Action("AccountToggle", "PayrollSettings")"
+             data-delete="@Url.Action("AccountDelete", "PayrollSettings")"
+             data-title-new="@L["st.add_company_account"]" data-title-edit="@L["st.edit_company_account"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_account_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.company_accounts"],
+            SearchPlaceholder = L["st.search_accounts"],
+            Filters = [statusFilter],
+            AddMaster = canAdd ? "st-accounts" : null,
+            AddLabel = L["st.add_company_account"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+
+    <section class="hrms-card" id="st-banks" data-st-master
+             data-grid="@Url.Action("BanksGrid", "PayrollSettings")" data-form="@Url.Action("BankForm", "PayrollSettings")"
+             data-save="@Url.Action("BankSave", "PayrollSettings")" data-toggle="@Url.Action("BankToggle", "PayrollSettings")"
+             data-delete="@Url.Action("BankDelete", "PayrollSettings")"
+             data-title-new="@L["st.add_bank"]" data-title-edit="@L["st.edit_bank"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_bank_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.banks"],
+            SearchPlaceholder = L["st.search_banks"],
+            Filters = [statusFilter],
+            AddMaster = canAdd ? "st-banks" : null,
+            AddLabel = L["st.add_bank"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("_Dialogs")
+
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

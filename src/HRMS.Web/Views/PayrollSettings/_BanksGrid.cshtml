@@ -1,0 +1,67 @@
+@using HRMS.Web.Models.Organization
+@model SettingsGridModel<Bank>
+@{
+    var pg = Model.Page;
+    var countText = pg.TotalCount == 1 ? L["st.1_bank"] : L["st.0_banks", PayrollFormat.Count(pg.TotalCount)];
+}
+<div data-total="@pg.TotalCount" data-count-text="@countText">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "bank", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["st.no_banks_yet"])</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table st-table">
+            <caption class="hrms-sr-only">@L["st.banks"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["common.code"]</th>
+                    <th scope="col">@L["st.bank"]</th>
+                    <th scope="col" class="col-p2">@L["st.swift"]</th>
+                    <th scope="col" class="col-p3">@L["st.iban_code"]</th>
+                    <th scope="col">@L["st.wps_code"]</th>
+                    <th scope="col" class="text-center col-p3">@L["st.accounts"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in pg.Items)
+                {
+                    var name = L.IsArabic && !string.IsNullOrWhiteSpace(b.ArabicName) ? b.ArabicName! : b.BankName;
+                    <tr data-id="@b.BankId" data-name="@name" class="@(b.IsActive ? null : "is-ended")">
+                        <td data-label="@L["common.code"]"><span class="hrms-code-chip">@b.BankCode</span></td>
+                        <td data-label="@L["st.bank"]">
+                            <span class="hrms-table__primary">@name</span>
+                            <span class="pr-emp-sub" dir="auto">@(L.IsArabic ? b.BankName : b.ArabicName)@(b.ShortName is not null ? " · " + b.ShortName : "")</span>
+                        </td>
+                        <td data-label="@L["st.swift"]" class="col-p2 font-monospace hrms-text-sm">@(b.SwiftCode ?? "—")</td>
+                        <td data-label="@L["st.iban_code"]" class="col-p3 font-monospace hrms-text-sm">@(b.IbanBankCode ?? "—")</td>
+                        <td data-label="@L["st.wps_code"]">
+                            @if (string.IsNullOrWhiteSpace(b.WpsBankCode))
+                            {
+                                <span class="st-verified is-no">@Html.Icon("alert", 13)<span>@L["st.wps_missing"]</span></span>
+                            }
+                            else
+                            {
+                                <span class="font-monospace hrms-text-sm">@b.WpsBankCode</span>
+                            }
+                        </td>
+                        <td data-label="@L["st.accounts"]" class="text-center col-p3">@b.AccountCount</td>
+                        <td data-label="@L["common.status"]">@await Html.PartialAsync("_Status", b.IsActive)</td>
+                        <td class="hrms-table__actions">@await Html.PartialAsync("_RowActions", (Model.Rights, name, b.IsActive))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount, FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

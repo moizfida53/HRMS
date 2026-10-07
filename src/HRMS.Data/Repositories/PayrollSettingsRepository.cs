@@ -348,3 +348,115 @@ internal static class SettingsSql
         return new PagedResult<T> { Items = rows, TotalCount = p.Get<int?>("@TotalCount") ?? rows.Count, PageNumber = page, PageSize = PageSize };
     }
 }
+
+// ===========================================================================
+// Payroll Settings - Banks & Accounts (db/29-30):
+// usp_Bank_Manage, usp_CompanyBankAccount_Manage
+// ===========================================================================
+
+public interface IBankRepository
+{
+    Task<PagedResult<Bank>> BanksAsync(string? search, bool? isActive, int page, CancellationToken cancellationToken = default);
+    Task<Bank?> BankAsync(int id, CancellationToken cancellationToken = default);
+    Task<SaveResult> SaveBankAsync(Bank bank, long? userId, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<CompanyBankAccount>> AccountsAsync(int? companyId, string? companyIds, string? search, bool? isActive, int page,
+                                                        CancellationToken cancellationToken = default);
+    Task<CompanyBankAccount?> AccountAsync(int id, CancellationToken cancellationToken = default);
+    Task<SaveResult> SaveAccountAsync(CompanyBankAccount account, long? userId, CancellationToken cancellationToken = default);
+
+    /// <summary>DELETE or TOGGLE of a "BANK" or "ACCOUNT".</summary>
+    Task<SaveResult> ActionAsync(string table, string action, int id, long? userId, CancellationToken cancellationToken = default);
+}
+
+public sealed class BankRepository : IBankRepository
+{
+    private readonly ISqlExecutor _sql;
+
+    public BankRepository(ISqlExecutor sql) => _sql = sql;
+
+    private static string T(string? v, int max) => PayItemTypeRepository.Trim(v, max)!;
+
+    public async Task<PagedResult<Bank>> BanksAsync(string? search, bool? isActive, int page, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("LIST");
+        p.Add("@Search", PayItemTypeRepository.Trim(search, 200), DbType.String, size: 200);
+        p.Add("@IsActiveFilter", isActive, DbType.Boolean);
+        return await SettingsSql.PageAsync<Bank>(_sql, StoredProcedure.BankManage, p, page, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<Bank?> BankAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("GET");
+        p.Add("@Id", id, DbType.Int64);
+        return _sql.QuerySingleOrDefaultAsync<Bank>(StoredProcedure.BankManage, p, cancellationToken);
+    }
+
+    public async Task<SaveResult> SaveBankAsync(Bank b, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope(b.BankId > 0 ? "UPDATE" : "INSERT");
+        p.Add("@Id", b.BankId > 0 ? b.BankId : null, DbType.Int64);
+        p.Add("@BankCode", T(b.BankCode, 20)?.ToUpperInvariant(), DbType.String, size: 20);
+        p.Add("@BankName", T(b.BankName, 150), DbType.String, size: 150);
+        p.Add("@ArabicName", PayItemTypeRepository.Trim(b.ArabicName, 150), DbType.String, size: 150);
+        p.Add("@ShortName", PayItemTypeRepository.Trim(b.ShortName, 30), DbType.String, size: 30);
+        p.Add("@SwiftCode", PayItemTypeRepository.Trim(b.SwiftCode, 11)?.ToUpperInvariant(), DbType.String, size: 11);
+        p.Add("@IbanBankCode", PayItemTypeRepository.Trim(b.IbanBankCode, 10)?.ToUpperInvariant(), DbType.String, size: 10);
+        p.Add("@WpsBankCode", PayItemTypeRepository.Trim(b.WpsBankCode, 20), DbType.String, size: 20);
+        p.Add("@CountryId", b.CountryId, DbType.Int32);
+        p.Add("@IsActive", b.IsActive, DbType.Boolean);
+        p.Add("@UserId", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.BankManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, b.BankId);
+    }
+
+    public async Task<PagedResult<CompanyBankAccount>> AccountsAsync(int? companyId, string? companyIds, string? search, bool? isActive, int page,
+                                                                     CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("LIST");
+        p.Add("@CompanyId", companyId, DbType.Int32);
+        p.Add("@CompanyIds", PayItemTypeRepository.Trim(companyIds, 2000), DbType.String, size: 2000);
+        p.Add("@Search", PayItemTypeRepository.Trim(search, 200), DbType.String, size: 200);
+        p.Add("@IsActiveFilter", isActive, DbType.Boolean);
+        return await SettingsSql.PageAsync<CompanyBankAccount>(_sql, StoredProcedure.CompanyBankAccountManage, p, page, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<CompanyBankAccount?> AccountAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("GET");
+        p.Add("@Id", id, DbType.Int64);
+        return _sql.QuerySingleOrDefaultAsync<CompanyBankAccount>(StoredProcedure.CompanyBankAccountManage, p, cancellationToken);
+    }
+
+    public async Task<SaveResult> SaveAccountAsync(CompanyBankAccount a, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope(a.CompanyBankAccountId > 0 ? "UPDATE" : "INSERT");
+        p.Add("@Id", a.CompanyBankAccountId > 0 ? a.CompanyBankAccountId : null, DbType.Int64);
+        p.Add("@CompanyId", a.CompanyId, DbType.Int32);
+        p.Add("@BankId", a.BankId, DbType.Int32);
+        p.Add("@AccountCode", T(a.AccountCode, 30)?.ToUpperInvariant(), DbType.String, size: 30);
+        p.Add("@AccountTitle", T(a.AccountTitle, 150), DbType.String, size: 150);
+        p.Add("@AccountNumber", PayItemTypeRepository.Trim(a.AccountNumber, 34), DbType.String, size: 34);
+        p.Add("@Iban", PayItemTypeRepository.Trim(a.Iban, 50)?.ToUpperInvariant(), DbType.String, size: 50);
+        p.Add("@CurrencyId", a.CurrencyId, DbType.Int32);
+        p.Add("@BranchName", PayItemTypeRepository.Trim(a.BranchName, 150), DbType.String, size: 150);
+        p.Add("@WpsEmployerCode", PayItemTypeRepository.Trim(a.WpsEmployerCode, 50), DbType.String, size: 50);
+        p.Add("@PamFileNo", PayItemTypeRepository.Trim(a.PamFileNo, 50), DbType.String, size: 50);
+        p.Add("@IsDefault", a.IsDefault, DbType.Boolean);
+        p.Add("@IsActive", a.IsActive, DbType.Boolean);
+        p.Add("@UserId", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.CompanyBankAccountManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, a.CompanyBankAccountId);
+    }
+
+    public async Task<SaveResult> ActionAsync(string table, string action, int id, long? userId, CancellationToken cancellationToken = default)
+    {
+        if (action is not ("DELETE" or "TOGGLE")) throw new ArgumentOutOfRangeException(nameof(action));
+        var p = SettingsSql.Envelope(action);
+        p.Add("@Id", id, DbType.Int64);
+        p.Add("@UserId", userId, DbType.Int64);
+        await _sql.ExecuteAsync(table == "BANK" ? StoredProcedure.BankManage : StoredProcedure.CompanyBankAccountManage, p, cancellationToken)
+                  .ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, id);
+    }
+}

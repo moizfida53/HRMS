@@ -1,0 +1,82 @@
+@model AccountFormModel
+@{ var a = Model.Account; }
+<input type="hidden" name="CompanyBankAccountId" value="@a.CompanyBankAccountId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.account"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="ac-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="ac-company" name="CompanyId" data-searchable>
+                @foreach (var co in Model.Companies)
+                {
+                    <option value="@co.Id" selected="@(co.Id == a.CompanyId)">@co.Text</option>
+                }
+            </select>
+            <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ac-bank">@L["st.bank"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="ac-bank" name="BankId" data-searchable>
+                <option value="0">@L["st.select_bank"]</option>
+                @foreach (var b in Model.Banks)
+                {
+                    <option value="@b.BankId" selected="@(b.BankId == a.BankId)">@b.BankName@(b.ShortName is not null ? " (" + b.ShortName + ")" : "")</option>
+                }
+            </select>
+            <span class="field-validation-error" data-valmsg-for="BankId"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="ac-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control text-uppercase" id="ac-code" name="AccountCode" value="@a.AccountCode" maxlength="30" dir="ltr" placeholder="SALARY-NBK" />
+            <span class="field-validation-error" data-valmsg-for="AccountCode"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="ac-title">@L["st.account_title"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="ac-title" name="AccountTitle" value="@a.AccountTitle" maxlength="150" />
+            <span class="field-validation-error" data-valmsg-for="AccountTitle"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="ac-iban">@L["st.iban"]</label>
+            <input class="form-control text-uppercase font-monospace" id="ac-iban" name="Iban" value="@a.Iban" maxlength="50" dir="ltr" placeholder="KW81 CBKU 0000 0000 0000 1234 5601 01" />
+            <span class="form-text">@L["st.iban_hint"]</span>
+            <span class="field-validation-error" data-valmsg-for="Iban"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="ac-number">@L["st.account_number"]</label>
+            <input class="form-control font-monospace" id="ac-number" name="AccountNumber" value="@a.AccountNumber" maxlength="34" dir="ltr" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="ac-currency">@L["st.currency"]</label>
+            <select class="form-select" id="ac-currency" name="CurrencyId">
+                <option value="">—</option>
+                @foreach (var c in Model.Currencies)
+                {
+                    <option value="@c.Id" selected="@(c.Id == a.CurrencyId)">@c.Code · @c.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="ac-branch">@L["st.branch"]</label>
+            <input class="form-control" id="ac-branch" name="BranchName" value="@a.BranchName" maxlength="150" />
+        </div>
+    </div>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.wps"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="ac-wps">@L["st.wps_employer_code"]</label>
+            <input class="form-control font-monospace" id="ac-wps" name="WpsEmployerCode" value="@a.WpsEmployerCode" maxlength="50" dir="ltr" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ac-pam">@L["st.pam_file_no"]</label>
+            <input class="form-control font-monospace" id="ac-pam" name="PamFileNo" value="@a.PamFileNo" maxlength="50" dir="ltr" />
+        </div>
+        <div class="col-12">
+            <div class="st-switches">
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsDefault", L["st.default_account"], a.IsDefault, L["st.default_account_hint"]))
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsActive", L["org.active"], a.IsActive))
+            </div>
+        </div>
+    </div>
+</fieldset>
