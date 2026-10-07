@@ -1,0 +1,485 @@
+@model SettlementPageModel
+@{
+    var s = Model.Settlement;
+    var r = Model.Rights;
+    var edit = Model.Editable;
+    var name = SettlementFormat.Name(L, s.EmployeeName, s.EmployeeArabicName);
+    var sub = string.Join(" · ", new[] { s.EmployeeNo, SettlementFormat.Name(L, s.DepartmentName, s.DepartmentArabicName),
+                                        SettlementFormat.Name(L, s.DesignationName, s.DesignationArabicName) }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    ViewData["Title"] = s.IsExit ? "Final Settlement" : "Leave Encashment";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settlement";
+    ViewData["Subtitle"] = s.SettlementNo + " · " + name;
+
+    var step = s.Status switch
+    {
+        SettlementStatus.Draft => 1,
+        SettlementStatus.Pending => 2,
+        SettlementStatus.Approved => 3,
+        SettlementStatus.Paid => 4,
+        _ => 1
+    };
+    var canApprove = s.IsPending && r.CanApprove(s.ApprovalLevel);
+    var ownSubmission = r.IsOwnSubmission(s.SubmittedBy);
+    var salary = Model.Section(SettlementSection.Salary).ToList();
+    var earnings = Model.Section(SettlementSection.Earning).ToList();
+    var leave = Model.Section(SettlementSection.Leave).ToList();
+    var slabs = Model.Section(SettlementSection.Indemnity).ToList();
+    var recoveries = Model.Section(SettlementSection.Recovery).ToList();
+    var lastReturn = Model.History.FirstOrDefault(h => h.ActionCode is "RETURNED");
+    var returnedNow = s.IsDraft && lastReturn is not null && !Model.History.TakeWhile(h => h != lastReturn).Any(h => h.ActionCode == "SUBMITTED");
+    var n = 0;
+    string Money(decimal v) => PayrollFormat.Money(v);
+}
+@await Html.PartialAsync("~/Views/Payroll/_Tabs.cshtml", "fs-detail")
+
+<div class="fs-page" data-fs-page="details" data-id="@s.FinalSettlementId"
+     data-urls-base="@Url.Action("Details", "FinalSettlement", new { id = s.FinalSettlementId })"
+     data-urls-save="@Url.Action("Save", "FinalSettlement")"
+     data-urls-details="@Url.Action("Details", "FinalSettlement", new { id = 0 })"
+     data-urls-list="@Url.Action("Index", "FinalSettlement")">
+
+    @await Html.PartialAsync("_Steps", s.IsCancelled ? 0 : step)
+
+    @* ---------------- who and what ---------------- *@
+    <section class="hrms-card fs-head">
+        <span class="hrms-avatar fs-head__avatar" aria-hidden="true">@SettlementFormat.Initials(s.EmployeeName)</span>
+        <div class="fs-head__who">
+            <strong>@name</strong>
+            <span>@sub</span>
+        </div>
+        <div class="fs-head__tags">
+            <span class="hrms-code-chip">@s.SettlementNo</span>
+            <span class="hrms-badge hrms-badge--@(s.IsExit ? "purple" : "info")"><span class="hrms-badge__dot"></span>@L[SettlementFormat.TypeKey(s.SettlementType)]</span>
+            <span class="hrms-badge hrms-badge--@SettlementFormat.StatusBadge(s.Status)"><span class="hrms-badge__dot"></span>@SettlementFormat.StatusLabel(L, s.Status, s.ApprovalLevel)</span>
+        </div>
+        <dl class="pr-dl fs-head__facts">
+            <div><dt>@L["fs.joined"]</dt><dd>@L.Date(s.HireDate)</dd></div>
+            <div><dt>@(s.IsExit ? L["fs.last_working_day"] : L["fs.balance_on"])</dt><dd>@L.Date(s.LastWorkingDay)</dd></div>
+            <div><dt>@L["fs.service"]</dt><dd>@SettlementFormat.Service(L, s.HireDate, s.LastWorkingDay)</dd></div>
+            <div><dt>@L["fs.monthly_salary"]</dt><dd>@L["pr.kwd"] @Money(s.MonthlySalary)</dd></div>
+            @if (s.IsExit && s.NoticeDate is { } nd)
+            {
+                <div><dt>@L["fs.notice_date"]</dt><dd>@L.Date(nd)@(s.NoticePeriodDays is { } np ? " · " + L["fs.notice_period_n", np] : "")</dd></div>
+            }
+            @if (!s.IsExit && s.PayMonth is { } pm)
+            {
+                <div><dt>@L["fs.paid_in_payroll_of"]</dt><dd>@L.MonthYear(pm)</dd></div>
+            }
+        </dl>
+        @if (!string.IsNullOrWhiteSpace(s.Reason))
+        {
+            <p class="fs-head__reason">@Html.Icon("info", 14)<span>@s.Reason</span></p>
+        }
+    </section>
+
+    @* ---------------- banners ---------------- *@
+    @if (s.IsCancelled)
+    {
+        <div class="pr-banner pr-banner--err">@Html.Icon("x-circle", 18)<div><strong>@L["fs.cancelled_banner"]</strong> @s.CancelReason</div></div>
+    }
+    @if (returnedNow && lastReturn is not null)
+    {
+        <div class="pr-banner pr-banner--lock">@Html.Icon("undo", 18)<div><strong>@L["fs.returned_banner", lastReturn.ActionByName ?? ""]</strong> @lastReturn.Comment</div></div>
+    }
+    @if (s.IsExit && !s.RuleSetVerified && !s.IsCancelled && !s.IsPaid && s.IndemnityRuleSetId is not null)
+    {
+        <div class="pr-banner pr-banner--lock">@Html.Icon("alert", 18)<div>@L["fs.rule_set_unverified", s.RuleSetCode ?? ""]</div></div>
+    }
+    @if (s.IsExit && s.IndemnityRuleSetId is null && !s.IsCancelled)
+    {
+        <div class="pr-banner pr-banner--err">@Html.Icon("alert", 18)<div>@L["fs.no_rule_set"]</div></div>
+    }
+    @if (s.SalaryFromProfile)
+    {
+        <div class="pr-banner pr-banner--info">@Html.Icon("info", 18)<div>@L["fs.salary_from_profile"]</div></div>
+    }
+    @if (s.NetPayable < 0)
+    {
+        <div class="pr-banner pr-banner--lock">@Html.Icon("alert", 18)<div>@L["fs.net_negative", Money(-s.NetPayable)]</div></div>
+    }
+
+    <div class="fs-layout">
+        <div class="fs-main">
+
+            @* ---------------- change the inputs (draft) ---------------- *@
+            @if (Model.Form is not null)
+            {
+                <section class="hrms-card fs-edit" data-fs-edit>
+                    <div class="fs-card-head">
+                        <h2 class="pr-card-title mb-0">@L["fs.settlement_details"]</h2>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-fs-edit-toggle aria-expanded="false" aria-controls="fs-edit-body">
+                            @Html.Icon("edit", 14)<span>@L["fs.change_details"]</span>
+                        </button>
+                    </div>
+                    <div class="pr-card-body pt-0" id="fs-edit-body" data-fs-edit-body hidden>
+                        @await Html.PartialAsync("_Form", Model.Form)
+                    </div>
+                </section>
+            }
+
+            @if (s.IsExit)
+            {
+                @* ---------------- 1. pending salary ---------------- *@
+                <section class="hrms-card fs-card">
+                    <div class="fs-card-head">
+                        <h2 class="pr-card-title mb-0"><span class="fs-num">@(++n)</span>@L["fs.pending_salary"]</h2>
+                        <span class="fs-card-head__total">@Money(s.PendingSalaryAmount)</span>
+                    </div>
+                    <div class="pr-card-body pt-0">
+                        <p class="fs-note">
+                            @if (s.SalaryFrom is { } from && from <= s.LastWorkingDay)
+                            {
+                                @L["fs.unpaid_from_to", L.Date(from), L.Date(s.LastWorkingDay)]
+                            }
+                            else
+                            {
+                                @L["fs.no_pending_salary"]
+                            }
+                            @if (s.PaidThrough is { } pt)
+                            {
+                                <span class="hrms-muted"> · @L["fs.paid_through_by", L.Date(pt), s.PaidByRun ?? ""]</span>
+                            }
+                        </p>
+                        @if (salary.Count > 0)
+                        {
+                            <table class="pr-calc fs-calc">
+                                @foreach (var l in salary)
+                                {
+                                    <tr><td>@SettlementFormat.Title(L, l)<span class="pr-calc__sub">@SettlementFormat.Detail(L, l, s.DailyDivisor)</span></td><td>@Money(l.Amount)</td></tr>
+                                }
+                                <tr class="is-total"><td>@L["fs.pending_salary"]</td><td>@Money(s.PendingSalaryAmount)</td></tr>
+                            </table>
+                        }
+                    </div>
+                </section>
+
+                @* ---------------- 2. other earnings ---------------- *@
+                <section class="hrms-card fs-card">
+                    <div class="fs-card-head">
+                        <h2 class="pr-card-title mb-0"><span class="fs-num">@(++n)</span>@L["fs.other_earnings"]</h2>
+                        <span class="fs-card-head__total">@Money(s.OtherEarningsAmount)</span>
+                    </div>
+                    <div class="pr-card-body pt-0">
+                        @if (earnings.Count == 0)
+                        {
+                            <p class="fs-note hrms-muted">@L["fs.no_other_earnings"]</p>
+                        }
+                        else
+                        {
+                            @await Html.PartialAsync("_Lines", new ValueTuple<IReadOnlyList<FinalSettlementLine>, bool, decimal>(earnings, edit, s.DailyDivisor))
+                        }
+                        @if (edit)
+                        {
+                            @await Html.PartialAsync("_AddLine", SettlementSection.Earning)
+                        }
+                    </div>
+                </section>
+            }
+
+            @* ---------------- leave encashment ---------------- *@
+            <section class="hrms-card fs-card">
+                <div class="fs-card-head">
+                    <h2 class="pr-card-title mb-0"><span class="fs-num">@(++n)</span>@L["fs.leave_encashment"]</h2>
+                    <span class="fs-card-head__total">@Money(s.LeaveAmount)</span>
+                </div>
+                <div class="pr-card-body pt-0">
+                    <table class="pr-calc fs-calc">
+                        <tr><td>@L["fs.leave_balance_on", L.Date(s.LastWorkingDay)]<span class="pr-calc__sub">@L["fs.leave_balance_manual"]</span></td><td>@L["fs.n_days", SettlementFormat.Num(s.LeaveBalanceDays)]</td></tr>
+                        <tr><td>@L["fs.days_to_encash"]</td><td>@L["fs.n_days", SettlementFormat.Num(s.EncashDays)]</td></tr>
+                        <tr><td>@L["fs.daily_rate"]<span class="pr-calc__sub">@L["fs.leave_salary"] @Money(s.LeaveBase) ÷ @SettlementFormat.Num(s.DailyDivisor)</span></td><td>@PayrollFormat.Money(s.DailyDivisor > 0 ? Math.Round(s.LeaveBase / s.DailyDivisor, 3) : 0)</td></tr>
+                        <tr class="is-total"><td>@L["fs.leave_encashment"]</td><td>@Money(s.LeaveAmount)</td></tr>
+                    </table>
+                    @if (leave.Count == 0 && s.EncashDays > 0)
+                    {
+                        <p class="fs-note hrms-muted mt-2">@L["fs.no_leave_salary"]</p>
+                    }
+                </div>
+            </section>
+
+            @if (s.IsExit)
+            {
+                @* ---------------- indemnity ---------------- *@
+                <section class="hrms-card fs-card">
+                    <div class="fs-card-head">
+                        <h2 class="pr-card-title mb-0"><span class="fs-num">@(++n)</span>@L["fs.indemnity"]</h2>
+                        <span class="fs-card-head__total">@Money(s.IndemnityAmount)</span>
+                    </div>
+                    <div class="pr-card-body pt-0">
+                        <p class="fs-note">@L["fs.indemnity_salary"]: @L["pr.kwd"] @Money(s.IndemnityBase) · @L["fs.service_years_n", SettlementFormat.Years(s.ServiceYears)]@(s.RuleSetCode is not null ? " · " + s.RuleSetCode : "")</p>
+                        <table class="pr-calc fs-calc">
+                            @foreach (var l in slabs)
+                            {
+                                <tr><td>@SettlementFormat.Title(L, l)<span class="pr-calc__sub">@SettlementFormat.Detail(L, l, s.DailyDivisor)</span></td><td>@Money(l.Amount)</td></tr>
+                            }
+                            <tr>
+                                <td>@L["fs.gross_indemnity"]
+                                    <span class="pr-calc__sub">@(s.IndemnityCap is { } cap ? (s.CapReached ? L["fs.cap_reached", Money(cap)] : L["fs.cap_not_reached", Money(cap)]) : L["fs.no_cap"])</span>
+                                </td>
+                                <td>@Money(s.IndemnityCapped)</td>
+                            </tr>
+                            <tr>
+                                <td>@L["fs.entitlement_for_0", L[SettlementFormat.TypeKey(s.SettlementType)]]
+                                    <span class="pr-calc__sub">@L["fs.entitlement_rule", SettlementFormat.Years(s.ServiceYears)]</span>
+                                </td>
+                                <td>@SettlementFormat.Pct(s.IndemnityPercent)</td>
+                            </tr>
+                            <tr class="is-total"><td>@L["fs.indemnity_payable"]</td><td>@Money(s.IndemnityAmount)</td></tr>
+                        </table>
+                        @if (s.BelowMinService)
+                        {
+                            <p class="fs-note hrms-muted mt-2">@L["fs.below_min_service"]</p>
+                        }
+                    </div>
+                </section>
+
+                @* ---------------- recoveries ---------------- *@
+                <section class="hrms-card fs-card">
+                    <div class="fs-card-head">
+                        <h2 class="pr-card-title mb-0"><span class="fs-num">@(++n)</span>@L["fs.recoveries"]</h2>
+                        <span class="fs-card-head__total pr-neg">@Money(s.RecoveryAmount)</span>
+                    </div>
+                    <div class="pr-card-body pt-0">
+                        @if (recoveries.Count == 0)
+                        {
+                            <p class="fs-note hrms-muted">@L["fs.no_recoveries"]</p>
+                        }
+                        else
+                        {
+                            @await Html.PartialAsync("_Lines", new ValueTuple<IReadOnlyList<FinalSettlementLine>, bool, decimal>(recoveries, edit, s.DailyDivisor))
+                        }
+                        @if (edit)
+                        {
+                            @await Html.PartialAsync("_AddLine", SettlementSection.Recovery)
+                        }
+                    </div>
+                </section>
+            }
+        </div>
+
+        @* ---------------- summary, actions, approval, history ---------------- *@
+        <aside class="fs-side">
+            <section class="hrms-card fs-summary">
+                <div class="pr-card-body">
+                    <h2 class="pr-card-title">@L["fs.summary"]</h2>
+                    <table class="pr-calc">
+                        @if (s.IsExit)
+                        {
+                            <tr><td>@L["fs.pending_salary"]</td><td>@Money(s.PendingSalaryAmount)</td></tr>
+                            <tr><td>@L["fs.other_earnings"]</td><td>@Money(s.OtherEarningsAmount)</td></tr>
+                        }
+                        <tr><td>@L["fs.leave_encashment"]</td><td>@Money(s.LeaveAmount)</td></tr>
+                        @if (s.IsExit)
+                        {
+                            <tr><td>@L["fs.indemnity"]</td><td>@Money(s.IndemnityAmount)</td></tr>
+                            <tr><td>@L["fs.recoveries"]</td><td class="pr-neg">@Money(s.RecoveryAmount)</td></tr>
+                        }
+                    </table>
+                    <div class="fs-net@(s.NetPayable < 0 ? " is-negative" : "")">
+                        <span>@L["fs.net_payable"]</span>
+                        <strong>@L["pr.kwd"] @Money(s.NetPayable)</strong>
+                    </div>
+                    @if (s.CalculatedDate is { } calc)
+                    {
+                        <p class="fs-calculated">@L["fs.calculated_on", L.Date(calc)]</p>
+                    }
+
+                    <div class="fs-actions">
+                        @if (s.IsDraft && r.CanProcess)
+                        {
+                            @if (s.IsExit && !s.RuleSetVerified && s.IndemnityRuleSetId is not null)
+                            {
+                                <div class="form-check fs-ack">
+                                    <input class="form-check-input" type="checkbox" id="fs-ack" data-fs-ack />
+                                    <label class="form-check-label" for="fs-ack">@L["fs.ack_unverified"]</label>
+                                </div>
+                            }
+                            <button type="button" class="btn btn-primary w-100" data-fs-submit data-needs-ack="@((s.IsExit && !s.RuleSetVerified && s.IndemnityRuleSetId is not null) ? "true" : "false")">
+                                @Html.Icon("send", 15)<span>@L["pr.submit_for_approval"]</span>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary w-100" data-fs-act="recalc">@Html.Icon("refresh", 15)<span>@L["fs.recalculate"]</span></button>
+                        }
+                        @if (canApprove)
+                        {
+                            @if (ownSubmission)
+                            {
+                                <p class="fs-hint">@L["fs.own_submission"]</p>
+                            }
+                            <button type="button" class="btn btn-success w-100" data-fs-reason="approve" data-optional="true" disabled="@(ownSubmission ? "disabled" : null)"
+                                    data-title="@(s.ApprovalLevel == 0 ? L["fs.approve_hr"] : L["fs.approve_finance"])"
+                                    data-text="@(s.ApprovalLevel == 0 ? L["fs.approve_hr_text"] : (s.IsExit ? L["fs.approve_finance_text"] : L["fs.approve_finance_text_enc"]))"
+                                    data-button="@L["pr.approve"]">@Html.Icon("check", 15)<span>@L["pr.approve"]</span></button>
+                            <div class="fs-actions__row">
+                                <button type="button" class="btn btn-outline-secondary" data-fs-reason="return"
+                                        data-title="@L["fs.return_title"]" data-text="@L["fs.return_text"]" data-button="@L["fs.return"]">@Html.Icon("undo", 15)<span>@L["fs.return"]</span></button>
+                                <button type="button" class="btn btn-outline-danger" data-fs-reason="reject" data-danger="true"
+                                        data-title="@L["fs.reject_title"]" data-text="@L["fs.reject_text"]" data-button="@L["pr.reject"]">@Html.Icon("x-circle", 15)<span>@L["pr.reject"]</span></button>
+                            </div>
+                        }
+                        @if (s.IsApproved && r.CanPay)
+                        {
+                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#fs-pay-modal">@Html.Icon("wallet", 15)<span>@L["fs.record_payment"]</span></button>
+                        }
+                        @if (!s.IsCancelled)
+                        {
+                            <a class="btn btn-outline-secondary w-100" href="@Url.Action("Statement", "FinalSettlement", new { id = s.FinalSettlementId })">@Html.Icon("printer", 15)<span>@L["fs.statement_en_ar"]</span></a>
+                        }
+                        @if ((s.IsDraft || s.IsPending) && r.CanCancel)
+                        {
+                            <button type="button" class="btn btn-link text-danger w-100" data-fs-reason="cancel" data-danger="true"
+                                    data-title="@L["fs.cancel_title"]" data-text="@L["fs.cancel_text"]" data-button="@L["fs.cancel_settlement"]">@L["fs.cancel_settlement"]</button>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="hrms-card">
+                <div class="pr-card-body">
+                    <h2 class="pr-card-title">@L["fs.approval_route"]</h2>
+                    @{
+                        string State(int level) => s.IsCancelled ? "is-todo"
+                            : s.IsPaid || s.IsApproved ? "is-done"
+                            : s.IsPending ? (s.ApprovalLevel >= level ? "is-done" : s.ApprovalLevel + 1 == level ? "is-current" : "is-todo")
+                            : "is-todo";
+                        var hrBy = Model.History.FirstOrDefault(h => h.ActionCode == "APPROVED" && h.ApprovalLevel == 1);
+                        var finBy = Model.History.FirstOrDefault(h => h.ActionCode == "APPROVED" && h.ApprovalLevel == 2);
+                    }
+                    <ol class="pr-timeline">
+                        <li class="@(s.IsDraft ? "is-current" : s.IsCancelled ? "is-rejected" : "is-done")">
+                            <span class="pr-timeline__dot"></span>
+                            <div class="pr-timeline__title">@L["fs.prepared"]</div>
+                            <div class="pr-timeline__meta">@(s.SubmittedByName ?? s.CreatedByName)@(s.SubmittedDate is { } sd ? " · " + L.Date(sd) : "")</div>
+                        </li>
+                        <li class="@State(1)">
+                            <span class="pr-timeline__dot"></span>
+                            <div class="pr-timeline__title">@L["prv.hr_manager"]</div>
+                            <div class="pr-timeline__meta">@(hrBy is not null && !s.IsDraft ? hrBy.ActionByName + " · " + L.Date(hrBy.ActionDate) : L["fs.level_hr_hint"])</div>
+                        </li>
+                        <li class="@State(2)">
+                            <span class="pr-timeline__dot"></span>
+                            <div class="pr-timeline__title">@L["prv.finance_manager"]</div>
+                            <div class="pr-timeline__meta">@(finBy is not null && (s.IsApproved || s.IsPaid) ? finBy.ActionByName + " · " + L.Date(finBy.ActionDate) : L["fs.level_finance_hint"])</div>
+                        </li>
+                        <li class="@(s.IsPaid ? "is-done" : s.IsApproved ? "is-current" : "is-todo")">
+                            <span class="pr-timeline__dot"></span>
+                            <div class="pr-timeline__title">@(s.IsExit ? L["fs.payment"] : L["fs.paid_by_payroll"])</div>
+                            <div class="pr-timeline__meta">
+                                @if (s.IsPaid)
+                                {
+                                    @(SettlementFormat.MethodLabel(L, s.PaymentMethod) + (s.PaymentRef is not null ? " · " + s.PaymentRef : "") + " · " + L.Date(s.PaidDate))
+                                }
+                                else if (!s.IsExit && s.PayMonth is { } pm2)
+                                {
+                                    @L["fs.in_payroll_of", L.MonthYear(pm2)]
+                                }
+                                else
+                                {
+                                    @L["fs.payment_hint"]
+                                }
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </section>
+
+            <section class="hrms-card">
+                <div class="pr-card-body">
+                    <h2 class="pr-card-title">@L["pr.history"]</h2>
+                    <ol class="fs-history">
+                        @foreach (var h in Model.History)
+                        {
+                            <li>
+                                <div class="fs-history__head">
+                                    <strong>@SettlementFormat.HistoryLabel(L, h.ActionCode, h.ApprovalLevel)</strong>
+                                    @if (h.NetPayable is { } net)
+                                    {
+                                        <span class="fs-history__amt">@Money(net)</span>
+                                    }
+                                </div>
+                                <div class="fs-history__meta">@h.ActionByName · @L.Date(h.ActionDate) @h.ActionDate.ToString("HH:mm")</div>
+                                @if (!string.IsNullOrWhiteSpace(h.Comment))
+                                {
+                                    <div class="pr-timeline__note">@h.Comment</div>
+                                }
+                            </li>
+                        }
+                    </ol>
+                </div>
+            </section>
+        </aside>
+    </div>
+</div>
+
+@* ---- comment / reason dialog (approve, return, reject, cancel) ---- *@
+<div class="modal fade" id="fs-reason-modal" tabindex="-1" aria-hidden="true" aria-labelledby="fs-reason-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" data-fs-reason-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="fs-reason-title" data-fs-reason-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="hrms-muted hrms-text-sm" data-fs-reason-text></p>
+                <label class="form-label" for="fs-reason-input">@L["pr.comment"] <span class="req" aria-hidden="true" data-fs-reason-req>*</span></label>
+                <textarea class="form-control" id="fs-reason-input" rows="3" maxlength="500" data-fs-reason-input></textarea>
+                <span class="field-validation-error" data-fs-reason-error hidden>@L["pr.this_field_is_required"]</span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="submit" class="btn btn-primary" data-fs-reason-submit><span data-fs-reason-button></span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (s.IsApproved && r.CanPay)
+{
+    <div class="modal fade" id="fs-pay-modal" tabindex="-1" aria-hidden="true" aria-labelledby="fs-pay-title">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" data-fs-pay-form novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="fs-pay-title">@L["fs.record_payment"]</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="hrms-muted hrms-text-sm">@L["fs.record_payment_text", Money(s.NetPayable)]</p>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="fs-pay-date">@L["fs.payment_date"] <span class="req" aria-hidden="true">*</span></label>
+                            <input class="form-control" type="date" id="fs-pay-date" name="paidDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" max="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="fs-pay-method">@L["fs.paid_by"] <span class="req" aria-hidden="true">*</span></label>
+                            <select class="form-select" id="fs-pay-method" name="method" required>
+                                @foreach (var m in PaymentMethod.All)
+                                {
+                                    <option value="@m" selected="@(m == (s.IsExit ? PaymentMethod.Bank : PaymentMethod.Payroll))">@SettlementFormat.MethodLabel(L, m)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="fs-pay-ref">@L["fs.payment_reference"]</label>
+                            <input class="form-control" id="fs-pay-ref" name="reference" maxlength="100" placeholder="@L["fs.payment_reference_placeholder"]" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="fs-pay-comment">@L["pr.comment"]</label>
+                            <textarea class="form-control" id="fs-pay-comment" name="comment" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                    <button type="submit" class="btn btn-primary" data-fs-pay-submit>@Html.Icon("check", 15)<span>@L["fs.record_payment"]</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+@Html.AntiForgeryToken()
+
+@section PageActions {
+    <a class="btn btn-outline-secondary" href="@Url.Action(s.IsExit ? "Index" : "Encashment", "FinalSettlement")">@Html.Icon("chevron-left", 15)<span>@L["fs.all_settlements"]</span></a>
+}
+@section Scripts {
+    <script src="~/js/settlement.js" asp-append-version="true"></script>
+}

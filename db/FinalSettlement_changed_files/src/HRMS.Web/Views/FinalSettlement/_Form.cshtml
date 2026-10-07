@@ -1,0 +1,141 @@
+@model SettlementFormModel
+@{
+    // One form for a new settlement, a draft being changed and a leave encashment.
+    // Posted by settlement.js to /payroll/settlement/save; the procedure validates
+    // and recalculates. The employee panel is filled from /payroll/settlement/defaults.
+    var s = Model.Settlement;
+    string D(DateTime? d) => d?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+    var today = DateTime.Today;
+    var formId = Model.IsNew ? "fs-form-new" : "fs-form-" + s!.FinalSettlementId;
+}
+<form class="fs-form" id="@formId" data-fs-form novalidate autocomplete="off"
+      data-defaults-url="@Url.Action("Defaults", "FinalSettlement")"
+      data-mode="@(Model.IsEncashment ? "encashment" : "exit")">
+    <input type="hidden" name="FinalSettlementId" value="@(s?.FinalSettlementId ?? 0)" />
+    @if (Model.IsEncashment)
+    {
+        <input type="hidden" name="SettlementType" value="@SettlementType.Encashment" />
+    }
+
+    <fieldset class="hrms-fieldset">
+        <legend>@(Model.IsEncashment ? L["fs.leave_encashment"] : L["fs.separation"])</legend>
+        <div class="row g-3">
+            <div class="col-12 col-lg-6">
+                <label class="form-label" for="@formId-emp">@L["pr.employee"] <span class="req" aria-hidden="true">*</span></label>
+                @if (Model.IsNew)
+                {
+                    <select class="form-select" id="@formId-emp" name="EmployeeId" required data-fs-emp>
+                        <option value="">@L["fs.select_employee"]</option>
+                        @foreach (var e in Model.Employees)
+                        {
+                            var label = SettlementFormat.Name(L, e.EmployeeName, e.EmployeeArabicName) + " · " + e.EmployeeNo;
+                            if (!Model.IsEncashment && e.OpenSettlementNo is not null) label += " · " + e.OpenSettlementNo;
+                            <option value="@e.EmployeeId" selected="@(e.EmployeeId == Model.EmployeeId)"
+                                    disabled="@(!Model.IsEncashment && e.OpenSettlementNo is not null ? "disabled" : null)">@label</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input type="hidden" name="EmployeeId" value="@s!.EmployeeId" data-fs-emp />
+                    <input class="form-control" id="@formId-emp" value="@SettlementFormat.Name(L, s.EmployeeName, s.EmployeeArabicName) · @s.EmployeeNo" readonly />
+                }
+            </div>
+
+            @if (Model.IsEncashment)
+            {
+                <div class="col-6 col-lg-3">
+                    <label class="form-label" for="@formId-lwd">@L["fs.balance_on"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" type="date" id="@formId-lwd" name="LastWorkingDay" value="@D(s?.LastWorkingDay ?? today)" required data-fs-lwd />
+                </div>
+                <div class="col-6 col-lg-3">
+                    <label class="form-label" for="@formId-month">@L["fs.paid_in_payroll_of"] <span class="req" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="@formId-month" name="PayMonth" required>
+                        @foreach (var m in Model.PayMonths)
+                        {
+                            <option value="@D(m)" selected="@(s?.PayMonth == m || (s is null && m == new DateTime(today.Year, today.Month, 1)))">@L.MonthYear(m)</option>
+                        }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <div class="col-6 col-lg-3">
+                    <label class="form-label" for="@formId-type">@L["fs.separation_type"] <span class="req" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="@formId-type" name="SettlementType" required data-fs-type>
+                        @foreach (var t in SettlementType.Exit)
+                        {
+                            <option value="@t" selected="@(t == (s?.SettlementType ?? Model.Type))">@L[SettlementFormat.TypeKey(t)]</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <label class="form-label" for="@formId-lwd">@L["fs.last_working_day"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" type="date" id="@formId-lwd" name="LastWorkingDay" value="@D(s?.LastWorkingDay)" required data-fs-lwd />
+                </div>
+                <div class="col-6 col-lg-3">
+                    <label class="form-label" for="@formId-notice">@L["fs.notice_date"]</label>
+                    <input class="form-control" type="date" id="@formId-notice" name="NoticeDate" value="@D(s?.NoticeDate)" />
+                </div>
+                <div class="col-6 col-lg-3">
+                    <label class="form-label" for="@formId-from">@L["fs.salary_unpaid_from"]</label>
+                    <input class="form-control" type="date" id="@formId-from" name="SalaryFrom" value="@D(s?.SalaryFrom)" data-fs-from />
+                    <div class="form-text" data-fs-from-hint></div>
+                </div>
+            }
+
+            <div class="col-6 col-lg-3">
+                <label class="form-label" for="@formId-bal">@L["fs.leave_balance_days"]@if (Model.IsEncashment) { <span class="req" aria-hidden="true"> *</span> }</label>
+                <input class="form-control pr-input-num" type="number" inputmode="decimal" min="0" max="999" step="0.5" id="@formId-bal" name="LeaveBalanceDays"
+                       value="@(s is null ? "" : SettlementFormat.Num(s.LeaveBalanceDays))" data-fs-balance />
+            </div>
+            <div class="col-6 col-lg-3">
+                <label class="form-label" for="@formId-enc">@L["fs.days_to_encash"]@if (Model.IsEncashment) { <span class="req" aria-hidden="true"> *</span> }</label>
+                <input class="form-control pr-input-num" type="number" inputmode="decimal" min="0" max="999" step="0.5" id="@formId-enc" name="EncashDays"
+                       value="@(s is null ? "" : SettlementFormat.Num(s.EncashDays))" data-fs-encash />
+                @if (!Model.IsEncashment)
+                {
+                    <div class="form-text">@L["fs.days_to_encash_hint"]</div>
+                }
+            </div>
+            <div class="col-12 @(Model.IsEncashment ? "col-lg-6" : "")">
+                <label class="form-label" for="@formId-reason">@(Model.IsEncashment ? L["pr.comment"] : L["fs.reason"])</label>
+                <textarea class="form-control" id="@formId-reason" name="Reason" rows="2" maxlength="500"
+                          placeholder="@(Model.IsEncashment ? L["fs.encashment_reason_placeholder"] : L["fs.reason_placeholder"])">@s?.Reason</textarea>
+            </div>
+        </div>
+    </fieldset>
+
+    @* filled by settlement.js once an employee (and last working day) is chosen *@
+    <div class="fs-info" data-fs-info hidden aria-live="polite">
+        <div class="pr-banner pr-banner--err" data-fs-open hidden>
+            @Html.Icon("alert", 18)
+            <div>@L["fs.employee_has_settlement"] <a data-fs-open-link href="#"></a></div>
+        </div>
+        <dl class="pr-dl">
+            <div><dt>@L["fs.joined"]</dt><dd data-fs-v="hire">—</dd></div>
+            <div><dt>@L["fs.service"]</dt><dd data-fs-v="service">—</dd></div>
+            <div><dt>@L["fs.monthly_salary"]</dt><dd data-fs-v="salary">—</dd></div>
+            @if (!Model.IsEncashment)
+            {
+                <div><dt>@L["fs.indemnity_salary"]</dt><dd data-fs-v="indemnity">—</dd></div>
+            }
+            <div><dt>@L["fs.leave_salary"]</dt><dd data-fs-v="leave">—</dd></div>
+            @if (!Model.IsEncashment)
+            {
+                <div><dt>@L["fs.salary_paid_through"]</dt><dd data-fs-v="paid">—</dd></div>
+                <div><dt>@L["fs.indemnity_rules"]</dt><dd data-fs-v="rules">—</dd></div>
+            }
+        </dl>
+    </div>
+
+    <div class="fs-form__actions">
+        @if (!Model.IsNew)
+        {
+            <button type="button" class="btn btn-outline-secondary" data-fs-form-cancel>@L["common.cancel"]</button>
+        }
+        <button type="submit" class="btn btn-primary" data-fs-save>
+            @Html.Icon("calculator", 15)<span>@(Model.IsNew ? L["fs.calculate_settlement"] : L["fs.save_and_recalculate"])</span>
+        </button>
+    </div>
+</form>

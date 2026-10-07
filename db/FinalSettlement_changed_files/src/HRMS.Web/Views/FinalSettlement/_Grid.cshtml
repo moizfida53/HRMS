@@ -1,0 +1,78 @@
+@using HRMS.Web.Models.Organization
+@model SettlementGridModel
+@{
+    var pg = Model.Page;
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["fs.1_settlement"] : L["fs.0_settlements", PayrollFormat.Count(pg.TotalCount)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "exit", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["fs.no_settlements_match"] : L["fs.no_settlements_yet"])</p>
+        <p class="hrms-empty__text">@L["fs.no_settlements_text"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table fs-table">
+            <caption class="hrms-sr-only">@L["fs.settlements"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["fs.settlement"]</th>
+                    <th scope="col">@L["pr.employee"]</th>
+                    <th scope="col">@L["fs.type"]</th>
+                    <th scope="col" class="col-p2">@L["fs.last_day"]</th>
+                    <th scope="col" class="col-p3">@L["fs.service"]</th>
+                    <th scope="col" class="pr-money">@L["fs.payable_kwd"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in pg.Items)
+                {
+                    var emp = SettlementFormat.Name(L, s.EmployeeName, s.EmployeeArabicName);
+                    var url = Url.Action("Details", "FinalSettlement", new { id = s.FinalSettlementId });
+                    <tr class="@(s.Status == SettlementStatus.Cancelled ? "is-ended" : null)">
+                        <td data-label="@L["fs.settlement"]" class="hrms-nowrap"><a class="hrms-code-chip fs-no" href="@url">@s.SettlementNo</a></td>
+                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">
+                            <span class="hrms-table__primary">@emp</span>
+                            <span class="pr-emp-sub">@s.EmployeeNo@(s.DepartmentName is not null ? " · " + s.DepartmentName : "")@(Model.ManyCompanies && s.CompanyName is not null ? " · " + s.CompanyName : "")</span>
+                        </td>
+                        <td data-label="@L["fs.type"]">
+                            @L[SettlementFormat.TypeKey(s.SettlementType)]
+                            @if (!s.IsExit)
+                            {
+                                <span class="pr-emp-sub">@L["fs.n_days", SettlementFormat.Num(s.EncashDays)]@(s.PayMonth is { } pm ? " · " + PayItemFormat.Month(L, pm) : "")</span>
+                            }
+                        </td>
+                        <td data-label="@L["fs.last_day"]" class="col-p2 col-date">@L.Date(s.LastWorkingDay)</td>
+                        <td data-label="@L["fs.service"]" class="col-p3">@(s.IsExit ? SettlementFormat.ServiceShort(L, s.ServiceYears) : "—")</td>
+                        <td data-label="@L["fs.payable_kwd"]" class="pr-money@(s.NetPayable < 0 ? " pr-neg" : "")">@PayrollFormat.Money(s.NetPayable)</td>
+                        <td data-label="@L["common.status"]">
+                            <span class="hrms-badge hrms-badge--@SettlementFormat.StatusBadge(s.Status)"><span class="hrms-badge__dot"></span>@SettlementFormat.StatusLabel(L, s.Status, s.ApprovalLevel)</span>
+                            @if (s.Status == SettlementStatus.Paid && s.PaidDate is { } pd)
+                            {
+                                <span class="pr-emp-sub">@L.Date(pd)</span>
+                            }
+                        </td>
+                        <td class="hrms-table__actions">
+                            <a class="btn-icon" href="@url" title="@L["fs.open"]" aria-label="@L["fs.open_0", s.SettlementNo]">@Html.Icon(s.Status == SettlementStatus.Draft && Model.Rights.CanProcess ? "edit" : "eye", 15)</a>
+                            @if (s.Status != SettlementStatus.Cancelled)
+                            {
+                                <a class="btn-icon" href="@Url.Action("Statement", "FinalSettlement", new { id = s.FinalSettlementId })" title="@L["fs.statement"]" aria-label="@L["fs.statement_0", s.SettlementNo]">@Html.Icon("printer", 15)</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

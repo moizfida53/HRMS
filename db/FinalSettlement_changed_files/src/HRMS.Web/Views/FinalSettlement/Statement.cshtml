@@ -1,0 +1,150 @@
+@using Microsoft.AspNetCore.Html
+@model SettlementStatementModel
+@{
+    // The settlement statement the employee signs: English and Arabic side by side,
+    // whatever the language of the screen (labels from Core.UiLabels in both languages).
+    var s = Model.Settlement;
+    ViewData["Title"] = "Settlement Statement";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settlement";
+    ViewData["Subtitle"] = s.SettlementNo;
+    string D(DateTime? d) => d?.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) ?? "—";
+    string M(decimal v) => PayrollFormat.Money(v);
+    var typeKey = SettlementFormat.TypeKey(s.SettlementType);
+    var draft = s.IsDraft || s.IsPending;
+
+    IHtmlContent Pair(string key, params object?[] args)
+    {
+        var (en, ar) = Model.Both(key, args);
+        return new HtmlString($"<span class=\"fs-st__en\">{System.Net.WebUtility.HtmlEncode(en)}</span>"
+                              + $"<span class=\"fs-st__ar\" lang=\"ar\" dir=\"rtl\">{System.Net.WebUtility.HtmlEncode(ar)}</span>");
+    }
+    var service = SettlementFormat.Service(L, s.HireDate, s.LastWorkingDay);
+}
+<article class="fs-statement@(draft ? " is-draft" : "")" dir="ltr" aria-label="@L["fs.statement"]">
+    @if (draft)
+    {
+        <div class="fs-statement__watermark" aria-hidden="true">@Pair("fs.st_not_final")</div>
+    }
+    <header class="fs-statement__head">
+        <div class="fs-statement__co">
+            <strong>@s.CompanyName</strong>
+            <span>@s.CompanyCode</span>
+        </div>
+        <div class="fs-statement__title">
+            @Pair(s.IsExit ? "fs.st_title" : "fs.st_title_encashment")
+        </div>
+        <div class="fs-statement__co fs-statement__co--ar" lang="ar" dir="rtl">
+            <strong dir="auto">@(s.CompanyArabicName ?? s.CompanyName)</strong>
+            <span>@s.SettlementNo</span>
+        </div>
+    </header>
+
+    <table class="fs-st-info">
+        <tbody>
+            <tr>
+                <th>@Pair("fs.st_settlement_no")</th><td>@s.SettlementNo</td>
+                <th>@Pair("fs.st_date")</th><td>@D(s.ApprovedDate ?? s.CalculatedDate ?? s.CreatedDate)</td>
+            </tr>
+            <tr>
+                <th>@Pair("fs.st_employee")</th><td>@s.EmployeeName@(s.EmployeeArabicName is not null ? " / " : "")<span lang="ar">@s.EmployeeArabicName</span></td>
+                <th>@Pair("fs.st_employee_no")</th><td>@s.EmployeeNo</td>
+            </tr>
+            <tr>
+                <th>@Pair("fs.st_department")</th><td>@s.DepartmentName</td>
+                <th>@Pair("fs.st_designation")</th><td>@s.DesignationName</td>
+            </tr>
+            <tr>
+                <th>@Pair("fs.st_nationality")</th><td>@s.NationalityName</td>
+                <th>@Pair("fs.st_type")</th><td>@Pair(typeKey)</td>
+            </tr>
+            <tr>
+                <th>@Pair("fs.st_joined")</th><td>@D(s.HireDate)</td>
+                <th>@Pair(s.IsExit ? "fs.st_last_day" : "fs.st_balance_on")</th><td>@D(s.LastWorkingDay)</td>
+            </tr>
+            @if (s.IsExit)
+            {
+                <tr>
+                    <th>@Pair("fs.st_service")</th><td>@service (@SettlementFormat.Years(s.ServiceYears))</td>
+                    <th>@Pair("fs.st_monthly_salary")</th><td>KWD @M(s.MonthlySalary)</td>
+                </tr>
+                <tr>
+                    <th>@Pair("fs.st_indemnity_salary")</th><td>KWD @M(s.IndemnityBase)</td>
+                    <th>@Pair("fs.st_leave_salary")</th><td>KWD @M(s.LeaveBase)</td>
+                </tr>
+            }
+            else
+            {
+                <tr>
+                    <th>@Pair("fs.st_leave_salary")</th><td>KWD @M(s.LeaveBase)</td>
+                    <th>@Pair("fs.st_pay_month")</th><td>@(s.PayMonth?.ToString("MM/yyyy", System.Globalization.CultureInfo.InvariantCulture))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <table class="fs-st-sum">
+        <thead>
+            <tr><th>@Pair("fs.st_entitlement")</th><th class="pr-money">@Pair("fs.st_amount_kwd")</th></tr>
+        </thead>
+        <tbody>
+            @if (s.IsExit)
+            {
+                <tr><td>@Pair("fs.pending_salary")<span class="fs-st__calc">@(s.SalaryFrom is { } f && f <= s.LastWorkingDay ? D(f) + " – " + D(s.LastWorkingDay) : "—")</span></td><td class="pr-money">@M(s.PendingSalaryAmount)</td></tr>
+                <tr><td>@Pair("fs.other_earnings")</td><td class="pr-money">@M(s.OtherEarningsAmount)</td></tr>
+            }
+            <tr><td>@Pair("fs.leave_encashment")<span class="fs-st__calc">@SettlementFormat.Num(s.EncashDays) × (@M(s.LeaveBase) ÷ @SettlementFormat.Num(s.DailyDivisor))</span></td><td class="pr-money">@M(s.LeaveAmount)</td></tr>
+            @if (s.IsExit)
+            {
+                <tr><td>@Pair("fs.indemnity")<span class="fs-st__calc">@M(s.IndemnityCapped) × @SettlementFormat.Pct(s.IndemnityPercent)@(s.RuleSetCode is not null ? " · " + s.RuleSetCode : "")</span></td><td class="pr-money">@M(s.IndemnityAmount)</td></tr>
+                <tr class="is-sub"><td>@Pair("fs.st_total_entitlements")</td><td class="pr-money">@M(s.GrossPayable)</td></tr>
+                <tr><td>@Pair("fs.recoveries")</td><td class="pr-money pr-neg">@M(s.RecoveryAmount)</td></tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr><td>@Pair("fs.net_payable")</td><td class="pr-money">KWD @M(s.NetPayable)</td></tr>
+        </tfoot>
+    </table>
+
+    @if (Model.Lines.Any(l => !l.IsInfo && l.IsIncluded) && s.IsExit)
+    {
+        <table class="fs-st-lines">
+            <caption>@Pair("fs.st_details")</caption>
+            <tbody>
+                @foreach (var l in Model.Lines.Where(l => l.IsIncluded && l.Section != SettlementSection.Leave))
+                {
+                    <tr class="@(l.IsInfo ? "is-info" : null)">
+                        <td>@SettlementFormat.Title(L, l)<span class="fs-st__calc">@SettlementFormat.Detail(L, l, s.DailyDivisor)</span></td>
+                        <td class="pr-money@(l.Amount < 0 ? " pr-neg" : "")">@(l.IsInfo ? "(" + M(l.Amount) + ")" : M(l.Amount))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (s.IsPaid)
+    {
+        <p class="fs-st-paid">@Pair("fs.st_paid_on", D(s.PaidDate), s.PaymentRef ?? "")</p>
+    }
+
+    <p class="fs-st-declaration">@Pair(s.IsExit ? "fs.st_declaration" : "fs.st_declaration_encashment", M(s.NetPayable))</p>
+
+    <div class="fs-st-signs">
+        <div><span class="fs-st-signs__line"></span>@Pair("fs.st_sign_employee")</div>
+        <div><span class="fs-st-signs__line"></span>@Pair("prv.hr_manager")</div>
+        <div><span class="fs-st-signs__line"></span>@Pair("prv.finance_manager")</div>
+    </div>
+
+    <footer class="fs-statement__foot">
+        <span>@Pair("fs.st_generated", D(DateTime.Today))</span>
+        <span>@s.SettlementNo</span>
+    </footer>
+</article>
+
+@section PageActions {
+    <a class="btn btn-outline-secondary" href="@Url.Action("Details", "FinalSettlement", new { id = s.FinalSettlementId })">@Html.Icon("chevron-left", 15)<span>@L["fs.back_to_settlement"]</span></a>
+    <button type="button" class="btn btn-primary" data-fs-print>@Html.Icon("printer", 15)<span>@L["fs.print"]</span></button>
+}
+@section Scripts {
+    <script src="~/js/settlement.js" asp-append-version="true"></script>
+}

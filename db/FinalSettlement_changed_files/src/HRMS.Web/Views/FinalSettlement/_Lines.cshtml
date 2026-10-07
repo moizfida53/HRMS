@@ -1,0 +1,47 @@
+@model ValueTuple<IReadOnlyList<FinalSettlementLine>, bool, decimal>
+@{
+    // Lines of the Other earnings / Recoveries cards. Editable (draft): pay item and
+    // loan lines can be waived, lines added by hand removed.
+    var (lines, editable, divisor) = Model;
+}
+<ul class="fs-lines">
+    @foreach (var l in lines)
+    {
+        <li class="fs-line@(l.IsIncluded ? "" : " is-waived")@(l.IsManual ? " is-manual" : "")" data-line="@l.SettlementLineId">
+            <div class="fs-line__text">
+                <span class="fs-line__title">
+                    @SettlementFormat.Title(L, l)
+                    @if (l.LineCode == "LOAN" && !string.IsNullOrWhiteSpace(l.SourceRef))
+                    {
+                        <span class="hrms-code-chip ms-1">@l.SourceRef</span>
+                    }
+                    @if (!l.IsIncluded)
+                    {
+                        <span class="hrms-badge hrms-badge--muted ms-1">@L["fs.waived"]</span>
+                    }
+                </span>
+                @{ var detail = SettlementFormat.Detail(L, l, divisor); }
+                @if (!string.IsNullOrWhiteSpace(detail))
+                {
+                    <span class="fs-line__sub">@detail</span>
+                }
+            </div>
+            <span class="fs-line__amt pr-money@(l.Amount < 0 ? " pr-neg" : "")">@PayrollFormat.Money(l.Amount)</span>
+            @if (editable && (l.IsWaivable || l.IsManual))
+            {
+                <span class="fs-line__act">
+                    @if (l.IsWaivable)
+                    {
+                        <button type="button" class="btn-icon" data-fs-line="toggle" title="@(l.IsIncluded ? L["fs.waive"] : L["fs.include_again"])"
+                                aria-label="@(l.IsIncluded ? L["fs.waive_0", SettlementFormat.Title(L, l)] : L["fs.include_again_0", SettlementFormat.Title(L, l)])">@Html.Icon(l.IsIncluded ? "eye-off" : "eye", 15)</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn-icon btn-icon--danger" data-fs-line="remove" title="@L["common.delete"]"
+                                aria-label="@L["fs.remove_0", SettlementFormat.Title(L, l)]">@Html.Icon("trash", 15)</button>
+                    }
+                </span>
+            }
+        </li>
+    }
+</ul>
