@@ -24,6 +24,7 @@ Profile page covering Personal Info, Employment and Kuwait Compliance.
 | Module 4 Workforce — Employees list + tabbed Profile | Complete — see *Module 4* below for known gaps (document upload, cascading dropdowns) |
 | Module 4 Kuwait Compliance — Civil ID/passport/residency/work permit | Complete, as a tab on the Employee Profile page |
 | Payroll Phase 1 — Master Setup (database) | Database complete (scripts 29–32) — screens not built yet; see *Payroll — Phase 1* below |
+| Payroll — Final Settlement (end of service + leave encashment) | Complete — database (scripts 39–41) and screens; see *Final Settlement* below |
 | Modules 2, 5–12 | Not started |
 
 The eight Organization Setup tabs are Companies, Branches, Departments,
@@ -410,7 +411,7 @@ masters above are the next step.
 
 ## Payroll — Phase 2 (Payroll Processing, live)
 
-The whole **Payroll** menu is now in the app. **Payroll Processing** and **Pay Items** work end to
+The whole **Payroll** menu is now in the app. **Payroll Processing**, **Pay Items** and **Final Settlement** work end to
 end; every other payroll page is embedded as a **design preview** (sample data,
 a banner at the top says nothing is saved) and will be made functional one page
 at a time.
@@ -516,6 +517,86 @@ Files: `Controllers/PayItemsController.cs`, `Models/Payroll/PayItemViewModels.cs
 `Views/PayItems/*`, `Helpers/XlsxFile.cs`, Pay Items section of `wwwroot/js/payroll.js`
 and `wwwroot/scss/_payroll.scss`. The page is `/payroll/pay-items` (`?emp=<id>`
 opens one employee).
+
+### Final Settlement (live)
+
+The end-of-service settlement of an employee who leaves (resignation, termination,
+end of contract, retirement, death, disability) and **leave encashment without
+exit**. Payroll › Final Settlement has three tabs: **Settlements** (list, key
+figures, filters), **New Settlement** and **Leave Encashment**. Each settlement
+opens on one page that shows every figure and how it was worked out, with the
+summary, approval route and history beside it; the **statement** prints on A4
+in English and Arabic side by side for the employee to sign.
+
+Run after 34–38, in this order:
+
+| # | Script | What it does |
+|---|---|---|
+| 39 | `db/39_FinalSettlement_Tables.sql` | `Payroll.FinalSettlements`, `FinalSettlementLines`, `FinalSettlementHistory`; pay item type **LEAVE_ENC** (Leave Encashment) for every company; permissions PAYROLL_FS_VIEW / PROCESS / PAY / CANCEL (to SYSADMIN) |
+| 40 | `db/40_FinalSettlement_StoredProcedures.sql` | `Payroll.ufn_FinalSettlement_Salary`, `usp_FinalSettlement_Calculate` (the calculation), `usp_FinalSettlement_Manage` (list, save, lines, submit, approve, return, reject, pay, cancel) |
+| 35 | `db/35_Payroll_Processing_StoredProcedures.sql` | **re-run** - the payroll engine now leaves out an employee whose settlement pays the last salary (no double payment). Safe if 39 has not been run |
+| 41 | `db/41_FinalSettlement_Labels.sql` | English + Arabic labels (`fs.*`, `js.fs_*`, `msg.fs_*`) |
+
+> **Sign out and in again** after script 39 so the new permissions are loaded.
+
+How a settlement is calculated (all in `usp_FinalSettlement_Calculate`, data-driven):
+
+* **Pending salary** - every salary item from *Salary unpaid from* to the last
+  working day, month by month (amount × days ÷ calendar days of the month; an
+  item type that is not "Prorated" is paid in full). *Salary unpaid from*
+  defaults to the day after the last **closed** regular payroll that paid the
+  employee and cannot overlap it.
+* **Other earnings** - one-time earnings of those months that no payroll has
+  paid, monthly ones prorated like salary, plus lines added by hand (air ticket,
+  notice pay in lieu ...).
+* **Leave encashment** - days to encash × leave salary ÷ the daily divisor of
+  the indemnity rule set (26). The leave balance is typed in until a Leave
+  module exists.
+* **Indemnity** - the `Payroll.IndemnityRuleSets` row in force on the last
+  working day (seeded: Labour Law 6/2010 - 15 days a year for the first 5
+  years, a month a year after, cap 18 months; resignation 0 / 50 / 66.67 /
+  100 %). Service years = days ÷ 365. "Indemnity" / "Leave salary" = the salary
+  item types flagged so (the whole salary when none is flagged).
+* **Recoveries** - loan / advance balances, unpaid instalment deductions,
+  one-time and monthly deductions of the pending months, PIFSS employee share
+  on the pending salary (Kuwaitis), salary a closed payroll paid **after** the
+  last working day, and recoveries added by hand. Pay item and loan lines can
+  be *waived* (kept on recalculation).
+
+Workflow and safeguards:
+
+* Draft → **Pending** (HR, then Finance - `PAYROLL_RUN_APPROVE_HR` / `_FINANCE`)
+  → **Approved** → **Paid** (date, bank transfer / cheque / cash, reference);
+  **Return** sends it back to draft with a comment, **Reject** / **Cancel**
+  cancel it (it keeps its number `FS-YYYY-MM-NNN`). Whoever submitted cannot
+  approve; the HR approver cannot give the Finance approval (except SYSADMIN).
+* One live exit settlement per employee (unique index).
+* While a settlement exists (any status but cancelled) the payroll engine
+  leaves the employee out of every period from *Salary unpaid from*. A
+  settlement cannot be submitted or approved while a live payroll still
+  includes the employee for those days, nor when a closed payroll already paid
+  them. Every approval recalculates and refuses if the amount moved since it
+  was submitted.
+* An unverified indemnity rule set must be explicitly acknowledged on submit.
+* **Final approval of an exit**: the employee becomes *Resigned* / *Terminated*
+  with the last working day as termination date, recovered loans and paid pay
+  items are ended, monthly items stop after that month (all logged in the pay
+  item history). **Final approval of a leave encashment**: a one-time *Leave
+  Encashment* earning is created in the payroll month chosen.
+
+Files: `Controllers/FinalSettlementController.cs`, `Models/Payroll/SettlementViewModels.cs`,
+`Domain/Payroll/FinalSettlement.cs`, `Data/Repositories/FinalSettlementRepository.cs`,
+`Views/FinalSettlement/*`, `wwwroot/js/settlement.js`, `wwwroot/scss/_settlement.scss`.
+Pages: `/payroll/settlement`, `/payroll/settlement/new`, `/payroll/settlement/encashment`,
+`/payroll/settlement/{id}`, `/payroll/settlement/{id}/statement`. The old preview
+links (`/payroll/preview/fs-*`) redirect to them.
+
+Verified: every procedure path was exercised against SQL Server 2022 (the
+prototype case - hired 01 Mar 2018, basic 520, last day 15 Oct 2026 - gives
+pending salary 336.290 and indemnity 1,903.846 + 3.63 years × 660 at 66.67 %),
+and the whole flow (create → waive / add lines → submit → approve ×2 → pay →
+statement, plus leave encashment) was run in Chromium at 1440 px and 390 px,
+in English and Arabic, with no script errors and no horizontal scrolling.
 
 ---
 

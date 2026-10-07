@@ -22,6 +22,9 @@
        on or before the period end and not terminated before its start,
        narrowed by the run's scope (department, location, employment type,
        nationality). Excluded employees stay listed with a reason, unpaid.
+       An employee with a final settlement (db/39-40, any status but
+       cancelled) is left out from the period that holds its "Salary unpaid
+       from" day - the settlement pays those days.
      * Salary items (class SALARY, every month) are prorated by days
        employed in the period when the item type is "Prorated":
        monthly calendar  amount x paid days / period days
@@ -89,6 +92,15 @@ BEGIN
           AND  (@EmpType IS NULL OR e.EmploymentType = @EmpType)
           AND  (@Nat     IS NULL OR (@Nat = 'KUWAITI' AND n.CountryCode IN ('KW', 'KWT'))
                                  OR (@Nat = 'NON_KUWAITI' AND ISNULL(n.CountryCode, '') NOT IN ('KW', 'KWT')));
+
+        /* an employee's final settlement (draft to paid) pays the salary from its
+           "Salary unpaid from" day - no payroll pays those days again (db/39-40) */
+        IF OBJECT_ID(N'[Payroll].[FinalSettlements]', N'U') IS NOT NULL
+            DELETE x
+            FROM   @Eligible AS x
+            WHERE  EXISTS (SELECT 1 FROM [Payroll].[FinalSettlements] AS fs
+                           WHERE fs.EmployeeId = x.EmployeeId AND fs.Deleted = 0 AND fs.SettlementType <> 'ENCASHMENT'
+                             AND fs.Status <> 'CANCELLED' AND fs.SalaryFrom <= @End);
 
         /* leave: no longer in scope */
         UPDATE l SET Deleted = 1, DeletedBy = @UserId, DeletedDate = @Now

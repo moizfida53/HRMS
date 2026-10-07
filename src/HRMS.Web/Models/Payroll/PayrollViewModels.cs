@@ -26,10 +26,7 @@ public static class PayrollNav
         ]),
         new("payitems", "Pay Items", "card", [new("pay-items", "Pay Items", true)]),
         new("settlement", "Final Settlement", "exit",
-        [
-            new("fs-resignation", "Resignation"), new("fs-termination", "Termination"), new("fs-encashment", "Leave Encashment"),
-            new("fs-history", "Settlement History")
-        ]),
+            [new("fs-list", "Settlements", true), new("fs-new", "New Settlement", true), new("fs-encashment", "Leave Encashment", true)]),
         new("payslips", "Payslips", "receipt",
             [new("slip-generate", "Generate Payslips"), new("slip-employee", "Employee Payslips"), new("slip-email", "Email Payslips")]),
         new("bank", "Bank Processing", "bank",
@@ -52,7 +49,8 @@ public static class PayrollNav
     /// <summary>Preview pages that are not on a tab rail (opened from another page).</summary>
     public static readonly IReadOnlyDictionary<string, string> ExtraPages = new Dictionary<string, string>
     {
-        ["slip-view"] = "payslips"
+        ["slip-view"] = "payslips",
+        ["fs-detail"] = "settlement"
     };
 
     public static Section? SectionOfSlug(string slug) =>
@@ -62,12 +60,25 @@ public static class PayrollNav
     public static string Url(string slug) => slug switch
     {
         "calendar" or "create" or "register" or "validation" or "approval" or "history" or "pay-items" => $"/payroll/{slug}",
+        "fs-list" => "/payroll/settlement",
+        "fs-new" => "/payroll/settlement/new",
+        "fs-encashment" => "/payroll/settlement/encashment",
         _ => $"/payroll/preview/{slug}"
     };
 
     /// <summary>True for a payroll page that is still a design preview (Views/Payroll/Preview).</summary>
     public static bool IsPreview(string slug) =>
-        SectionOfSlug(slug) is { } section && section.Key != "processing" && slug != "pay-items";
+        SectionOfSlug(slug) is { } section && section.Key is not ("processing" or "settlement") && slug != "pay-items";
+
+    /// <summary>The Final Settlement preview pages that were replaced by the live screens (old links still work).</summary>
+    public static string? ReplacedPreview(string slug) => slug switch
+    {
+        "fs-history" => "/payroll/settlement",
+        "fs-resignation" => "/payroll/settlement/new?type=RESIGNATION",
+        "fs-termination" => "/payroll/settlement/new?type=TERMINATION",
+        "fs-encashment" => "/payroll/settlement/encashment",
+        _ => null
+    };
 
     /// <summary>"fs-resignation" -> "FsResignation" (the preview view's file name).</summary>
     public static string PreviewView(string slug) =>

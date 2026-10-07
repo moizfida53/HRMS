@@ -83,6 +83,11 @@ public static class StoredProcedure
 
     /// <summary>Pay items from an Excel file - every row or none.</summary>
     public const string PayItemImport = "Payroll.usp_PayItem_Import";
+
+    // ---- Final Settlement (db/39-40) ----
+
+    /// <summary>Final settlements and leave encashment: list, calculate, lines, submit, approve, pay, cancel.</summary>
+    public const string FinalSettlementManage = "Payroll.usp_FinalSettlement_Manage";
 }
 
 /// <summary>
