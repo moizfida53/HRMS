@@ -167,7 +167,6 @@ public sealed class PayrollController : Controller
     public async Task<IActionResult> Preview(string slug)
     {
         if (!Can(PermView) && !Can(PermSetupView)) return Forbid();
-        if (PayrollNav.ReplacedPreview(slug) is { } live) return LocalRedirect(Request.PathBase + live);
         if (string.IsNullOrEmpty(slug) || !PayrollNav.IsPreview(slug)) return NotFound();
 
         ViewData["ActiveRun"] = await RememberedRunAsync();

@@ -1,0 +1,22 @@
+// ============================================================================
+// HRMS Kuwait - main stylesheet
+// ----------------------------------------------------------------------------
+// Layered on top of Bootstrap 5.3, which is linked separately in _Layout.
+// This file is compiled to ../css/hrms.css.
+//
+//   npm run css          one-off build (compressed)
+//   npm run css:watch    rebuild on save (expanded, with source map)
+// ============================================================================
+
+@use "tokens";
+@use "mixins";
+@use "layout";
+@use "components";
+@use "documents";
+@use "dashboard";
+@use "payroll";
+@use "settlement";
+@use "auth";
+@use "utilities";
+@use "responsive";
+@use "rtl";

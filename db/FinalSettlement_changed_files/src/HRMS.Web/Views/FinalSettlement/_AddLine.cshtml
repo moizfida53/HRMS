@@ -1,0 +1,35 @@
+@model string
+@{
+    // Add a line by hand: an earning (air ticket, notice pay in lieu ...) or a recovery (asset not returned ...).
+    var recovery = Model == SettlementSection.Recovery;
+    var id = "fs-add-" + Model.ToLowerInvariant();
+}
+<details class="fs-add">
+    <summary>@Html.Icon("plus", 14)<span>@(recovery ? L["fs.add_recovery"] : L["fs.add_earning"])</span></summary>
+    <form class="fs-add__form" data-fs-add data-section="@Model" novalidate>
+        <div class="fs-add__desc">
+            <label class="form-label" for="@id-desc">@L["fs.description"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="@id-desc" name="description" maxlength="300" required list="@id-list"
+                   placeholder="@(recovery ? L["fs.recovery_placeholder"] : L["fs.earning_placeholder"])" />
+            <datalist id="@id-list">
+                @if (recovery)
+                {
+                    <option value="@L["fs.sugg_asset"]"></option>
+                    <option value="@L["fs.sugg_notice_shortfall"]"></option>
+                    <option value="@L["fs.sugg_advance"]"></option>
+                }
+                else
+                {
+                    <option value="@L["fs.sugg_ticket"]"></option>
+                    <option value="@L["fs.sugg_notice_pay"]"></option>
+                    <option value="@L["fs.sugg_bonus"]"></option>
+                }
+            </datalist>
+        </div>
+        <div class="fs-add__amt">
+            <label class="form-label" for="@id-amt">@L["pr.amount_kwd"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control pr-input-num" id="@id-amt" name="amount" type="number" inputmode="decimal" min="0.001" step="0.001" required />
+        </div>
+        <button type="submit" class="btn btn-outline-primary fs-add__btn">@Html.Icon("plus", 15)<span>@L["fs.add"]</span></button>
+    </form>
+</details>

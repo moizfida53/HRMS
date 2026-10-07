@@ -1,0 +1,82 @@
+@model SettlementListPageModel
+@{
+    var encashment = Model.Mode == "encashment";
+    ViewData["Title"] = encashment ? "Leave Encashment" : "Final Settlement";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settlement";
+    ViewData["Subtitle"] = encashment ? L["fs.encashment_subtitle"] : L["fs.list_subtitle"];
+    var status = Model.Status is "OPEN" or "DRAFT" or "PENDING" or "APPROVED" or "PAID" or "CANCELLED" ? Model.Status : "ALL";
+    var type = Model.Type is "EXIT" or "ENCASHMENT" ? Model.Type : "";
+    var form = ViewData["Form"] as SettlementFormModel;
+}
+@await Html.PartialAsync("~/Views/Payroll/_Tabs.cshtml", encashment ? "fs-encashment" : "fs-list")
+
+<div class="pr-stack fs-page" data-fs-page="list"
+     data-urls-grid="@Url.Action("Grid", "FinalSettlement")"
+     data-urls-kpis="@(encashment ? "" : Url.Action("Kpis", "FinalSettlement"))"
+     data-urls-save="@Url.Action("Save", "FinalSettlement")"
+     data-urls-details="@Url.Action("Details", "FinalSettlement", new { id = 0 })"
+     data-fixed-type="@(encashment ? "ENCASHMENT" : "")">
+
+    @if (encashment)
+    {
+        <div class="pr-banner pr-banner--info">
+            @Html.Icon("info", 18)
+            <div><strong>@L["fs.encashment_banner_title"]</strong> @L["fs.encashment_banner_text"]</div>
+        </div>
+        @if (form is not null)
+        {
+            <section class="hrms-card">
+                <div class="pr-card-body">
+                    <h2 class="pr-card-title">@L["fs.new_leave_encashment"]</h2>
+                    @await Html.PartialAsync("_Form", form)
+                </div>
+            </section>
+        }
+    }
+    else
+    {
+        <div data-fs-kpis aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    }
+
+    <section class="hrms-card" data-fs-list>
+        <div class="hrms-card__toolbar">
+            <div class="hrms-card__filters">
+                <label class="hrms-search" style="max-width:300px;flex:1 1 200px">
+                    @Html.Icon("search", 16)
+                    <input type="search" data-fs-search autocomplete="off" value="@Model.Search" placeholder="@L["fs.search_placeholder"]" aria-label="@L["fs.search_placeholder"]" />
+                </label>
+                @if (!encashment)
+                {
+                    <select class="form-select" data-fs-type-filter aria-label="@L["fs.type"]">
+                        <option value="" selected="@(type == "")">@L["pr.all_types"]</option>
+                        <option value="EXIT" selected="@(type == "EXIT")">@L["fs.exit_settlements"]</option>
+                        <option value="ENCASHMENT" selected="@(type == "ENCASHMENT")">@L["fs.type_encashment"]</option>
+                    </select>
+                }
+                <select class="form-select" data-fs-status aria-label="@L["common.status"]">
+                    <option value="ALL" selected="@(status == "ALL")">@L["common.all_statuses"]</option>
+                    <option value="OPEN" selected="@(status == "OPEN")">@L["fs.status_open"]</option>
+                    <option value="DRAFT" selected="@(status == "DRAFT")">@L["fs.status_draft"]</option>
+                    <option value="PENDING" selected="@(status == "PENDING")">@L["fs.status_pending"]</option>
+                    <option value="APPROVED" selected="@(status == "APPROVED")">@L["fs.status_approved"]</option>
+                    <option value="PAID" selected="@(status == "PAID")">@L["fs.status_paid"]</option>
+                    <option value="CANCELLED" selected="@(status == "CANCELLED")">@L["fs.status_cancelled"]</option>
+                </select>
+            </div>
+            <div class="hrms-card__count" data-fs-count></div>
+        </div>
+        <div data-fs-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@Html.AntiForgeryToken()
+
+@section PageActions {
+    @if (Model.Rights.CanProcess && !encashment)
+    {
+        <a class="btn btn-primary" href="@Url.Action("New", "FinalSettlement")">@Html.Icon("plus", 15)<span>@L["fs.new_settlement"]</span></a>
+    }
+}
+@section Scripts {
+    <script src="~/js/settlement.js" asp-append-version="true"></script>
+}

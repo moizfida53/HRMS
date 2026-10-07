@@ -1,0 +1,19 @@
+@model int
+@{
+    // The steps of a settlement - 0 Employee, 1 Calculation, 2 Approval, 3 Payment.
+    var steps = new[] { L["fs.step_employee"], L["fs.step_calculation"], L["fs.step_approval"], L["fs.step_payment"] };
+}
+<div class="hrms-wizard-steps fs-steps" role="list">
+    @for (var i = 0; i < steps.Length; i++)
+    {
+        if (i > 0)
+        {
+            <div class="hrms-wizard-step__line" aria-hidden="true"></div>
+        }
+        var state = i < Model ? "is-complete" : i == Model ? "is-active" : null;
+        <div class="hrms-wizard-step @state" role="listitem" aria-current="@(i == Model ? "step" : null)">
+            <span class="hrms-wizard-step__circle">@if (i < Model) { @Html.Icon("check", 14) } else { @(i + 1) }</span>
+            <span class="hrms-wizard-step__label">@steps[i]</span>
+        </div>
+    }
+</div>

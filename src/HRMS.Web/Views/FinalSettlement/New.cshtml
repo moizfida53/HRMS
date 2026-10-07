@@ -1,0 +1,40 @@
+@model SettlementFormModel
+@{
+    ViewData["Title"] = "New Settlement";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settlement";
+    ViewData["Subtitle"] = L["fs.new_subtitle"];
+}
+@await Html.PartialAsync("~/Views/Payroll/_Tabs.cshtml", "fs-new")
+
+<div class="fs-page fs-new" data-fs-page="new"
+     data-urls-save="@Url.Action("Save", "FinalSettlement")"
+     data-urls-details="@Url.Action("Details", "FinalSettlement", new { id = 0 })">
+    @await Html.PartialAsync("_Steps", 0)
+    <div class="fs-layout">
+        <section class="hrms-card fs-main">
+            <div class="pr-card-body">
+                <h2 class="pr-card-title">@L["fs.step_1_employee"]</h2>
+                @await Html.PartialAsync("_Form", Model)
+            </div>
+        </section>
+        <aside class="fs-side">
+            <section class="hrms-card">
+                <div class="pr-card-body">
+                    <h2 class="pr-card-title">@L["fs.how_it_is_calculated"]</h2>
+                    <ol class="fs-howto">
+                        <li><strong>@L["fs.pending_salary"]</strong> @L["fs.howto_pending"]</li>
+                        <li><strong>@L["fs.leave_encashment"]</strong> @L["fs.howto_leave"]</li>
+                        <li><strong>@L["fs.indemnity"]</strong> @L["fs.howto_indemnity"]</li>
+                        <li><strong>@L["fs.recoveries"]</strong> @L["fs.howto_recoveries"]</li>
+                    </ol>
+                    <p class="hrms-muted hrms-text-sm mb-0">@L["fs.howto_note"]</p>
+                </div>
+            </section>
+        </aside>
+    </div>
+</div>
+@Html.AntiForgeryToken()
+@section Scripts {
+    <script src="~/js/settlement.js" asp-append-version="true"></script>
+}
