@@ -452,7 +452,8 @@ Register, Validation or Approval (a closed payroll on Approval, a cancelled one
 on Register); the other stage pages are not offered, and a link to a stage the
 payroll is not at redirects to the right one. Create Payroll is the button on
 Payrolls. The old combined page `/payroll/calendar` redirects to Payrolls. The
-counts are cached for 20 seconds per user. Run `db/45_Payroll_Processing_Sections_Labels.sql`
+counts are cached for 20 seconds per user and refreshed at once after any
+payroll or payslip action. Run `db/45_Payroll_Processing_Sections_Labels.sql`
 for the new labels.
 
 ### How a payroll moves
@@ -538,8 +539,11 @@ opens one employee).
 
 ### Payslips (live)
 
-**Payroll > Payslips** has three tabs, and every employee gets **My Payslips**
-in the sidebar:
+**Payroll > Payslips** opens in the sidebar into three sub-sections (like Payroll
+Processing), each with its figure — payslips **to generate** (closed payrolls,
+not generated or outdated), payslips **generated**, and emails **to send** (up to
+date, not sent or failed, with an address). Every employee also gets
+**My Payslips** in the sidebar:
 
 | Page | URL | What it does |
 |---|---|---|
@@ -554,7 +558,7 @@ Run after 34–41, in this order:
 | # | Script | What it does |
 |---|---|---|
 | 42 | `db/42_Payslip_Tables.sql` | `Payroll.Payslips` (one row per employee and payroll: number, language, the net it showed, email delivery, views); permissions PAYROLL_SLIP_VIEW / GENERATE / EMAIL (to SYSADMIN) |
-| 43 | `db/43_Payslip_StoredProcedures.sql` | `Payroll.usp_Payslip_Manage` — RUNS / SUMMARY / LIST / GET / GENERATE / QUEUE_EMAIL / VIEWED, and EMAIL_CLAIM / EMAIL_RESULT for the email sender |
+| 43 | `db/43_Payslip_StoredProcedures.sql` | `Payroll.usp_Payslip_Manage` — RUNS / SUMMARY / LIST / GET / GENERATE / QUEUE_EMAIL / VIEWED / NAV_COUNTS (sidebar figures), and EMAIL_CLAIM / EMAIL_RESULT for the email sender |
 | 44 | `db/44_Payslip_Labels.sql` | English + Arabic labels (`ps.*`, `js.ps_*`, `msg.ps_*`) — same re-run rules as 36 / 41 |
 
 > **Sign out and in again** after script 42 so the new permissions are loaded.

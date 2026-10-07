@@ -87,6 +87,14 @@ public sealed class PayslipSummary
     public DateTime? LastGeneratedDate { get; init; }
 }
 
+/// <summary>NAV_COUNTS - the figures next to the Payslips sub-sections in the sidebar.</summary>
+public sealed class PayslipNavCounts
+{
+    public int ToGenerateCount { get; init; }
+    public int GeneratedCount { get; init; }
+    public int ToEmailCount { get; init; }
+}
+
 /// <summary>LIST - one employee of a payroll with their payslip and email status.</summary>
 public sealed class PayslipRow
 {

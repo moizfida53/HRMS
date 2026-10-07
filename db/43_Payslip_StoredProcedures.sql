@@ -20,6 +20,10 @@
                      sent, or the chosen employees (@Resend = 1: also
                      those already sent)
        VIEWED        the employee opened their payslip in My Payslips
+       NAV_COUNTS    the figures next to the Payslips sub-sections in the
+                     sidebar: payslips to generate (closed payrolls, not
+                     generated or outdated), payslips generated, emails to
+                     send (up to date, not sent or failed, with an address)
        EMAIL_CLAIM   (the email sender) take the next queued emails;
                      emails stuck in SENDING for 15 minutes are taken again
        EMAIL_RESULT  (the email sender) record SENT or FAILED
@@ -95,7 +99,7 @@ BEGIN
     DECLARE @Now DATETIME2(0) = SYSUTCDATETIME();
     DECLARE @CompanyCsv NVARCHAR(2002) = CASE WHEN @CompanyIds IS NULL THEN NULL ELSE ',' + REPLACE(@CompanyIds, ' ', '') + ',' END;
 
-    IF @Action NOT IN ('RUNS', 'SUMMARY', 'LIST', 'GET', 'GENERATE', 'QUEUE_EMAIL', 'VIEWED', 'EMAIL_CLAIM', 'EMAIL_RESULT')
+    IF @Action NOT IN ('RUNS', 'SUMMARY', 'LIST', 'GET', 'GENERATE', 'QUEUE_EMAIL', 'VIEWED', 'EMAIL_CLAIM', 'EMAIL_RESULT', 'NAV_COUNTS')
     BEGIN
         SELECT @ResultCode = 'INVALID_ACTION', @ResultMessage = N'Unsupported action.';
         RETURN;
@@ -145,6 +149,26 @@ BEGIN
         WHERE  PayslipId = @Id AND Deleted = 0 AND EmailStatus = 'SENDING';
         IF @@ROWCOUNT = 0
             SELECT @ResultCode = 'NOT_FOUND', @ResultMessage = N'This payslip email is no longer being sent.';
+        RETURN;
+    END;
+
+    /* ======================= NAV_COUNTS (sidebar) =============== */
+    IF @Action = 'NAV_COUNTS'
+    BEGIN
+        SELECT  COUNT(CASE WHEN r.Stage = 'CLOSED' AND (p.PayslipId IS NULL OR p.NetPay <> re.NetPay OR p.GeneratedDate < r.ClosedDate) THEN 1 END) AS ToGenerateCount,
+                COUNT(p.PayslipId)                                                                                                   AS GeneratedCount,
+                COUNT(CASE WHEN r.Stage = 'CLOSED' AND p.PayslipId IS NOT NULL AND p.EmailStatus IN ('NOT_SENT', 'FAILED')
+                                AND p.NetPay = re.NetPay AND (r.ClosedDate IS NULL OR p.GeneratedDate >= r.ClosedDate)
+                                AND em.Email IS NOT NULL THEN 1 END)                                                                AS ToEmailCount
+        FROM    [Payroll].[PayrollRunEmployees] AS re
+        JOIN    [Payroll].[PayrollRuns]         AS r ON r.PayrollRunId = re.PayrollRunId
+        JOIN    [Employee].[Employees]          AS e ON e.EmployeeId = re.EmployeeId
+        LEFT JOIN [Payroll].[Payslips]          AS p ON p.PayrollRunId = re.PayrollRunId AND p.EmployeeId = re.EmployeeId AND p.Deleted = 0
+        CROSS APPLY (SELECT COALESCE(NULLIF(LTRIM(RTRIM(e.WorkEmail)), N''), NULLIF(LTRIM(RTRIM(e.PersonalEmail)), N'')) AS Email) AS em
+        WHERE   re.Deleted = 0 AND re.IsExcluded = 0 AND (r.RunType = 'REGULAR' OR re.LineCount > 0)
+          AND   r.Deleted = 0 AND r.Stage IN ('VALIDATION', 'AWAITING_APPROVAL', 'CLOSED')
+          AND   (@CompanyId  IS NULL OR r.CompanyId = @CompanyId)
+          AND   (@CompanyCsv IS NULL OR CHARINDEX(',' + CAST(r.CompanyId AS VARCHAR(12)) + ',', @CompanyCsv) > 0);
         RETURN;
     END;
 

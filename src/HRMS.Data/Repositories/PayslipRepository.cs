@@ -16,6 +16,7 @@ public interface IPayslipRepository
     Task<IReadOnlyList<PayslipRun>> RunsAsync(int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<PayslipSummary?> SummaryAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<PagedResult<PayslipRow>> ListAsync(PayslipListFilter filter, CancellationToken cancellationToken = default);
+    Task<PayslipNavCounts?> NavCountsAsync(int? companyId, string? companyIds, CancellationToken cancellationToken = default);
 
     /// <summary>The payslip of one employee in one payroll; <paramref name="selfEmployeeId"/> = My Payslips (own, generated, closed only).</summary>
     Task<Payslip?> GetAsync(long runId, long employeeId, int? companyId, string? companyIds, long? selfEmployeeId = null,
@@ -54,6 +55,13 @@ public sealed class PayslipRepository : IPayslipRepository
         Scope(p, companyId, companyIds);
         p.Add("@RunId", runId, DbType.Int64);
         return _sql.QuerySingleOrDefaultAsync<PayslipSummary>(StoredProcedure.PayslipManage, p, cancellationToken);
+    }
+
+    public Task<PayslipNavCounts?> NavCountsAsync(int? companyId, string? companyIds, CancellationToken cancellationToken = default)
+    {
+        var p = PayrollRunRepository.Envelope("NAV_COUNTS");
+        Scope(p, companyId, companyIds);
+        return _sql.QuerySingleOrDefaultAsync<PayslipNavCounts>(StoredProcedure.PayslipManage, p, cancellationToken);
     }
 
     public async Task<PagedResult<PayslipRow>> ListAsync(PayslipListFilter filter, CancellationToken cancellationToken = default)

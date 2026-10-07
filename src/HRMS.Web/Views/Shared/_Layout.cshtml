@@ -140,36 +140,35 @@
                     <span>@L["layout.payroll"]</span>@Html.Icon("chevron-down", 14)
                 </button>
                 <div class="collapse hrms-nav-group__items @(openPayroll ? "show" : null)" id="nav-payroll">
+                    @{ HRMS.Web.Services.PayrollNavCountsResult? navCounts = null; }
                     @foreach (var section in HRMS.Web.Models.Payroll.PayrollNav.Sections)
                     {
                         var sectionActive = openPayroll && section.Key == (ViewData["PayrollSection"] as string);
-                        if (section.Key == "processing")
+                        if (section.SubNav)
                         {
-                            // Payroll Processing opens into its sub-sections, each with its record count
-                            // (open payrolls, active calendars, open periods this year; none for History).
-                            var counts = await PayrollNavCounts.GetAsync();
-                            var activeSub = HRMS.Web.Models.Payroll.PayrollNav.ProcessingSub(ViewData["PayrollPage"] as string);
+                            // Payroll Processing and Payslips open into their pages (sub-sections), each with its
+                            // record count: open payrolls, active calendars, open periods this year; payslips to
+                            // generate, payslips generated, emails to send. Payroll History has none.
+                            navCounts ??= await PayrollNavCounts.GetAsync();
+                            var activeSub = HRMS.Web.Models.Payroll.PayrollNav.SubSection(ViewData["PayrollPage"] as string);
+                            var subId = "nav-sub-" + section.Key;
                             <button type="button" class="hrms-nav-link hrms-nav-parent @(sectionActive ? "is-open" : "collapsed")"
-                                    data-bs-toggle="collapse" data-bs-target="#nav-processing"
-                                    aria-expanded="@(sectionActive ? "true" : "false")" aria-controls="nav-processing">
+                                    data-bs-toggle="collapse" data-bs-target="#@subId"
+                                    aria-expanded="@(sectionActive ? "true" : "false")" aria-controls="@subId">
                                 @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@Html.Icon("chevron-down", 14, "hrms-nav-parent__chev")
                             </button>
-                            <div class="collapse hrms-nav-sub @(sectionActive ? "show" : null)" id="nav-processing">
+                            <div class="collapse hrms-nav-sub @(sectionActive ? "show" : null)" id="@subId">
                                 @foreach (var tab in section.Tabs)
                                 {
-                                    int? count = tab.Slug switch
+                                    var count = navCounts?.For(tab.Slug);
+                                    var title = count is null ? null : tab.Slug switch
                                     {
-                                        "payrolls" => counts?.OpenPayrolls,
-                                        "calendars" => counts?.Calendars,
-                                        "pay-periods" => counts?.OpenPeriods,
-                                        _ => null
-                                    };
-                                    var title = count switch
-                                    {
-                                        null => null,
-                                        _ when tab.Slug == "payrolls" => L["layout.nav_count_payrolls", count],
-                                        _ when tab.Slug == "calendars" => L["layout.nav_count_calendars", count],
-                                        _ => L["layout.nav_count_periods", count]
+                                        "payrolls" => L["layout.nav_count_payrolls", count],
+                                        "calendars" => L["layout.nav_count_calendars", count],
+                                        "pay-periods" => L["layout.nav_count_periods", count],
+                                        "slip-generate" => L["layout.nav_count_slips_to_generate", count],
+                                        "slip-employee" => L["layout.nav_count_slips_generated", count],
+                                        _ => L["layout.nav_count_slips_to_email", count]
                                     };
                                     var subActive = sectionActive && activeSub == tab.Slug;
                                     <a class="hrms-nav-link hrms-nav-sub__link @(subActive ? "is-active" : null)"

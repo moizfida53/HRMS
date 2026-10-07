@@ -8,6 +8,8 @@
     ViewData["Title"] = mode switch { "employees" => "Employee Payslips", "email" => "Email Payslips", _ => "Generate Payslips" };
     ViewData["ActiveArea"] = "payroll";
     ViewData["PayrollSection"] = "payslips";
+    // Payslips sub-section in the sidebar (Generate / Employee / Email Payslips) - no tab rail.
+    ViewData["PayrollPage"] = Model.Tab;
     ViewData["Subtitle"] = mode switch
     {
         "employees" => L["ps.employees_subtitle"],
@@ -18,7 +20,6 @@
     var pageUrl = Url.Action(mode switch { "employees" => "Employees", "email" => "Email", _ => "Generate" }, "Payslips");
     var withCompany = Model.ManyCompanies;
 }
-@await Html.PartialAsync("~/Views/Payroll/_Tabs.cshtml", Model.Tab)
 
 <div class="pr-stack ps-page" data-ps-page="@mode"
      data-urls-page="@pageUrl"

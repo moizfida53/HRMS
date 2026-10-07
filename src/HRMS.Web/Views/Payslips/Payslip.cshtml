@@ -12,8 +12,9 @@
     var both = en && ar;
 
     ViewData["Title"] = "Payslip";
-    ViewData["ActiveArea"] = "payroll";
-    ViewData["PayrollSection"] = "payslips";
+    ViewData["ActiveArea"] = Model.IsSelf ? "my-payslips" : "payroll";
+    ViewData["PayrollSection"] = Model.IsSelf ? null : "payslips";
+    ViewData["PayrollPage"] = "slip-view";
     ViewData["Subtitle"] = $"{PayrollFormat.EmployeeName(L, s.EmployeeName, s.ArabicName)} · {PayslipFormat.Period(L, s)}";
     ViewData["BackUrl"] = Model.BackUrl;
     ViewData["BackLabel"] = Model.IsSelf ? L["ps.back_to_my_payslips"] : L["ps.back_to_payslips"];

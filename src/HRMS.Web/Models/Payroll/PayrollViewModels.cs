@@ -14,7 +14,8 @@ public static class PayrollNav
 {
     public sealed record Tab(string Slug, string Title, bool IsLive = false);
 
-    public sealed record Section(string Key, string Title, string Icon, IReadOnlyList<Tab> Tabs);
+    /// <param name="SubNav">The sidebar opens the section into its pages (sub-sections) instead of a tab rail.</param>
+    public sealed record Section(string Key, string Title, string Icon, IReadOnlyList<Tab> Tabs, bool SubNav = false);
 
     public static readonly IReadOnlyList<Section> Sections =
     [
@@ -23,12 +24,13 @@ public static class PayrollNav
         [
             new("payrolls", "Payrolls", true), new("calendars", "Payroll Calendar", true),
             new("pay-periods", "Period", true), new("history", "Payroll History", true)
-        ]),
+        ], SubNav: true),
         new("payitems", "Pay Items", "card", [new("pay-items", "Pay Items", true)]),
         new("settlement", "Final Settlement", "exit",
             [new("fs-list", "Settlements", true), new("fs-new", "New Settlement", true), new("fs-encashment", "Leave Encashment", true)]),
         new("payslips", "Payslips", "receipt",
-            [new("slip-generate", "Generate Payslips", true), new("slip-employee", "Employee Payslips", true), new("slip-email", "Email Payslips", true)]),
+            [new("slip-generate", "Generate Payslips", true), new("slip-employee", "Employee Payslips", true), new("slip-email", "Email Payslips", true)],
+            SubNav: true),
         new("bank", "Bank Processing", "bank",
             [new("bk-file", "Bank File"), new("bk-register", "Payment Register"), new("bk-history", "Payment History")]),
         new("accounting", "Accounting", "book",
@@ -61,11 +63,13 @@ public static class PayrollNav
     };
 
     /// <summary>
-    /// The Payroll Processing sub-section a page belongs to (sidebar highlight): a payroll's
-    /// stage pages and Create Payroll belong to Payrolls.
+    /// The sidebar sub-section a page belongs to (highlight): a payroll's stage pages and
+    /// Create Payroll belong to Payrolls, a payslip to Employee Payslips.
     /// </summary>
-    public static string? ProcessingSub(string? slug) => slug switch
+    public static string? SubSection(string? slug) => slug switch
     {
+        "slip-generate" or "slip-employee" or "slip-email" => slug,
+        "slip-view" => "slip-employee",
         "payrolls" or "create" or "register" or "validation" or "approval" => "payrolls",
         "calendars" or "calendar" => "calendars",
         "pay-periods" => "pay-periods",

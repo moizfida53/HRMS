@@ -7,6 +7,7 @@ using HRMS.Web.Localization;
 using HRMS.Web.Models.Organization;
 using HRMS.Web.Models.Payroll;
 using HRMS.Web.Security;
+using HRMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS.Web.Controllers;
@@ -852,8 +853,15 @@ public sealed class PayrollController : Controller
         };
     }
 
-    private IActionResult Result(SaveResult result) =>
-        Json(result.Success ? ActionResponse.Ok(result.Id, result.Message) : ActionResponse.Failed(result.Message, result.ErrorCode));
+    private IActionResult Result(SaveResult result)
+    {
+        if (result.Success)
+        {
+            // the sidebar figures (open payrolls, payslips to generate / email) may have changed
+            HttpContext.RequestServices.GetService<IPayrollNavCounts>()?.Invalidate();
+        }
+        return Json(result.Success ? ActionResponse.Ok(result.Id, result.Message) : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
 
     private IActionResult Denied() =>
         Json(ActionResponse.Failed("You do not have permission to do this.", "FORBIDDEN"));
