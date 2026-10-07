@@ -7,21 +7,32 @@
 }
 @await Html.PartialAsync("~/Views/Payroll/_Tabs.cshtml", "fs-new")
 
-<div class="fs-page fs-new" data-fs-page="new"
+<div class="fs-page fs-new d-flex flex-column gap-3" data-fs-page="new"
      data-urls-save="@Url.Action("Save", "FinalSettlement")"
      data-urls-details="@Url.Action("Details", "FinalSettlement", new { id = 0 })">
     @await Html.PartialAsync("_Steps", 0)
-    <div class="fs-layout">
-        <section class="hrms-card fs-main">
-            <div class="pr-card-body">
-                <h2 class="pr-card-title">@L["fs.step_1_employee"]</h2>
-                @await Html.PartialAsync("_Form", Model)
+    <div class="row g-3 align-items-start">
+        <section class="col-12 col-xl-8">
+            <div class="card fs-section">
+                <header class="card-header fs-section__head">
+                    <span class="fs-section__num">1</span>
+                    <div class="flex-grow-1 min-w-0">
+                        <h2 class="fs-section__title">@L["fs.step_1_employee"]</h2>
+                        <p class="fs-section__hint">@L["fs.new_subtitle"]</p>
+                    </div>
+                </header>
+                <div class="card-body">
+                    @await Html.PartialAsync("_Form", Model)
+                </div>
             </div>
         </section>
-        <aside class="fs-side">
-            <section class="hrms-card">
-                <div class="pr-card-body">
-                    <h2 class="pr-card-title">@L["fs.how_it_is_calculated"]</h2>
+        <aside class="col-12 col-xl-4">
+            <section class="card fs-section">
+                <header class="card-header fs-section__head">
+                    <span class="fs-section__icon" aria-hidden="true">@Html.Icon("info", 16)</span>
+                    <h2 class="fs-section__title flex-grow-1">@L["fs.how_it_is_calculated"]</h2>
+                </header>
+                <div class="card-body">
                     <ol class="fs-howto">
                         <li><strong>@L["fs.pending_salary"]</strong> @L["fs.howto_pending"]</li>
                         <li><strong>@L["fs.leave_encashment"]</strong> @L["fs.howto_leave"]</li>
@@ -35,6 +46,9 @@
     </div>
 </div>
 @Html.AntiForgeryToken()
+@section Styles {
+    <link rel="stylesheet" href="~/css/settlement.css" asp-append-version="true" />
+}
 @section Scripts {
     <script src="~/js/settlement.js" asp-append-version="true"></script>
 }

@@ -4,8 +4,8 @@
   "private": true,
   "description": "SCSS build for the HRMS Kuwait web front end.",
   "scripts": {
-    "css": "sass --no-source-map --style=compressed wwwroot/scss/hrms.scss wwwroot/css/hrms.min.css && sass --no-source-map --style=expanded wwwroot/scss/hrms.scss wwwroot/css/hrms.css",
-    "css:watch": "sass --watch --style=expanded wwwroot/scss/hrms.scss wwwroot/css/hrms.css"
+    "css": "sass --no-source-map --style=compressed wwwroot/scss/hrms.scss wwwroot/css/hrms.min.css && sass --no-source-map --style=expanded wwwroot/scss/hrms.scss wwwroot/css/hrms.css && sass --no-source-map --style=compressed wwwroot/scss/settlement.scss wwwroot/css/settlement.min.css && sass --no-source-map --style=expanded wwwroot/scss/settlement.scss wwwroot/css/settlement.css",
+    "css:watch": "sass --watch --style=expanded wwwroot/scss/hrms.scss:wwwroot/css/hrms.css wwwroot/scss/settlement.scss:wwwroot/css/settlement.css"
   },
   "devDependencies": {
     "sass": "^1.83.0"

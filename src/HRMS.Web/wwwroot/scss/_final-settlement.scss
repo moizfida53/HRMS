@@ -1,0 +1,666 @@
+// ============================================================================
+// Final Settlement (Payroll > Final Settlement, db/39-40)
+// ----------------------------------------------------------------------------
+// Compiled on its own to css/settlement.css and loaded only by the Final
+// Settlement views (@section Styles), so it never depends on hrms.css being
+// rebuilt. Structure comes from the Bootstrap grid and utilities in the views
+// (row / col-xl-8 / col-xl-4, d-flex, gap-*); this file gives the look:
+// a header strip with the net payable, stat tiles, section cards with a
+// header, rows and a total footer, and a sticky summary column.
+// The statement prints on A4, English and Arabic side by side.
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+$fs-radius: 12px;
+$fs-shadow: 0 1px 2px rgba($ink-900, .04), 0 1px 3px rgba($ink-900, .06);
+
+.fs-page { min-width: 0; }
+.min-w-0 { min-width: 0; }
+
+// ------------------------------------------------------------ hero ----
+.fs-hero {
+  border: 1px solid $line-200;
+  border-radius: $fs-radius;
+  box-shadow: $fs-shadow;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, $blue-050 0, $white 120px);
+
+  > .card-body { padding: 1.25rem 1.5rem; }
+
+  @include down("md") {
+    > .card-body { padding: 1rem; }
+  }
+
+  &__avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: $navy-900;
+    color: $white;
+    font-family: Lexend, "Public Sans", sans-serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    box-shadow: 0 0 0 4px $white, 0 0 0 5px $blue-200;
+  }
+
+  &__name {
+    font-family: Lexend, "Public Sans", sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: $ink-900;
+    overflow-wrap: anywhere;
+  }
+
+  &__sub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .25rem .6rem;
+    margin-top: .3rem;
+    font-size: .82rem;
+    color: $ink-500;
+  }
+
+  &__net {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .1rem;
+    padding: .75rem 1.1rem;
+    border-radius: 10px;
+    background: $navy-900;
+    color: $white;
+    min-width: 220px;
+
+    @include up("lg") { align-items: flex-end; text-align: end; }
+
+    &.is-negative { background: $red-700; }
+  }
+
+  &__net-label { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .75; }
+  &__net-value { font-family: Lexend, "Public Sans", sans-serif; font-size: 1.45rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  &__net-note { font-size: .75rem; opacity: .85; }
+
+  &__reason {
+    display: flex;
+    gap: .5rem;
+    align-items: flex-start;
+    padding: .6rem .8rem;
+    border-radius: 8px;
+    background: $surface-2;
+    border: 1px solid $line-100;
+    font-size: .82rem;
+    color: $ink-700;
+
+    svg { flex: 0 0 auto; margin-top: 3px; color: $ink-400; }
+  }
+}
+
+// a stat tile (hero facts)
+.fs-fact {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: .6rem .8rem;
+  border: 1px solid $line-200;
+  border-radius: 8px;
+  background: $white;
+
+  &__label { font-size: .68rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: $ink-500; }
+  &__value { margin-top: .15rem; font-weight: 600; color: $ink-900; font-variant-numeric: tabular-nums; }
+  &__note { font-size: .72rem; color: $ink-500; }
+}
+
+// ---------------------------------------------------------- sections ----
+.fs-section {
+  border: 1px solid $line-200;
+  border-radius: $fs-radius;
+  box-shadow: $fs-shadow;
+  overflow: hidden;
+  background: $white;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .9rem 1.25rem;
+    background: $white;
+    border-bottom: 1px solid $line-100;
+
+    @include down("sm") { padding: .8rem 1rem; gap: .6rem; }
+  }
+
+  &__num,
+  &__icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: $blue-050;
+    color: $blue-600;
+    font-weight: 700;
+    font-size: .85rem;
+  }
+
+  &__num--neg { background: $red-050; color: $red-700; }
+  &__icon { background: $surface; color: $ink-600; }
+
+  &__title {
+    margin: 0;
+    font-family: Lexend, "Public Sans", sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $ink-900;
+  }
+
+  &__hint { margin: .1rem 0 0; font-size: .78rem; color: $ink-500; }
+
+  &__total {
+    flex: 0 0 auto;
+    padding: .3rem .7rem;
+    border-radius: 999px;
+    background: $surface;
+    font-family: Lexend, "Public Sans", sans-serif;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: $ink-900;
+    white-space: nowrap;
+
+    &.pr-neg { background: $red-050; color: $red-700; }
+  }
+
+  &__note {
+    display: flex;
+    gap: .45rem;
+    align-items: flex-start;
+    margin: 0 1.25rem .9rem;
+    padding: .5rem .75rem;
+    border-radius: 8px;
+    background: $blue-050;
+    font-size: .78rem;
+    color: $blue-700;
+
+    svg { flex: 0 0 auto; margin-top: 2px; }
+  }
+
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .8rem 1.25rem;
+    background: $surface-2;
+    border-top: 1px solid $line-200;
+    font-weight: 600;
+    color: $ink-900;
+
+    small { margin-inline-start: .4rem; font-weight: 400; color: $ink-500; font-variant-numeric: tabular-nums; }
+    strong { font-family: Lexend, "Public Sans", sans-serif; font-size: 1.05rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  }
+
+  &__add { padding: .25rem 1.25rem 1rem; }
+
+  > .card-body { padding: 1rem 1.25rem; }
+
+  &--edit .fs-section__head { border-bottom: 0; }
+  &--edit .collapse.show + *,
+  &--edit .collapse.show { border-top: 1px solid $line-100; }
+}
+
+// calculation rows
+.fs-rows {
+  list-style: none;
+  margin: 0;
+  padding: .25rem 1.25rem;
+
+  @include down("sm") { padding: .25rem 1rem; }
+}
+
+.fs-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem 1rem;
+  padding: .7rem 0;
+  border-bottom: 1px dashed $line-200;
+
+  &:last-child { border-bottom: 0; }
+
+  &__text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+
+  &__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    font-size: .88rem;
+    font-weight: 500;
+    color: $ink-900;
+    overflow-wrap: anywhere;
+  }
+
+  &__sub { margin-top: .1rem; font-size: .75rem; color: $ink-500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+  &__amt {
+    flex: 0 0 auto;
+    min-width: 6.5rem;
+    text-align: end;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: $ink-900;
+    white-space: nowrap;
+  }
+
+  &__act { flex: 0 0 auto; }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .2rem .55rem;
+    font-size: .75rem;
+    border: 1px solid $line-200;
+  }
+
+  &--sub .fs-row__title { color: $ink-700; }
+
+  &.is-waived {
+    .fs-row__title, .fs-row__sub { opacity: .55; }
+    .fs-row__amt { text-decoration: line-through; color: $ink-400; }
+  }
+
+  @include down("sm") {
+    flex-wrap: wrap;
+    &__text { flex-basis: calc(100% - 7.5rem); }
+    &__act { flex-basis: 100%; }
+  }
+}
+
+.fs-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: .05rem .45rem;
+  border-radius: 999px;
+  background: $amber-050;
+  color: $amber-700;
+  font-size: .68rem;
+  font-weight: 600;
+
+  &--muted { background: $surface; color: $ink-500; }
+}
+
+.fs-pct {
+  display: inline-block;
+  padding: .1rem .55rem;
+  border-radius: 999px;
+  background: $purple-050;
+  color: $purple-700;
+}
+
+.fs-empty {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 1rem 1.25rem;
+  padding: .75rem 1rem;
+  border: 1px dashed $line-300;
+  border-radius: 8px;
+  color: $ink-500;
+  font-size: .82rem;
+}
+
+// leave metrics
+.fs-metric {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: .7rem .85rem;
+  border-radius: 8px;
+  background: $surface-2;
+  border: 1px solid $line-100;
+
+  &__label { font-size: .72rem; color: $ink-500; }
+  &__value { margin-top: .15rem; font-family: Lexend, "Public Sans", sans-serif; font-weight: 600; font-size: 1.05rem; color: $ink-900; font-variant-numeric: tabular-nums; }
+  &__note { font-size: .7rem; color: $ink-400; font-variant-numeric: tabular-nums; }
+}
+
+// add a line by hand
+.fs-add {
+  > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .75rem;
+    border: 1px dashed $blue-200;
+    border-radius: 999px;
+    cursor: pointer;
+    list-style: none;
+    font-size: .8rem;
+    font-weight: 600;
+    color: $blue-600;
+    background: $white;
+
+    &::-webkit-details-marker { display: none; }
+    &:hover { background: $blue-050; }
+  }
+
+  &[open] > summary { background: $blue-050; border-style: solid; }
+
+  &__form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .6rem .75rem;
+    align-items: end;
+    margin-top: .75rem;
+    padding: .9rem;
+    background: $surface-2;
+    border: 1px solid $line-100;
+    border-radius: 10px;
+
+    @include up("md") { grid-template-columns: minmax(0, 1fr) 150px auto; }
+  }
+
+  &__btn { white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
+}
+
+// ----------------------------------------------------------- side ----
+.fs-side {
+  @include up("xl") {
+    position: sticky;
+    top: calc(var(--hrms-topbar-height, 64px) + 1rem);
+  }
+}
+
+.fs-sum {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: .86rem;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .45rem 0;
+    border-bottom: 1px dashed $line-200;
+
+    span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: $ink-900; }
+  }
+
+  &__gross { font-weight: 600; border-bottom-style: solid !important; }
+}
+
+.fs-net {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-top: .9rem;
+  padding: .85rem 1rem;
+  border-radius: 10px;
+  background: $navy-900;
+  color: $white;
+  font-weight: 600;
+
+  strong { font-family: Lexend, "Public Sans", sans-serif; font-size: 1.25rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  &.is-negative { background: $red-700; }
+}
+
+.fs-calculated { margin: .4rem 0 0; font-size: .72rem; color: $ink-500; text-align: end; }
+
+.fs-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; }
+
+.fs-ack {
+  margin: 0;
+  padding: .65rem .8rem .65rem 2.2rem;
+  border: 1px solid $amber-600;
+  border-radius: 8px;
+  background: $amber-050;
+  font-size: .78rem;
+  color: $amber-700;
+
+  [dir="rtl"] & { padding: .65rem 2.2rem .65rem .8rem; }
+
+  &.is-invalid { border-color: $red-600; box-shadow: 0 0 0 3px rgba($red-600, .15); }
+}
+
+.fs-hint { margin: 0; font-size: .75rem; color: $ink-500; }
+
+.fs-history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 24rem;
+  overflow-y: auto;
+
+  li { padding: .55rem 0; border-bottom: 1px solid $line-100; font-size: .8rem; }
+  li:last-child { border-bottom: 0; }
+
+  &__head { display: flex; justify-content: space-between; gap: .5rem; color: $ink-900; }
+  &__amt { font-variant-numeric: tabular-nums; color: $ink-600; white-space: nowrap; }
+  &__meta { color: $ink-500; font-size: .72rem; }
+}
+
+// ----------------------------------------------------------- form ----
+.fs-form {
+  .hrms-fieldset { margin-bottom: 0; }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-top: 1rem;
+
+    .btn { display: inline-flex; align-items: center; gap: .4rem; }
+  }
+}
+
+.fs-info {
+  margin-top: 1rem;
+  padding: .9rem 1rem;
+  border: 1px solid $blue-200;
+  border-radius: 10px;
+  background: $blue-050;
+
+  .pr-banner { margin-bottom: .75rem; }
+  .pr-dl { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}
+
+.fs-howto {
+  margin: 0 0 .75rem;
+  padding-inline-start: 1.1rem;
+  font-size: .82rem;
+  color: $ink-600;
+
+  li { margin-bottom: .6rem; }
+  strong { display: block; color: $ink-900; }
+}
+
+.fs-steps { margin-bottom: 0; }
+
+.fs-table .fs-no { text-decoration: none; }
+.fs-table .fs-no:hover { text-decoration: underline; }
+
+// ----------------------------------------------------------- statement ----
+.fs-statement {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.75rem;
+  background: $white;
+  border: 1px solid $line-200;
+  border-radius: var(--hrms-radius-lg, 12px);
+  font-size: .82rem;
+  color: $ink-800;
+  overflow: hidden;
+
+  @include cq-down("sm") { padding: 1rem; }
+
+  &__watermark {
+    position: absolute;
+    inset: 40% 0 auto;
+    transform: rotate(-18deg);
+    text-align: center;
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    color: rgba($red-600, .1);
+    pointer-events: none;
+
+    .fs-st__ar { font-size: 2rem; color: inherit; }
+  }
+
+  &__head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    align-items: center;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid $navy-900;
+
+    @include cq-down("sm") {
+      grid-template-columns: 1fr 1fr;
+      .fs-statement__title { grid-column: 1 / -1; order: 3; }
+    }
+  }
+
+  &__co {
+    display: flex;
+    flex-direction: column;
+
+    strong { font-family: Lexend, "Public Sans", sans-serif; color: $navy-900; font-size: 1rem; }
+    span { font-size: .72rem; color: $ink-500; }
+
+    &--ar { text-align: right; font-family: "Noto Kufi Arabic", "Noto Sans Arabic", sans-serif; }
+  }
+
+  &__title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 1rem;
+    color: $navy-900;
+
+    .fs-st__en, .fs-st__ar { display: block; }
+  }
+
+  &__foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding-top: .5rem;
+    border-top: 1px solid $line-200;
+    font-size: .7rem;
+    color: $ink-500;
+  }
+}
+
+// a label in both languages: English, the Arabic under it (bidi-safe, no inline mixing)
+.fs-st__en { display: block; }
+.fs-st__ar {
+  display: block;
+  font-family: "Noto Sans Arabic", sans-serif;
+  font-size: .92em;
+  color: $ink-600;
+}
+.fs-st__calc { display: block; font-size: .7rem; color: $ink-500; font-variant-numeric: tabular-nums; }
+
+.fs-st-info, .fs-st-sum, .fs-st-lines {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.fs-st-info {
+  th, td { padding: .35rem .5rem; border: 1px solid $line-200; vertical-align: top; }
+  th { width: 22%; background: $blue-050; font-weight: 600; color: $navy-900; font-size: .74rem; }
+  td { width: 28%; overflow-wrap: anywhere; }
+
+  // phones: one pair per row
+  @include cq-down("sm") {
+    tr { display: grid; grid-template-columns: 40% 60%; }
+    th, td { width: auto; }
+  }
+}
+
+.fs-st-sum {
+  th { background: $navy-900; color: $white; padding: .45rem .6rem; text-align: start; font-size: .75rem; }
+  th .fs-st__ar { color: $blue-200; }
+  th.pr-money .fs-st__ar { text-align: end; }
+  td { padding: .45rem .6rem; border-bottom: 1px solid $line-200; }
+  td.pr-money, th.pr-money { text-align: end; width: 9rem; }
+  tr.is-sub td { font-weight: 700; background: $surface-2; }
+  tfoot td { font-weight: 800; font-size: .95rem; border-top: 2px solid $navy-900; border-bottom: 2px solid $navy-900; background: $blue-050; color: $navy-900; }
+}
+
+.fs-st-lines {
+  caption { caption-side: top; padding: 0 0 .35rem; font-weight: 700; color: $navy-900; text-align: start; }
+  td { padding: .3rem .6rem; border-bottom: 1px dashed $line-200; font-size: .76rem; }
+  td.pr-money { text-align: end; width: 9rem; }
+  tr.is-info td { color: $ink-500; }
+}
+
+.fs-st-paid { font-weight: 600; color: $green-700; }
+
+.fs-st-declaration {
+  margin: 1rem 0;
+  padding: .75rem 1rem;
+  border: 1px solid $line-200;
+  border-radius: var(--hrms-radius);
+  background: $surface-2;
+  line-height: 1.6;
+
+  .fs-st__en, .fs-st__ar { display: block; margin: 0; }
+  .fs-st__ar { margin-top: .4rem; text-align: right; }
+}
+
+.fs-st-signs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+  text-align: center;
+  font-size: .75rem;
+
+  @include cq-down("sm") { grid-template-columns: 1fr; gap: 2rem; }
+
+  &__line { display: block; height: 2.5rem; border-bottom: 1px solid $ink-400; margin-bottom: .35rem; }
+  .fs-st__en, .fs-st__ar { margin: 0; }
+}
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+
+  .hrms-wizard-steps,
+  .hrms-page-head,
+  .pr-tabs { display: none !important; }
+
+  .fs-statement {
+    max-width: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    font-size: 9.5pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .fs-st-signs { break-inside: avoid; }
+}
+
+// list toolbar: dropdowns keep their natural width (Bootstrap makes .form-select 100%)
+.fs-page .hrms-card__filters .form-select { width: auto; flex: 0 1 auto; min-width: 170px; }
+@include down("sm") {
+  .fs-page .hrms-card__filters .form-select { flex: 1 1 100%; }
+}

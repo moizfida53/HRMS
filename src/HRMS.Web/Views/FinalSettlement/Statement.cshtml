@@ -145,6 +145,9 @@
     <a class="btn btn-outline-secondary" href="@Url.Action("Details", "FinalSettlement", new { id = s.FinalSettlementId })">@Html.Icon("chevron-left", 15)<span>@L["fs.back_to_settlement"]</span></a>
     <button type="button" class="btn btn-primary" data-fs-print>@Html.Icon("printer", 15)<span>@L["fs.print"]</span></button>
 }
+@section Styles {
+    <link rel="stylesheet" href="~/css/settlement.css" asp-append-version="true" />
+}
 @section Scripts {
     <script src="~/js/settlement.js" asp-append-version="true"></script>
 }

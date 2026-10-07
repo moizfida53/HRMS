@@ -77,6 +77,9 @@
         <a class="btn btn-primary" href="@Url.Action("New", "FinalSettlement")">@Html.Icon("plus", 15)<span>@L["fs.new_settlement"]</span></a>
     }
 }
+@section Styles {
+    <link rel="stylesheet" href="~/css/settlement.css" asp-append-version="true" />
+}
 @section Scripts {
     <script src="~/js/settlement.js" asp-append-version="true"></script>
 }

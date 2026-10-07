@@ -586,7 +586,7 @@ Workflow and safeguards:
 
 Files: `Controllers/FinalSettlementController.cs`, `Models/Payroll/SettlementViewModels.cs`,
 `Domain/Payroll/FinalSettlement.cs`, `Data/Repositories/FinalSettlementRepository.cs`,
-`Views/FinalSettlement/*`, `wwwroot/js/settlement.js`, `wwwroot/scss/_settlement.scss`.
+`Views/FinalSettlement/*`, `wwwroot/js/settlement.js`, `wwwroot/scss/settlement.scss` + `_final-settlement.scss` (compiled on their own to `css/settlement.css`, loaded only by the Final Settlement pages - `npm run css` builds both stylesheets).
 Pages: `/payroll/settlement`, `/payroll/settlement/new`, `/payroll/settlement/encashment`,
 `/payroll/settlement/{id}`, `/payroll/settlement/{id}/statement`. The old preview
 links (`/payroll/preview/fs-*`) redirect to them.
