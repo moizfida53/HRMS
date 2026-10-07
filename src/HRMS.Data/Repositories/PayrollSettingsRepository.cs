@@ -136,3 +136,215 @@ public sealed class PayItemTypeRepository : IPayItemTypeRepository
         return value.Length > maxLength ? value[..maxLength] : value;
     }
 }
+
+// ===========================================================================
+// Payroll Settings - Payroll Rules (statutory, db/29-30):
+// usp_PifssRate_Manage, usp_IndemnityRuleSet_Manage, usp_OvertimeRate_Manage
+// ===========================================================================
+
+public interface IStatutoryRepository
+{
+    Task<PagedResult<PifssRate>> PifssListAsync(string? search, bool? isActive, bool inForceToday, int page, CancellationToken cancellationToken = default);
+    Task<PifssRate?> PifssGetAsync(int id, CancellationToken cancellationToken = default);
+    Task<SaveResult> PifssSaveAsync(PifssRate rate, long? userId, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<IndemnityRuleSet>> IndemnityListAsync(string? search, bool? isActive, int page, CancellationToken cancellationToken = default);
+    /// <summary>The rule set with its slabs and factors.</summary>
+    Task<IndemnityRuleSet?> IndemnityGetAsync(int id, CancellationToken cancellationToken = default);
+    Task<SaveResult> IndemnitySaveAsync(IndemnityRuleSet ruleSet, long? userId, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<OvertimeRate>> OvertimeListAsync(int? companyId, string? companyIds, string? search, bool? isActive, int page,
+                                                      CancellationToken cancellationToken = default);
+    Task<OvertimeRate?> OvertimeGetAsync(int id, CancellationToken cancellationToken = default);
+    Task<SaveResult> OvertimeSaveAsync(OvertimeRate rate, long? userId, CancellationToken cancellationToken = default);
+
+    /// <summary>DELETE or TOGGLE of a row of "PIFSS", "INDEMNITY" or "OVERTIME".</summary>
+    Task<SaveResult> ActionAsync(string table, string action, int id, long? userId, CancellationToken cancellationToken = default);
+}
+
+public sealed class StatutoryRepository : IStatutoryRepository
+{
+    private readonly ISqlExecutor _sql;
+
+    public StatutoryRepository(ISqlExecutor sql) => _sql = sql;
+
+    private static string Proc(string table) => table switch
+    {
+        "PIFSS" => StoredProcedure.PifssRateManage,
+        "INDEMNITY" => StoredProcedure.IndemnityRuleSetManage,
+        "OVERTIME" => StoredProcedure.OvertimeRateManage,
+        _ => throw new ArgumentOutOfRangeException(nameof(table))
+    };
+
+    // ---------------------------------------------------------------- PIFSS
+    public async Task<PagedResult<PifssRate>> PifssListAsync(string? search, bool? isActive, bool inForceToday, int page,
+                                                             CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("LIST");
+        p.Add("@Search", PayItemTypeRepository.Trim(search, 200), DbType.String, size: 200);
+        p.Add("@IsActiveFilter", isActive, DbType.Boolean);
+        p.Add("@AsOfDate", inForceToday ? DateTime.Today : null, DbType.Date);
+        return await SettingsSql.PageAsync<PifssRate>(_sql, StoredProcedure.PifssRateManage, p, page, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<PifssRate?> PifssGetAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("GET");
+        p.Add("@Id", id, DbType.Int64);
+        return _sql.QuerySingleOrDefaultAsync<PifssRate>(StoredProcedure.PifssRateManage, p, cancellationToken);
+    }
+
+    public async Task<SaveResult> PifssSaveAsync(PifssRate r, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope(r.PifssRateId > 0 ? "UPDATE" : "INSERT");
+        p.Add("@Id", r.PifssRateId > 0 ? r.PifssRateId : null, DbType.Int64);
+        p.Add("@ContributionCode", PayItemTypeRepository.Trim(r.ContributionCode, 30)?.ToUpperInvariant(), DbType.String, size: 30);
+        p.Add("@ContributionName", PayItemTypeRepository.Trim(r.ContributionName, 150), DbType.String, size: 150);
+        p.Add("@ApplicableTo", r.ApplicableTo, DbType.AnsiString, size: 10);
+        p.Add("@CalculationBasis", r.CalculationBasis, DbType.AnsiString, size: 10);
+        p.Add("@EmployeeRate", r.EmployeeRate, DbType.Decimal, precision: 7, scale: 4);
+        p.Add("@EmployerRate", r.EmployerRate, DbType.Decimal, precision: 7, scale: 4);
+        p.Add("@GovernmentRate", r.GovernmentRate, DbType.Decimal, precision: 7, scale: 4);
+        p.Add("@SalaryFloor", r.SalaryFloor, DbType.Decimal, precision: 12, scale: 3);
+        p.Add("@SalaryCeiling", r.SalaryCeiling, DbType.Decimal, precision: 12, scale: 3);
+        p.Add("@EffectiveFrom", r.EffectiveFrom, DbType.Date);
+        p.Add("@EffectiveTo", r.EffectiveTo, DbType.Date);
+        p.Add("@IsVerified", r.IsVerified, DbType.Boolean);
+        p.Add("@Notes", PayItemTypeRepository.Trim(r.Notes, 500), DbType.String, size: 500);
+        p.Add("@IsActive", r.IsActive, DbType.Boolean);
+        p.Add("@UserId", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.PifssRateManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, r.PifssRateId);
+    }
+
+    // ------------------------------------------------------------ INDEMNITY
+    public async Task<PagedResult<IndemnityRuleSet>> IndemnityListAsync(string? search, bool? isActive, int page, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("LIST");
+        p.Add("@Search", PayItemTypeRepository.Trim(search, 200), DbType.String, size: 200);
+        p.Add("@IsActiveFilter", isActive, DbType.Boolean);
+        return await SettingsSql.PageAsync<IndemnityRuleSet>(_sql, StoredProcedure.IndemnityRuleSetManage, p, page, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IndemnityRuleSet?> IndemnityGetAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("GET");
+        p.Add("@Id", id, DbType.Int64);
+        var set = await _sql.QuerySingleOrDefaultAsync<IndemnityRuleSet>(StoredProcedure.IndemnityRuleSetManage, p, cancellationToken).ConfigureAwait(false);
+        if (set is null) return null;
+
+        var s = SettingsSql.Envelope("SLABS");
+        s.Add("@Id", id, DbType.Int64);
+        set.Slabs = (await _sql.QueryAsync<IndemnitySlab>(StoredProcedure.IndemnityRuleSetManage, s, cancellationToken).ConfigureAwait(false)).ToList();
+        var f = SettingsSql.Envelope("FACTORS");
+        f.Add("@Id", id, DbType.Int64);
+        set.Factors = (await _sql.QueryAsync<IndemnityFactor>(StoredProcedure.IndemnityRuleSetManage, f, cancellationToken).ConfigureAwait(false)).ToList();
+        return set;
+    }
+
+    public async Task<SaveResult> IndemnitySaveAsync(IndemnityRuleSet r, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope(r.IndemnityRuleSetId > 0 ? "UPDATE" : "INSERT");
+        p.Add("@Id", r.IndemnityRuleSetId > 0 ? r.IndemnityRuleSetId : null, DbType.Int64);
+        p.Add("@RuleSetCode", PayItemTypeRepository.Trim(r.RuleSetCode, 30)?.ToUpperInvariant(), DbType.String, size: 30);
+        p.Add("@RuleSetName", PayItemTypeRepository.Trim(r.RuleSetName, 150), DbType.String, size: 150);
+        p.Add("@DailyWageDivisor", r.DailyWageDivisor, DbType.Decimal, precision: 5, scale: 2);
+        p.Add("@MaxIndemnityMonths", r.MaxIndemnityMonths, DbType.Decimal, precision: 6, scale: 2);
+        p.Add("@MinServiceMonths", r.MinServiceMonths, DbType.Decimal, precision: 6, scale: 2);
+        p.Add("@EffectiveFrom", r.EffectiveFrom, DbType.Date);
+        p.Add("@EffectiveTo", r.EffectiveTo, DbType.Date);
+        p.Add("@IsVerified", r.IsVerified, DbType.Boolean);
+        p.Add("@Notes", PayItemTypeRepository.Trim(r.Notes, 1000), DbType.String, size: 1000);
+        p.Add("@IsActive", r.IsActive, DbType.Boolean);
+        // the procedure replaces the slabs and factors with these (PascalCase JSON, as it reads them)
+        p.Add("@SlabsJson", System.Text.Json.JsonSerializer.Serialize(r.Slabs.Select((x, i) => new
+        {
+            x.FromYears, x.ToYears, x.EntitlementUnit, x.EntitlementValue, DisplayOrder = i + 1
+        })), DbType.String, size: -1);
+        p.Add("@FactorsJson", System.Text.Json.JsonSerializer.Serialize(r.Factors.Select(x => new
+        {
+            x.SeparationType, x.FromYears, x.ToYears, x.EntitlementPercent
+        })), DbType.String, size: -1);
+        p.Add("@UserId", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.IndemnityRuleSetManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, r.IndemnityRuleSetId);
+    }
+
+    // ------------------------------------------------------------- OVERTIME
+    public async Task<PagedResult<OvertimeRate>> OvertimeListAsync(int? companyId, string? companyIds, string? search, bool? isActive, int page,
+                                                                   CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("LIST");
+        p.Add("@CompanyId", companyId, DbType.Int32);
+        p.Add("@CompanyIds", PayItemTypeRepository.Trim(companyIds, 2000), DbType.String, size: 2000);
+        p.Add("@Search", PayItemTypeRepository.Trim(search, 200), DbType.String, size: 200);
+        p.Add("@IsActiveFilter", isActive, DbType.Boolean);
+        return await SettingsSql.PageAsync<OvertimeRate>(_sql, StoredProcedure.OvertimeRateManage, p, page, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<OvertimeRate?> OvertimeGetAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope("GET");
+        p.Add("@Id", id, DbType.Int64);
+        return _sql.QuerySingleOrDefaultAsync<OvertimeRate>(StoredProcedure.OvertimeRateManage, p, cancellationToken);
+    }
+
+    public async Task<SaveResult> OvertimeSaveAsync(OvertimeRate r, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = SettingsSql.Envelope(r.OvertimeRateId > 0 ? "UPDATE" : "INSERT");
+        p.Add("@Id", r.OvertimeRateId > 0 ? r.OvertimeRateId : null, DbType.Int64);
+        p.Add("@CompanyId", r.CompanyId, DbType.Int32);
+        p.Add("@OvertimeCode", r.OvertimeCode, DbType.AnsiString, size: 20);
+        p.Add("@OvertimeName", PayItemTypeRepository.Trim(r.OvertimeName, 150), DbType.String, size: 150);
+        p.Add("@Multiplier", r.Multiplier, DbType.Decimal, precision: 5, scale: 3);
+        p.Add("@HourlyRateDivisorDays", r.HourlyRateDivisorDays, DbType.Decimal, precision: 5, scale: 2);
+        p.Add("@HoursPerDay", r.HoursPerDay, DbType.Decimal, precision: 4, scale: 2);
+        p.Add("@MaxHoursPerDay", r.MaxHoursPerDay, DbType.Decimal, precision: 4, scale: 2);
+        p.Add("@MaxHoursPerYear", r.MaxHoursPerYear, DbType.Int32);
+        p.Add("@EffectiveFrom", r.EffectiveFrom, DbType.Date);
+        p.Add("@EffectiveTo", r.EffectiveTo, DbType.Date);
+        p.Add("@IsVerified", r.IsVerified, DbType.Boolean);
+        p.Add("@Notes", PayItemTypeRepository.Trim(r.Notes, 500), DbType.String, size: 500);
+        p.Add("@IsActive", r.IsActive, DbType.Boolean);
+        p.Add("@UserId", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.OvertimeRateManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, r.OvertimeRateId);
+    }
+
+    public async Task<SaveResult> ActionAsync(string table, string action, int id, long? userId, CancellationToken cancellationToken = default)
+    {
+        if (action is not ("DELETE" or "TOGGLE")) throw new ArgumentOutOfRangeException(nameof(action));
+        var p = SettingsSql.Envelope(action);
+        p.Add("@Id", id, DbType.Int64);
+        p.Add("@UserId", userId, DbType.Int64);
+        await _sql.ExecuteAsync(Proc(table), p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, id);
+    }
+}
+
+/// <summary>The envelope and paging shared by the db/30 master procedures (@Action VARCHAR(10), page size up to 200).</summary>
+internal static class SettingsSql
+{
+    public const int PageSize = 50;
+
+    public static DynamicParameters Envelope(string action)
+    {
+        var p = new DynamicParameters();
+        p.Add("@Action", action, DbType.AnsiString, size: 10);
+        p.Add("@TotalCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
+        p.Add("@NewId", dbType: DbType.Int64, direction: ParameterDirection.Output);
+        p.Add("@ResultCode", dbType: DbType.AnsiString, direction: ParameterDirection.Output, size: 40);
+        p.Add("@ResultMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 400);
+        return p;
+    }
+
+    public static async Task<PagedResult<T>> PageAsync<T>(ISqlExecutor sql, string procedure, DynamicParameters p, int page,
+                                                          CancellationToken cancellationToken)
+    {
+        page = Math.Max(1, page);
+        p.Add("@PageNumber", page, DbType.Int32);
+        p.Add("@PageSize", PageSize, DbType.Int32);
+        var rows = await sql.QueryAsync<T>(procedure, p, cancellationToken).ConfigureAwait(false);
+        return new PagedResult<T> { Items = rows, TotalCount = p.Get<int?>("@TotalCount") ?? rows.Count, PageNumber = page, PageSize = PageSize };
+    }
+}

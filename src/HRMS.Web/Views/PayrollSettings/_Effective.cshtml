@@ -1,0 +1,7 @@
+@model (DateTime? From, DateTime? To, bool Current)
+@* "01 Jan 2026 – open-ended" + "In force" tag, for effective-dated rows. *@
+<span class="hrms-nowrap">@L.Date(Model.From) – @(Model.To is null ? L["st.open_ended"] : L.Date(Model.To))</span>
+@if (Model.Current)
+{
+    <span class="st-inforce">@L["st.in_force"]</span>
+}

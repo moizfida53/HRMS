@@ -24,4 +24,8 @@
         }
     </div>
     <div class="hrms-card__count" data-st-count></div>
+    @if (Model.AddMaster is not null)
+    {
+        <button type="button" class="btn btn-sm btn-primary pr-toolbar-action" data-st-add="@Model.AddMaster">@Html.Icon("plus", 14)<span>@Model.AddLabel</span></button>
+    }
 </div>

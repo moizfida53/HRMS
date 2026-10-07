@@ -24,13 +24,16 @@ public sealed partial class PayrollSettingsController : Controller
     private const string PermDelete = "PAYROLL_SETUP_DELETE";
 
     private readonly IPayItemTypeRepository _itemTypes;
+    private readonly IStatutoryRepository _statutory;
     private readonly ILookupRepository _lookups;
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
 
-    public PayrollSettingsController(IPayItemTypeRepository itemTypes, ILookupRepository lookups, ICurrentUser currentUser, ICompanyFilter companyFilter)
+    public PayrollSettingsController(IPayItemTypeRepository itemTypes, IStatutoryRepository statutory, ILookupRepository lookups,
+                                     ICurrentUser currentUser, ICompanyFilter companyFilter)
     {
         _itemTypes = itemTypes;
+        _statutory = statutory;
         _lookups = lookups;
         _currentUser = currentUser;
         _companyFilter = companyFilter;

@@ -1,0 +1,12 @@
+@model (SettingsRights Rights, string Name, bool IsActive)
+@* Edit / activate / delete of a settings row (the row carries data-id / data-name). *@
+@if (Model.Rights.CanEdit)
+{
+    <button type="button" class="btn-icon" data-st-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", Model.Name]">@Html.Icon("edit", 15)</button>
+    <button type="button" class="btn-icon btn-icon--success" data-st-toggle title="@(Model.IsActive ? L["common.deactivate"] : L["common.activate"])"
+            aria-label="@(Model.IsActive ? L["common.deactivate_named", Model.Name] : L["common.activate_named", Model.Name])">@Html.Icon("power", 15)</button>
+}
+@if (Model.Rights.CanDelete)
+{
+    <button type="button" class="btn-icon btn-icon--danger" data-st-delete title="@L["common.delete"]" aria-label="@L["common.delete_named", Model.Name]">@Html.Icon("trash", 15)</button>
+}

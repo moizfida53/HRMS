@@ -94,6 +94,15 @@ public static class StoredProcedure
     /// <summary>Pay item types (earning / deduction components): list, get, insert, update, delete, toggle, seed.</summary>
     public const string PayComponentManage = "Payroll.usp_PayComponent_Manage";
 
+    /// <summary>PIFSS contribution rates (effective-dated, verified flag).</summary>
+    public const string PifssRateManage = "Payroll.usp_PifssRate_Manage";
+
+    /// <summary>End-of-service indemnity rule sets with their service slabs and entitlement factors.</summary>
+    public const string IndemnityRuleSetManage = "Payroll.usp_IndemnityRuleSet_Manage";
+
+    /// <summary>Overtime multipliers (statutory default or a company's own).</summary>
+    public const string OvertimeRateManage = "Payroll.usp_OvertimeRate_Manage";
+
     // ---- Payslips (db/42-43) ----
 
     /// <summary>Payslips: payrolls, list, payslip header, generate, email queue and delivery results.</summary>

@@ -1,0 +1,28 @@
+@model (DateTime? From, DateTime? To, bool Verified, bool Active, string? Notes, int NotesMax)
+@* Effective dates, verified, active and notes - the tail of every statutory form. *@
+@{ string D(DateTime? d) => d?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? ""; }
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.effective"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="st-from">@L["st.effective_from"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="st-from" type="date" name="EffectiveFrom" value="@D(Model.From)" />
+            <span class="field-validation-error" data-valmsg-for="EffectiveFrom"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="st-to">@L["st.effective_to"]</label>
+            <input class="form-control" id="st-to" type="date" name="EffectiveTo" value="@D(Model.To)" />
+            <span class="form-text">@L["st.effective_to_hint"]</span>
+        </div>
+        <div class="col-12">
+            <div class="st-switches">
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsVerified", L["st.verified"], Model.Verified, L["st.verified_hint"]))
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsActive", L["org.active"], Model.Active))
+            </div>
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="st-notes">@L["st.notes"]</label>
+            <textarea class="form-control" id="st-notes" name="Notes" rows="2" maxlength="@Model.NotesMax" placeholder="@L["st.notes_hint"]">@Model.Notes</textarea>
+        </div>
+    </div>
+</fieldset>

@@ -1,0 +1,61 @@
+@using HRMS.Web.Models.Organization
+@model SettingsGridModel<PifssRate>
+@{
+    var pg = Model.Page;
+    var countText = pg.TotalCount == 1 ? L["st.1_rate"] : L["st.0_rates", PayrollFormat.Count(pg.TotalCount)];
+}
+<div data-total="@pg.TotalCount" data-count-text="@countText">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "percent", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["st.no_rates_yet"])</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table st-table">
+            <caption class="hrms-sr-only">@L["st.pifss_rates"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["st.contribution"]</th>
+                    <th scope="col">@L["st.applies_to"]</th>
+                    <th scope="col" class="text-end">@L["st.employee_rate"]</th>
+                    <th scope="col" class="text-end">@L["st.employer_rate"]</th>
+                    <th scope="col" class="col-p2">@L["st.salary_range"]</th>
+                    <th scope="col" class="col-p2">@L["st.effective"]</th>
+                    <th scope="col">@L["st.verified"]</th>
+                    <th scope="col" class="col-p3">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in pg.Items)
+                {
+                    <tr data-id="@r.PifssRateId" data-name="@r.ContributionName" class="@(r.IsActive ? null : "is-ended")">
+                        <td data-label="@L["st.contribution"]">
+                            <span class="hrms-table__primary">@r.ContributionName</span>
+                            <span class="pr-emp-sub"><span class="hrms-code-chip">@r.ContributionCode</span> · @L[StatutoryFormat.BasisKey(r.CalculationBasis)]</span>
+                        </td>
+                        <td data-label="@L["st.applies_to"]">@L[StatutoryFormat.ApplicableKey(r.ApplicableTo)]</td>
+                        <td data-label="@L["st.employee_rate"]" class="text-end hrms-numeric">@StatutoryFormat.Pct(r.EmployeeRate)</td>
+                        <td data-label="@L["st.employer_rate"]" class="text-end hrms-numeric">@StatutoryFormat.Pct(r.EmployerRate)</td>
+                        <td data-label="@L["st.salary_range"]" class="col-p2 hrms-numeric hrms-text-sm">
+                            @(r.SalaryFloor is { } f ? PayrollFormat.Money(f) : "0.000") – @(r.SalaryCeiling is { } c ? PayrollFormat.Money(c) : L["st.no_cap"])
+                        </td>
+                        <td data-label="@L["st.effective"]" class="col-p2 hrms-text-sm">@await Html.PartialAsync("_Effective", (r.EffectiveFrom, r.EffectiveTo, r.IsCurrent && r.IsActive))</td>
+                        <td data-label="@L["st.verified"]">@await Html.PartialAsync("_Verified", r.IsVerified)</td>
+                        <td data-label="@L["common.status"]" class="col-p3">@await Html.PartialAsync("_Status", r.IsActive)</td>
+                        <td class="hrms-table__actions">@await Html.PartialAsync("_RowActions", (Model.Rights, r.ContributionName, r.IsActive))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount, FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

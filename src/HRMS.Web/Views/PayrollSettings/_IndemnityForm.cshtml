@@ -1,0 +1,127 @@
+@model IndemnityRuleSet
+@{
+    var r = Model;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string N(decimal? v) => v?.ToString("0.###", inv) ?? "";
+}
+<input type="hidden" name="IndemnityRuleSetId" value="@r.IndemnityRuleSetId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.rule_set"]</legend>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="ir-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control text-uppercase" id="ir-code" name="RuleSetCode" value="@r.RuleSetCode" maxlength="30" dir="ltr" placeholder="KW_LL_6_2010" />
+            <span class="field-validation-error" data-valmsg-for="RuleSetCode"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="ir-name">@L["st.name_english"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="ir-name" name="RuleSetName" value="@r.RuleSetName" maxlength="150" />
+            <span class="field-validation-error" data-valmsg-for="RuleSetName"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="ir-div">@L["st.daily_divisor"]</label>
+            <input class="form-control" id="ir-div" type="number" min="1" max="31" step="0.01" name="DailyWageDivisor" value="@N(r.DailyWageDivisor)" dir="ltr" />
+            <span class="form-text">@L["st.daily_divisor_hint"]</span>
+            <span class="field-validation-error" data-valmsg-for="DailyWageDivisor"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="ir-cap">@L["st.cap_months"]</label>
+            <input class="form-control" id="ir-cap" type="number" min="0" step="0.01" name="MaxIndemnityMonths" value="@N(r.MaxIndemnityMonths)" dir="ltr" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="ir-min">@L["st.min_service_months"]</label>
+            <input class="form-control" id="ir-min" type="number" min="0" step="0.01" name="MinServiceMonths" value="@N(r.MinServiceMonths)" dir="ltr" />
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.service_slabs"]</legend>
+    <p class="form-text mt-0">@L["st.service_slabs_hint"]</p>
+    <div class="st-lines" data-st-lines="Slabs">
+        <table>
+            <thead><tr><th>@L["st.from_years"]</th><th>@L["st.to_years"]</th><th>@L["st.entitlement"]</th><th>@L["st.unit"]</th><th><span class="hrms-sr-only">@L["common.actions"]</span></th></tr></thead>
+            <tbody data-st-line-body>
+                @for (var i = 0; i < r.Slabs.Count; i++)
+                {
+                    var s = r.Slabs[i];
+                    <tr>
+                        <td data-label="@L["st.from_years"]"><input class="form-control form-control-sm" type="number" min="0" step="0.01" name="Slabs[@i].FromYears" value="@N(s.FromYears)" aria-label="@L["st.from_years"]" dir="ltr" /></td>
+                        <td data-label="@L["st.to_years"]"><input class="form-control form-control-sm" type="number" min="0" step="0.01" name="Slabs[@i].ToYears" value="@N(s.ToYears)" placeholder="@L["st.and_above"]" aria-label="@L["st.to_years"]" dir="ltr" /></td>
+                        <td data-label="@L["st.entitlement"]"><input class="form-control form-control-sm" type="number" min="0" step="0.001" name="Slabs[@i].EntitlementValue" value="@N(s.EntitlementValue)" aria-label="@L["st.entitlement"]" dir="ltr" /></td>
+                        <td data-label="@L["st.unit"]">
+                            <select class="form-select form-select-sm" name="Slabs[@i].EntitlementUnit" aria-label="@L["st.unit"]">
+                                <option value="DAYS" selected="@(s.EntitlementUnit == "DAYS")">@L["st.days_per_year"]</option>
+                                <option value="MONTHS" selected="@(s.EntitlementUnit == "MONTHS")">@L["st.months_per_year"]</option>
+                            </select>
+                        </td>
+                        <td><button type="button" class="btn-icon btn-icon--danger" data-st-line-remove title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <template data-st-line-template>
+            <tr>
+                <td data-label="@L["st.from_years"]"><input class="form-control form-control-sm" type="number" min="0" step="0.01" name="Slabs[0].FromYears" aria-label="@L["st.from_years"]" dir="ltr" /></td>
+                <td data-label="@L["st.to_years"]"><input class="form-control form-control-sm" type="number" min="0" step="0.01" name="Slabs[0].ToYears" placeholder="@L["st.and_above"]" aria-label="@L["st.to_years"]" dir="ltr" /></td>
+                <td data-label="@L["st.entitlement"]"><input class="form-control form-control-sm" type="number" min="0" step="0.001" name="Slabs[0].EntitlementValue" aria-label="@L["st.entitlement"]" dir="ltr" /></td>
+                <td data-label="@L["st.unit"]">
+                    <select class="form-select form-select-sm" name="Slabs[0].EntitlementUnit" aria-label="@L["st.unit"]">
+                        <option value="DAYS">@L["st.days_per_year"]</option>
+                        <option value="MONTHS">@L["st.months_per_year"]</option>
+                    </select>
+                </td>
+                <td><button type="button" class="btn-icon btn-icon--danger" data-st-line-remove title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button></td>
+            </tr>
+        </template>
+        <div class="st-lines__foot"><button type="button" class="btn btn-sm btn-outline-primary" data-st-line-add>@Html.Icon("plus", 14)<span>@L["st.add_slab"]</span></button></div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.entitlement_factors"]</legend>
+    <p class="form-text mt-0">@L["st.entitlement_factors_hint"]</p>
+    <div class="st-lines" data-st-lines="Factors">
+        <table>
+            <thead><tr><th>@L["st.separation"]</th><th>@L["st.from_years"]</th><th>@L["st.to_years"]</th><th>@L["st.paid_percent"]</th><th><span class="hrms-sr-only">@L["common.actions"]</span></th></tr></thead>
+            <tbody data-st-line-body>
+                @for (var i = 0; i < r.Factors.Count; i++)
+                {
+                    var f = r.Factors[i];
+                    <tr>
+                        <td data-label="@L["st.separation"]">
+                            <select class="form-select form-select-sm" name="Factors[@i].SeparationType" aria-label="@L["st.separation"]">
+                                @foreach (var t in StatutoryCodes.SeparationTypes)
+                                {
+                                    <option value="@t" selected="@(f.SeparationType == t)">@L[StatutoryFormat.SeparationKey(t)]</option>
+                                }
+                            </select>
+                        </td>
+                        <td data-label="@L["st.from_years"]"><input class="form-control form-control-sm" type="number" min="0" step="0.01" name="Factors[@i].FromYears" value="@N(f.FromYears)" aria-label="@L["st.from_years"]" dir="ltr" /></td>
+                        <td data-label="@L["st.to_years"]"><input class="form-control form-control-sm" type="number" min="0" step="0.01" name="Factors[@i].ToYears" value="@N(f.ToYears)" placeholder="@L["st.and_above"]" aria-label="@L["st.to_years"]" dir="ltr" /></td>
+                        <td data-label="@L["st.paid_percent"]"><input class="form-control form-control-sm" type="number" min="0" max="100" step="0.01" name="Factors[@i].EntitlementPercent" value="@N(f.EntitlementPercent)" aria-label="@L["st.paid_percent"]" dir="ltr" /></td>
+                        <td><button type="button" class="btn-icon btn-icon--danger" data-st-line-remove title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <template data-st-line-template>
+            <tr>
+                <td data-label="@L["st.separation"]">
+                    <select class="form-select form-select-sm" name="Factors[0].SeparationType" aria-label="@L["st.separation"]">
+                        @foreach (var t in StatutoryCodes.SeparationTypes)
+                        {
+                            <option value="@t">@L[StatutoryFormat.SeparationKey(t)]</option>
+                        }
+                    </select>
+                </td>
+                <td data-label="@L["st.from_years"]"><input class="form-control form-control-sm" type="number" min="0" step="0.01" name="Factors[0].FromYears" value="0" aria-label="@L["st.from_years"]" dir="ltr" /></td>
+                <td data-label="@L["st.to_years"]"><input class="form-control form-control-sm" type="number" min="0" step="0.01" name="Factors[0].ToYears" placeholder="@L["st.and_above"]" aria-label="@L["st.to_years"]" dir="ltr" /></td>
+                <td data-label="@L["st.paid_percent"]"><input class="form-control form-control-sm" type="number" min="0" max="100" step="0.01" name="Factors[0].EntitlementPercent" value="100" aria-label="@L["st.paid_percent"]" dir="ltr" /></td>
+                <td><button type="button" class="btn-icon btn-icon--danger" data-st-line-remove title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button></td>
+            </tr>
+        </template>
+        <div class="st-lines__foot"><button type="button" class="btn btn-sm btn-outline-primary" data-st-line-add>@Html.Icon("plus", 14)<span>@L["st.add_factor"]</span></button></div>
+    </div>
+</fieldset>
+@await Html.PartialAsync("_EffectiveFields", (r.EffectiveFrom, r.EffectiveTo, r.IsVerified, r.IsActive, r.Notes, 1000))

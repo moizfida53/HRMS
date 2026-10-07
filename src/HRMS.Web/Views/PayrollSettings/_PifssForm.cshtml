@@ -1,0 +1,66 @@
+@model PifssRate
+@{
+    var r = Model;
+    string N(decimal? v) => v?.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+}
+<input type="hidden" name="PifssRateId" value="@r.PifssRateId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.contribution"]</legend>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="pf-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control text-uppercase" id="pf-code" name="ContributionCode" value="@r.ContributionCode" maxlength="30" dir="ltr" placeholder="PIFSS_BASIC" />
+            <span class="field-validation-error" data-valmsg-for="ContributionCode"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="pf-name">@L["st.name_english"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="pf-name" name="ContributionName" value="@r.ContributionName" maxlength="150" />
+            <span class="field-validation-error" data-valmsg-for="ContributionName"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="pf-applies">@L["st.applies_to"]</label>
+            <select class="form-select" id="pf-applies" name="ApplicableTo">
+                @foreach (var a in StatutoryCodes.ApplicableTo)
+                {
+                    <option value="@a" selected="@(r.ApplicableTo == a)">@L[StatutoryFormat.ApplicableKey(a)]</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="pf-basis">@L["st.basis"]</label>
+            <select class="form-select" id="pf-basis" name="CalculationBasis">
+                @foreach (var b in StatutoryCodes.Bases)
+                {
+                    <option value="@b" selected="@(r.CalculationBasis == b)">@L[StatutoryFormat.BasisKey(b)]</option>
+                }
+            </select>
+            <span class="form-text">@L["st.basis_hint"]</span>
+        </div>
+    </div>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.rates_and_salary"]</legend>
+    <div class="row g-3">
+        @foreach (var (name, key, value) in new[] { ("EmployeeRate", "st.employee_rate", (decimal?)r.EmployeeRate), ("EmployerRate", "st.employer_rate", r.EmployerRate), ("GovernmentRate", "st.government_rate", r.GovernmentRate) })
+        {
+            <div class="col-md-4">
+                <label class="form-label" for="pf-@name">@L[key]</label>
+                <div class="input-group">
+                    <input class="form-control" id="pf-@name" type="number" min="0" max="100" step="0.0001" name="@name" value="@N(value)" dir="ltr" />
+                    <span class="input-group-text">%</span>
+                </div>
+                <span class="field-validation-error" data-valmsg-for="@name"></span>
+            </div>
+        }
+        <div class="col-md-6">
+            <label class="form-label" for="pf-floor">@L["st.salary_floor"]</label>
+            <input class="form-control" id="pf-floor" type="number" min="0" step="0.001" name="SalaryFloor" value="@N(r.SalaryFloor)" dir="ltr" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="pf-ceiling">@L["st.salary_ceiling"]</label>
+            <input class="form-control" id="pf-ceiling" type="number" min="0" step="0.001" name="SalaryCeiling" value="@N(r.SalaryCeiling)" dir="ltr" />
+            <span class="form-text">@L["st.salary_ceiling_hint"]</span>
+        </div>
+    </div>
+</fieldset>
+@await Html.PartialAsync("_EffectiveFields", (r.EffectiveFrom, r.EffectiveTo, r.IsVerified, r.IsActive, r.Notes, 500))

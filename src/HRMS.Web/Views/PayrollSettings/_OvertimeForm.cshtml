@@ -1,0 +1,65 @@
+@model OvertimeFormModel
+@{
+    var r = Model.Rate;
+    string N(decimal? v) => v?.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+}
+<input type="hidden" name="OvertimeRateId" value="@r.OvertimeRateId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.overtime"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="ot-company">@L["st.applies_to"]</label>
+            <select class="form-select" id="ot-company" name="CompanyId" data-searchable>
+                @if (Model.CanSetDefault || r.CompanyId is null)
+                {
+                    <option value="" selected="@(r.CompanyId is null)">@L["st.statutory_default_all"]</option>
+                }
+                @foreach (var co in Model.Companies)
+                {
+                    <option value="@co.Id" selected="@(r.CompanyId == co.Id)">@co.Text</option>
+                }
+            </select>
+            <span class="form-text">@L["st.overtime_company_hint"]</span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ot-code">@L["st.when"]</label>
+            <select class="form-select" id="ot-code" name="OvertimeCode">
+                @foreach (var c in StatutoryCodes.OvertimeCodes)
+                {
+                    <option value="@c" selected="@(r.OvertimeCode == c)">@L[StatutoryFormat.OvertimeKey(c)]</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="ot-name">@L["st.name_english"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="ot-name" name="OvertimeName" value="@r.OvertimeName" maxlength="150" />
+            <span class="field-validation-error" data-valmsg-for="OvertimeName"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="ot-mult">@L["st.multiplier"]</label>
+            <div class="input-group">
+                <span class="input-group-text">×</span>
+                <input class="form-control" id="ot-mult" type="number" min="0.001" max="10" step="0.001" name="Multiplier" value="@N(r.Multiplier)" dir="ltr" />
+            </div>
+            <span class="field-validation-error" data-valmsg-for="Multiplier"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ot-div">@L["st.hourly_divisor_days"]</label>
+            <input class="form-control" id="ot-div" type="number" min="1" max="31" step="0.01" name="HourlyRateDivisorDays" value="@N(r.HourlyRateDivisorDays)" dir="ltr" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ot-hours">@L["st.hours_per_day"]</label>
+            <input class="form-control" id="ot-hours" type="number" min="1" max="24" step="0.25" name="HoursPerDay" value="@N(r.HoursPerDay)" dir="ltr" />
+        </div>
+        <div class="col-12"><span class="form-text">@L["st.hourly_rate_explained"]</span></div>
+        <div class="col-md-6">
+            <label class="form-label" for="ot-maxday">@L["st.max_hours_day"]</label>
+            <input class="form-control" id="ot-maxday" type="number" min="0" max="24" step="0.25" name="MaxHoursPerDay" value="@N(r.MaxHoursPerDay)" dir="ltr" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ot-maxyear">@L["st.max_hours_year"]</label>
+            <input class="form-control" id="ot-maxyear" type="number" min="0" step="1" name="MaxHoursPerYear" value="@r.MaxHoursPerYear" dir="ltr" />
+        </div>
+    </div>
+</fieldset>
+@await Html.PartialAsync("_EffectiveFields", (r.EffectiveFrom, r.EffectiveTo, r.IsVerified, r.IsActive, r.Notes, 500))

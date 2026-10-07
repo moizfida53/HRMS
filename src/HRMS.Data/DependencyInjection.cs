@@ -71,6 +71,7 @@ public static class DependencyInjection
 
         // ---- Payroll Settings (db/29-30 masters, db/46+) ----
         services.AddScoped<IPayItemTypeRepository, PayItemTypeRepository>();
+        services.AddScoped<IStatutoryRepository, StatutoryRepository>();
 
         // ---- Payroll: payslips (db/42-43) ----
         services.AddScoped<IPayslipRepository, PayslipRepository>();

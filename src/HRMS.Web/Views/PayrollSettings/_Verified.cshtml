@@ -1,0 +1,9 @@
+@model bool
+@if (Model)
+{
+    <span class="st-verified is-yes">@Html.Icon("check", 13)<span>@L["st.verified"]</span></span>
+}
+else
+{
+    <span class="st-verified is-no">@Html.Icon("alert", 13)<span>@L["st.not_verified"]</span></span>
+}

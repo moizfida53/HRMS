@@ -1,0 +1,92 @@
+@model SettingsPageModel
+@{
+    // Payroll Settings > Payroll Rules: Kuwait statutory settings, effective-dated and
+    // never hard-coded (db/29-30): PIFSS rates, indemnity rules, overtime multipliers.
+    ViewData["Title"] = "Payroll Rules";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settings";
+    ViewData["PayrollPage"] = "st-rules";
+    ViewData["Subtitle"] = L["st.rules_subtitle"];
+    var statusFilter = new SettingsFilter("status", L["common.status"],
+        [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])]);
+    var canAdd = Model.Rights.CanCreate;
+}
+<div class="pr-stack st-page" data-st-page>
+    @if (Model.UnverifiedCount > 0)
+    {
+        <div class="pr-banner pr-banner--lock" role="note">
+            @Html.Icon("alert", 18)
+            <div><strong>@L["st.unverified_title", PayrollFormat.Count(Model.UnverifiedCount)]</strong> @L["st.unverified_text"]</div>
+        </div>
+    }
+    else
+    {
+        <div class="pr-banner pr-banner--ok" role="note">
+            @Html.Icon("check", 18)
+            <div><strong>@L["st.all_verified_title"]</strong> @L["st.all_verified_text"]</div>
+        </div>
+    }
+
+    @* --------------------------------------------------- PIFSS *@
+    <section class="hrms-card" id="st-pifss" data-st-master
+             data-grid="@Url.Action("PifssGrid", "PayrollSettings")" data-form="@Url.Action("PifssForm", "PayrollSettings")"
+             data-save="@Url.Action("PifssSave", "PayrollSettings")" data-toggle="@Url.Action("PifssToggle", "PayrollSettings")"
+             data-delete="@Url.Action("PifssDelete", "PayrollSettings")"
+             data-title-new="@L["st.add_pifss_rate"]" data-title-edit="@L["st.edit_pifss_rate"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_rate_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.pifss_rates"],
+            SearchPlaceholder = L["prv.search"],
+            Filters =
+            [
+                new("when", L["st.in_force"], [("", L["st.all_dates"]), ("today", L["st.in_force_today"])]),
+                statusFilter
+            ],
+            AddMaster = canAdd ? "st-pifss" : null,
+            AddLabel = L["st.add_rate"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+
+    @* ----------------------------------------------- Indemnity *@
+    <section class="hrms-card" id="st-indemnity" data-st-master
+             data-grid="@Url.Action("IndemnityGrid", "PayrollSettings")" data-form="@Url.Action("IndemnityForm", "PayrollSettings")"
+             data-save="@Url.Action("IndemnitySave", "PayrollSettings")" data-toggle="@Url.Action("IndemnityToggle", "PayrollSettings")"
+             data-delete="@Url.Action("IndemnityDelete", "PayrollSettings")"
+             data-title-new="@L["st.add_indemnity_rules"]" data-title-edit="@L["st.edit_indemnity_rules"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_rate_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.indemnity_rules"],
+            SearchPlaceholder = L["prv.search"],
+            Filters = [statusFilter],
+            AddMaster = canAdd ? "st-indemnity" : null,
+            AddLabel = L["st.add_rule_set"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+
+    @* ------------------------------------------------ Overtime *@
+    <section class="hrms-card" id="st-overtime" data-st-master
+             data-grid="@Url.Action("OvertimeGrid", "PayrollSettings")" data-form="@Url.Action("OvertimeForm", "PayrollSettings")"
+             data-save="@Url.Action("OvertimeSave", "PayrollSettings")" data-toggle="@Url.Action("OvertimeToggle", "PayrollSettings")"
+             data-delete="@Url.Action("OvertimeDelete", "PayrollSettings")"
+             data-title-new="@L["st.add_overtime_rate"]" data-title-edit="@L["st.edit_overtime_rate"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_rate_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.overtime_rates"],
+            SearchPlaceholder = L["prv.search"],
+            Filters = [statusFilter],
+            AddMaster = canAdd ? "st-overtime" : null,
+            AddLabel = L["st.add_rate"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("_Dialogs")
+
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}
