@@ -203,6 +203,7 @@ public sealed class PayrollController : Controller
         if (string.IsNullOrEmpty(slug) || !PayrollNav.IsPreview(slug)) return NotFound();
 
         ViewData["ActiveRun"] = await RememberedRunAsync();
+        ViewData["PayrollPage"] = slug;   // sidebar highlight when the section has sub-sections
         return View($"~/Views/Payroll/Preview/{PayrollNav.PreviewView(slug)}.cshtml");
     }
 

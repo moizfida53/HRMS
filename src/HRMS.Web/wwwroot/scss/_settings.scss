@@ -1,0 +1,162 @@
+// ============================================================================
+// Payroll Settings (Payroll > Payroll Settings)
+// ----------------------------------------------------------------------------
+// Lists of masters (pay item types, statutory rates, banks ...) and their add /
+// edit dialog. Layout follows the CONTENT width (container "content"), so the
+// switch grids and rows stack on tablets and phones; logical properties keep
+// everything mirrored in Arabic.
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+.st-page { gap: 1rem; }
+
+// "Standard" marker next to a code the payroll engine knows
+.st-std {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-inline-start: space("2");
+  padding: 1px 6px;
+  border-radius: $radius-pill;
+  background: $amber-050;
+  color: $amber-700;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  vertical-align: middle;
+
+  svg { width: 11px; height: 11px; }
+}
+
+// small chips of the engine flags (PIFSS, EOS, Overtime ...)
+.st-flags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+
+.st-flag {
+  padding: 1px 7px;
+  border: 1px solid $blue-200;
+  border-radius: $radius-sm;
+  background: $blue-050;
+  color: $blue-700;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  white-space: nowrap;
+}
+
+.st-table tr.is-ended td { color: $ink-400; }
+
+// ------------------------------------------------------------------ form ----
+.st-modal .hrms-fieldset + .hrms-fieldset { margin-block-start: space("4"); }
+
+.st-subhead {
+  margin: space("4") 0 space("2");
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  color: $ink-700;
+}
+
+// switches in a responsive grid of cards
+.st-switches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: space("2");
+}
+
+.st-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: space("3");
+  margin: 0;
+  padding: space("2") space("3");
+  min-height: 0;
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  background: $white;
+  @include motion(border-color, background-color);
+
+  .form-check-input {
+    flex: 0 0 auto;
+    float: none;
+    margin: 2px 0 0;
+    cursor: pointer;
+  }
+
+  .form-check-label { display: flex; flex-direction: column; gap: 1px; cursor: pointer; min-width: 0; }
+
+  &__label { font-size: $fs-base; font-weight: $fw-semibold; color: $ink-800; }
+  &__hint { font-size: $fs-xs; color: $ink-500; line-height: 1.35; }
+
+  &:has(.form-check-input:checked) { border-color: $blue-200; background: $blue-050; }
+  &:has(.form-check-input:disabled) { opacity: .65; }
+  &:has(.form-check-input:focus-visible) { @include focus-ring; }
+}
+
+// Bootstrap's form-switch pads the start for its own float - not wanted in the card
+.st-switch.form-switch { padding-inline-start: space("3"); }
+
+.st-choice { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+
+// ------------------------------------------------- editable rows in a form --
+.st-lines {
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  overflow: hidden;
+
+  table { width: 100%; margin: 0; border-collapse: collapse; }
+
+  th {
+    padding: space("2") space("3");
+    background: $surface;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    color: $ink-600;
+    text-align: start;
+    white-space: nowrap;
+  }
+
+  td { padding: space("1") space("2"); border-block-start: 1px solid $line-100; vertical-align: middle; }
+
+  .form-control, .form-select { min-width: 80px; }
+
+  &__foot {
+    display: flex;
+    justify-content: flex-start;
+    padding: space("2") space("3");
+    border-block-start: 1px solid $line-100;
+    background: $surface-2;
+  }
+
+  // a row per line on phones: the cells stack with their header as a label
+  @include cq-down("sm") {
+    thead { display: none; }
+    tr { display: grid; grid-template-columns: 1fr 1fr; gap: space("2"); padding: space("2"); border-block-start: 1px solid $line-100; }
+    td { border: 0; padding: 0; }
+    td[data-label]::before { content: attr(data-label); display: block; font-size: $fs-xs; color: $ink-500; }
+  }
+}
+
+// statutory: a "verified" mark next to a rate
+.st-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+
+  &.is-yes { color: $green-700; }
+  &.is-no { color: $amber-700; }
+
+  svg { width: 13px; height: 13px; }
+}
+
+// the "in force today" tag of an effective-dated row
+.st-inforce {
+  display: inline-block;
+  margin-inline-start: space("2");
+  padding: 0 6px;
+  border-radius: $radius-pill;
+  background: $green-050;
+  color: $green-700;
+  font-size: $fs-xs;
+  font-weight: $fw-bold;
+}

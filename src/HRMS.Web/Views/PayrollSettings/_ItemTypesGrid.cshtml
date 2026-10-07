@@ -1,0 +1,109 @@
+@using HRMS.Web.Models.Organization
+@model SettingsGridModel<PayItemTypeSetting>
+@{
+    var pg = Model.Page;
+    var countText = pg.TotalCount == 1 ? L["st.1_item_type"] : L["st.0_item_types", PayrollFormat.Count(pg.TotalCount)];
+    // The engine flags, shown as small chips: label key, set?
+    IEnumerable<(string Key, bool On)> Flags(PayItemTypeSetting t) =>
+    [
+        ("st.flag_pifss", t.IsPifssApplicable), ("st.flag_eos", t.IsIndemnityApplicable), ("st.flag_overtime", t.IsOvertimeApplicable),
+        ("st.flag_leave", t.IsLeaveSalaryApplicable), ("st.flag_prorated", t.IsProrated), ("st.flag_taxable", t.IsTaxable)
+    ];
+}
+<div data-total="@pg.TotalCount" data-count-text="@countText">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "card", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_item_types_match"] : L["st.no_item_types_yet"])</p>
+        <p class="hrms-empty__text">@L["st.no_item_types_text"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table st-table">
+            <caption class="hrms-sr-only">@L["st.pay_item_types"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["common.code"]</th>
+                    <th scope="col">@L["st.item_type"]</th>
+                    <th scope="col">@L["st.class"]</th>
+                    <th scope="col" class="col-p2">@L["st.calculation"]</th>
+                    <th scope="col" class="col-p3">@L["st.included_in"]</th>
+                    <th scope="col" class="col-p3">@L["st.gl_account"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in pg.Items)
+                {
+                    var name = L.IsArabic && !string.IsNullOrWhiteSpace(t.ArabicName) ? t.ArabicName! : t.ComponentName;
+                    <tr data-id="@t.PayComponentId" data-name="@name" class="@(t.IsActive ? null : "is-ended")">
+                        <td data-label="@L["common.code"]" class="hrms-nowrap">
+                            <span class="hrms-code-chip">@t.ComponentCode</span>
+                            @if (t.IsStandard)
+                            {
+                                <span class="st-std" title="@L["st.standard_hint"]">@Html.Icon("lock", 12)<span>@L["st.standard"]</span></span>
+                            }
+                        </td>
+                        <td data-label="@L["st.item_type"]">
+                            <span class="hrms-table__primary">@name</span>
+                            <span class="pr-emp-sub" lang="@(L.IsArabic ? "en" : "ar")" dir="auto">@(L.IsArabic ? t.ComponentName : t.ArabicName)@(Model.ManyCompanies ? " · " + t.CompanyName : "")</span>
+                        </td>
+                        <td data-label="@L["st.class"]"><span class="hrms-badge hrms-badge--@SettingsFormat.ClassBadge(t.ItemClass)"><span class="hrms-badge__dot"></span>@L[SettingsFormat.ClassKey(t.ItemClass)]</span></td>
+                        <td data-label="@L["st.calculation"]" class="col-p2 hrms-text-sm">
+                            @L[SettingsFormat.MethodKey(t.CalculationMethod)]
+                            @if (t.CalculationMethod == "PERCENTAGE" && t.DefaultPercentage is { } pct)
+                            {
+                                <span class="hrms-muted"> · @pct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)% @L["st.of"] @L[SettingsFormat.BaseKey(t.CalculationBase)]</span>
+                            }
+                            else if (t.DefaultAmount is { } amt)
+                            {
+                                <span class="hrms-muted"> · @PayrollFormat.Money(amt)</span>
+                            }
+                            <span class="pr-emp-sub">@(t.IsRecurring ? L["st.recurring"] : L["st.one_time"]) · @(t.ValueType == "FIXED" ? L["st.fixed"] : L["st.variable"])</span>
+                        </td>
+                        <td data-label="@L["st.included_in"]" class="col-p3">
+                            <span class="st-flags">
+                                @foreach (var (key, on) in Flags(t).Where(f => f.On))
+                                {
+                                    <span class="st-flag">@L[key]</span>
+                                }
+                                @if (!Flags(t).Any(f => f.On))
+                                {
+                                    <span class="hrms-muted">—</span>
+                                }
+                            </span>
+                        </td>
+                        <td data-label="@L["st.gl_account"]" class="col-p3 hrms-text-sm">@(t.GLAccountCode ?? "—")</td>
+                        <td data-label="@L["common.status"]">
+                            <span class="hrms-badge hrms-badge--@(t.IsActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(t.IsActive ? L["org.active"] : L["org.inactive"])</span>
+                        </td>
+                        <td class="hrms-table__actions">
+                            @if (Model.Rights.CanEdit)
+                            {
+                                <button type="button" class="btn-icon" data-st-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
+                                @if (!t.IsBasic)
+                                {
+                                    <button type="button" class="btn-icon btn-icon--success" data-st-toggle title="@(t.IsActive ? L["common.deactivate"] : L["common.activate"])" aria-label="@(t.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
+                                }
+                            }
+                            @if (Model.Rights.CanDelete && !t.IsStandard)
+                            {
+                                <button type="button" class="btn-icon btn-icon--danger" data-st-delete title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

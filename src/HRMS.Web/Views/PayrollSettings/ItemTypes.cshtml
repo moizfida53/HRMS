@@ -1,0 +1,54 @@
+@model SettingsPageModel
+@{
+    // Payroll Settings > Pay Item Types: the earnings and deductions offered when adding a
+    // pay item, with the flags the payroll engine reads (Payroll.PayComponents, db/29-30).
+    ViewData["Title"] = "Pay Item Types";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settings";
+    ViewData["PayrollPage"] = "st-components";
+    ViewData["Subtitle"] = L["st.item_types_subtitle"];
+}
+<div class="pr-stack st-page" data-st-page>
+    <div class="pr-banner pr-banner--info" role="note">
+        @Html.Icon("info", 18)
+        <div><strong>@L["st.item_types_banner_title"]</strong> @L["st.item_types_banner_text"]</div>
+    </div>
+
+    <section class="hrms-card" id="st-item-types" data-st-master
+             data-grid="@Url.Action("ItemTypesGrid", "PayrollSettings")"
+             data-form="@Url.Action("ItemTypeForm", "PayrollSettings")"
+             data-save="@Url.Action("ItemTypeSave", "PayrollSettings")"
+             data-toggle="@Url.Action("ItemTypeToggle", "PayrollSettings")"
+             data-delete="@Url.Action("ItemTypeDelete", "PayrollSettings")"
+             data-title-new="@L["st.add_item_type"]"
+             data-title-edit="@L["st.edit_item_type"]"
+             data-delete-title="@L["common.delete"]"
+             data-delete-text="@L["st.delete_item_type_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            SearchPlaceholder = L["st.search_item_types"],
+            Filters =
+            [
+                new("type", L["st.type"], [("", L["st.all_types"]), ("EARNING", L["st.earnings"]), ("DEDUCTION", L["st.deductions"])]),
+                new("status", L["common.status"], [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])])
+            ]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("_Dialogs")
+
+@section PageActions {
+    @if (Model.Rights.CanCreate && Model.SeedCompanyId is { } seedCompany)
+    {
+        <button type="button" class="btn btn-outline-secondary" data-st-post="@Url.Action("ItemTypeSeed", "PayrollSettings", new { companyId = seedCompany })"
+                data-st-target="st-item-types" title="@L["st.add_standard_types_hint"]">@Html.Icon("refresh", 15)<span>@L["st.add_standard_types"]</span></button>
+    }
+    @if (Model.Rights.CanCreate)
+    {
+        <button type="button" class="btn btn-primary" data-st-add="st-item-types">@Html.Icon("plus", 15)<span>@L["st.add_item_type"]</span></button>
+    }
+}
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

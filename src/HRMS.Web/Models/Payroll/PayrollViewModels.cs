@@ -42,10 +42,10 @@ public static class PayrollNav
         ]),
         new("settings", "Payroll Settings", "sliders",
         [
-            new("st-rules", "Payroll Rules"), new("st-components", "Pay Item Types"), new("st-deduction-rules", "Deduction Rules"),
+            new("st-rules", "Payroll Rules"), new("st-components", "Pay Item Types", true), new("st-deduction-rules", "Deduction Rules"),
             new("st-proration", "Proration Rules"), new("st-approval", "Approval Workflow"), new("st-banks", "Banks & Accounts"),
             new("st-bank-formats", "Bank Formats"), new("st-gl-mapping", "GL Mapping")
-        ]),
+        ], SubNav: true),
     ];
 
     /// <summary>Preview pages that are not on a tab rail (opened from another page).</summary>
@@ -69,6 +69,7 @@ public static class PayrollNav
     public static string? SubSection(string? slug) => slug switch
     {
         "slip-generate" or "slip-employee" or "slip-email" => slug,
+        _ when slug?.StartsWith("st-", StringComparison.Ordinal) == true => slug,
         "slip-view" => "slip-employee",
         "payrolls" or "create" or "register" or "validation" or "approval" => "payrolls",
         "calendars" or "calendar" => "calendars",
@@ -81,7 +82,7 @@ public static class PayrollNav
         Sections.FirstOrDefault(s => s.Tabs.Any(t => t.Slug == slug))
         ?? (ExtraPages.TryGetValue(slug, out var key) ? Sections.FirstOrDefault(s => s.Key == key) : null);
 
-    public static string Url(string slug) => slug switch
+    public static string Url(string slug) => slug.StartsWith("st-", StringComparison.Ordinal) && IsPreview(slug) ? $"/payroll/preview/{slug}" : slug switch
     {
         "payrolls" or "calendars" or "pay-periods" or "calendar" or "create" or "register" or "validation" or "approval" or "history"
             or "pay-items" => $"/payroll/{slug}",
@@ -92,16 +93,25 @@ public static class PayrollNav
         "slip-employee" => "/payroll/payslips/employees",
         "slip-email" => "/payroll/payslips/email",
         "slip-my" => "/payroll/payslips/my",
+        "st-rules" => "/payroll/settings/rules",
+        "st-components" => "/payroll/settings/item-types",
+        "st-deduction-rules" => "/payroll/settings/deduction-rules",
+        "st-proration" => "/payroll/settings/proration",
+        "st-approval" => "/payroll/settings/approval",
+        "st-banks" => "/payroll/settings/banks",
+        "st-bank-formats" => "/payroll/settings/bank-formats",
+        "st-gl-mapping" => "/payroll/settings/gl-mapping",
         _ => $"/payroll/preview/{slug}"
     };
 
     /// <summary>True for a payroll page that is still a design preview (Views/Payroll/Preview).</summary>
     public static bool IsPreview(string slug) =>
-        SectionOfSlug(slug) is { } section && section.Key is not ("processing" or "settlement" or "payslips") && slug != "pay-items";
+        Sections.SelectMany(s => s.Tabs).FirstOrDefault(t => t.Slug == slug) is { IsLive: false };
 
     /// <summary>The Final Settlement and Payslips preview pages that were replaced by the live screens (old links still work).</summary>
     public static string? ReplacedPreview(string slug) => slug switch
     {
+        _ when Sections.SelectMany(s => s.Tabs).Any(t => t.Slug == slug && t.IsLive) && slug.StartsWith("st-", StringComparison.Ordinal) => Url(slug),
         "slip-generate" or "slip-employee" or "slip-email" or "slip-my" => Url(slug),
         "slip-view" => "/payroll/payslips/employees",
         "fs-history" => "/payroll/settlement",

@@ -1,0 +1,182 @@
+@model ItemTypeFormModel
+@{
+    var t = Model.Item;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string? N(decimal? v, string format = "0.###") => v?.ToString(format, inv);
+    // a standard type keeps its code and type (the engine knows it by them); Basic Salary stays active
+    var locked = t.IsStandard;
+}
+<input type="hidden" name="PayComponentId" value="@t.PayComponentId" />
+@if (locked)
+{
+    <div class="pr-banner pr-banner--lock mb-3">@Html.Icon("lock", 18)<div><strong>@L["st.standard_type"]</strong> @L["st.standard_type_text"]</div></div>
+    <input type="hidden" name="ComponentCode" value="@t.ComponentCode" />
+    <input type="hidden" name="ComponentType" value="@t.ComponentType" />
+    <input type="hidden" name="CompanyId" value="@t.CompanyId" />
+}
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.item_type"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="it-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="it-company" name="@(locked ? null : "CompanyId")" disabled="@locked"
+                    data-searchable data-options-target="#it-costcenter" data-options-url="@Url.Action("CostCenters", "PayrollSettings")">
+                @foreach (var co in Model.Companies)
+                {
+                    <option value="@co.Id" selected="@(co.Id == t.CompanyId)">@co.Text</option>
+                }
+            </select>
+            <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="it-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control text-uppercase" id="it-code" name="@(locked ? null : "ComponentCode")" value="@t.ComponentCode" maxlength="30"
+                   autocomplete="off" disabled="@locked" dir="ltr" placeholder="HOUSING" />
+            <span class="field-validation-error" data-valmsg-for="ComponentCode"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="it-name">@L["st.name_english"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="it-name" name="ComponentName" value="@t.ComponentName" maxlength="150" dir="ltr" />
+            <span class="field-validation-error" data-valmsg-for="ComponentName"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="it-ar">@L["st.name_arabic"]</label>
+            <input class="form-control" id="it-ar" name="ArabicName" value="@t.ArabicName" maxlength="150" dir="rtl" lang="ar" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="it-label">@L["st.payslip_label"]</label>
+            <input class="form-control" id="it-label" name="PayslipLabel" value="@t.PayslipLabel" maxlength="100" placeholder="@L["st.payslip_label_hint"]" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="it-order">@L["st.display_order"]</label>
+            <input class="form-control" id="it-order" type="number" min="0" max="32000" step="1" name="DisplayOrder" value="@t.DisplayOrder" />
+            <span class="field-validation-error" data-valmsg-for="DisplayOrder"></span>
+        </div>
+        <div class="col-12">
+            <span class="form-label d-block">@L["st.type"] <span class="req" aria-hidden="true">*</span></span>
+            <div class="pr-choice st-choice" data-st-choice role="radiogroup" aria-label="@L["st.type"]">
+                @foreach (var (value, key, hint) in new[] { ("EARNING", "st.earning", "st.earning_hint"), ("DEDUCTION", "st.deduction", "st.deduction_hint") })
+                {
+                    <label class="@(t.ComponentType == value ? "is-selected" : null)">
+                        <input type="radio" class="form-check-input" name="@(locked ? null : "ComponentType")" value="@value" checked="@(t.ComponentType == value)" disabled="@locked" data-st-field="ComponentType" />
+                        <span><strong>@L[key]</strong><span>@L[hint]</span></span>
+                    </label>
+                }
+            </div>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.calculation"]</legend>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="it-value">@L["st.value_type"]</label>
+            <select class="form-select" id="it-value" name="ValueType">
+                <option value="FIXED" selected="@(t.ValueType == "FIXED")">@L["st.fixed"]</option>
+                <option value="VARIABLE" selected="@(t.ValueType == "VARIABLE")">@L["st.variable"]</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="it-method">@L["st.method"]</label>
+            @if (t.CalculationMethod == "SYSTEM")
+            {
+                <input type="hidden" name="CalculationMethod" value="SYSTEM" />
+                <input class="form-control" id="it-method" value="@L["st.method_system"]" disabled />
+            }
+            else
+            {
+                <select class="form-select" id="it-method" name="CalculationMethod" data-st-field="CalculationMethod">
+                    @foreach (var m in SettingsFormat.Methods)
+                    {
+                        <option value="@m" selected="@(t.CalculationMethod == m)">@L[SettingsFormat.MethodKey(m)]</option>
+                    }
+                </select>
+            }
+        </div>
+        <div class="col-md-4" data-show-if="CalculationMethod=PERCENTAGE|DAYS|HOURS|FORMULA">
+            <label class="form-label" for="it-base">@L["st.base"]</label>
+            <select class="form-select" id="it-base" name="CalculationBase">
+                @foreach (var b in SettingsFormat.Bases)
+                {
+                    <option value="@b" selected="@(t.CalculationBase == b)">@L[SettingsFormat.BaseKey(b)]</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4" data-show-if="CalculationMethod=AMOUNT|DAYS|HOURS">
+            <label class="form-label" for="it-amount">@L["st.default_amount"]</label>
+            <input class="form-control" id="it-amount" type="number" min="0" step="0.001" name="DefaultAmount" value="@N(t.DefaultAmount)" dir="ltr" />
+            <span class="field-validation-error" data-valmsg-for="DefaultAmount"></span>
+        </div>
+        <div class="col-md-4" data-show-if="CalculationMethod=PERCENTAGE">
+            <label class="form-label" for="it-pct">@L["st.default_percentage"]</label>
+            <div class="input-group">
+                <input class="form-control" id="it-pct" type="number" min="0" max="1000" step="0.0001" name="DefaultPercentage" value="@N(t.DefaultPercentage, "0.####")" dir="ltr" />
+                <span class="input-group-text">%</span>
+            </div>
+            <span class="field-validation-error" data-valmsg-for="DefaultPercentage"></span>
+        </div>
+        <div class="col-12" data-show-if="CalculationMethod=FORMULA">
+            <label class="form-label" for="it-formula">@L["st.formula"]</label>
+            <textarea class="form-control font-monospace" id="it-formula" name="Formula" rows="2" maxlength="1000" dir="ltr" placeholder="BASIC * 0.25">@t.Formula</textarea>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="it-min">@L["st.min_amount"]</label>
+            <input class="form-control" id="it-min" type="number" min="0" step="0.001" name="MinAmount" value="@N(t.MinAmount)" dir="ltr" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="it-max">@L["st.max_amount"]</label>
+            <input class="form-control" id="it-max" type="number" min="0" step="0.001" name="MaxAmount" value="@N(t.MaxAmount)" dir="ltr" />
+            <span class="field-validation-error" data-valmsg-for="MaxAmount"></span>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.behaviour"]</legend>
+    <div class="st-switches">
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("IsRecurring", L["st.recurring"], t.IsRecurring, L["st.recurring_hint"]))
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("IsProrated", L["st.flag_prorated"], t.IsProrated, L["st.prorated_hint"]))
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("ShowOnPayslip", L["st.show_on_payslip"], t.ShowOnPayslip, L["st.show_on_payslip_hint"]))
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("IsTaxable", L["st.flag_taxable"], t.IsTaxable, L["st.taxable_hint"]))
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("IsActive", L["org.active"], t.IsActive, null, t.IsBasic))
+    </div>
+    <div class="st-earning-only" data-show-if="ComponentType=EARNING">
+        <p class="st-subhead">@L["st.included_in_bases"]</p>
+        <div class="st-switches">
+            @await Html.PartialAsync("_Switch", new SettingsSwitch("IsPifssApplicable", L["st.flag_pifss"], t.IsPifssApplicable, L["st.pifss_hint"]))
+            @await Html.PartialAsync("_Switch", new SettingsSwitch("IsIndemnityApplicable", L["st.flag_eos"], t.IsIndemnityApplicable, L["st.eos_hint"]))
+            @await Html.PartialAsync("_Switch", new SettingsSwitch("IsOvertimeApplicable", L["st.flag_overtime"], t.IsOvertimeApplicable, L["st.overtime_hint"]))
+            @await Html.PartialAsync("_Switch", new SettingsSwitch("IsLeaveSalaryApplicable", L["st.flag_leave"], t.IsLeaveSalaryApplicable, L["st.leave_hint"]))
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.accounting"]</legend>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="it-gl">@L["st.gl_account"]</label>
+            <input class="form-control" id="it-gl" name="GLAccountCode" value="@t.GLAccountCode" maxlength="50" dir="ltr" />
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="it-glname">@L["st.gl_account_name"]</label>
+            <input class="form-control" id="it-glname" name="GLAccountName" value="@t.GLAccountName" maxlength="150" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="it-costcenter">@L["st.cost_center"]</label>
+            <select class="form-select" id="it-costcenter" name="CostCenterId" data-searchable>
+                <option value="">@L["st.employee_cost_center"]</option>
+                @foreach (var c in Model.CostCenters)
+                {
+                    <option value="@c.Id" selected="@(c.Id == t.CostCenterId)">@c.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="it-desc">@L["st.description"]</label>
+            <textarea class="form-control" id="it-desc" name="Description" rows="2" maxlength="500">@t.Description</textarea>
+        </div>
+    </div>
+</fieldset>

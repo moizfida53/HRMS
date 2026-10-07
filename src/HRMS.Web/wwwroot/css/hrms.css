@@ -6702,6 +6702,219 @@ tr.pr-row-cancelled .hrms-code-chip {
     break-inside: avoid;
   }
 }
+.st-page {
+  gap: 1rem;
+}
+
+.st-std {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-inline-start: 0.5rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #fffaeb;
+  color: #b54708;
+  font-size: 0.725rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.st-std svg {
+  width: 11px;
+  height: 11px;
+}
+
+.st-flags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.st-flag {
+  padding: 1px 7px;
+  border: 1px solid #c7dbf7;
+  border-radius: 5px;
+  background: #f2f7fd;
+  color: #1b4f91;
+  font-size: 0.725rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.st-table tr.is-ended td {
+  color: #98a2b3;
+}
+
+.st-modal .hrms-fieldset + .hrms-fieldset {
+  margin-block-start: 1rem;
+}
+
+.st-subhead {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #344054;
+}
+
+.st-switches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 0.5rem;
+}
+
+.st-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  min-height: 0;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #ffffff;
+  transition-property: border-color, background-color;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-switch {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+.st-switch .form-check-input {
+  flex: 0 0 auto;
+  float: none;
+  margin: 2px 0 0;
+  cursor: pointer;
+}
+.st-switch .form-check-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  cursor: pointer;
+  min-width: 0;
+}
+.st-switch__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1d2939;
+}
+.st-switch__hint {
+  font-size: 0.725rem;
+  color: #667085;
+  line-height: 1.35;
+}
+.st-switch:has(.form-check-input:checked) {
+  border-color: #c7dbf7;
+  background: #f2f7fd;
+}
+.st-switch:has(.form-check-input:disabled) {
+  opacity: 0.65;
+}
+.st-switch:has(.form-check-input:focus-visible):focus {
+  outline: none;
+}
+.st-switch:has(.form-check-input:focus-visible):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(29, 95, 191, 0.28);
+  border-color: #1d5fbf;
+}
+
+.st-switch.form-switch {
+  padding-inline-start: 0.75rem;
+}
+
+.st-choice {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+
+.st-lines {
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.st-lines table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+}
+.st-lines th {
+  padding: 0.5rem 0.75rem;
+  background: #f5f7fa;
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: #475467;
+  text-align: start;
+  white-space: nowrap;
+}
+.st-lines td {
+  padding: 0.25rem 0.5rem;
+  border-block-start: 1px solid #eef1f5;
+  vertical-align: middle;
+}
+.st-lines .form-control, .st-lines .form-select {
+  min-width: 80px;
+}
+.st-lines__foot {
+  display: flex;
+  justify-content: flex-start;
+  padding: 0.5rem 0.75rem;
+  border-block-start: 1px solid #eef1f5;
+  background: #fafbfc;
+}
+@container content (max-width: 639.98px) {
+  .st-lines thead {
+    display: none;
+  }
+  .st-lines tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-block-start: 1px solid #eef1f5;
+  }
+  .st-lines td {
+    border: 0;
+    padding: 0;
+  }
+  .st-lines td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.725rem;
+    color: #667085;
+  }
+}
+
+.st-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.725rem;
+  font-weight: 600;
+}
+.st-verified.is-yes {
+  color: #0b7a3b;
+}
+.st-verified.is-no {
+  color: #b54708;
+}
+.st-verified svg {
+  width: 13px;
+  height: 13px;
+}
+
+.st-inforce {
+  display: inline-block;
+  margin-inline-start: 0.5rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ecfdf3;
+  color: #0b7a3b;
+  font-size: 0.725rem;
+  font-weight: 700;
+}
+
 .hrms-auth-body {
   margin: 0;
   background: #ffffff;

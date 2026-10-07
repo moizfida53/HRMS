@@ -1,0 +1,34 @@
+@* The add / edit dialog and the confirm dialog shared by every Payroll Settings screen.
+   The form body is loaded from the server; wwwroot/js/payroll-settings.js drives both. *@
+<div class="modal fade st-modal" id="st-modal" tabindex="-1" aria-hidden="true" aria-labelledby="st-modal-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <form class="modal-content" data-st-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="st-modal-title" data-st-form-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-st-form-body></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="submit" class="btn btn-primary" data-st-form-save>@Html.Icon("check", 15)<span>@L["emp.save"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="st-confirm" tabindex="-1" aria-hidden="true" aria-labelledby="st-confirm-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="st-confirm-title" data-st-confirm-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body"><p class="mb-0" data-st-confirm-text></p></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="button" class="btn btn-danger" data-st-confirm-accept><span data-st-confirm-button>@L["pr.confirm"]</span></button>
+            </div>
+        </div>
+    </div>
+</div>
+@Html.AntiForgeryToken()

@@ -9,7 +9,8 @@
     var run = ViewData["ActiveRun"] as PayrollRun;
     var reached = run is null ? 0 : (run.IsCancelled ? 0 : Math.Min(run.StageIndex, 2));
 }
-@if (section is not null && section.Tabs.Count > 1)
+@* A section with sub-sections in the sidebar (SubNav) has no tab rail. *@
+@if (section is not null && section.Tabs.Count > 1 && !section.SubNav)
 {
     <nav class="hrms-tabs pr-tabs" aria-label="@L.Tr(section.Title)">
         <div class="hrms-tabs__rail" role="tablist">
