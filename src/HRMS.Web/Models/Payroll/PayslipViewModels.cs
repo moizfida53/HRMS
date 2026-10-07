@@ -27,7 +27,16 @@ public sealed class PayslipPageModel
     public int? DepartmentId { get; init; }
     public string Status { get; init; } = PayslipFilter.All;
     public string? Search { get; init; }
+    /// <summary>The Year and Period filters (period = payroll month, first day).</summary>
+    public int? Year { get; init; }
+    public DateTime? Month { get; init; }
     public bool EmailConfigured { get; init; }
+
+    /// <summary>The years that have payrolls, newest first.</summary>
+    public IReadOnlyList<int> Years => Runs.Select(r => r.RunMonth.Year).Distinct().OrderByDescending(y => y).ToList();
+
+    /// <summary>The payroll months (periods), newest first.</summary>
+    public IReadOnlyList<DateTime> Months => Runs.Select(r => r.RunMonth).Distinct().OrderByDescending(m => m).ToList();
     public bool ManyCompanies { get; init; }
 
     public string Tab => Mode switch { "employees" => "slip-employee", "email" => "slip-email", _ => "slip-generate" };

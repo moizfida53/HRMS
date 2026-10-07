@@ -808,3 +808,88 @@
   from { background-position: 100% 50%; }
   to   { background-position: 0 50%; }
 }
+
+// ============================================================================
+// Searchable dropdown (select[data-searchable], HRMS.searchable in site.js)
+// ----------------------------------------------------------------------------
+// The native <select> stays in the page (visually hidden) and is the source
+// of truth; a .form-select button opens a menu with a search box and the
+// options. Logical properties throughout, so it mirrors in Arabic.
+// ============================================================================
+.hrms-combo {
+  position: relative;
+  min-width: 0;
+
+  &__native { @include visually-hidden; }
+
+  &__toggle {
+    display: block;
+    width: 100%;
+    text-align: start;
+    cursor: pointer;
+    background-color: $white;
+
+    &:disabled { cursor: not-allowed; }
+  }
+
+  &__value {
+    display: block;
+    @include truncate;
+  }
+
+  &.is-open &__toggle {
+    border-color: $blue-500;
+    box-shadow: 0 0 0 3px rgba($blue-600, .15);
+  }
+
+  // placed by site.js (fixed, at the button) so a card's overflow:hidden never clips it
+  &__menu {
+    position: fixed;
+    z-index: 1060;
+    padding: space("2");
+    background: $white;
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    box-shadow: $shadow-lg;
+  }
+
+  &__search { margin-block-end: space("2"); }
+
+  &__list {
+    position: relative;   // offsetTop of an option is measured from the list
+    max-height: 260px;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+    @include thin-scrollbar;
+  }
+
+  &__item {
+    padding: 6px space("3");
+    border-radius: $radius-sm;
+    font-size: $fs-base;
+    color: $ink-700;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+
+    &.is-active { background: $surface; color: $ink-900; }
+
+    &[aria-selected="true"] {
+      background: $blue-100;
+      color: $blue-700;
+      font-weight: $fw-semibold;
+    }
+
+    &[aria-disabled="true"] { color: $ink-300; cursor: not-allowed; }
+  }
+
+  &__empty {
+    padding: space("2") space("3");
+    font-size: $fs-sm;
+    color: $ink-400;
+  }
+}
+
+// In a filter toolbar the combo keeps the select's own width rules.
+.hrms-card__filters .hrms-combo { flex: 0 1 auto; min-width: 160px; }

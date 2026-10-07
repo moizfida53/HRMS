@@ -18,19 +18,27 @@
                     @Html.Icon("search", 16)
                     <input type="search" data-runs-search autocomplete="off" placeholder="@L["pr.search_payrolls"]" aria-label="@L["pr.search_payrolls"]" />
                 </label>
-                <select class="form-select" style="width:auto" data-runs-year aria-label="@L["pr.year"]">
+                <select class="form-select" style="width:auto" data-runs-year data-searchable aria-label="@L["pr.year"]">
                     <option value="">@L["pr.all_years"]</option>
                     @foreach (var y in Model.Years)
                     {
                         <option value="@y">@y</option>
                     }
                 </select>
-                <select class="form-select" style="width:auto" data-runs-type aria-label="@L["org.type"]">
+                @* Period follows the year: only the months of the chosen year are offered. *@
+                <select class="form-select" style="width:auto" data-runs-month data-runs-month-of-year data-searchable aria-label="@L["pr.period"]">
+                    <option value="all">@L["pr.all_periods"]</option>
+                    @foreach (var m in Model.Months)
+                    {
+                        <option value="@m.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)" data-year="@m.Year">@L.MonthYear(m)</option>
+                    }
+                </select>
+                <select class="form-select" style="width:auto" data-runs-type data-searchable aria-label="@L["org.type"]">
                     <option value="">@L["pr.all_types"]</option>
                     <option value="@RunType.Regular">@L["pr.regular"]</option>
                     <option value="@RunType.OffCycle">@L["pr.off_cycle"]</option>
                 </select>
-                <select class="form-select" style="width:auto" data-runs-stage aria-label="@L["pr.stage"]">
+                <select class="form-select" style="width:auto" data-runs-stage data-searchable aria-label="@L["pr.stage"]">
                     <option value="">@L["pr.closed_and_cancelled"]</option>
                     <option value="@RunStage.Closed">@L["pr.closed"]</option>
                     <option value="@RunStage.Cancelled">@L["emp.cancelled"]</option>

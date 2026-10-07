@@ -451,7 +451,8 @@ others). Opening a payroll goes to the page of **its own stage only** —
 Register, Validation or Approval (a closed payroll on Approval, a cancelled one
 on Register); the other stage pages are not offered, and a link to a stage the
 payroll is not at redirects to the right one. Create Payroll is the button on
-Payrolls. The old combined page `/payroll/calendar` redirects to Payrolls. The
+Payrolls. Payroll History filters by Year and **Period** (the period list
+follows the year). The old combined page `/payroll/calendar` redirects to Payrolls. The
 counts are cached for 20 seconds per user and refreshed at once after any
 payroll or payslip action. Run `db/45_Payroll_Processing_Sections_Labels.sql`
 for the new labels.
@@ -537,6 +538,16 @@ Files: `Controllers/PayItemsController.cs`, `Models/Payroll/PayItemViewModels.cs
 and `wwwroot/scss/_payroll.scss`. The page is `/payroll/pay-items` (`?emp=<id>`
 opens one employee).
 
+### Searchable dropdowns
+
+Any `<select data-searchable>` gets a search box inside its list (type to
+filter, arrow keys + Enter, Escape closes; works in Arabic). The `<select>`
+itself stays the source of truth, so forms and page scripts are unchanged —
+`HRMS.searchable(select)` and `HRMS.filterOptions(select, keep)` in
+`wwwroot/js/site.js`, styles `.hrms-combo` in `_components.scss`. Used by the
+Payslips Year / Period / Payroll / Department pickers and the Payroll History
+filters.
+
 ### Payslips (live)
 
 **Payroll > Payslips** opens in the sidebar into three sub-sections (like Payroll
@@ -548,8 +559,8 @@ date, not sent or failed, with an address). Every employee also gets
 | Page | URL | What it does |
 |---|---|---|
 | Generate Payslips | `/payroll/payslips/generate` | Pick a payroll, choose everyone or one department and the language (**Bilingual** English + Arabic on one page, **English**, or **Arabic** right-to-left), then **Generate**. A checklist shows whether the payroll is closed, how many payslips are generated / outdated, and who has no email address. |
-| Employee Payslips | `/payroll/payslips/employees` | Every employee of every payroll (or one payroll) with payslip and email status — search, department and status filters, paging. Opens any payslip to view or print. |
-| Email Payslips | `/payroll/payslips/email` | Delivery figures (sent, queued, failed, no email address), **Send to all not yet sent**, and Send / Resend per employee. |
+| Employee Payslips | `/payroll/payslips/employees` | Every employee of every payroll (or one payroll) with payslip and email status — **Year**, **Period** and **Payroll** pickers (Period follows Year, Payroll follows both; with no payroll chosen the list shows the whole year / period), search, department and status filters, paging. Opens any payslip to view or print. |
+| Email Payslips | `/payroll/payslips/email` | The same Year / Period / Payroll pickers (a year or period opens its latest closed payroll); delivery figures (sent, queued, failed, no email address), **Send to all not yet sent**, and Send / Resend per employee. |
 | Payslip | `/payroll/payslips/{runId}/{employeeId}` | The payslip itself — **Print / Save PDF** (the browser's print dialog, one A4 page), and an EN / ع / both switch to preview the other languages. |
 | My Payslips | `/payroll/payslips/my` | The signed-in employee's own payslips (latest one on top). Needs only a user linked to the employee (`Security.Users.EmployeeId`), no permission — and it ignores the company filter. |
 

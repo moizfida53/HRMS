@@ -54,6 +54,13 @@ $ps-stack: "sm";
 
 .ps-picker__field .form-select { font-weight: $fw-semibold; }
 
+// With the Year / Period / Payroll filters the field needs the room: the facts
+// move under it on medium content, beside it on wide content.
+.ps-picker__body:has(.ps-picker__filters) {
+  @include cq-up("md") { grid-template-columns: auto minmax(0, 1fr); .ps-picker__facts { grid-column: 2; } }
+  @include cq-up("xl") { grid-template-columns: auto minmax(0, 2.2fr) minmax(0, 1fr); .ps-picker__facts { grid-column: auto; } }
+}
+
 .ps-picker__facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

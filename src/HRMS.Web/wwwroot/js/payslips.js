@@ -97,9 +97,57 @@
     /* ================================================== payroll picker */
 
     var runSelect = $("[data-ps-run]", page);
+    var yearSelect = $("[data-ps-year]", page);
+    var monthSelect = $("[data-ps-month]", page);
+    var pageYear = page.getAttribute("data-year") || "";
+    var pageMonth = page.getAttribute("data-month") || "";
+
+    /** Period options follow the year; payroll options follow the year and period. */
+    function narrow() {
+        var y = yearSelect ? yearSelect.value : "";
+        if (monthSelect) {
+            HRMS.filterOptions(monthSelect, function (o) { return !o.value || !y || o.getAttribute("data-year") === y; });
+        }
+        var m = monthSelect ? monthSelect.value : "";
+        if (runSelect && (yearSelect || monthSelect)) {
+            HRMS.filterOptions(runSelect, function (o) {
+                return !o.value || ((!y || o.getAttribute("data-year") === y) && (!m || o.getAttribute("data-month") === m));
+            });
+        }
+    }
+    if (yearSelect || monthSelect) { narrow(); }
+
+    /** Opens the page again for the chosen payroll / year / period, keeping the list filters. */
+    function go(params) {
+        var status = $("[data-ps-status]", page), dept = $("[data-ps-dept]", page), q = $("[data-ps-search]", page);
+        params.status = status && status.value !== "ALL" ? status.value : "";
+        params.dept = dept ? dept.value : "";
+        params.q = q ? q.value.trim() : "";
+        window.location.href = withQs(page.getAttribute("data-urls-page"), params);
+    }
+    function periodChanged() {
+        narrow();
+        // Employee Payslips keeps the payroll when it still matches (else "All payrolls");
+        // Email Payslips opens the latest payroll of the chosen year / period.
+        go({
+            year: yearSelect ? yearSelect.value : "",
+            month: monthSelect ? monthSelect.value : "",
+            run: mode === "employees" && runSelect ? runSelect.value : ""
+        });
+    }
+    if (yearSelect) { yearSelect.addEventListener("change", periodChanged); }
+    if (monthSelect) { monthSelect.addEventListener("change", periodChanged); }
     if (runSelect) {
         runSelect.addEventListener("change", function () {
-            window.location.href = withQs(page.getAttribute("data-urls-page"), { run: runSelect.value });
+            if (mode === "generate") {
+                window.location.href = withQs(page.getAttribute("data-urls-page"), { run: runSelect.value });
+                return;
+            }
+            go({
+                run: runSelect.value,
+                year: runSelect.value ? "" : (yearSelect ? yearSelect.value : ""),
+                month: runSelect.value ? "" : (monthSelect ? monthSelect.value : "")
+            });
         });
     }
 
@@ -165,6 +213,8 @@
         var url = withQs(page.getAttribute("data-urls-grid"), {
             mode: mode,
             run: runId,
+            year: runId ? "" : pageYear,
+            month: runId ? "" : pageMonth,
             dept: dept ? dept.value : "",
             status: status ? status.value : "",
             search: search ? search.value.trim() : "",
@@ -190,6 +240,8 @@
         if (!window.history || !window.history.replaceState) { return; }
         var url = withQs(window.location.pathname, {
             run: runId,
+            year: runId ? "" : pageYear,
+            month: runId ? "" : pageMonth,
             dept: dept ? dept.value : "",
             status: status && status.value !== "ALL" ? status.value : "",
             q: search ? search.value.trim() : ""

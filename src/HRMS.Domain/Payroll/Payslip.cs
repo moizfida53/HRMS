@@ -228,6 +228,9 @@ public sealed class PayslipListFilter
     public int? CompanyId { get; init; }
     public string? CompanyIds { get; init; }
     public long? RunId { get; init; }
+    /// <summary>Payrolls of this year / month (first day) - when no payroll is chosen.</summary>
+    public int? Year { get; init; }
+    public DateTime? RunMonth { get; init; }
     public long? EmployeeId { get; init; }
     /// <summary>My Payslips: only this employee's generated payslips of closed payrolls.</summary>
     public long? SelfEmployeeId { get; init; }

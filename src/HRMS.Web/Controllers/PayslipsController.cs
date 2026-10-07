@@ -66,13 +66,14 @@ public sealed class PayslipsController : Controller
     public IActionResult Index() => RedirectToAction(nameof(Generate));
 
     [HttpGet("generate")]
-    public Task<IActionResult> Generate(long? run) => Page("generate", run, null, null, null);
+    public Task<IActionResult> Generate(long? run) => Page("generate", run, null, null, null, null, null);
 
     [HttpGet("employees")]
-    public Task<IActionResult> Employees(long? run, int? dept, string? status, string? q) => Page("employees", run, dept, status, q);
+    public Task<IActionResult> Employees(long? run, int? dept, string? status, string? q, int? year, string? month) =>
+        Page("employees", run, dept, status, q, year, month);
 
     [HttpGet("email")]
-    public Task<IActionResult> Email(long? run, string? status) => Page("email", run, null, status, null);
+    public Task<IActionResult> Email(long? run, string? status, int? year, string? month) => Page("email", run, null, status, null, year, month);
 
     /// <summary>One employee's payslip in one payroll, ready to print (?lang=both|en|ar previews another language).</summary>
     [HttpGet("{runId:long}/{employeeId:long}")]
@@ -126,7 +127,7 @@ public sealed class PayslipsController : Controller
     // =======================================================================
 
     [HttpGet("grid")]
-    public async Task<IActionResult> Grid(string? mode, long? run, int? dept, string? status, string? search, int page = 1)
+    public async Task<IActionResult> Grid(string? mode, long? run, int? dept, string? status, string? search, int? year, string? month, int page = 1)
     {
         var rights = Rights;
         if (!rights.CanView) return Forbid();
@@ -140,6 +141,8 @@ public sealed class PayslipsController : Controller
             CompanyId = OwnCompany,
             CompanyIds = CompanyCsv,
             RunId = run,
+            Year = run is null ? ValidYear(year) : null,
+            RunMonth = run is null ? ParseMonth(month) : null,
             DepartmentId = dept,
             Status = filter,
             Search = search,
@@ -152,7 +155,8 @@ public sealed class PayslipsController : Controller
             Mode = view,
             Page = result,
             Rights = rights,
-            IsFiltered = !string.IsNullOrWhiteSpace(search) || filter != PayslipFilter.All || dept is not null,
+            IsFiltered = !string.IsNullOrWhiteSpace(search) || filter != PayslipFilter.All || dept is not null
+                         || (run is null && (ValidYear(year) is not null || ParseMonth(month) is not null)),
             ManyCompanies = ManyCompanies,
             AllRuns = run is null
         });
@@ -182,7 +186,7 @@ public sealed class PayslipsController : Controller
     // Helpers
     // =======================================================================
 
-    private async Task<IActionResult> Page(string mode, long? runId, int? dept, string? status, string? search)
+    private async Task<IActionResult> Page(string mode, long? runId, int? dept, string? status, string? search, int? year, string? month)
     {
         var rights = Rights;
         if (!rights.CanView) return Forbid();
@@ -196,8 +200,12 @@ public sealed class PayslipsController : Controller
         }
         else if (mode != "employees")
         {
-            // Generate / Email open on the latest closed payroll (else the latest one).
-            run = runs.FirstOrDefault(r => r.IsClosed) ?? runs.FirstOrDefault();
+            // Generate / Email open on the latest closed payroll of the chosen year / period
+            // (else the latest one of them, else the latest payroll).
+            var y = ValidYear(year);
+            var m = ParseMonth(month);
+            var matching = runs.Where(r => (y is null || r.RunMonth.Year == y) && (m is null || r.RunMonth == m)).ToList();
+            run = matching.FirstOrDefault(r => r.IsClosed) ?? matching.FirstOrDefault() ?? runs.FirstOrDefault(r => r.IsClosed) ?? runs.FirstOrDefault();
         }
 
         var summary = run is null ? null : await _payslips.SummaryAsync(run.PayrollRunId, OwnCompany, CompanyCsv, Ct);
@@ -217,6 +225,9 @@ public sealed class PayslipsController : Controller
             DepartmentId = dept,
             Status = PayslipFilter.Normalize(status),
             Search = search,
+            // the Year / Period filters as chosen (they only narrow the payroll list)
+            Year = ValidYear(year) ?? ParseMonth(month)?.Year,
+            Month = ParseMonth(month),
             EmailConfigured = _email.CurrentValue.IsConfigured,
             ManyCompanies = ManyCompanies
         });
@@ -238,6 +249,13 @@ public sealed class PayslipsController : Controller
                 LabelStore.SafeFormat(_labels.Find(key, arabic: true) ?? _labels.Find(key, arabic: false) ?? key, args))
         });
     }
+
+    private static int? ValidYear(int? year) => year is >= 2000 and <= 2100 ? year : null;
+
+    /// <summary>"2026-09" -> 1 Sep 2026.</summary>
+    private static DateTime? ParseMonth(string? month) =>
+        DateTime.TryParseExact(month, "yyyy-MM", System.Globalization.CultureInfo.InvariantCulture,
+                               System.Globalization.DateTimeStyles.None, out var d) ? d : null;
 
     private static string? LangTemplate(string? lang) => lang switch
     {

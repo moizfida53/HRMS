@@ -2,7 +2,7 @@
    45_Payroll_Processing_Sections_Labels.sql  -  HRMS: labels of the split
    Payroll Processing sections (Payrolls / Payroll Calendar / Period /
    Payroll History), the Payslips sub-sections and the record counts in
-   the sidebar
+   the sidebar, and the searchable dropdowns (js.combo_*)
    ---------------------------------------------------------------------
    Run after 33 (Core.UiLabels). No table or procedure changes - only
    labels. Idempotent: new keys are inserted, existing keys only completed
@@ -32,6 +32,8 @@ INSERT INTO #Seed (LabelKey, Module, EnglishText, ArabicText, SourceText) VALUES
     ('layout.nav_count_periods', 'layout', N'{0} open periods this year', N'{0} فترات مفتوحة هذا العام', NULL),
     ('layout.nav_count_slips_to_generate', 'layout', N'{0} payslips to generate (new or outdated)', N'{0} كشوف بانتظار الإصدار (جديدة أو غير محدّثة)', NULL),
     ('layout.nav_count_slips_generated', 'layout', N'{0} payslips generated', N'{0} كشوف صادرة', NULL),
+    ('js.combo_search', 'js', N'Search…', N'بحث…', NULL),
+    ('js.combo_no_match', 'js', N'No match', N'لا توجد نتائج', NULL),
     ('layout.nav_count_slips_to_email', 'layout', N'{0} payslip emails to send (not sent or failed)', N'{0} رسائل كشوف بانتظار الإرسال (لم تُرسل أو تعذّر إرسالها)', NULL);
 INSERT INTO [Core].[UiLabels] (LabelKey, Module, EnglishText, ArabicText, SourceText)
 SELECT s.LabelKey, s.Module, s.EnglishText, s.ArabicText, s.SourceText

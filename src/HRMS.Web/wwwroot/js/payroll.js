@@ -498,6 +498,13 @@
                 page: rState.page
             })).then(function () { setCount(rSlot, $("[data-runs-count]", runsCard)); });
         };
+        // Payroll History: the Period list only offers the months of the chosen year.
+        if (yearSel && monthSel && monthSel.hasAttribute("data-runs-month-of-year")) {
+            yearSel.addEventListener("change", function () {
+                var y = yearSel.value;
+                HRMS.filterOptions(monthSel, function (o) { return o.value === "all" || !y || o.getAttribute("data-year") === y; });
+            });
+        }
         [monthSel, stageSel, yearSel, typeSel].forEach(function (s) {
             if (s) { s.addEventListener("change", function () { rState.page = 1; loadRuns(); }); }
         });

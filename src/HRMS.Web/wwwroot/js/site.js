@@ -413,6 +413,221 @@
         });
     })();
 
+    /* ------------------------------------------------------------------
+     * Searchable dropdown: <select data-searchable> gets a button and a
+     * menu with a search box inside it. The <select> stays the source of
+     * truth (value, name, form posts, "change" events), so page scripts
+     * keep reading select.value and listening to "change" as before.
+     *   HRMS.searchable(select)            enhance one select (done for every
+     *                                      [data-searchable] on page load)
+     *   HRMS.filterOptions(select, keep)   show only the options keep(option)
+     *                                      accepts (keep = null shows all again)
+     *   select.dispatchEvent(new Event("hrms:refresh"))  re-read the options
+     * ------------------------------------------------------------------ */
+    var comboSeq = 0;
+
+    HRMS.searchable = function (select) {
+        if (!select || select.hrmsCombo) { return select && select.hrmsCombo; }
+        var id = "hrms-combo-" + (++comboSeq);
+        var wrap = document.createElement("div");
+        wrap.className = "hrms-combo";
+        select.parentNode.insertBefore(wrap, select);
+        wrap.appendChild(select);
+        select.classList.add("hrms-combo__native");
+        select.setAttribute("tabindex", "-1");
+        select.setAttribute("aria-hidden", "true");
+
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "form-select hrms-combo__toggle";
+        button.setAttribute("aria-haspopup", "listbox");
+        button.setAttribute("aria-expanded", "false");
+        button.setAttribute("aria-controls", id + "-list");
+        // the <label for> of the select now names the button
+        if (select.id) {
+            var label = document.querySelector('label[for="' + select.id + '"]');
+            if (label) {
+                if (!label.id) { label.id = select.id + "-label"; }
+                button.setAttribute("aria-labelledby", label.id + " " + id + "-value");
+                label.addEventListener("click", function (e) { e.preventDefault(); button.focus(); });
+            }
+        } else if (select.getAttribute("aria-label")) {
+            button.setAttribute("aria-label", select.getAttribute("aria-label"));
+        }
+        var valueSpan = document.createElement("span");
+        valueSpan.className = "hrms-combo__value";
+        valueSpan.id = id + "-value";
+        button.appendChild(valueSpan);
+        wrap.appendChild(button);
+
+        var menu = document.createElement("div");
+        menu.className = "hrms-combo__menu";
+        menu.hidden = true;
+        var search = document.createElement("input");
+        search.type = "search";
+        search.className = "form-control form-control-sm hrms-combo__search";
+        search.setAttribute("autocomplete", "off");
+        search.placeholder = HRMS.t("js.combo_search", "Search…");
+        search.setAttribute("aria-label", search.placeholder);
+        search.setAttribute("aria-controls", id + "-list");
+        var list = document.createElement("ul");
+        list.className = "hrms-combo__list";
+        list.id = id + "-list";
+        list.setAttribute("role", "listbox");
+        var empty = document.createElement("div");
+        empty.className = "hrms-combo__empty";
+        empty.textContent = HRMS.t("js.combo_no_match", "No match");
+        empty.hidden = true;
+        menu.appendChild(search);
+        menu.appendChild(list);
+        menu.appendChild(empty);
+        wrap.appendChild(menu);
+
+        var active = -1;
+        function items() { return Array.prototype.slice.call(list.querySelectorAll(".hrms-combo__item:not([hidden])")); }
+        function norm(t) { return (t || "").toLocaleLowerCase().normalize("NFKD").replace(/[̀-ًͯ-ٟ]/g, ""); }
+
+        function render() {
+            var current = select.options[select.selectedIndex];
+            valueSpan.textContent = current ? current.textContent.trim() : "";
+            button.disabled = select.disabled;
+            list.innerHTML = "";
+            Array.prototype.forEach.call(select.options, function (o, i) {
+                var li = document.createElement("li");
+                li.className = "hrms-combo__item";
+                li.id = id + "-opt-" + i;
+                li.setAttribute("role", "option");
+                li.setAttribute("data-index", String(i));
+                li.setAttribute("aria-selected", o.selected ? "true" : "false");
+                if (o.disabled) { li.setAttribute("aria-disabled", "true"); }
+                li.textContent = o.textContent.trim();
+                list.appendChild(li);
+            });
+        }
+
+        function filter() {
+            var q = norm(search.value.trim());
+            var shown = 0;
+            Array.prototype.forEach.call(list.children, function (li) {
+                var hit = !q || norm(li.textContent).indexOf(q) >= 0;
+                li.hidden = !hit;
+                if (hit) { shown++; }
+            });
+            empty.hidden = shown > 0;
+            setActive(items().findIndex(function (li) { return li.getAttribute("aria-selected") === "true"; }));
+            if (active < 0) { setActive(0); }
+        }
+
+        function setActive(i) {
+            var all = items();
+            all.forEach(function (li) { li.classList.remove("is-active"); });
+            active = all.length ? Math.max(0, Math.min(i, all.length - 1)) : -1;
+            if (active >= 0) {
+                all[active].classList.add("is-active");
+                search.setAttribute("aria-activedescendant", all[active].id);
+                // keep the active option visible inside the list only (never scroll the page)
+                var li = all[active];
+                if (li.offsetTop < list.scrollTop) { list.scrollTop = li.offsetTop; }
+                else if (li.offsetTop + li.offsetHeight > list.scrollTop + list.clientHeight) { list.scrollTop = li.offsetTop + li.offsetHeight - list.clientHeight; }
+            } else {
+                search.removeAttribute("aria-activedescendant");
+            }
+        }
+
+        // The menu is position:fixed at the button, so a card's overflow:hidden never clips
+        // it; it opens upwards when there is no room below, and follows scrolling.
+        function place() {
+            if (menu.hidden) { return; }
+            var r = button.getBoundingClientRect();
+            var width = Math.max(r.width, Math.min(280, window.innerWidth - 16));
+            var rtl = window.getComputedStyle(wrap).direction === "rtl";
+            var left = rtl ? r.right - width : r.left;
+            left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
+            menu.style.width = width + "px";
+            menu.style.left = left + "px";
+            var below = window.innerHeight - r.bottom, h = menu.offsetHeight;
+            menu.style.top = (below < h + 8 && r.top > below ? Math.max(8, r.top - h - 4) : r.bottom + 4) + "px";
+        }
+        window.addEventListener("resize", place);
+        window.addEventListener("scroll", place, true);
+
+        function open() {
+            if (select.disabled || !menu.hidden) { return; }
+            render();
+            menu.hidden = false;
+            place();
+            wrap.classList.add("is-open");
+            button.setAttribute("aria-expanded", "true");
+            search.value = "";
+            filter();
+            search.focus({ preventScroll: true });
+        }
+
+        function close(focusButton) {
+            if (menu.hidden) { return; }
+            menu.hidden = true;
+            wrap.classList.remove("is-open");
+            button.setAttribute("aria-expanded", "false");
+            if (focusButton) { button.focus(); }
+        }
+
+        function choose(li) {
+            if (!li || li.getAttribute("aria-disabled") === "true") { return; }
+            var index = parseInt(li.getAttribute("data-index"), 10);
+            var changed = select.selectedIndex !== index;
+            select.selectedIndex = index;
+            render();
+            close(true);
+            if (changed) { select.dispatchEvent(new Event("change", { bubbles: true })); }
+        }
+
+        button.addEventListener("click", function () { if (menu.hidden) { open(); } else { close(true); } });
+        button.addEventListener("keydown", function (e) {
+            if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); }
+            else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) { open(); search.value = e.key; filter(); e.preventDefault(); }
+        });
+        search.addEventListener("input", filter);
+        search.addEventListener("keydown", function (e) {
+            if (e.key === "ArrowDown") { e.preventDefault(); setActive(active + 1); }
+            else if (e.key === "ArrowUp") { e.preventDefault(); setActive(active - 1); }
+            else if (e.key === "Home" && !search.value) { e.preventDefault(); setActive(0); }
+            else if (e.key === "End" && !search.value) { e.preventDefault(); setActive(items().length - 1); }
+            else if (e.key === "Enter") { e.preventDefault(); choose(items()[active]); }
+            else if (e.key === "Escape") { e.preventDefault(); close(true); }
+            else if (e.key === "Tab") { close(false); }
+        });
+        list.addEventListener("mousedown", function (e) { e.preventDefault(); });   // keep focus in the search box
+        list.addEventListener("click", function (e) { choose(e.target.closest(".hrms-combo__item")); });
+        list.addEventListener("mousemove", function (e) {
+            var li = e.target.closest(".hrms-combo__item");
+            if (li) { setActive(items().indexOf(li)); }
+        });
+        document.addEventListener("mousedown", function (e) { if (!wrap.contains(e.target)) { close(false); } });
+        select.addEventListener("change", render);
+        select.addEventListener("hrms:refresh", render);
+
+        render();
+        select.hrmsCombo = { open: open, close: close, refresh: render };
+        return select.hrmsCombo;
+    };
+
+    HRMS.filterOptions = function (select, keep) {
+        if (!select) { return; }
+        if (!select.hrmsAllOptions) { select.hrmsAllOptions = Array.prototype.slice.call(select.options); }
+        var value = select.value;
+        select.innerHTML = "";
+        select.hrmsAllOptions.forEach(function (o) {
+            if (!keep || keep(o)) { select.appendChild(o); }
+        });
+        // keep the chosen option when it is still offered, else fall back to the first one
+        var still = Array.prototype.some.call(select.options, function (o) { return o.value === value; });
+        select.value = still ? value : (select.options[0] ? select.options[0].value : "");
+        select.dispatchEvent(new Event("hrms:refresh"));
+        return still;
+    };
+
+    Array.prototype.forEach.call(document.querySelectorAll("select[data-searchable]"), HRMS.searchable);
+
     HRMS.debounce = function (fn, wait) {
         var timer = null;
         return function () {

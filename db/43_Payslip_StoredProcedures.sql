@@ -8,8 +8,9 @@
                      awaiting approval or closed), newest first, with
                      generated / emailed counts
        SUMMARY       key figures of one payroll's payslips
-       LIST          employees of a payroll (or of every payroll) with their
-                     payslip and email status - paged, searchable;
+       LIST          employees of a payroll (or of every payroll, or of a year
+                     / month) with their payslip and email status - paged,
+                     searchable;
                      @SelfEmployeeId = My Payslips (generated payslips of
                      closed payrolls only)
        GET           the payslip header of one employee in one payroll:
@@ -56,6 +57,8 @@ CREATE OR ALTER PROCEDURE [Payroll].[usp_Payslip_Manage]
     @RunId              BIGINT          = NULL,
     @EmployeeId         BIGINT          = NULL,
     @SelfEmployeeId     BIGINT          = NULL,     -- My Payslips: only this employee's own payslips
+    @Year               INT             = NULL,     -- LIST: payrolls of this year
+    @RunMonth           DATE            = NULL,     -- LIST: payrolls of this month (period)
 
     /* LIST */
     @DepartmentId       INT             = NULL,
@@ -93,6 +96,7 @@ BEGIN
     SET @Error        = NULLIF(LTRIM(RTRIM(@Error)), N'');
     SET @PageNumber   = CASE WHEN @PageNumber IS NULL OR @PageNumber < 1 THEN 1 ELSE @PageNumber END;
     SET @PageSize     = CASE WHEN @PageSize IS NULL OR @PageSize < 1 THEN 25 WHEN @PageSize > 10000 THEN 10000 ELSE @PageSize END;
+    IF @RunMonth IS NOT NULL SET @RunMonth = DATEFROMPARTS(YEAR(@RunMonth), MONTH(@RunMonth), 1);
 
     DECLARE @Pattern NVARCHAR(210) = CASE WHEN @Search IS NULL THEN NULL
         ELSE N'%' + REPLACE(REPLACE(REPLACE(@Search, N'\', N'\\'), N'%', N'\%'), N'_', N'\_') + N'%' END;
@@ -224,6 +228,8 @@ BEGIN
           AND   (@CompanyId  IS NULL OR r.CompanyId = @CompanyId)
           AND   (@CompanyCsv IS NULL OR CHARINDEX(',' + CAST(r.CompanyId AS VARCHAR(12)) + ',', @CompanyCsv) > 0)
           AND   (@RunId IS NULL OR r.PayrollRunId = @RunId)
+          AND   (@Year IS NULL OR YEAR(r.RunMonth) = @Year)
+          AND   (@RunMonth IS NULL OR r.RunMonth = @RunMonth)
           AND   (@SelfEmployeeId IS NULL OR (re.EmployeeId = @SelfEmployeeId AND r.Stage = 'CLOSED' AND p.PayslipId IS NOT NULL))
           AND   (@EmployeeId IS NULL OR re.EmployeeId = @EmployeeId)
           AND   (@DepartmentId IS NULL OR re.DepartmentId = @DepartmentId)

@@ -26,24 +26,66 @@
      data-urls-grid="@Url.Action("Grid", "Payslips")"
      data-urls-generate="@Url.Action("GeneratePayslips", "Payslips")"
      data-urls-email="@Url.Action("QueueEmail", "Payslips")"
-     data-run="@run?.PayrollRunId">
+     data-run="@run?.PayrollRunId"
+     data-year="@Model.Year"
+     data-month="@Model.Month?.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)">
 
     @* ------------------------------------------------ payroll picker *@
     <section class="hrms-card ps-picker" aria-label="@L["ps.payroll"]">
         <div class="ps-picker__body">
             <span class="ps-picker__icon" aria-hidden="true">@Html.Icon("receipt", 20)</span>
             <div class="ps-picker__field">
-                <label class="form-label mb-1" for="ps-run">@L["ps.payroll"]</label>
-                <select class="form-select" id="ps-run" data-ps-run @(Model.Runs.Count == 0 ? "disabled" : null)>
-                    @if (mode == "employees")
-                    {
-                        <option value="" selected="@(run is null)">@L["ps.all_payrolls"]</option>
-                    }
-                    @foreach (var r in Model.Runs)
-                    {
-                        <option value="@r.PayrollRunId" selected="@(run?.PayrollRunId == r.PayrollRunId)">@PayslipFormat.RunOption(L, r, withCompany)</option>
-                    }
-                </select>
+                @if (mode != "generate")
+                {
+                    @* Year and Period narrow the payroll list (and, with no payroll chosen, the employees listed). *@
+                    <div class="row g-2 ps-picker__filters">
+                        <div class="col-6 col-xl-3">
+                            <label class="form-label mb-1" for="ps-year">@L["pr.year"]</label>
+                            <select class="form-select" id="ps-year" data-ps-year data-searchable @(Model.Runs.Count == 0 ? "disabled" : null)>
+                                <option value="" selected="@(Model.Year is null)">@L["pr.all_years"]</option>
+                                @foreach (var y in Model.Years)
+                                {
+                                    <option value="@y" selected="@(Model.Year == y)">@y</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6 col-xl-4">
+                            <label class="form-label mb-1" for="ps-month">@L["pr.period"]</label>
+                            <select class="form-select" id="ps-month" data-ps-month data-searchable @(Model.Runs.Count == 0 ? "disabled" : null)>
+                                <option value="" selected="@(Model.Month is null)">@L["pr.all_periods"]</option>
+                                @foreach (var m in Model.Months)
+                                {
+                                    <option value="@m.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)" data-year="@m.Year"
+                                            selected="@(Model.Month == m)">@L.MonthYear(m)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12 col-xl-5">
+                            <label class="form-label mb-1" for="ps-run">@L["ps.payroll"]</label>
+                            <select class="form-select" id="ps-run" data-ps-run data-searchable @(Model.Runs.Count == 0 ? "disabled" : null)>
+                                @if (mode == "employees")
+                                {
+                                    <option value="" selected="@(run is null)">@L["ps.all_payrolls"]</option>
+                                }
+                                @foreach (var r in Model.Runs)
+                                {
+                                    <option value="@r.PayrollRunId" data-year="@r.RunMonth.Year" data-month="@r.RunMonth.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)"
+                                            selected="@(run?.PayrollRunId == r.PayrollRunId)">@PayslipFormat.RunOption(L, r, withCompany)</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <label class="form-label mb-1" for="ps-run">@L["ps.payroll"]</label>
+                    <select class="form-select" id="ps-run" data-ps-run data-searchable @(Model.Runs.Count == 0 ? "disabled" : null)>
+                        @foreach (var r in Model.Runs)
+                        {
+                            <option value="@r.PayrollRunId" selected="@(run?.PayrollRunId == r.PayrollRunId)">@PayslipFormat.RunOption(L, r, withCompany)</option>
+                        }
+                    </select>
+                }
             </div>
             @if (run is not null)
             {
@@ -267,7 +309,7 @@
                         </label>
                         @if (mode == "employees" && Model.Departments.Count > 0)
                         {
-                            <select class="form-select ps-filter" data-ps-dept aria-label="@L["pr.all_departments"]">
+                            <select class="form-select ps-filter" data-ps-dept data-searchable aria-label="@L["pr.all_departments"]">
                                 <option value="">@L["pr.all_departments"]</option>
                                 @foreach (var d in Model.Departments)
                                 {

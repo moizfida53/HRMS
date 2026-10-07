@@ -217,7 +217,8 @@ public sealed class PayrollController : Controller
         }, Ct);
         var years = finished.Items.Select(r => r.RunMonth.Year).Distinct().OrderByDescending(y => y).ToList();
         ViewData["ActiveRun"] = await RememberedRunAsync();
-        return View(new HistoryPageModel { FinishedRuns = finished.Items.Where(r => r.IsClosed).ToList(), Years = years });
+        var months = finished.Items.Select(r => r.RunMonth).Distinct().OrderByDescending(m => m).ToList();
+        return View(new HistoryPageModel { FinishedRuns = finished.Items.Where(r => r.IsClosed).ToList(), Years = years, Months = months });
     }
 
     private async Task<IActionResult> RunPage(long? runId, int pageStage)

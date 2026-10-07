@@ -239,6 +239,8 @@ public sealed class HistoryPageModel
 {
     public IReadOnlyList<PayrollRun> FinishedRuns { get; init; } = Array.Empty<PayrollRun>();
     public IReadOnlyList<int> Years { get; init; } = Array.Empty<int>();
+    /// <summary>The payroll months (periods) of the closed and cancelled payrolls, newest first.</summary>
+    public IReadOnlyList<DateTime> Months { get; init; } = Array.Empty<DateTime>();
 }
 
 public sealed class PreviewPageModel

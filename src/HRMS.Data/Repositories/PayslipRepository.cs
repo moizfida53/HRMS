@@ -69,6 +69,8 @@ public sealed class PayslipRepository : IPayslipRepository
         var p = PayrollRunRepository.Envelope("LIST");
         Scope(p, filter.CompanyId, filter.CompanyIds);
         p.Add("@RunId", filter.RunId, DbType.Int64);
+        p.Add("@Year", filter.Year, DbType.Int32);
+        p.Add("@RunMonth", filter.RunMonth, DbType.Date);
         p.Add("@EmployeeId", filter.EmployeeId, DbType.Int64);
         p.Add("@SelfEmployeeId", filter.SelfEmployeeId, DbType.Int64);
         p.Add("@DepartmentId", filter.DepartmentId, DbType.Int32);
