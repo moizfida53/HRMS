@@ -627,9 +627,9 @@ BEGIN
     /* ======================= GET ================================= */
     IF @Action = 'GET'
     BEGIN
-        SELECT  s.*, co.CompanyName, co.ArabicName AS CompanyArabicName, co.CompanyCode,
+        SELECT  s.*, co.CompanyName, CAST(NULL AS NVARCHAR(200)) AS CompanyArabicName, co.CompanyCode,   -- Core.Companies has no Arabic name column
                 e.EmployeeNo, LTRIM(RTRIM(CONCAT(e.FirstName, N' ', e.LastName))) AS EmployeeName, e.ArabicName AS EmployeeArabicName,
-                e.EmploymentStatus, e.NoticePeriodDays, d.DepartmentName, d.ArabicName AS DepartmentArabicName,
+                e.EmploymentStatus, e.NoticePeriodDays, d.DepartmentName, CAST(NULL AS NVARCHAR(200)) AS DepartmentArabicName,   -- nor Core.Departments
                 ds.DesignationName, ds.ArabicName AS DesignationArabicName, n.CountryName AS NationalityName,
                 rs.RuleSetCode, rs.RuleSetName, pi.StartMonth AS PayItemMonth,
                 paid.PaidThrough, paid.PaidByRun,
