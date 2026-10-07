@@ -437,6 +437,24 @@ every table has the `Deleted` bit and goes through `usp_SoftDelete_Apply`.
 > (PAYROLL_RUN_VIEW / PROCESS / APPROVE_HR / APPROVE_FINANCE / CANCEL / REOPEN)
 > are read at sign-in.
 
+### Sections (sidebar: Payroll > Payroll Processing)
+
+| Section | URL | Count in the sidebar |
+|---|---|---|
+| Payrolls | `/payroll/payrolls` | open payrolls (Registered, Validation, Awaiting approval) |
+| Payroll Calendar | `/payroll/calendars` | active payroll calendars |
+| Period | `/payroll/pay-periods?calendar=&year=` | open periods (Open / Processing) of this year, all active calendars |
+| Payroll History | `/payroll/history` | — |
+
+**Payrolls** lists the open payrolls (filter by stage or period to see the
+others). Opening a payroll goes to the page of **its own stage only** —
+Register, Validation or Approval (a closed payroll on Approval, a cancelled one
+on Register); the other stage pages are not offered, and a link to a stage the
+payroll is not at redirects to the right one. Create Payroll is the button on
+Payrolls. The old combined page `/payroll/calendar` redirects to Payrolls. The
+counts are cached for 20 seconds per user. Run `db/45_Payroll_Processing_Sections_Labels.sql`
+for the new labels.
+
 ### How a payroll moves
 
 Draft (Create wizard, never listed) → **Registered** → **Validation** →

@@ -16,6 +16,12 @@
             <p class="hrms-empty__title">@L["pr.no_payrolls_match_the_filters"]</p>
             <p class="hrms-empty__text">@L["pr.change_the_period_or_stage_to_see_more_payrolls"]</p>
         }
+        else if (Model.OpenOnly)
+        {
+            <p class="hrms-empty__title">@L["pr.no_open_payrolls"]</p>
+            <p class="hrms-empty__text">@L["pr.no_open_payrolls_text"]</p>
+            <a class="btn btn-primary" asp-controller="Payroll" asp-action="Create">@Html.Icon("plus", 15)<span>@L["pr.create_payroll"]</span></a>
+        }
         else
         {
             <p class="hrms-empty__title">@L["pr.no_payrolls_yet"]</p>

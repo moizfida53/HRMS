@@ -21,8 +21,8 @@ public static class PayrollNav
         new("dashboard", "Payroll Dashboard", "grid", [new("payroll-dashboard", "Dashboard")]),
         new("processing", "Payroll Processing", "calculator",
         [
-            new("calendar", "Payroll Calendar", true), new("create", "Create Payroll", true), new("register", "Payroll Register", true),
-            new("validation", "Payroll Validation", true), new("approval", "Payroll Approval", true), new("history", "Payroll History", true)
+            new("payrolls", "Payrolls", true), new("calendars", "Payroll Calendar", true),
+            new("pay-periods", "Period", true), new("history", "Payroll History", true)
         ]),
         new("payitems", "Pay Items", "card", [new("pay-items", "Pay Items", true)]),
         new("settlement", "Final Settlement", "exit",
@@ -49,9 +49,28 @@ public static class PayrollNav
     /// <summary>Preview pages that are not on a tab rail (opened from another page).</summary>
     public static readonly IReadOnlyDictionary<string, string> ExtraPages = new Dictionary<string, string>
     {
+        // Payroll Processing pages opened from Payrolls (no entry of their own in the sidebar)
+        ["create"] = "processing",
+        ["register"] = "processing",
+        ["validation"] = "processing",
+        ["approval"] = "processing",
+        ["calendar"] = "processing",
         ["slip-view"] = "payslips",
         ["slip-my"] = "payslips",
         ["fs-detail"] = "settlement"
+    };
+
+    /// <summary>
+    /// The Payroll Processing sub-section a page belongs to (sidebar highlight): a payroll's
+    /// stage pages and Create Payroll belong to Payrolls.
+    /// </summary>
+    public static string? ProcessingSub(string? slug) => slug switch
+    {
+        "payrolls" or "create" or "register" or "validation" or "approval" => "payrolls",
+        "calendars" or "calendar" => "calendars",
+        "pay-periods" => "pay-periods",
+        "history" => "history",
+        _ => null
     };
 
     public static Section? SectionOfSlug(string slug) =>
@@ -60,7 +79,8 @@ public static class PayrollNav
 
     public static string Url(string slug) => slug switch
     {
-        "calendar" or "create" or "register" or "validation" or "approval" or "history" or "pay-items" => $"/payroll/{slug}",
+        "payrolls" or "calendars" or "pay-periods" or "calendar" or "create" or "register" or "validation" or "approval" or "history"
+            or "pay-items" => $"/payroll/{slug}",
         "fs-list" => "/payroll/settlement",
         "fs-new" => "/payroll/settlement/new",
         "fs-encashment" => "/payroll/settlement/encashment",
@@ -183,10 +203,15 @@ public sealed class RunPageModel
     public RunBarModel Bar => new() { Run = Run!, Runs = Runs, PageStage = PageStage, CanCancel = CanCancel };
 }
 
+/// <summary>The Payrolls, Payroll Calendar and Period pages (one model, each page uses its part).</summary>
 public sealed class CalendarPageModel
 {
     public IReadOnlyList<RunMonthOption> Months { get; init; } = Array.Empty<RunMonthOption>();
     public DateTime? SelectedMonth { get; init; }
+    /// <summary>Payrolls: the stage filter - "LIVE" (open payrolls, the default), a stage, or "" for every stage.</summary>
+    public string SelectedStage { get; init; } = "LIVE";
+    public bool CanProcess { get; init; }
+    public bool CanCreateCalendar { get; init; }
     public IReadOnlyList<PayrollCalendar> Calendars { get; init; } = Array.Empty<PayrollCalendar>();
     public int? SelectedCalendarId { get; init; }
     public int SelectedYear { get; init; }
@@ -225,9 +250,11 @@ public sealed class PreviewPageModel
 public sealed class RunsGridModel
 {
     public required PagedResult<PayrollRun> Page { get; init; }
-    /// <summary>"calendar" (live + all stages) or "history" (closed and cancelled).</summary>
-    public string Mode { get; init; } = "calendar";
+    /// <summary>"payrolls" (open payrolls, or any stage) or "history" (closed and cancelled).</summary>
+    public string Mode { get; init; } = "payrolls";
     public bool IsFiltered { get; init; }
+    /// <summary>Only the open payrolls were asked for (the Payrolls default).</summary>
+    public bool OpenOnly { get; init; }
 }
 
 public sealed class RunEmployeesGridModel

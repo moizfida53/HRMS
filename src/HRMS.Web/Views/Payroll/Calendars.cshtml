@@ -1,0 +1,40 @@
+@using HRMS.Web.Models.Payroll
+@model CalendarPageModel
+@{
+    // Payroll Processing > Payroll Calendar: the pay groups (calendars) of the companies.
+    ViewData["Title"] = "Payroll Calendar";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "processing";
+    ViewData["PayrollPage"] = "calendars";
+    ViewData["Subtitle"] = L["pr.calendars_subtitle"];
+}
+<div class="pr-stack" data-pr-page="calendars">
+    <section class="hrms-card" data-calendars data-url="@Url.Action("CalendarsGrid", "Payroll")">
+        <div class="hrms-card__toolbar">
+            <div class="hrms-card__filters">
+                <label class="hrms-search pr-search">
+                    @Html.Icon("search", 16)
+                    <input type="search" data-cal-search autocomplete="off" placeholder="@L["pr.search_calendars"]" aria-label="@L["pr.search_calendars"]" />
+                </label>
+                <select class="form-select pr-filter" data-cal-status aria-label="@L["common.status"]">
+                    <option value="">@L["common.all_statuses"]</option>
+                    <option value="active">@L["common.active_only"]</option>
+                    <option value="inactive">@L["common.inactive_only"]</option>
+                </select>
+            </div>
+            <div class="hrms-card__count" data-cal-count></div>
+        </div>
+        <div data-cal-slot><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("_RecordModal")
+
+@section PageActions {
+    @if (Model.CanCreateCalendar)
+    {
+        <button type="button" class="btn btn-primary" data-cal-add>@Html.Icon("calendar", 15)<span>@L["pr.add_calendar"]</span></button>
+    }
+}
+@section Scripts {
+    <script src="~/js/payroll.js" asp-append-version="true"></script>
+}

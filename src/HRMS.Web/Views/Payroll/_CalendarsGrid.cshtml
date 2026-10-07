@@ -59,6 +59,7 @@ else
                             <span class="hrms-badge hrms-badge--@(c.IsActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(c.IsActive ? L["org.active"] : L["org.inactive"])</span>
                         </td>
                         <td class="hrms-table__actions">
+                            <a class="btn-icon" href="@Url.Action("PayPeriods", "Payroll", new { calendar = c.PayrollCalendarId })" title="@L["pr.periods"]" aria-label="@L["pr.periods_of_0", name]">@Html.Icon("calendar", 15)</a>
                             @if (Model.CanSetup)
                             {
                                 <button type="button" class="btn-icon" data-cal-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>

@@ -1,5 +1,6 @@
 @inject ICurrentUser CurrentUser
 @inject ICompanyFilter CompanyFilter
+@inject HRMS.Web.Services.IPayrollNavCounts PayrollNavCounts
 @inject Microsoft.Extensions.Options.IOptions<AuthenticationPolicyOptions> AuthPolicy
 @{
     var activeArea = ViewData["ActiveArea"] as string ?? "organization";
@@ -141,7 +142,50 @@
                 <div class="collapse hrms-nav-group__items @(openPayroll ? "show" : null)" id="nav-payroll">
                     @foreach (var section in HRMS.Web.Models.Payroll.PayrollNav.Sections)
                     {
-                        <a class="hrms-nav-link @(openPayroll && section.Key == (ViewData["PayrollSection"] as string) ? "is-active" : null)"
+                        var sectionActive = openPayroll && section.Key == (ViewData["PayrollSection"] as string);
+                        if (section.Key == "processing")
+                        {
+                            // Payroll Processing opens into its sub-sections, each with its record count
+                            // (open payrolls, active calendars, open periods this year; none for History).
+                            var counts = await PayrollNavCounts.GetAsync();
+                            var activeSub = HRMS.Web.Models.Payroll.PayrollNav.ProcessingSub(ViewData["PayrollPage"] as string);
+                            <button type="button" class="hrms-nav-link hrms-nav-parent @(sectionActive ? "is-open" : "collapsed")"
+                                    data-bs-toggle="collapse" data-bs-target="#nav-processing"
+                                    aria-expanded="@(sectionActive ? "true" : "false")" aria-controls="nav-processing">
+                                @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@Html.Icon("chevron-down", 14, "hrms-nav-parent__chev")
+                            </button>
+                            <div class="collapse hrms-nav-sub @(sectionActive ? "show" : null)" id="nav-processing">
+                                @foreach (var tab in section.Tabs)
+                                {
+                                    int? count = tab.Slug switch
+                                    {
+                                        "payrolls" => counts?.OpenPayrolls,
+                                        "calendars" => counts?.Calendars,
+                                        "pay-periods" => counts?.OpenPeriods,
+                                        _ => null
+                                    };
+                                    var title = count switch
+                                    {
+                                        null => null,
+                                        _ when tab.Slug == "payrolls" => L["layout.nav_count_payrolls", count],
+                                        _ when tab.Slug == "calendars" => L["layout.nav_count_calendars", count],
+                                        _ => L["layout.nav_count_periods", count]
+                                    };
+                                    var subActive = sectionActive && activeSub == tab.Slug;
+                                    <a class="hrms-nav-link hrms-nav-sub__link @(subActive ? "is-active" : null)"
+                                       href="@(Context.Request.PathBase + HRMS.Web.Models.Payroll.PayrollNav.Url(tab.Slug))"
+                                       aria-current="@(subActive ? "page" : null)">
+                                        <span>@L.Tr(tab.Title)</span>
+                                        @if (count is { } n)
+                                        {
+                                            <span class="hrms-nav-count @(n == 0 ? "is-zero" : null)" title="@title" aria-label="@title">@n.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
+                                        }
+                                    </a>
+                                }
+                            </div>
+                            continue;
+                        }
+                        <a class="hrms-nav-link @(sectionActive ? "is-active" : null)"
                            href="@(Context.Request.PathBase + HRMS.Web.Models.Payroll.PayrollNav.Url(section.Tabs[0].Slug))">
                             @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>
                         </a>

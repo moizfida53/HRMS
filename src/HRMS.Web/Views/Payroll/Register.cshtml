@@ -1,13 +1,18 @@
 @model RunPageModel
 @{
-    ViewData["Title"] = "Payroll Processing";
+    ViewData["Title"] = "Payroll Register";
     ViewData["ActiveArea"] = "payroll";
     ViewData["PayrollSection"] = "processing";
     ViewData["Subtitle"] = L["pr.review_the_calculated_payroll_then_complete_registration"];
     var run = Model.Run;
     var editable = Model.IsEditable;
 }
-@await Html.PartialAsync("_Tabs", "register")
+@{
+    // Payroll Processing sub-section in the sidebar; a payroll shows only the page of its own stage, so no tab rail.
+    ViewData["PayrollPage"] = "register";
+    ViewData["BackUrl"] = Url.Action("Payrolls", "Payroll");
+    ViewData["BackLabel"] = "Payrolls";
+}
 
 @if (run is null)
 {

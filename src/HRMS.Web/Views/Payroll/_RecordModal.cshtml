@@ -1,0 +1,34 @@
+@* The calendar / period form dialog and the URLs of the Payroll Calendar and Period pages. *@
+@* calendar / period forms - the body is loaded from the server *@
+<div class="modal fade" id="record-modal" tabindex="-1" aria-hidden="true" aria-labelledby="record-modal-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <form class="modal-content" data-record-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="record-modal-title" data-record-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-record-body></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="submit" class="btn btn-primary" data-record-save>@Html.Icon("check", 15)<span>@L["emp.save"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+<div hidden
+     data-cal-urls
+     data-form="@Url.Action("CalendarForm", "Payroll")"
+     data-save="@Url.Action("CalendarSave", "Payroll")"
+     data-delete="@Url.Action("CalendarDelete", "Payroll")"
+     data-toggle="@Url.Action("CalendarToggle", "Payroll")"
+     data-period-form="@Url.Action("PeriodForm", "Payroll")"
+     data-period-save="@Url.Action("PeriodSave", "Payroll")"
+     data-period-delete="@Url.Action("PeriodDelete", "Payroll")"
+     data-title-new="@L["pr.new_payroll_calendar"]"
+     data-title-edit="@L["pr.edit_payroll_calendar"]"
+     data-title-period="@L["pr.edit_period"]"
+     data-delete-title="@L["common.delete"]"
+     data-delete-calendar="@L["pr.delete_this_payroll_calendar_it_can_only_be_deleted_whil"]"
+     data-periods-page="@Url.Action("PayPeriods", "Payroll")"
+     data-delete-period="@L["pr.delete_this_period_only_an_open_period_without_payrolls"]"></div>
+@await Html.PartialAsync("_Modals")

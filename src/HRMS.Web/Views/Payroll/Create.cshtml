@@ -1,6 +1,6 @@
 @model CreatePageModel
 @{
-    ViewData["Title"] = "Payroll Processing";
+    ViewData["Title"] = "Create Payroll";
     ViewData["ActiveArea"] = "payroll";
     ViewData["PayrollSection"] = "processing";
     ViewData["Subtitle"] = L["pr.create_a_payroll_in_four_steps"];
@@ -8,7 +8,12 @@
     var inv = System.Globalization.CultureInfo.InvariantCulture;
     string[] steps = [L["pr.scope"], L["common.employees"], L["pr.check"], L["common.create"]];
 }
-@await Html.PartialAsync("_Tabs", "create")
+@{
+    // Payroll Processing sub-section in the sidebar; a payroll shows only the page of its own stage, so no tab rail.
+    ViewData["PayrollPage"] = "create";
+    ViewData["BackUrl"] = Url.Action("Payrolls", "Payroll");
+    ViewData["BackLabel"] = "Payrolls";
+}
 
 <div class="pr-stack" data-pr-page="create"
      data-run="@(draft?.PayrollRunId)"

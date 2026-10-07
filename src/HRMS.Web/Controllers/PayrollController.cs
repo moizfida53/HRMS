@@ -71,28 +71,59 @@ public sealed class PayrollController : Controller
     // =======================================================================
 
     [HttpGet("")]
-    public IActionResult Index() => RedirectToAction(nameof(Calendar));
+    public IActionResult Index() => RedirectToAction(nameof(Payrolls));
 
+    /// <summary>The old combined page (payrolls + calendars + periods) - now three sections.</summary>
     [HttpGet("calendar")]
-    public async Task<IActionResult> Calendar(string? month)
+    public IActionResult Calendar(string? month) => RedirectToAction(nameof(Payrolls), new { month });
+
+    /// <summary>Payrolls: the open payrolls (any stage on request) - opening one goes to the page of its stage.</summary>
+    [HttpGet("payrolls")]
+    public async Task<IActionResult> Payrolls(string? month, string? stage)
     {
-        if (!Can(PermView) && !Can(PermSetupView)) return Forbid();
+        if (!Can(PermView)) return Forbid();
 
         var months = await _runs.MonthsAsync(OwnCompany, CompanyCsv, Ct);
-        DateTime? selected = ParseMonth(month) ?? months.FirstOrDefault()?.RunMonth;
-        if (month == "all") selected = null;
-
-        var calendars = await _calendars.ListAsync(new GridRequest { CompanyId = OwnCompany, CompanyIds = CompanyCsv, PageSize = 200 }, Ct);
-        var defaultCal = calendars.Items.FirstOrDefault(c => c.IsDefault && c.IsActive) ?? calendars.Items.FirstOrDefault();
-
         ViewData["ActiveRun"] = await RememberedRunAsync();
         return View(new CalendarPageModel
         {
             Months = months,
-            SelectedMonth = selected,
+            SelectedMonth = ParseMonth(month),
+            SelectedStage = stage is null ? "LIVE" : stage,
+            CanProcess = Can(PermProcess)
+        });
+    }
+
+    /// <summary>Payroll Calendar: the pay groups (calendars) - add, edit, activate, delete.</summary>
+    [HttpGet("calendars")]
+    public async Task<IActionResult> Calendars()
+    {
+        if (!Can(PermView) && !Can(PermSetupView)) return Forbid();
+        ViewData["ActiveRun"] = await RememberedRunAsync();
+        return View(new CalendarPageModel
+        {
+            CanSetup = Can(PermSetupEdit) || Can(PermSetupCreate),
+            CanCreateCalendar = Can(PermSetupCreate)
+        });
+    }
+
+    /// <summary>Period: the periods of one calendar and year - generate a year, edit or delete an open period.</summary>
+    [HttpGet("pay-periods")]
+    public async Task<IActionResult> PayPeriods(int? calendar, int? year)
+    {
+        if (!Can(PermView) && !Can(PermSetupView)) return Forbid();
+
+        var calendars = await _calendars.ListAsync(new GridRequest { CompanyId = OwnCompany, CompanyIds = CompanyCsv, PageSize = 200 }, Ct);
+        var selected = calendars.Items.FirstOrDefault(c => c.PayrollCalendarId == calendar)
+                       ?? calendars.Items.FirstOrDefault(c => c.IsDefault && c.IsActive)
+                       ?? calendars.Items.FirstOrDefault();
+
+        ViewData["ActiveRun"] = await RememberedRunAsync();
+        return View(new CalendarPageModel
+        {
             Calendars = calendars.Items,
-            SelectedCalendarId = defaultCal?.PayrollCalendarId,
-            SelectedYear = DateTime.Today.Year,
+            SelectedCalendarId = selected?.PayrollCalendarId,
+            SelectedYear = year is >= 2000 and <= 2100 ? year.Value : DateTime.Today.Year,
             CanSetup = Can(PermSetupEdit) || Can(PermSetupCreate)
         });
     }
@@ -205,10 +236,12 @@ public sealed class PayrollController : Controller
         }
         else
         {
-            // remembered payroll, else the latest one waiting at this stage, else the latest one
+            // the remembered payroll when it is at this stage, else the latest one at this stage,
+            // else the remembered / latest one (which then opens on the page of its own stage)
             var remembered = long.TryParse(Request.Cookies[RunCookie], out var rid) ? list.Items.FirstOrDefault(r => r.PayrollRunId == rid) : null;
             var wanted = pageStage switch { 0 => RunStage.Registered, 1 => RunStage.Validation, _ => RunStage.AwaitingApproval };
-            var pick = remembered ?? list.Items.FirstOrDefault(r => r.Stage == wanted) ?? list.Items.FirstOrDefault();
+            var pick = (remembered?.Stage == wanted ? remembered : null)
+                       ?? list.Items.FirstOrDefault(r => r.Stage == wanted) ?? remembered ?? list.Items.FirstOrDefault();
             if (pick is not null)
             {
                 run = await _runs.GetAsync(pick.PayrollRunId, Ct);
@@ -222,9 +255,10 @@ public sealed class PayrollController : Controller
 
         if (run is not null)
         {
-            // A stage page only opens once the payroll has reached that stage.
+            // A payroll is shown only on the page of its own stage (Register, Validation or
+            // Approval - a closed payroll on Approval, a cancelled one on Register).
             var reached = run.IsCancelled ? 0 : Math.Min(run.StageIndex, 2);
-            if (pageStage > reached)
+            if (pageStage != reached)
             {
                 return RedirectToAction(PageName(reached), new { run = run.PayrollRunId });
             }
@@ -288,8 +322,10 @@ public sealed class PayrollController : Controller
         return PartialView("_RunsGrid", new RunsGridModel
         {
             Page = result,
-            Mode = history ? "history" : "calendar",
-            IsFiltered = !string.IsNullOrEmpty(stage) || !string.IsNullOrEmpty(type) || year is not null || !string.IsNullOrWhiteSpace(search)
+            Mode = history ? "history" : "payrolls",
+            IsFiltered = (!string.IsNullOrEmpty(stage) && stage != "LIVE") || !string.IsNullOrEmpty(type) || year is not null
+                         || !string.IsNullOrWhiteSpace(search) || filter.RunMonth is not null,
+            OpenOnly = !history && stage == "LIVE"
         });
     }
 

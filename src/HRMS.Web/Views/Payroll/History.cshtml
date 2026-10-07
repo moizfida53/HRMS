@@ -1,11 +1,14 @@
 @model HistoryPageModel
 @{
-    ViewData["Title"] = "Payroll Processing";
+    ViewData["Title"] = "Payroll History";
     ViewData["ActiveArea"] = "payroll";
     ViewData["PayrollSection"] = "processing";
     ViewData["Subtitle"] = L["pr.closed_and_cancelled_payrolls_their_totals_and_who_close"];
 }
-@await Html.PartialAsync("_Tabs", "history")
+@{
+    // Payroll Processing sub-section in the sidebar; a payroll shows only the page of its own stage, so no tab rail.
+    ViewData["PayrollPage"] = "history";
+}
 
 <div class="pr-stack" data-pr-page="history">
     <section class="hrms-card" data-runs data-url="@Url.Action("RunsGrid", "Payroll")" data-mode="history">

@@ -193,6 +193,10 @@ builder.Services
     .Bind(builder.Configuration.GetSection(PayslipEmailOptions.SectionName));
 builder.Services.AddHostedService<PayslipEmailSender>();
 
+// Figures next to Payroll Processing's sub-sections in the sidebar (cached a few seconds).
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IPayrollNavCounts, PayrollNavCounts>();
+
 builder.Services.AddResponseCompression();
 
 var app = builder.Build();

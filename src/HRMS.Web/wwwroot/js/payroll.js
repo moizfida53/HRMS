@@ -478,7 +478,7 @@
     }
 
     /* ========================================================================
-     * Runs list (Payroll Calendar and Payroll History)
+     * Runs list (Payrolls and Payroll History)
      * ===================================================================== */
     var runsCard = $("[data-runs]");
     var loadRuns = null;
@@ -531,48 +531,59 @@
     }
 
     /* ========================================================================
-     * Payroll Calendar: calendars and periods
+     * Payroll Calendar (calendars) and Period (periods) - two pages sharing
+     * the record dialog (_RecordModal)
      * ===================================================================== */
-    if (PAGE === "calendar") {
+    if (PAGE === "calendars" || PAGE === "pay-periods") {
         var cu = $("[data-cal-urls]");
         var calCard = $("[data-calendars]"), calSlot = $("[data-cal-slot]");
-        var cState = { search: "", status: "", page: 1 };
-        var loadCalendars = function () {
-            return loadInto(calSlot, withQs(calCard.getAttribute("data-url"), cState)).then(function () { setCount(calSlot, $("[data-cal-count]")); });
-        };
-        $("[data-cal-search]").addEventListener("input", debounce(function (ev) { cState.search = ev.target.value.trim(); cState.page = 1; loadCalendars(); }, 300));
-        $("[data-cal-status]").addEventListener("change", function (ev) { cState.status = ev.target.value; cState.page = 1; loadCalendars(); });
-
         var perCard = $("[data-periods]"), perSlot = $("[data-period-slot]");
-        var perCal = $("[data-period-calendar]"), perYear = $("[data-period-year]");
-        var loadPeriods = function () {
-            return loadInto(perSlot, withQs(perCard.getAttribute("data-url"), { calendarId: perCal ? perCal.value : "", year: perYear.value }));
-        };
-        var perCompany = $("[data-period-company]");
-        var allCalOptions = perCal ? Array.prototype.slice.call(perCal.options) : [];
-        // the calendar list only offers the calendars of the chosen company
-        var fillCalendars = function (keep) {
-            if (!perCal || !perCompany) { return; }
-            var mine = allCalOptions.filter(function (o) { return o.getAttribute("data-company") === perCompany.value; });
-            var wanted = keep && mine.some(function (o) { return o.value === perCal.value; }) ? perCal.value : (mine[0] ? mine[0].value : "");
-            perCal.innerHTML = "";
-            mine.forEach(function (o) { perCal.appendChild(o); });
-            perCal.value = wanted;
-        };
-        if (perCompany) {
-            fillCalendars(true);
-            perCompany.addEventListener("change", function () { fillCalendars(false); loadPeriods(); });
+        var noop = function () { return Promise.resolve(); };
+        var loadCalendars = noop, loadPeriods = noop;
+
+        if (calCard && calSlot) {
+            var cState = { search: "", status: "", page: 1 };
+            loadCalendars = function () {
+                return loadInto(calSlot, withQs(calCard.getAttribute("data-url"), cState)).then(function () { setCount(calSlot, $("[data-cal-count]")); });
+            };
+            $("[data-cal-search]").addEventListener("input", debounce(function (ev) { cState.search = ev.target.value.trim(); cState.page = 1; loadCalendars(); }, 300));
+            $("[data-cal-status]").addEventListener("change", function (ev) { cState.status = ev.target.value; cState.page = 1; loadCalendars(); });
         }
-        if (perCal) { perCal.addEventListener("change", loadPeriods); }
-        perYear.addEventListener("change", loadPeriods);
-        var gen = $("[data-periods-generate]");
-        if (gen) {
-            gen.addEventListener("click", function () {
-                if (!perCal || !perCal.value) { return; }
-                post(gen.getAttribute("data-url"), { calendarId: perCal.value, year: perYear.value }, gen).then(function (res) {
-                    if (res && res.success) { loadPeriods(); }
+
+        var perCal = $("[data-period-calendar]"), perYear = $("[data-period-year]"), perCompany = $("[data-period-company]");
+        if (perCard && perSlot) {
+            loadPeriods = function () {
+                // keep the choice in the address bar (a refresh or a shared link shows the same periods)
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, "", withQs(window.location.pathname, { calendar: perCal ? perCal.value : "", year: perYear.value }));
+                }
+                return loadInto(perSlot, withQs(perCard.getAttribute("data-url"), { calendarId: perCal ? perCal.value : "", year: perYear.value }));
+            };
+            var allCalOptions = perCal ? Array.prototype.slice.call(perCal.options) : [];
+            // the calendar list only offers the calendars of the chosen company
+            var fillCalendars = function (keep) {
+                if (!perCal || !perCompany) { return; }
+                var mine = allCalOptions.filter(function (o) { return o.getAttribute("data-company") === perCompany.value; });
+                var wanted = keep && mine.some(function (o) { return o.value === perCal.value; }) ? perCal.value : (mine[0] ? mine[0].value : "");
+                perCal.innerHTML = "";
+                mine.forEach(function (o) { perCal.appendChild(o); });
+                perCal.value = wanted;
+            };
+            if (perCompany) {
+                fillCalendars(true);
+                perCompany.addEventListener("change", function () { fillCalendars(false); loadPeriods(); });
+            }
+            if (perCal) { perCal.addEventListener("change", loadPeriods); }
+            perYear.addEventListener("change", loadPeriods);
+            var gen = $("[data-periods-generate]");
+            if (gen) {
+                gen.addEventListener("click", function () {
+                    if (!perCal || !perCal.value) { return; }
+                    post(gen.getAttribute("data-url"), { calendarId: perCal.value, year: perYear.value }, gen).then(function (res) {
+                        if (res && res.success) { loadPeriods(); }
+                    });
                 });
-            });
+            }
         }
 
         // record modal (calendar form / period form)
@@ -617,6 +628,7 @@
                 }
                 if (res.success) {
                     modal(recModal).hide();
+                    // a calendar changes the counts in the sidebar - reload; a period only its grid
                     if (recSave === cu.getAttribute("data-save")) { window.setTimeout(function () { window.location.reload(); }, 400); }
                     else { loadPeriods(); }
                 }
@@ -627,37 +639,38 @@
         if (addBtn) {
             addBtn.addEventListener("click", function () { openForm(cu.getAttribute("data-title-new"), cu.getAttribute("data-form"), cu.getAttribute("data-save")); });
         }
-        calSlot.addEventListener("click", function (ev) {
-            var b = ev.target.closest("[data-page]");
-            if (b && !b.disabled) { cState.page = parseInt(b.getAttribute("data-page"), 10) || 1; loadCalendars(); return; }
-            var tr = ev.target.closest("tr[data-id]");
-            if (!tr) { return; }
-            var id = tr.getAttribute("data-id"), name = tr.getAttribute("data-name");
-            if (ev.target.closest("[data-cal-edit]")) {
-                openForm(cu.getAttribute("data-title-edit"), withQs(cu.getAttribute("data-form"), { id: id }), cu.getAttribute("data-save"));
-            } else if (ev.target.closest("[data-cal-toggle]")) {
-                post(cu.getAttribute("data-toggle"), { id: id }, ev.target.closest("button")).then(function (res) { if (res && res.success) { loadCalendars(); } });
-            } else if (ev.target.closest("[data-cal-delete]")) {
-                confirmDialog(cu.getAttribute("data-delete-title") + " · " + name, cu.getAttribute("data-delete-calendar"), cu.getAttribute("data-delete-title")).then(function (ok) {
-                    if (ok) { post(cu.getAttribute("data-delete"), { id: id }).then(function (res) { if (res && res.success) { window.location.reload(); } }); }
-                });
-            } else if (ev.target.closest("[data-cal-periods]") && perCal) {
-                perCal.value = id;
-                loadPeriods().then(function () { perCard.scrollIntoView({ behavior: "smooth", block: "start" }); });
-            }
-        });
-        perSlot.addEventListener("click", function (ev) {
-            var tr = ev.target.closest("tr[data-id]");
-            if (!tr) { return; }
-            var id = tr.getAttribute("data-id");
-            if (ev.target.closest("[data-period-edit]")) {
-                openForm(cu.getAttribute("data-title-period"), withQs(cu.getAttribute("data-period-form"), { id: id }), cu.getAttribute("data-period-save"));
-            } else if (ev.target.closest("[data-period-delete]")) {
-                confirmDialog(cu.getAttribute("data-delete-title"), cu.getAttribute("data-delete-period"), cu.getAttribute("data-delete-title")).then(function (ok) {
-                    if (ok) { post(cu.getAttribute("data-period-delete"), { id: id }).then(function (res) { if (res && res.success) { loadPeriods(); } }); }
-                });
-            }
-        });
+        if (calSlot) {
+            calSlot.addEventListener("click", function (ev) {
+                var b = ev.target.closest("[data-page]");
+                if (b && !b.disabled) { cState.page = parseInt(b.getAttribute("data-page"), 10) || 1; loadCalendars(); return; }
+                var tr = ev.target.closest("tr[data-id]");
+                if (!tr) { return; }
+                var id = tr.getAttribute("data-id"), name = tr.getAttribute("data-name");
+                if (ev.target.closest("[data-cal-edit]")) {
+                    openForm(cu.getAttribute("data-title-edit"), withQs(cu.getAttribute("data-form"), { id: id }), cu.getAttribute("data-save"));
+                } else if (ev.target.closest("[data-cal-toggle]")) {
+                    post(cu.getAttribute("data-toggle"), { id: id }, ev.target.closest("button")).then(function (res) { if (res && res.success) { window.location.reload(); } });
+                } else if (ev.target.closest("[data-cal-delete]")) {
+                    confirmDialog(cu.getAttribute("data-delete-title") + " · " + name, cu.getAttribute("data-delete-calendar"), cu.getAttribute("data-delete-title")).then(function (ok) {
+                        if (ok) { post(cu.getAttribute("data-delete"), { id: id }).then(function (res) { if (res && res.success) { window.location.reload(); } }); }
+                    });
+                }
+            });
+        }
+        if (perSlot) {
+            perSlot.addEventListener("click", function (ev) {
+                var tr = ev.target.closest("tr[data-id]");
+                if (!tr) { return; }
+                var id = tr.getAttribute("data-id");
+                if (ev.target.closest("[data-period-edit]")) {
+                    openForm(cu.getAttribute("data-title-period"), withQs(cu.getAttribute("data-period-form"), { id: id }), cu.getAttribute("data-period-save"));
+                } else if (ev.target.closest("[data-period-delete]")) {
+                    confirmDialog(cu.getAttribute("data-delete-title"), cu.getAttribute("data-delete-period"), cu.getAttribute("data-delete-title")).then(function (ok) {
+                        if (ok) { post(cu.getAttribute("data-period-delete"), { id: id }).then(function (res) { if (res && res.success) { loadPeriods(); } }); }
+                    });
+                }
+            });
+        }
 
         loadCalendars();
         loadPeriods();

@@ -1,0 +1,61 @@
+@using HRMS.Web.Models.Payroll
+@model CalendarPageModel
+@{
+    // Payroll Processing > Period: the periods of one calendar and year.
+    ViewData["Title"] = "Period";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "processing";
+    ViewData["PayrollPage"] = "pay-periods";
+    ViewData["Subtitle"] = L["pr.periods_subtitle"];
+    var year = Model.SelectedYear;
+    var selCal = Model.Calendars.FirstOrDefault(x => x.PayrollCalendarId == Model.SelectedCalendarId);
+    var companies = Model.Calendars.GroupBy(x => x.CompanyId).Select(g => g.First()).OrderBy(x => x.CompanyName).ToList();
+}
+<div class="pr-stack" data-pr-page="pay-periods">
+    <section class="hrms-card" data-periods data-url="@Url.Action("PeriodsGrid", "Payroll")">
+        <div class="hrms-card__toolbar">
+            <div class="hrms-card__filters">
+                <select class="form-select pr-filter" data-period-company aria-label="@L["common.company"]" @(companies.Count <= 1 ? "hidden" : null)>
+                    @foreach (var co in companies)
+                    {
+                        <option value="@co.CompanyId" selected="@(co.CompanyId == selCal?.CompanyId)">@co.CompanyName</option>
+                    }
+                </select>
+                <select class="form-select pr-filter" data-period-calendar aria-label="@L["pr.payroll_calendar"]">
+                    @foreach (var c in Model.Calendars)
+                    {
+                        <option value="@c.PayrollCalendarId" data-company="@c.CompanyId" selected="@(c.PayrollCalendarId == Model.SelectedCalendarId)">@PayrollFormat.Calendar(L, c.CalendarName, c.ArabicName)</option>
+                    }
+                </select>
+                <select class="form-select pr-filter" data-period-year aria-label="@L["pr.year"]">
+                    @for (var y = Math.Max(year, DateTime.Today.Year) + 1; y >= Math.Min(year, DateTime.Today.Year) - 3; y--)
+                    {
+                        <option value="@y" selected="@(y == year)">@y</option>
+                    }
+                </select>
+            </div>
+            @if (Model.CanSetup && Model.Calendars.Count > 0)
+            {
+                <button type="button" class="btn btn-outline-primary" data-periods-generate
+                        data-url="@Url.Action("PeriodsGenerate", "Payroll")">@Html.Icon("plus", 15)<span>@L["pr.generate_periods"]</span></button>
+            }
+        </div>
+        @if (Model.Calendars.Count == 0)
+        {
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("calendar", 26)</span>
+                <p class="hrms-empty__title">@L["pr.no_calendars_for_periods"]</p>
+                <a class="btn btn-outline-secondary btn-sm mt-2" asp-controller="Payroll" asp-action="Calendars">@Html.Icon("calendar", 15)<span>@L["pr.payroll_calendar"]</span></a>
+            </div>
+        }
+        else
+        {
+            <div data-period-slot><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+        }
+    </section>
+</div>
+@await Html.PartialAsync("_RecordModal")
+
+@section Scripts {
+    <script src="~/js/payroll.js" asp-append-version="true"></script>
+}

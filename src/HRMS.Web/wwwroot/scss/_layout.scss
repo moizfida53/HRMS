@@ -372,6 +372,90 @@ a {
   text-transform: uppercase;
 }
 
+// A sidebar link that opens into sub-sections (Payroll > Payroll Processing).
+// It is a <button> styled as a link; Bootstrap's collapse does the open/close.
+.hrms-nav-parent {
+  width: calc(100% - #{space("4")});
+  border: 0;
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+
+  &__chev {
+    margin-inline-start: auto;
+    width: 14px !important;
+    height: 14px !important;
+    @include motion(transform);
+  }
+
+  &.collapsed .hrms-nav-parent__chev { transform: rotate(-90deg); }
+
+  &.is-open,
+  &:not(.collapsed) {
+    color: $blue-700;
+    font-weight: $fw-semibold;
+
+    svg { color: $blue-700; }
+  }
+}
+
+// The sub-sections, indented under the parent with a guide line.
+.hrms-nav-sub {
+  position: relative;
+  margin-inline-start: calc(#{space("2")} + #{space("3")} + 8px);
+  padding-block: 2px space("1");
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: space("1");
+    inset-inline-start: 0;
+    border-inline-start: 1px solid $line-200;
+  }
+
+  &__link {
+    position: relative;
+    margin-inline-start: space("2");
+    padding-block: 6px;
+    font-size: $fs-sm;
+
+    &.is-active::before {
+      content: "";
+      position: absolute;
+      inset-block: 6px;
+      inset-inline-start: calc(-1 * #{space("2")} - 1px);
+      border-inline-start: 2px solid $blue-600;
+      border-radius: 2px;
+    }
+  }
+}
+
+// Record count of a sub-section (open payrolls, calendars, open periods).
+.hrms-nav-count {
+  flex: 0 0 auto;
+  min-width: 1.5rem;
+  margin-inline-start: auto;
+  padding: 1px 7px;
+  border-radius: $radius-pill;
+  background: $blue-100;
+  color: $blue-700;
+  font-size: 0.7rem;
+  font-weight: $fw-bold;
+  line-height: 1.5;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+
+  .hrms-nav-link.is-active & {
+    background: $blue-600;
+    color: $white;
+  }
+
+  &.is-zero {
+    background: $line-100;
+    color: $ink-400;
+  }
+}
+
 // Backdrop shown behind the drawer on small screens.
 .hrms-backdrop {
   position: fixed;

@@ -1,6 +1,6 @@
 @model RunPageModel
 @{
-    ViewData["Title"] = "Payroll Processing";
+    ViewData["Title"] = "Payroll Validation";
     ViewData["ActiveArea"] = "payroll";
     ViewData["PayrollSection"] = "processing";
     ViewData["Subtitle"] = L["pr.checks_on_the_selected_payroll_errors_block_approval"];
@@ -8,7 +8,12 @@
     var inValidation = run.Stage == RunStage.Validation;
     var open = run.WarningCount - run.AcknowledgedCount;
 }
-@await Html.PartialAsync("_Tabs", "validation")
+@{
+    // Payroll Processing sub-section in the sidebar; a payroll shows only the page of its own stage, so no tab rail.
+    ViewData["PayrollPage"] = "validation";
+    ViewData["BackUrl"] = Url.Action("Payrolls", "Payroll");
+    ViewData["BackLabel"] = "Payrolls";
+}
 
 <div class="pr-stack" data-pr-page="validation">
     @await Html.PartialAsync("_RunBar", Model.Bar)
