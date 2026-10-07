@@ -1,0 +1,638 @@
+// ============================================================================
+// Payslips (Payroll > Payslips and My Payslips, db/42-43)
+// ----------------------------------------------------------------------------
+// Generate / Employee Payslips / Email pages, the payslip document and My
+// Payslips. Every layout follows the CONTENT width (container "content", see
+// _responsive.scss), so it stacks on tablets, phones and at high zoom whatever
+// the window size. The payslip prints on one A4 page with the app chrome
+// hidden - "Print / Save as PDF" is the browser's own print dialog.
+// ============================================================================
+
+@use "sass:color";
+@use "sass:map";
+@use "tokens" as *;
+@use "mixins" as *;
+
+// Payslip document palette - derived from the tokens, nothing raw.
+$ps-ink: $navy-900;
+$ps-accent: $blue-600;
+$ps-rule: $line-200;
+$ps-soft: $blue-050;
+$ps-ded: $red-700;
+
+// Two-column field grids collapse to one below this content width.
+$ps-stack: "sm";
+
+// ------------------------------------------------------------ the pages ----
+.ps-page { gap: 1rem; }
+
+// payroll picker: icon · select · facts; wraps into rows on narrow content
+.ps-picker__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .75rem 1.25rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+
+  @include cq-up("md") {
+    grid-template-columns: auto minmax(260px, 1.2fr) minmax(0, 1.8fr);
+  }
+}
+
+.ps-picker__icon {
+  display: none;
+  width: 44px;
+  height: 44px;
+  border-radius: $radius-md;
+  background: $blue-050;
+  color: $blue-700;
+  align-items: center;
+  justify-content: center;
+
+  @include cq-up("md") { display: inline-flex; }
+}
+
+.ps-picker__field .form-select { font-weight: $fw-semibold; }
+
+.ps-picker__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: .5rem 1rem;
+  margin: 0;
+
+  > div { min-width: 0; }
+
+  dt {
+    font-size: $fs-xs;
+    font-weight: $fw-medium;
+    color: $ink-500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  dd {
+    margin: .15rem 0 0;
+    font-size: $fs-base;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// KPI tiles that need attention
+.ps-kpi--warn {
+  border-color: color.mix($amber-600, $line-200, 35%);
+  .hrms-kpi__icon { background: $amber-050; color: $amber-700; }
+}
+
+.ps-kpi--danger {
+  border-color: $red-300;
+  .hrms-kpi__icon { background: $red-050; color: $red-700; }
+  .hrms-kpi__value { color: $red-700; }
+}
+
+// generate card
+.ps-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+
+  legend { float: none; width: auto; font-size: $fs-sm; font-weight: $fw-semibold; }
+}
+
+.ps-choice {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+
+  label {
+    transition: border-color .15s $ease-out, background-color .15s $ease-out, box-shadow .15s $ease-out;
+
+    &:hover:not(.is-selected) { border-color: $line-300; background: $surface-2; }
+    &:has(input:disabled) { opacity: .55; cursor: not-allowed; }
+    &:has(input:focus-visible) { @include focus-ring; }
+  }
+}
+
+.ps-checklist {
+  border-top: 1px solid $line-100;
+  padding-top: .25rem;
+}
+
+.ps-generate .pr-actionbar {
+  flex-wrap: wrap;
+  row-gap: .5rem;
+
+  @include cq-down("sm") {
+    .btn { flex: 1 1 100%; justify-content: center; }
+    .pr-actionbar__spacer { display: none; }
+  }
+}
+
+// list toolbar
+.ps-search { max-width: 320px; flex: 1 1 220px; }
+.ps-filter { width: auto; min-width: 170px; }
+
+@include cq-down("sm") {
+  .ps-search, .ps-filter { max-width: none; flex: 1 1 100%; width: 100%; }
+}
+
+.ps-table {
+  .ps-email { direction: ltr; unicode-bidi: isolate; word-break: break-all; }
+  .ps-error {
+    color: $red-700;
+    max-width: 260px;
+    @include truncate;
+  }
+  .hrms-table__actions { white-space: nowrap; }
+  .hrms-table__actions .btn { display: inline-flex; gap: .35rem; align-items: center; }
+}
+
+// ---------------------------------------------------------- My Payslips ----
+.ps-latest {
+  overflow: hidden;
+  border: 0;
+  color: $white;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba($blue-500, .55) 0%, rgba($blue-500, 0) 55%),
+    linear-gradient(135deg, $navy-900 0%, $navy-800 60%, $blue-700 100%);
+}
+
+.ps-latest__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  align-items: center;
+
+  @include cq-up("md") {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  }
+}
+
+.ps-latest__text { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+
+.ps-latest__eyebrow {
+  font-size: $fs-xs;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: rgba($white, .7);
+}
+
+.ps-latest__period { font-family: $font-display; font-size: $fs-xl; font-weight: $fw-semibold; }
+.ps-latest__meta { font-size: $fs-sm; color: rgba($white, .75); }
+
+.ps-latest__net {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+
+  span { font-size: $fs-sm; color: rgba($white, .75); }
+
+  strong {
+    font-family: $font-display;
+    font-size: 1.75rem;
+    font-weight: $fw-bold;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+
+    small { font-size: .55em; font-weight: $fw-medium; opacity: .8; margin-inline-end: .25rem; }
+  }
+}
+
+.ps-latest__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+
+  .btn { display: inline-flex; align-items: center; gap: .4rem; }
+
+  @include cq-down("md") {
+    .btn { flex: 1 1 0; justify-content: center; }
+  }
+}
+
+.ps-my-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ps-my-item + .ps-my-item { border-top: 1px solid $line-100; }
+
+.ps-my-item__link {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "icon main net chev";
+  gap: .25rem .9rem;
+  align-items: center;
+  padding: .85rem 1.25rem;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color .15s $ease-out;
+
+  &:hover { background: $surface-2; }
+  &:focus-visible { @include focus-ring; }
+
+  @include cq-down("xs") {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "icon main chev" "icon net chev";
+  }
+}
+
+.ps-my-item__icon {
+  grid-area: icon;
+  width: 38px;
+  height: 38px;
+  border-radius: $radius;
+  background: $blue-050;
+  color: $blue-700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ps-my-item__main { grid-area: main; display: flex; flex-direction: column; min-width: 0; }
+.ps-my-item__period { font-weight: $fw-semibold; color: $ink-900; }
+.ps-my-item__sub { font-size: $fs-sm; color: $ink-500; @include truncate; }
+
+.ps-my-item__net {
+  grid-area: net;
+  font-weight: $fw-bold;
+  font-variant-numeric: tabular-nums;
+  color: $ink-900;
+  text-align: end;
+
+  small { font-weight: $fw-medium; color: $ink-500; font-size: $fs-xs; }
+
+  @include cq-down("xs") { text-align: start; }
+}
+
+.ps-my-item__new { margin-inline-start: .4rem; vertical-align: 1px; }
+.ps-my-item__chev { grid-area: chev; color: $ink-400; }
+
+// ---------------------------------------------------- payslip document ----
+.ps-doc-banner { max-width: 900px; width: 100%; margin: 0 auto 1rem; align-items: center; flex-wrap: wrap; }
+
+.ps-doc-wrap {
+  container-type: inline-size;
+  container-name: payslip;
+}
+
+.ps-doc {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 2.25rem 1.5rem;
+  background: $white;
+  border: 1px solid $ps-rule;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-sm;
+  color: $ink-800;
+  font-size: $fs-base;
+  overflow: hidden;
+
+  // the brand ribbon along the top edge
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 5px;
+    background: linear-gradient(90deg, $ps-ink, $ps-accent);
+  }
+
+  @container payslip (max-width: 639.98px) {
+    padding: 1.5rem 1rem 1rem;
+    font-size: $fs-sm;
+  }
+}
+
+// an English text and its Arabic beside it; one language - just that one
+.ps-doc__en, .ps-doc__ar { display: block; }
+.ps-doc__ar { font-family: $font-arabic; }
+
+.ps-doc--both {
+  .ps-doc__ar { font-size: .92em; color: $ink-500; }
+}
+
+.ps-doc--ar {
+  font-family: $font-arabic;
+  .ps-doc__ar { color: inherit; font-size: inherit; }
+}
+
+.ps-doc__muted { color: $ink-500; font-size: $fs-sm; }
+.ps-doc__mono { font-family: $font-mono; font-size: .92em; letter-spacing: .02em; direction: ltr; unicode-bidi: isolate; }
+
+// header: brand · title · payslip number
+.ps-doc__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid $ps-ink;
+
+  @container payslip (max-width: 639.98px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    .ps-doc__title { grid-column: 1 / -1; order: 3; }
+  }
+}
+
+.ps-doc__brand { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+
+.ps-doc__logo {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: $radius;
+  background: $ps-ink;
+  color: $white;
+  font-family: $font-display;
+  font-weight: $fw-bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: .04em;
+}
+
+.ps-doc__co {
+  display: block;
+  font-family: $font-display;
+  font-size: $fs-lg;
+  color: $ps-ink;
+  line-height: 1.2;
+  @include truncate;
+}
+
+.ps-doc__title {
+  text-align: center;
+  font-family: $font-display;
+  font-weight: $fw-bold;
+  font-size: 1.15rem;
+  color: $ps-ink;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+
+  .ps-doc__ar { text-transform: none; letter-spacing: 0; font-family: $font-arabic; }
+}
+
+.ps-doc__period {
+  display: block;
+  margin-top: .25rem;
+  font-family: $font-sans;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  text-transform: none;
+  letter-spacing: 0;
+  color: $ps-accent;
+}
+
+.ps-doc__no {
+  text-align: end;
+  min-width: 0;
+  strong { display: block; margin-top: .15rem; font-family: $font-mono; font-size: $fs-sm; color: $ink-900; word-break: break-all; }
+}
+
+// In the bilingual (left-to-right) page the Arabic line of a right-aligned
+// block must be pinned right too - "end" would put it on the left.
+.ps-doc--both .ps-doc__no { text-align: right; .ps-doc__ar { text-align: right; } }
+
+// employee and pay facts
+.ps-doc__info {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid $ps-rule;
+  border-radius: $radius;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+
+  @container payslip (max-width: 819.98px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @container payslip (max-width: 479.98px) { grid-template-columns: minmax(0, 1fr); }
+}
+
+.ps-doc__field {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  padding: .55rem .8rem;
+  border-bottom: 1px solid $line-100;
+  border-inline-end: 1px solid $line-100;
+  min-width: 0;
+
+  &--wide {
+    grid-column: span 2;
+    background: $ps-soft;
+
+    .ps-doc__value { font-size: $fs-md; font-weight: $fw-bold; color: $ps-ink; }
+
+    @container payslip (max-width: 479.98px) { grid-column: auto; }
+  }
+}
+
+.ps-doc__label {
+  font-size: $fs-xs;
+  color: $ink-500;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+
+  .ps-doc__ar { text-transform: none; letter-spacing: 0; }
+}
+
+.ps-doc--both .ps-doc__label {
+  display: flex;
+  justify-content: space-between;
+  gap: .5rem;
+}
+
+.ps-doc__value {
+  font-weight: $fw-semibold;
+  color: $ink-900;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+// earnings | deductions
+.ps-doc__tables {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+
+  @container payslip (max-width: 639.98px) { grid-template-columns: minmax(0, 1fr); }
+}
+
+.ps-doc__table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid $ps-rule;
+  border-radius: $radius;
+  overflow: hidden;
+  font-size: inherit;
+
+  th {
+    background: $ps-soft;
+    color: $ps-ink;
+    font-weight: $fw-bold;
+    padding: .5rem .75rem;
+    border-bottom: 1px solid $ps-rule;
+    text-align: start;
+  }
+
+  td {
+    padding: .45rem .75rem;
+    border-bottom: 1px solid $line-100;
+    vertical-align: top;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+
+  tfoot td {
+    border-top: 1.5px solid $ps-ink;
+    border-bottom: 0;
+    font-weight: $fw-bold;
+    color: $ps-ink;
+    background: $surface-2;
+  }
+
+  &--ded {
+    th { color: $ps-ded; background: $red-050; }
+    tfoot td { color: $ps-ded; border-top-color: $ps-ded; }
+  }
+}
+
+.ps-doc--both .ps-doc__table th,
+.ps-doc--both .ps-doc__table td:first-child {
+  > .ps-doc__en + .ps-doc__ar { margin-top: .05rem; }
+}
+
+.ps-doc__amt {
+  text-align: end !important;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  width: 1%;
+}
+
+.ps-doc__note {
+  display: inline-block;
+  margin-inline-start: .35rem;
+  padding: 0 .35rem;
+  border-radius: $radius-pill;
+  background: $line-100;
+  color: $ink-600;
+  font-size: $fs-xs;
+}
+
+// net salary bar
+.ps-doc__net {
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: .9rem 1.25rem;
+  border-radius: $radius;
+  color: $white;
+  background: linear-gradient(120deg, $ps-ink 0%, $navy-800 70%, $blue-700 100%);
+
+  .ps-doc__ar { color: rgba($white, .8); }
+}
+
+.ps-doc__net-label { font-weight: $fw-semibold; }
+
+.ps-doc__net-value {
+  font-family: $font-display;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+
+  small { font-size: .6em; font-weight: $fw-medium; opacity: .8; }
+}
+
+.ps-doc__words {
+  margin: .5rem 0 0;
+  font-size: $fs-sm;
+  font-style: italic;
+  color: $ink-600;
+}
+
+.ps-doc__foot {
+  margin-top: 1.5rem;
+  padding-top: .75rem;
+  border-top: 1px dashed $ps-rule;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .5rem 1.5rem;
+  font-size: $fs-xs;
+  color: $ink-500;
+
+  > span:last-child { text-align: end; }
+
+  @container payslip (max-width: 639.98px) {
+    grid-template-columns: minmax(0, 1fr);
+    > span:last-child { text-align: start; }
+  }
+}
+
+.ps-doc--both .ps-doc__foot .ps-doc__ar { text-align: right; color: $ink-500; font-size: inherit; }
+
+// "not final" watermark across the page, above the content but click-through
+.ps-doc__watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+  pointer-events: none;
+  font-family: $font-display;
+  font-size: clamp(2.25rem, 10cqi, 5rem);
+  font-weight: $fw-bold;
+  line-height: 1.1;
+  color: rgba($red-600, .1);
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 2;
+
+  > * { transform: rotate(-24deg); }
+
+  // beats the muted colour of an Arabic line (.ps-doc--both .ps-doc__ar)
+  .ps-doc__en, .ps-doc__ar, .ps-doc--both & .ps-doc__ar { color: inherit; font-size: inherit; text-align: center; }
+}
+
+.ps-doc > :not(.ps-doc__watermark) { position: relative; z-index: 1; }
+
+// language switch in the top bar
+.ps-lang .btn { min-width: 2.6rem; }
+
+// --------------------------------------------------------------- print ----
+@media print {
+  @page { size: A4; margin: 10mm; }
+
+  .ps-doc-banner,
+  .ps-lang,
+  .pr-tabs { display: none !important; }
+
+  .ps-doc-wrap { container-type: normal; }
+
+  .ps-doc {
+    max-width: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 9.5pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+
+    &::before { display: none; }
+  }
+
+  .ps-doc__info { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ps-doc__tables { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ps-doc__table, .ps-doc__net { break-inside: avoid; }
+}

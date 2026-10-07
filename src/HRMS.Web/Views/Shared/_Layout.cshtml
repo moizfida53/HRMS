@@ -88,6 +88,15 @@
                 @Html.Icon("grid")<span>@L["layout.dashboard"]</span>
             </a>
 
+            @* My Payslips - every user linked to an employee sees their own (db/42-43). *@
+            @if (CurrentUser.EmployeeId is not null)
+            {
+                <a class="hrms-nav-link hrms-nav-link--main @(activeArea == "my-payslips" ? "is-active" : null)"
+                   asp-controller="Payslips" asp-action="My">
+                    @Html.Icon("receipt")<span>@L["ps.my_payslips"]</span>
+                </a>
+            }
+
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle @(openWorkforce ? null : "collapsed")" data-bs-toggle="collapse"
                         data-bs-target="#nav-workforce" aria-expanded="@(openWorkforce ? "true" : "false")" aria-controls="nav-workforce">

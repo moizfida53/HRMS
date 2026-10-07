@@ -69,6 +69,9 @@ public static class DependencyInjection
         // ---- Payroll: final settlement and leave encashment (db/39-40) ----
         services.AddScoped<IFinalSettlementRepository, FinalSettlementRepository>();
 
+        // ---- Payroll: payslips (db/42-43) ----
+        services.AddScoped<IPayslipRepository, PayslipRepository>();
+
         return services;
     }
 }

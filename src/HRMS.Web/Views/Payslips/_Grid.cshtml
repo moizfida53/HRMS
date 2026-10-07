@@ -1,0 +1,181 @@
+@model PayslipGridModel
+@{
+    // Employees of a payroll with their payslip ("employees") or email delivery ("email").
+    var pg = Model.Page;
+    var email = Model.Mode == "email";
+    var countText = pg.TotalCount == 1 ? L["ps.1_employee"] : L["ps.0_employees", PayrollFormat.Count(pg.TotalCount)];
+}
+<div data-total="@pg.TotalCount" data-count-text="@countText">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "receipt", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["ps.no_match"] : L["ps.no_payslips_yet"])</p>
+        <p class="hrms-empty__text">@L["ps.no_payslips_text"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table ps-table">
+            <caption class="hrms-sr-only">@L["ps.payslips"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["pr.employee"]</th>
+                    @if (Model.AllRuns)
+                    {
+                        <th scope="col">@L["pr.period"]</th>
+                    }
+                    @if (email)
+                    {
+                        <th scope="col">@L["ps.email_address"]</th>
+                        <th scope="col" class="col-p3">@L["ps.payslip"]</th>
+                        <th scope="col">@L["common.status"]</th>
+                        <th scope="col" class="col-p2">@L["ps.sent_on"]</th>
+                    }
+                    else
+                    {
+                        <th scope="col" class="col-p3">@L["common.department"]</th>
+                        <th scope="col" class="pr-money">@L["pr.net_kwd"]</th>
+                        <th scope="col">@L["ps.payslip"]</th>
+                        <th scope="col" class="col-p2">@L["ps.emailed"]</th>
+                    }
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in pg.Items)
+                {
+                    var name = PayrollFormat.EmployeeName(L, r.EmployeeName, r.ArabicName);
+                    var viewUrl = Url.Action("Slip", "Payslips", new { runId = r.PayrollRunId, employeeId = r.EmployeeId });
+                    <tr>
+                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">
+                            <span class="hrms-table__primary">@name</span>
+                            <span class="pr-emp-sub">@r.EmployeeNo@(r.PayslipNo is not null ? " · " + r.PayslipNo : "")@(Model.ManyCompanies && r.CompanyName is not null ? " · " + r.CompanyName : "")</span>
+                        </td>
+                        @if (Model.AllRuns)
+                        {
+                            <td data-label="@L["pr.period"]" class="hrms-nowrap">
+                                @PayslipFormat.Period(L, r)
+                                <span class="pr-emp-sub">@r.RunCode</span>
+                            </td>
+                        }
+                        @if (email)
+                        {
+                            <td data-label="@L["ps.email_address"]" class="ps-email-cell">
+                                @if (r.Email is null)
+                                {
+                                    <span class="pr-neg">@L["ps.no_email_address"]</span>
+                                }
+                                else
+                                {
+                                    <span class="ps-email">@r.Email</span>
+                                    @if (r.EmailTo is not null && !string.Equals(r.EmailTo, r.Email, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="pr-emp-sub">@L["ps.sent_to_0", r.EmailTo]</span>
+                                    }
+                                }
+                            </td>
+                            <td data-label="@L["ps.payslip"]" class="col-p3">
+                                @if (!r.IsGenerated)
+                                {
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["ps.not_generated"]</span>
+                                }
+                                else if (r.IsOutdated)
+                                {
+                                    <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["ps.outdated"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["ps.generated"]</span>
+                                }
+                            </td>
+                            <td data-label="@L["common.status"]">
+                                @if (r.Email is null && r.EmailStatus == PayslipEmailStatus.NotSent)
+                                {
+                                    <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["ps.email_missing"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--@PayslipFormat.EmailBadge(r.EmailStatus)"><span class="hrms-badge__dot"></span>@L[PayslipFormat.EmailKey(r.EmailStatus)]</span>
+                                }
+                                @if (r.EmailStatus == PayslipEmailStatus.Failed && r.EmailError is not null)
+                                {
+                                    <span class="pr-emp-sub ps-error" title="@r.EmailError">@r.EmailError</span>
+                                }
+                            </td>
+                            <td data-label="@L["ps.sent_on"]" class="col-p2 col-date">
+                                @(r.EmailSentDate is { } sd ? L.Date(sd) : r.EmailQueuedDate is { } qd ? L["ps.queued_on_0", L.Date(qd)] : "—")
+                            </td>
+                        }
+                        else
+                        {
+                            <td data-label="@L["common.department"]" class="col-p3">@(r.DepartmentName ?? "—")</td>
+                            <td data-label="@L["pr.net_kwd"]" class="pr-money@(r.NetPay < 0 ? " pr-neg" : "")">@PayrollFormat.Money(r.NetPay)</td>
+                            <td data-label="@L["ps.payslip"]">
+                                @if (!r.IsClosed)
+                                {
+                                    <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["ps.preview_only"]</span>
+                                }
+                                else if (!r.IsGenerated)
+                                {
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["ps.not_generated"]</span>
+                                }
+                                else if (r.IsOutdated)
+                                {
+                                    <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["ps.outdated"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L[PayslipFormat.TemplateKey(r.Template)]</span>
+                                    @if (r.ViewCount > 0)
+                                    {
+                                        <span class="pr-emp-sub">@L["ps.viewed_by_employee"]</span>
+                                    }
+                                }
+                            </td>
+                            <td data-label="@L["ps.emailed"]" class="col-p2">
+                                @if (r.IsGenerated)
+                                {
+                                    <span class="hrms-badge hrms-badge--@PayslipFormat.EmailBadge(r.EmailStatus)"><span class="hrms-badge__dot"></span>@L[PayslipFormat.EmailKey(r.EmailStatus)]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-muted">—</span>
+                                }
+                            </td>
+                        }
+                        <td class="hrms-table__actions">
+                            <a class="btn-icon" href="@viewUrl" title="@L["ps.view"]" aria-label="@L["ps.view_0", name]">@Html.Icon("eye", 15)</a>
+                            @if (!email)
+                            {
+                                <a class="btn-icon" href="@(viewUrl + "?print=1")" title="@L["ps.print"]" aria-label="@L["ps.print_0", name]">@Html.Icon("printer", 15)</a>
+                            }
+                            else if (Model.Rights.CanEmail && r.IsClosed)
+                            {
+                                if (r.Email is null)
+                                {
+                                    <a class="btn btn-sm btn-outline-secondary" href="@Url.Content("~/employees/profile/" + r.EmployeeId)">@L["ps.add_email"]</a>
+                                }
+                                else if (r.IsGenerated && !r.IsOutdated && r.EmailStatus is PayslipEmailStatus.NotSent or PayslipEmailStatus.Failed or PayslipEmailStatus.Sent)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-ps-send="@r.EmployeeId"
+                                            data-ps-resend="@(r.EmailStatus == PayslipEmailStatus.Sent ? "true" : "false")">
+                                        @Html.Icon(r.EmailStatus == PayslipEmailStatus.NotSent ? "send" : "refresh", 14)
+                                        <span>@(r.EmailStatus == PayslipEmailStatus.NotSent ? L["ps.send"] : L["ps.resend"])</span>
+                                    </button>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

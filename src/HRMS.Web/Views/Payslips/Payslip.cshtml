@@ -1,0 +1,223 @@
+@using System.Globalization
+@using Microsoft.AspNetCore.Html
+@model PayslipDocumentModel
+@{
+    // One payslip, ready to print or save as PDF: English and Arabic side by side
+    // (BILINGUAL), or one language only - whatever the language of the screen.
+    // The figures are the payroll's own lines; nothing here is calculated again.
+    var s = Model.Slip;
+    var inv = CultureInfo.InvariantCulture;
+    var en = Model.ShowEnglish;
+    var ar = Model.ShowArabic;
+    var both = en && ar;
+
+    ViewData["Title"] = "Payslip";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "payslips";
+    ViewData["Subtitle"] = $"{PayrollFormat.EmployeeName(L, s.EmployeeName, s.ArabicName)} · {PayslipFormat.Period(L, s)}";
+    ViewData["BackUrl"] = Model.BackUrl;
+    ViewData["BackLabel"] = Model.IsSelf ? L["ps.back_to_my_payslips"] : L["ps.back_to_payslips"];
+
+    string D(DateTime? d) => d?.ToString("dd/MM/yyyy", inv) ?? "—";
+    string M(decimal v) => PayrollFormat.Money(v);
+
+    // A label in the payslip's language(s).
+    IHtmlContent T(string key, params object?[] args)
+    {
+        var (e, a) = Model.Both(key, args);
+        var html = new System.Text.StringBuilder();
+        if (en) html.Append($"<span class=\"ps-doc__en\">{System.Net.WebUtility.HtmlEncode(e)}</span>");
+        if (ar) html.Append($"<span class=\"ps-doc__ar\" lang=\"ar\" dir=\"rtl\">{System.Net.WebUtility.HtmlEncode(a)}</span>");
+        return new HtmlString(html.ToString());
+    }
+
+    // Two texts (English / Arabic data, e.g. a pay item's names) in the payslip's language(s).
+    IHtmlContent Data(string? english, string? arabic)
+    {
+        var e = english ?? string.Empty;
+        var a = string.IsNullOrWhiteSpace(arabic) ? e : arabic!;
+        var html = new System.Text.StringBuilder();
+        if (en || string.IsNullOrWhiteSpace(arabic)) html.Append($"<span class=\"ps-doc__en\">{System.Net.WebUtility.HtmlEncode(e)}</span>");
+        if (ar && !string.IsNullOrWhiteSpace(arabic)) html.Append($"<span class=\"ps-doc__ar\" lang=\"ar\" dir=\"rtl\">{System.Net.WebUtility.HtmlEncode(a)}</span>");
+        return new HtmlString(html.ToString());
+    }
+
+    // The pay period in both languages: "September 2026" / "سبتمبر 2026", or "Week 41 (05/10 – 11/10)".
+    var monthly = s.PayFrequency == "MONTHLY";
+    var periodKey = monthly ? $"common.month_{s.RunMonth.Month}" : s.PayFrequency == "WEEKLY" ? "pr.week_n" : "pr.fortnight_n";
+    var (pEn, pAr) = Model.Both(periodKey, monthly ? Array.Empty<object?>() : new object?[] { s.PeriodNumber ?? 0 });
+    var periodSuffix = monthly ? " " + s.RunMonth.Year.ToString(inv) : $" ({s.StartDate.ToString("dd/MM", inv)} – {s.EndDate.ToString("dd/MM", inv)})";
+    var periodEn = pEn + periodSuffix;
+    var periodAr = pAr + periodSuffix;
+
+    var name = s.EmployeeName ?? string.Empty;
+    var nameAr = string.IsNullOrWhiteSpace(s.ArabicName) ? null : s.ArabicName;
+    var designation = Data(s.DesignationName ?? "—", s.DesignationArabicName);
+    var draftReason = !s.IsClosed ? "ps.watermark_not_final" : !s.IsGenerated ? "ps.watermark_not_generated" : s.IsOutdated ? "ps.watermark_outdated" : null;
+    // The employee always sees the final payslip of a closed payroll; only HR sees "not generated / outdated".
+    var watermark = !s.IsClosed || (!Model.IsSelf && draftReason is not null);
+    var currentLang = Model.Template switch { PayslipTemplate.English => "en", PayslipTemplate.Arabic => "ar", _ => "both" };
+}
+
+@if (!Model.IsSelf && draftReason is not null)
+{
+    <div class="pr-banner @(s.IsClosed ? "pr-banner--lock" : "pr-banner--info") ps-doc-banner" role="note">
+        @Html.Icon(s.IsClosed ? "alert" : "eye", 18)
+        <div>
+            <strong>@L[draftReason]</strong>
+            @(s.IsClosed ? L["ps.banner_generate_text"] : L["ps.not_closed_text"])
+        </div>
+        @if (s.IsClosed && Model.CanGenerate)
+        {
+            <button type="button" class="btn btn-sm btn-primary ms-auto" data-ps-generate-one="@s.EmployeeId" data-ps-run-id="@s.PayrollRunId"
+                    data-url="@Url.Action("GeneratePayslips", "Payslips")">@Html.Icon("receipt", 14)<span>@L["ps.generate_this"]</span></button>
+        }
+    </div>
+}
+
+<div class="ps-doc-wrap" data-ps-doc>
+    <article class="ps-doc@(both ? " ps-doc--both" : Model.IsArabicOnly ? " ps-doc--ar" : " ps-doc--en")@(watermark ? " is-draft" : "")"
+             dir="@(Model.IsArabicOnly ? "rtl" : "ltr")" lang="@(Model.IsArabicOnly ? "ar" : "en")" aria-label="@L["ps.payslip"]">
+        @if (watermark)
+        {
+            <div class="ps-doc__watermark" aria-hidden="true">@T("ps.watermark")</div>
+        }
+
+        @* ---------------------------------------------------------- header *@
+        <header class="ps-doc__head">
+            <div class="ps-doc__brand">
+                <span class="ps-doc__logo" aria-hidden="true">@((s.CompanyCode ?? s.CompanyName ?? "HR").Length >= 2 ? (s.CompanyCode ?? s.CompanyName ?? "HR")[..2].ToUpperInvariant() : "HR")</span>
+                <div>
+                    <strong class="ps-doc__co">@s.CompanyName</strong>
+                    <span class="ps-doc__muted">@s.CompanyCode</span>
+                </div>
+            </div>
+            <div class="ps-doc__title">
+                @if (en)
+                {
+                    <span class="ps-doc__en">@Model.Both("ps.doc_title", Array.Empty<object?>()).En</span>
+                }
+                @if (ar)
+                {
+                    <span class="ps-doc__ar" lang="ar" dir="rtl">@Model.Both("ps.doc_title", Array.Empty<object?>()).Ar</span>
+                }
+                <span class="ps-doc__period">
+                    @if (en)
+                    {
+                        <span class="ps-doc__en">@periodEn</span>
+                    }
+                    @if (ar)
+                    {
+                        <span class="ps-doc__ar" lang="ar" dir="rtl">@periodAr</span>
+                    }
+                </span>
+            </div>
+            <div class="ps-doc__no">
+                <span class="ps-doc__muted">@T("ps.doc_payslip_no")</span>
+                <strong>@(s.PayslipNo ?? "—")</strong>
+            </div>
+        </header>
+
+        @* ---------------------------------------------------------- employee *@
+        <section class="ps-doc__info" aria-label="@L["pr.employee"]">
+            <div class="ps-doc__field ps-doc__field--wide">
+                <span class="ps-doc__label">@T("ps.doc_employee")</span>
+                <span class="ps-doc__value">
+                    @if (en || nameAr is null)
+                    {
+                        <span>@name</span>
+                    }
+                    @if (ar && nameAr is not null)
+                    {
+                        <span class="ps-doc__ar" lang="ar" dir="rtl">@nameAr</span>
+                    }
+                </span>
+            </div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_employee_no")</span><span class="ps-doc__value">@s.EmployeeNo</span></div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_civil_id")</span><span class="ps-doc__value ps-doc__mono">@PayslipFormat.MaskCivilId(s.CivilIdNumber)</span></div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_department")</span><span class="ps-doc__value">@(s.DepartmentName ?? "—")</span></div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_designation")</span><span class="ps-doc__value">@designation</span></div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_bank")</span><span class="ps-doc__value ps-doc__mono">@(s.BankName is not null ? s.BankName + " · " : "")@PayslipFormat.MaskIban(s.Iban)</span></div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_period")</span><span class="ps-doc__value">@D(s.StartDate) – @D(s.EndDate)</span></div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_paid_days")</span><span class="ps-doc__value">@s.PaidDays.ToString(inv) / @s.PeriodDays.ToString(inv)</span></div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_pay_date")</span><span class="ps-doc__value">@D(s.PaymentDate)</span></div>
+            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_joined")</span><span class="ps-doc__value">@D(s.HireDate)</span></div>
+        </section>
+
+        @* ---------------------------------------------------------- figures *@
+        <div class="ps-doc__tables">
+            <table class="ps-doc__table">
+                <caption class="hrms-sr-only">@L["pr.earnings"]</caption>
+                <thead>
+                    <tr><th scope="col">@T("ps.doc_earnings")</th><th scope="col" class="ps-doc__amt">KWD</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var l in Model.Earnings)
+                    {
+                        <tr>
+                            <td>@Data(l.ComponentName, l.ComponentArabicName)@if (l.InstalmentNo is { } n) {<span class="ps-doc__note">@n.ToString(inv)@(l.InstalmentCount is { } c ? "/" + c.ToString(inv) : "")</span>}</td>
+                            <td class="ps-doc__amt">@M(l.Amount)</td>
+                        </tr>
+                    }
+                    @if (Model.Earnings.Count == 0)
+                    {
+                        <tr><td colspan="2" class="ps-doc__muted">—</td></tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><td>@T("ps.doc_total_earnings")</td><td class="ps-doc__amt">@M(Model.TotalEarnings)</td></tr>
+                </tfoot>
+            </table>
+
+            <table class="ps-doc__table ps-doc__table--ded">
+                <caption class="hrms-sr-only">@L["pr.deductions"]</caption>
+                <thead>
+                    <tr><th scope="col">@T("ps.doc_deductions")</th><th scope="col" class="ps-doc__amt">KWD</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var l in Model.Deductions)
+                    {
+                        <tr>
+                            <td>@Data(l.ComponentName, l.ComponentArabicName)@if (l.InstalmentNo is { } n) {<span class="ps-doc__note">@n.ToString(inv)@(l.InstalmentCount is { } c ? "/" + c.ToString(inv) : "")</span>}</td>
+                            <td class="ps-doc__amt">@M(-l.Amount)</td>
+                        </tr>
+                    }
+                    @if (Model.Deductions.Count == 0)
+                    {
+                        <tr><td colspan="2" class="ps-doc__muted">—</td></tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><td>@T("ps.doc_total_deductions")</td><td class="ps-doc__amt">@M(Model.TotalDeductions)</td></tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="ps-doc__net">
+            <span class="ps-doc__net-label">@T("ps.doc_net_salary")</span>
+            <strong class="ps-doc__net-value"><small>KWD</small> @M(s.NetPay)</strong>
+        </div>
+        @if (en)
+        {
+            <p class="ps-doc__words">@PayslipFormat.AmountInWords(s.NetPay)@(s.NetPay < 0 ? " (-)" : "")</p>
+        }
+
+        <footer class="ps-doc__foot">
+            <span>@T("ps.doc_generated", D(s.GeneratedDate ?? DateTime.Today), s.RunCode ?? "")</span>
+            <span>@T("ps.doc_computer_generated")</span>
+        </footer>
+    </article>
+</div>
+@Html.AntiForgeryToken()
+
+@section PageActions {
+    <div class="btn-group ps-lang" role="group" aria-label="@L["ps.language"]">
+        <a class="btn btn-outline-secondary @(currentLang == "both" ? "active" : null)" href="?lang=both" aria-current="@(currentLang == "both" ? "true" : null)">@L["ps.lang_both"]</a>
+        <a class="btn btn-outline-secondary @(currentLang == "en" ? "active" : null)" href="?lang=en" aria-current="@(currentLang == "en" ? "true" : null)">EN</a>
+        <a class="btn btn-outline-secondary @(currentLang == "ar" ? "active" : null)" href="?lang=ar" aria-current="@(currentLang == "ar" ? "true" : null)">ع</a>
+    </div>
+    <button type="button" class="btn btn-primary" data-ps-print>@Html.Icon("printer", 15)<span>@L["ps.print_save_pdf"]</span></button>
+}
+@section Scripts {
+    <script src="~/js/payslips.js" asp-append-version="true"></script>
+}

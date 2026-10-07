@@ -24,6 +24,7 @@ Profile page covering Personal Info, Employment and Kuwait Compliance.
 | Module 4 Workforce — Employees list + tabbed Profile | Complete — see *Module 4* below for known gaps (document upload, cascading dropdowns) |
 | Module 4 Kuwait Compliance — Civil ID/passport/residency/work permit | Complete, as a tab on the Employee Profile page |
 | Payroll Phase 1 — Master Setup (database) | Database complete (scripts 29–32) — screens not built yet; see *Payroll — Phase 1* below |
+| Payroll — Payslips (generate, view / print, email, My Payslips) | Complete — scripts 42–44; see *Payslips (live)* below |
 | Modules 2, 5–12 | Not started |
 
 The eight Organization Setup tabs are Companies, Branches, Departments,
@@ -516,6 +517,89 @@ Files: `Controllers/PayItemsController.cs`, `Models/Payroll/PayItemViewModels.cs
 `Views/PayItems/*`, `Helpers/XlsxFile.cs`, Pay Items section of `wwwroot/js/payroll.js`
 and `wwwroot/scss/_payroll.scss`. The page is `/payroll/pay-items` (`?emp=<id>`
 opens one employee).
+
+### Payslips (live)
+
+**Payroll > Payslips** has three tabs, and every employee gets **My Payslips**
+in the sidebar:
+
+| Page | URL | What it does |
+|---|---|---|
+| Generate Payslips | `/payroll/payslips/generate` | Pick a payroll, choose everyone or one department and the language (**Bilingual** English + Arabic on one page, **English**, or **Arabic** right-to-left), then **Generate**. A checklist shows whether the payroll is closed, how many payslips are generated / outdated, and who has no email address. |
+| Employee Payslips | `/payroll/payslips/employees` | Every employee of every payroll (or one payroll) with payslip and email status — search, department and status filters, paging. Opens any payslip to view or print. |
+| Email Payslips | `/payroll/payslips/email` | Delivery figures (sent, queued, failed, no email address), **Send to all not yet sent**, and Send / Resend per employee. |
+| Payslip | `/payroll/payslips/{runId}/{employeeId}` | The payslip itself — **Print / Save PDF** (the browser's print dialog, one A4 page), and an EN / ع / both switch to preview the other languages. |
+| My Payslips | `/payroll/payslips/my` | The signed-in employee's own payslips (latest one on top). Needs only a user linked to the employee (`Security.Users.EmployeeId`), no permission — and it ignores the company filter. |
+
+Run after 34–41, in this order:
+
+| # | Script | What it does |
+|---|---|---|
+| 42 | `db/42_Payslip_Tables.sql` | `Payroll.Payslips` (one row per employee and payroll: number, language, the net it showed, email delivery, views); permissions PAYROLL_SLIP_VIEW / GENERATE / EMAIL (to SYSADMIN) |
+| 43 | `db/43_Payslip_StoredProcedures.sql` | `Payroll.usp_Payslip_Manage` — RUNS / SUMMARY / LIST / GET / GENERATE / QUEUE_EMAIL / VIEWED, and EMAIL_CLAIM / EMAIL_RESULT for the email sender |
+| 44 | `db/44_Payslip_Labels.sql` | English + Arabic labels (`ps.*`, `js.ps_*`, `msg.ps_*`) — same re-run rules as 36 / 41 |
+
+> **Sign out and in again** after script 42 so the new permissions are loaded.
+
+Rules:
+
+* A payslip shows **the payroll's own figures** — the lines and the employee
+  snapshot of `Payroll.PayrollRunLines` / `PayrollRunEmployees`. Nothing is
+  calculated again and a payslip cannot be edited; to change one, reopen and
+  recalculate the payroll.
+* Payslips are **generated and emailed only for a Closed payroll**. Payrolls in
+  validation or awaiting approval are listed so their payslips can be
+  previewed (watermarked *Not final*). Employees excluded from the payroll, and
+  employees an off-cycle payroll pays nothing, have no payslip.
+* Number `<RunCode>-<EmployeeNo>` (e.g. `DTC-2026-09-01-E1001`). Generating again
+  refreshes the language and figures and keeps the number and email history.
+* **Outdated:** when a payroll is reopened, recalculated and closed again, a
+  payslip whose net changed (or that is older than the new close) is shown as
+  outdated — it cannot be emailed until it is generated again. A full
+  regeneration withdraws the payslips of employees no longer in the payroll.
+* The payslip masks the Civil ID (last 4 digits) and the IBAN (`KW74 •••• 3388`),
+  and prints the net in words (English).
+* **Email** goes to the work email, else the personal email. It **carries no
+  salary figures**: it says the payslip is ready and links to My Payslips,
+  where the employee signs in. A background service (`Services/PayslipEmailSender.cs`)
+  sends the queue every 30 seconds and records Sent / Failed (with the server's
+  reason); an email stuck while sending is retried after 15 minutes.
+
+Email settings — `Payslips:Email` in `appsettings.json` (off by default; queued
+emails simply wait until it is switched on, and the Email page says so):
+
+```json
+"Payslips": {
+  "Email": {
+    "Enabled": true,
+    "Host": "smtp.office365.com",
+    "Port": 587,
+    "EnableSsl": true,
+    "UserName": "payroll@yourcompany.com",
+    "FromAddress": "payroll@yourcompany.com",
+    "FromName": "HR & Payroll",
+    "AppBaseUrl": "https://hrms.yourcompany.com"
+  }
+}
+```
+
+Keep the SMTP password out of the file: `dotnet user-secrets set "Payslips:Email:Password" "..."`
+in development, the environment variable `Payslips__Email__Password` in production.
+
+Not built yet: a server-side PDF attachment (and the "password = last digits of
+the Civil ID" PDF from the prototype). It needs a PDF library that can shape
+Arabic text, which is a licensing decision for you; until then employees save
+the PDF from the print dialog, and nothing confidential is emailed.
+
+Files: `Controllers/PayslipsController.cs`, `Models/Payroll/PayslipViewModels.cs`,
+`Domain/Payroll/Payslip.cs`, `Data/Repositories/PayslipRepository.cs`,
+`Services/PayslipEmailSender.cs`, `Views/Payslips/*`, `wwwroot/js/payslips.js`,
+`wwwroot/scss/_payslips.scss`. The old payslip preview pages
+(`/payroll/preview/slip-*`) now redirect to the live pages.
+
+> **Stylesheet fix in this drop:** `wwwroot/scss/hrms.scss` was missing
+> `@use "settlement"`, so the compiled `css/hrms.css` had none of the Final
+> Settlement styles. It is added (with `@use "payslips"`) and the CSS rebuilt.
 
 ---
 

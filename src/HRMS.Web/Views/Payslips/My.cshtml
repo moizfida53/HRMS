@@ -1,0 +1,93 @@
+@using HRMS.Web.Models.Organization
+@model MyPayslipsModel
+@{
+    // My Payslips: the signed-in employee's own payslips (generated, closed payrolls).
+    ViewData["Title"] = "My Payslips";
+    ViewData["ActiveArea"] = "my-payslips";
+    ViewData["Subtitle"] = L["ps.my_subtitle"];
+    var pg = Model.Page;
+}
+<div class="pr-stack ps-page" data-ps-page="my">
+    @if (!Model.HasEmployee)
+    {
+        <section class="hrms-card">
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("user", 26)</span>
+                <p class="hrms-empty__title">@L["ps.my_no_employee_title"]</p>
+                <p class="hrms-empty__text">@L["ps.my_no_employee_text"]</p>
+            </div>
+        </section>
+    }
+    else if (pg.TotalCount == 0)
+    {
+        <section class="hrms-card">
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("receipt", 26)</span>
+                <p class="hrms-empty__title">@L["ps.my_empty_title"]</p>
+                <p class="hrms-empty__text">@L["ps.my_empty_text"]</p>
+            </div>
+        </section>
+    }
+    else
+    {
+        var latest = pg.PageNumber == 1 ? pg.Items[0] : null;
+        @if (latest is not null)
+        {
+            <section class="hrms-card ps-latest" aria-labelledby="ps-latest-title">
+                <div class="ps-latest__body">
+                    <div class="ps-latest__text">
+                        <span class="ps-latest__eyebrow" id="ps-latest-title">@L["ps.my_latest"]</span>
+                        <span class="ps-latest__period">@PayslipFormat.Period(L, latest)</span>
+                        <span class="ps-latest__meta">@latest.PayslipNo · @L["ps.paid_on_0", L.Date(latest.PaymentDate ?? latest.EndDate)]</span>
+                    </div>
+                    <div class="ps-latest__net">
+                        <span>@L["ps.net_pay"]</span>
+                        <strong><small>KWD</small> @PayrollFormat.Money(latest.NetPay)</strong>
+                    </div>
+                    <div class="ps-latest__actions">
+                        <a class="btn btn-light" href="@Url.Action("MyPayslip", "Payslips", new { runId = latest.PayrollRunId })">@Html.Icon("eye", 15)<span>@L["ps.view"]</span></a>
+                        <a class="btn btn-outline-light" href="@Url.Action("MyPayslip", "Payslips", new { runId = latest.PayrollRunId, print = 1 })">@Html.Icon("printer", 15)<span>@L["ps.print"]</span></a>
+                    </div>
+                </div>
+            </section>
+        }
+
+        <section class="hrms-card" aria-labelledby="ps-all-title">
+            <div class="hrms-card__toolbar">
+                <h2 class="pr-card-title mb-0" id="ps-all-title">@L["ps.my_all"]</h2>
+                <div class="hrms-card__count">@(pg.TotalCount == 1 ? L["ps.1_payslip"] : L["ps.0_payslips", PayrollFormat.Count(pg.TotalCount)])</div>
+            </div>
+            <ul class="ps-my-list">
+                @foreach (var r in pg.Items)
+                {
+                    var url = Url.Action("MyPayslip", "Payslips", new { runId = r.PayrollRunId });
+                    <li class="ps-my-item">
+                        <a class="ps-my-item__link" href="@url">
+                            <span class="ps-my-item__icon" aria-hidden="true">@Html.Icon("receipt", 18)</span>
+                            <span class="ps-my-item__main">
+                                <span class="ps-my-item__period">
+                                    @PayslipFormat.Period(L, r)
+                                    @if (r.ViewCount == 0)
+                                    {
+                                        <span class="hrms-badge hrms-badge--info ps-my-item__new"><span class="hrms-badge__dot"></span>@L["ps.new"]</span>
+                                    }
+                                </span>
+                                <span class="ps-my-item__sub">@r.PayslipNo@(r.PaymentDate is { } pd ? " · " + L["ps.paid_on_0", L.Date(pd)] : "")</span>
+                            </span>
+                            <span class="ps-my-item__net">@PayrollFormat.Money(r.NetPay) <small>KWD</small></span>
+                            <span class="ps-my-item__chev" aria-hidden="true">@Html.Icon("chevron-right", 16)</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+            @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+            {
+                PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+                FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+            })
+        </section>
+    }
+</div>
+@section Scripts {
+    <script src="~/js/payslips.js" asp-append-version="true"></script>
+}

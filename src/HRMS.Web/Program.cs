@@ -187,6 +187,12 @@ builder.Services
     .Bind(builder.Configuration.GetSection(DocumentStorageOptions.SectionName));
 builder.Services.AddSingleton<IDocumentStorage, LocalDocumentStorage>();
 
+// Payslip emails (db/42-43) - queued from Payroll > Payslips, sent in the background.
+builder.Services
+    .AddOptions<PayslipEmailOptions>()
+    .Bind(builder.Configuration.GetSection(PayslipEmailOptions.SectionName));
+builder.Services.AddHostedService<PayslipEmailSender>();
+
 builder.Services.AddResponseCompression();
 
 var app = builder.Build();

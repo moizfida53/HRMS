@@ -88,6 +88,11 @@ public static class StoredProcedure
 
     /// <summary>Final settlements and leave encashment: list, calculate, lines, submit, approve, pay, cancel.</summary>
     public const string FinalSettlementManage = "Payroll.usp_FinalSettlement_Manage";
+
+    // ---- Payslips (db/42-43) ----
+
+    /// <summary>Payslips: payrolls, list, payslip header, generate, email queue and delivery results.</summary>
+    public const string PayslipManage = "Payroll.usp_Payslip_Manage";
 }
 
 /// <summary>

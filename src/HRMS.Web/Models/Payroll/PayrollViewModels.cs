@@ -28,7 +28,7 @@ public static class PayrollNav
         new("settlement", "Final Settlement", "exit",
             [new("fs-list", "Settlements", true), new("fs-new", "New Settlement", true), new("fs-encashment", "Leave Encashment", true)]),
         new("payslips", "Payslips", "receipt",
-            [new("slip-generate", "Generate Payslips"), new("slip-employee", "Employee Payslips"), new("slip-email", "Email Payslips")]),
+            [new("slip-generate", "Generate Payslips", true), new("slip-employee", "Employee Payslips", true), new("slip-email", "Email Payslips", true)]),
         new("bank", "Bank Processing", "bank",
             [new("bk-file", "Bank File"), new("bk-register", "Payment Register"), new("bk-history", "Payment History")]),
         new("accounting", "Accounting", "book",
@@ -50,6 +50,7 @@ public static class PayrollNav
     public static readonly IReadOnlyDictionary<string, string> ExtraPages = new Dictionary<string, string>
     {
         ["slip-view"] = "payslips",
+        ["slip-my"] = "payslips",
         ["fs-detail"] = "settlement"
     };
 
@@ -63,16 +64,22 @@ public static class PayrollNav
         "fs-list" => "/payroll/settlement",
         "fs-new" => "/payroll/settlement/new",
         "fs-encashment" => "/payroll/settlement/encashment",
+        "slip-generate" => "/payroll/payslips/generate",
+        "slip-employee" => "/payroll/payslips/employees",
+        "slip-email" => "/payroll/payslips/email",
+        "slip-my" => "/payroll/payslips/my",
         _ => $"/payroll/preview/{slug}"
     };
 
     /// <summary>True for a payroll page that is still a design preview (Views/Payroll/Preview).</summary>
     public static bool IsPreview(string slug) =>
-        SectionOfSlug(slug) is { } section && section.Key is not ("processing" or "settlement") && slug != "pay-items";
+        SectionOfSlug(slug) is { } section && section.Key is not ("processing" or "settlement" or "payslips") && slug != "pay-items";
 
-    /// <summary>The Final Settlement preview pages that were replaced by the live screens (old links still work).</summary>
+    /// <summary>The Final Settlement and Payslips preview pages that were replaced by the live screens (old links still work).</summary>
     public static string? ReplacedPreview(string slug) => slug switch
     {
+        "slip-generate" or "slip-employee" or "slip-email" or "slip-my" => Url(slug),
+        "slip-view" => "/payroll/payslips/employees",
         "fs-history" => "/payroll/settlement",
         "fs-resignation" => "/payroll/settlement/new?type=RESIGNATION",
         "fs-termination" => "/payroll/settlement/new?type=TERMINATION",

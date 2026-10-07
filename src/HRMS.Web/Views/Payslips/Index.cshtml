@@ -1,0 +1,308 @@
+@model PayslipPageModel
+@{
+    // Payroll > Payslips: Generate / Employee Payslips / Email Payslips (db/42-43).
+    // One view, three modes - the payroll picker and the key figures are shared.
+    var mode = Model.Mode;
+    var run = Model.Run;
+    var sum = Model.Summary ?? new PayslipSummary();
+    ViewData["Title"] = mode switch { "employees" => "Employee Payslips", "email" => "Email Payslips", _ => "Generate Payslips" };
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "payslips";
+    ViewData["Subtitle"] = mode switch
+    {
+        "employees" => L["ps.employees_subtitle"],
+        "email" => L["ps.email_subtitle"],
+        _ => L["ps.generate_subtitle"]
+    };
+    var closed = run?.IsClosed == true;
+    var pageUrl = Url.Action(mode switch { "employees" => "Employees", "email" => "Email", _ => "Generate" }, "Payslips");
+    var withCompany = Model.ManyCompanies;
+}
+@await Html.PartialAsync("~/Views/Payroll/_Tabs.cshtml", Model.Tab)
+
+<div class="pr-stack ps-page" data-ps-page="@mode"
+     data-urls-page="@pageUrl"
+     data-urls-grid="@Url.Action("Grid", "Payslips")"
+     data-urls-generate="@Url.Action("GeneratePayslips", "Payslips")"
+     data-urls-email="@Url.Action("QueueEmail", "Payslips")"
+     data-run="@run?.PayrollRunId">
+
+    @* ------------------------------------------------ payroll picker *@
+    <section class="hrms-card ps-picker" aria-label="@L["ps.payroll"]">
+        <div class="ps-picker__body">
+            <span class="ps-picker__icon" aria-hidden="true">@Html.Icon("receipt", 20)</span>
+            <div class="ps-picker__field">
+                <label class="form-label mb-1" for="ps-run">@L["ps.payroll"]</label>
+                <select class="form-select" id="ps-run" data-ps-run @(Model.Runs.Count == 0 ? "disabled" : null)>
+                    @if (mode == "employees")
+                    {
+                        <option value="" selected="@(run is null)">@L["ps.all_payrolls"]</option>
+                    }
+                    @foreach (var r in Model.Runs)
+                    {
+                        <option value="@r.PayrollRunId" selected="@(run?.PayrollRunId == r.PayrollRunId)">@PayslipFormat.RunOption(L, r, withCompany)</option>
+                    }
+                </select>
+            </div>
+            @if (run is not null)
+            {
+                <dl class="ps-picker__facts">
+                    <div><dt>@L["pr.period"]</dt><dd>@L.Date(run.StartDate) – @L.Date(run.EndDate)</dd></div>
+                    <div><dt>@L["pr.pay_date"]</dt><dd>@L.Date(run.PaymentDate)</dd></div>
+                    <div>
+                        <dt>@L["common.status"]</dt>
+                        <dd><span class="hrms-badge hrms-badge--@(closed ? "success" : "warning")"><span class="hrms-badge__dot"></span>@L[PayslipFormat.StageKey(run.Stage)]</span></dd>
+                    </div>
+                </dl>
+            }
+        </div>
+    </section>
+
+    @if (Model.Runs.Count == 0)
+    {
+        <section class="hrms-card">
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("receipt", 26)</span>
+                <p class="hrms-empty__title">@L["ps.no_payrolls_title"]</p>
+                <p class="hrms-empty__text">@L["ps.no_payrolls_text"]</p>
+                <a class="btn btn-outline-secondary btn-sm mt-2" href="@Url.Content("~/payroll/calendar")">@Html.Icon("calendar", 15)<span>@L["pr.open_payroll_processing"]</span></a>
+            </div>
+        </section>
+    }
+    else
+    {
+        @* ------------------------------------------------ key figures *@
+        @if (run is not null && mode != "employees")
+        {
+            <section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
+                @if (mode == "generate")
+                {
+                    <div class="hrms-card hrms-kpi">
+                        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["common.employees"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("users", 16)</span></div>
+                        <div class="hrms-kpi__value">@PayrollFormat.Count(sum.EmployeeCount)</div>
+                        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_net_note", PayrollFormat.Money(sum.TotalNet)]</span></div>
+                    </div>
+                    <div class="hrms-card hrms-kpi">
+                        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_generated"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("receipt", 16)</span></div>
+                        <div class="hrms-kpi__value">@PayrollFormat.Count(sum.GeneratedCount)</div>
+                        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@(sum.LastGeneratedDate is { } lg ? L["ps.kpi_generated_note", L.Date(lg)] : L["ps.kpi_not_yet"])</span></div>
+                    </div>
+                    <div class="hrms-card hrms-kpi @(sum.NotGeneratedCount + sum.OutdatedCount > 0 ? "ps-kpi--warn" : null)">
+                        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_to_generate"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("alert", 16)</span></div>
+                        <div class="hrms-kpi__value">@PayrollFormat.Count(sum.NotGeneratedCount + sum.OutdatedCount)</div>
+                        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_to_generate_note", PayrollFormat.Count(sum.NotGeneratedCount), PayrollFormat.Count(sum.OutdatedCount)]</span></div>
+                    </div>
+                    <div class="hrms-card hrms-kpi">
+                        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_emailed"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("mail", 16)</span></div>
+                        <div class="hrms-kpi__value">@PayrollFormat.Count(sum.SentCount)</div>
+                        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_viewed_note", PayrollFormat.Count(sum.ViewedCount)]</span></div>
+                    </div>
+                }
+                else
+                {
+                    <div class="hrms-card hrms-kpi">
+                        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_generated"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("receipt", 16)</span></div>
+                        <div class="hrms-kpi__value">@PayrollFormat.Count(sum.GeneratedCount)</div>
+                        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_not_sent_note", PayrollFormat.Count(sum.NotSentCount)]</span></div>
+                    </div>
+                    <div class="hrms-card hrms-kpi">
+                        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_delivered"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("check", 16)</span></div>
+                        <div class="hrms-kpi__value">@PayrollFormat.Count(sum.SentCount)</div>
+                        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_queued_note", PayrollFormat.Count(sum.QueuedCount)]</span></div>
+                    </div>
+                    <div class="hrms-card hrms-kpi @(sum.FailedCount > 0 ? "ps-kpi--danger" : null)">
+                        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_failed"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("alert", 16)</span></div>
+                        <div class="hrms-kpi__value">@PayrollFormat.Count(sum.FailedCount)</div>
+                        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_failed_note"]</span></div>
+                    </div>
+                    <div class="hrms-card hrms-kpi @(sum.NoEmailCount > 0 ? "ps-kpi--warn" : null)">
+                        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_no_email"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("mail", 16)</span></div>
+                        <div class="hrms-kpi__value">@PayrollFormat.Count(sum.NoEmailCount)</div>
+                        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_no_email_note"]</span></div>
+                    </div>
+                }
+            </section>
+        }
+
+        @* ------------------------------------------------ banners *@
+        @if (run is not null && !closed)
+        {
+            <div class="pr-banner pr-banner--lock" role="note">
+                @Html.Icon("lock", 18)
+                <div><strong>@L["ps.not_closed_title"]</strong> @L["ps.not_closed_text"]</div>
+            </div>
+        }
+        @if (run is not null && closed && sum.OutdatedCount > 0 && mode != "employees")
+        {
+            <div class="pr-banner pr-banner--lock" role="note">
+                @Html.Icon("refresh", 18)
+                <div><strong>@L["ps.outdated_title", PayrollFormat.Count(sum.OutdatedCount)]</strong> @L["ps.outdated_text"]</div>
+            </div>
+        }
+        @if (mode == "email")
+        {
+            <div class="pr-banner pr-banner--info" role="note">
+                @Html.Icon("lock", 18)
+                <div><strong>@L["ps.email_privacy_title"]</strong> @L["ps.email_privacy_text"]</div>
+            </div>
+            @if (!Model.EmailConfigured)
+            {
+                <div class="pr-banner pr-banner--err" role="note">
+                    @Html.Icon("alert", 18)
+                    <div><strong>@L["ps.email_off_title"]</strong> @L["ps.email_off_text"]</div>
+                </div>
+            }
+        }
+
+        @* ------------------------------------------------ generate *@
+        @if (mode == "generate" && run is not null)
+        {
+            <section class="hrms-card ps-generate" aria-labelledby="ps-gen-title">
+                <form class="pr-card-body" data-ps-generate-form novalidate>
+                    <input type="hidden" name="run" value="@run.PayrollRunId" />
+                    <h2 class="pr-card-title" id="ps-gen-title">@L["ps.generate_title"]</h2>
+
+                    <div class="row g-4">
+                        <div class="col-12 col-xl-5">
+                            <fieldset class="ps-fieldset">
+                                <legend class="form-label">@L["ps.who"]</legend>
+                                <div class="pr-choice ps-choice" data-ps-choice>
+                                    <label class="is-selected">
+                                        <input type="radio" class="form-check-input" name="scope" value="all" checked />
+                                        <span><strong>@L["ps.scope_all", PayrollFormat.Count(sum.EmployeeCount)]</strong><span>@L["ps.scope_all_hint"]</span></span>
+                                    </label>
+                                    <label>
+                                        <input type="radio" class="form-check-input" name="scope" value="dept" @(Model.Departments.Count == 0 ? "disabled" : null) />
+                                        <span><strong>@L["ps.scope_department"]</strong><span>@L["ps.scope_department_hint"]</span></span>
+                                    </label>
+                                </div>
+                                <div class="mt-2" data-ps-dept-wrap hidden>
+                                    <label class="form-label" for="ps-dept">@L["common.department"]</label>
+                                    <select class="form-select" id="ps-dept" name="dept">
+                                        @foreach (var d in Model.Departments)
+                                        {
+                                            <option value="@d.Id">@d.Text</option>
+                                        }
+                                    </select>
+                                </div>
+                            </fieldset>
+                        </div>
+                        <div class="col-12 col-xl-7">
+                            <fieldset class="ps-fieldset">
+                                <legend class="form-label">@L["ps.language"]</legend>
+                                <div class="pr-choice ps-choice" data-ps-choice>
+                                    @foreach (var t in PayslipTemplate.All)
+                                    {
+                                        var hint = t switch { PayslipTemplate.English => "ps.template_english_hint", PayslipTemplate.Arabic => "ps.template_arabic_hint", _ => "ps.template_bilingual_hint" };
+                                        <label class="@(t == PayslipTemplate.Bilingual ? "is-selected" : null)">
+                                            <input type="radio" class="form-check-input" name="template" value="@t" checked="@(t == PayslipTemplate.Bilingual)" />
+                                            <span><strong>@L[PayslipFormat.TemplateKey(t)]</strong><span>@L[hint]</span></span>
+                                        </label>
+                                    }
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+
+                    <ul class="pr-check mt-4 ps-checklist">
+                        <li>
+                            <span class="pr-check__icon @(closed ? "is-ok" : "is-err")">@Html.Icon(closed ? "check" : "lock", 14)</span>
+                            <span class="pr-check__text">@L["ps.check_closed"]</span>
+                            <span class="pr-check__meta">@L[PayslipFormat.StageKey(run.Stage)]</span>
+                        </li>
+                        <li>
+                            <span class="pr-check__icon @(sum.NotGeneratedCount + sum.OutdatedCount == 0 && sum.GeneratedCount > 0 ? "is-ok" : "is-warn")">@Html.Icon(sum.NotGeneratedCount + sum.OutdatedCount == 0 && sum.GeneratedCount > 0 ? "check" : "receipt", 14)</span>
+                            <span class="pr-check__text">@L["ps.check_generated"]</span>
+                            <span class="pr-check__meta">@PayrollFormat.Count(sum.GeneratedCount - sum.OutdatedCount) / @PayrollFormat.Count(sum.EmployeeCount)</span>
+                        </li>
+                        <li>
+                            <span class="pr-check__icon @(sum.NoEmailCount == 0 ? "is-ok" : "is-warn")">@Html.Icon(sum.NoEmailCount == 0 ? "check" : "mail", 14)</span>
+                            <span class="pr-check__text">@L["ps.check_emails"]</span>
+                            <span class="pr-check__meta">
+                                @if (sum.NoEmailCount > 0)
+                                {
+                                    <a href="@Url.Action("Email", "Payslips", new { run = run.PayrollRunId, status = PayslipFilter.NoEmail })">@L["ps.n_without_email", PayrollFormat.Count(sum.NoEmailCount)]</a>
+                                }
+                                else
+                                {
+                                    @L["ps.all_have_email"]
+                                }
+                            </span>
+                        </li>
+                    </ul>
+                </form>
+                <div class="pr-actionbar">
+                    <div class="pr-actionbar__status hrms-muted hrms-text-sm">
+                        @if (!Model.Rights.CanGenerate)
+                        {
+                            @L["ps.no_generate_right"]
+                        }
+                    </div>
+                    <div class="pr-actionbar__spacer"></div>
+                    <a class="btn btn-outline-secondary" href="@Url.Action("Employees", "Payslips", new { run = run.PayrollRunId })">@Html.Icon("eye", 15)<span>@L["ps.view_payslips"]</span></a>
+                    @if (Model.Rights.CanGenerate)
+                    {
+                        <button type="button" class="btn btn-primary" data-ps-generate @(closed ? null : "disabled")>
+                            @Html.Icon("receipt", 15)<span>@(sum.GeneratedCount > 0 ? L["ps.generate_again"] : L["ps.generate_payslips"])</span>
+                        </button>
+                    }
+                    @if (closed && sum.GeneratedCount > 0)
+                    {
+                        <a class="btn btn-outline-primary" href="@Url.Action("Email", "Payslips", new { run = run.PayrollRunId })">@Html.Icon("send", 15)<span>@L["ps.next_email"]</span></a>
+                    }
+                </div>
+            </section>
+        }
+
+        @* ------------------------------------------------ employees / email list *@
+        @if (mode != "generate" && (mode == "employees" || run is not null))
+        {
+            <section class="hrms-card" data-ps-list>
+                <div class="hrms-card__toolbar">
+                    <div class="hrms-card__filters">
+                        <label class="hrms-search ps-search">
+                            @Html.Icon("search", 16)
+                            <input type="search" data-ps-search autocomplete="off" value="@Model.Search" placeholder="@L["ps.search_placeholder"]" aria-label="@L["ps.search_placeholder"]" />
+                        </label>
+                        @if (mode == "employees" && Model.Departments.Count > 0)
+                        {
+                            <select class="form-select ps-filter" data-ps-dept aria-label="@L["pr.all_departments"]">
+                                <option value="">@L["pr.all_departments"]</option>
+                                @foreach (var d in Model.Departments)
+                                {
+                                    <option value="@d.Id" selected="@(Model.DepartmentId == d.Id)">@d.Text</option>
+                                }
+                            </select>
+                        }
+                        <select class="form-select ps-filter" data-ps-status aria-label="@L["common.status"]">
+                            @{
+                                var filters = mode == "email"
+                                    ? new[] { PayslipFilter.All, PayslipFilter.NotSent, PayslipFilter.Queued, PayslipFilter.Sent, PayslipFilter.Failed, PayslipFilter.NoEmail }
+                                    : new[] { PayslipFilter.All, PayslipFilter.Generated, PayslipFilter.NotGenerated, PayslipFilter.Outdated };
+                            }
+                            @foreach (var f in filters)
+                            {
+                                <option value="@f" selected="@(Model.Status == f)">@L[PayslipFormat.FilterKey(f)]</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="hrms-card__count" data-ps-count></div>
+                </div>
+                <div data-ps-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+            </section>
+        }
+    }
+</div>
+@Html.AntiForgeryToken()
+
+@section PageActions {
+    @if (mode == "email" && run is not null && closed && Model.Rights.CanEmail)
+    {
+        <button type="button" class="btn btn-primary" data-ps-send-all @(sum.NotSentCount == 0 ? "disabled" : null)>
+            @Html.Icon("send", 15)<span>@L["ps.send_all_not_sent", PayrollFormat.Count(sum.NotSentCount)]</span>
+        </button>
+    }
+}
+@section Scripts {
+    <script src="~/js/payslips.js" asp-append-version="true"></script>
+}
