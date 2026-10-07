@@ -1,0 +1,44 @@
+@using HRMS.Domain.Payroll
+@model SettingsPageModel
+@{
+    // Payroll Settings > Approval Workflow (db/47-48): who approves each process
+    // (level 1, level 2 above an amount), delegates, self-approval - a default
+    // route for every company, overridden per company.
+    ViewData["Title"] = "Approval Workflow";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settings";
+    ViewData["PayrollPage"] = "st-approval";
+    ViewData["Subtitle"] = L["st.approval_subtitle"];
+    var processes = new List<(string, string)> { ("", L["st.all_processes"]) };
+    processes.AddRange(PayrollRuleCodes.Processes.Select(p => (p, (string)L[RuleFormat.ProcessKey(p)])));
+}
+<div class="pr-stack st-page" data-st-page>
+    @await Html.PartialAsync("_EngineNote")
+
+    <section class="hrms-card" id="st-approval" data-st-master
+             data-grid="@Url.Action("ApprovalGrid", "PayrollSettings")" data-form="@Url.Action("ApprovalForm", "PayrollSettings")"
+             data-save="@Url.Action("ApprovalSave", "PayrollSettings")" data-toggle="@Url.Action("ApprovalToggle", "PayrollSettings")"
+             data-delete="@Url.Action("ApprovalDelete", "PayrollSettings")"
+             data-title-new="@L["st.add_approval_route"]" data-title-edit="@L["st.edit_approval_route"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_approval_route_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.approval_routes"],
+            SearchPlaceholder = L["prv.search"],
+            Filters =
+            [
+                new SettingsFilter("process", L["prv.process"], processes),
+                new SettingsFilter("status", L["common.status"],
+                    [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])])
+            ],
+            AddMaster = Model.Rights.CanCreate ? "st-approval" : null,
+            AddLabel = L["st.add_company_route"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("_Dialogs")
+
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

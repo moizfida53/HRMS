@@ -634,6 +634,54 @@ Files: `Controllers/PayslipsController.cs`, `Models/Payroll/PayslipViewModels.cs
 > `@use "settlement"`, so the compiled `css/hrms.css` had none of the Final
 > Settlement styles. It is added (with `@use "payslips"`) and the CSS rebuilt.
 
+
+### Payroll Settings (live)
+
+**Payroll > Payroll Settings** opens in the sidebar into eight sub-sections.
+Every screen is a list with search / filters / a record count, and an add / edit
+dialog; nothing is ever physically deleted (soft delete).
+
+| Page | URL | What it keeps |
+|---|---|---|
+| Payroll Rules | `/payroll/settings/rules` | Kuwait statutory settings, effective-dated and marked *verified*: PIFSS contribution rates, end-of-service indemnity (service slabs + entitlement by separation type), overtime multipliers (statutory default + company overrides). A banner counts the rows still *not verified*. |
+| Pay Item Types | `/payroll/settings/item-types` | `Payroll.PayComponents` — earnings and deductions, how each is calculated, PIFSS / indemnity / overtime flags, GL code; **Add standard types** seeds the missing standard set for a company. |
+| Deduction Rules | `/payroll/settings/deduction-rules` | The maximum total deductions (% of gross), what happens when it is exceeded (defer in reverse priority order / warn only), and the recovery order (move up / down). One **default** for every company (seeded: 50 %, defer); a company — or one payroll calendar of it — can have its own. Statutory deductions are always taken. |
+| Proration Rules | `/payroll/settings/proration` | Per payroll calendar: the day basis (fixed days / calendar days / working days — saved on the calendar itself) and which events are prorated (joiners, leavers, mid-period revisions, unpaid leave, rest days). A calendar shows the defaults until it is first saved. |
+| Approval Workflow | `/payroll/settings/approval` | Per process (payroll run, salary revision, loan, salary advance, payroll adjustment, final settlement): level 1 and level 2 approver roles, a delegate for each, the amount above which level 2 is needed, self-approval. A default route per process (seeded with no roles — pick your own roles) and company routes that replace it. |
+| Banks & Accounts | `/payroll/settings/banks` | The bank master (SWIFT, IBAN bank code, WPS code) and each company's salary accounts (IBAN checked with mod-97, one default per company, WPS employer code, PAM file number). |
+| Bank Formats | `/payroll/settings/bank-formats` | The salary (WPS) file layout per bank: CSV / delimited text / fixed width, header and trailer, file name pattern, and the fields in order (source, fixed value, width, padding, alignment) with a **live sample** of the file. One **default** format (seeded `WPS_CSV`) serves every bank without its own; one active format per bank. |
+| GL Mapping | `/payroll/settings/gl-mapping` | The debit / credit GL accounts of a pay item type, for one cost center or any (the most specific row wins; a pay item type's own GL code stays the default). |
+
+The defaults (no company) of Deduction Rules and Approval Workflow apply to every
+company: they can be edited — by users not tied to one company — but not
+deactivated or deleted.
+
+Run after 29–45, in this order:
+
+| # | Script | What it does |
+|---|---|---|
+| 47 | `db/47_Payroll_Settings_Tables.sql` | `Payroll.DeductionPolicies` + `DeductionPriorities`, `ProrationRules`, `ApprovalProcesses`, `BankFileFormats` + `BankFileFormatFields`, `GLMappings` (soft-delete guard of db/28 applied), and the starting defaults |
+| 48 | `db/48_Payroll_Settings_StoredProcedures.sql` | `usp_DeductionPolicy_Manage` (+ LINES, CALENDARS), `usp_ProrationRule_Manage`, `usp_ApprovalProcess_Manage` (+ ROLES, USERS), `usp_BankFileFormat_Manage` (+ LINES, BANKS), `usp_GLMapping_Manage` (+ COMPONENTS) — lines are saved with their header in one call (JSON) |
+| 46 | `db/46_Payroll_Settings_Labels.sql` | English + Arabic labels of all eight screens (`st.*`, `js.st_*`, `msg.st_*`) — safe to re-run |
+
+Payroll Rules, Pay Item Types and Banks & Accounts use the procedures of db/30
+(no new script). The permissions are the existing PAYROLL_SETUP_VIEW / EDIT /
+CREATE / DELETE.
+
+> **Not wired into the calculation yet.** The payroll engine (db/35) does not
+> read Deduction Rules, Proration Rules (nor the calendar's day basis),
+> Approval Workflow, Bank Formats or GL Mapping yet — they are stored,
+> validated and audited configuration, and each of those screens says so.
+> Applying them (deduction cap and deferral, proration, approval routing,
+> generating the WPS file, GL posting) is the next engine change.
+
+Files: `Controllers/PayrollSettingsController*.cs` (one partial per screen group),
+`Models/Payroll/SettingsViewModels.cs`, `Domain/Payroll/{PayItemTypeSetting,StatutoryRules,Banks,PayrollRules}.cs`,
+`Data/Repositories/{PayrollSettingsRepository,PayrollRulesRepository}.cs`,
+`Views/PayrollSettings/*`, `wwwroot/js/payroll-settings.js` (one script for every
+screen), `wwwroot/scss/_settings.scss`. The old settings preview pages now open
+the live screens.
+
 ---
 
 ## Bilingual UI (English / Arabic) — labels in the database

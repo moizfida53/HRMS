@@ -1,0 +1,37 @@
+@model SettingsPageModel
+@{
+    // Payroll Settings > Bank Formats (db/47-48): the salary (WPS) file layout of
+    // each bank - file type, header / trailer, and the fields in order. One
+    // default format serves every bank without its own.
+    ViewData["Title"] = "Bank Formats";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settings";
+    ViewData["PayrollPage"] = "st-bank-formats";
+    ViewData["Subtitle"] = L["st.formats_subtitle"];
+}
+<div class="pr-stack st-page" data-st-page>
+    @await Html.PartialAsync("_EngineNote")
+
+    <section class="hrms-card" id="st-formats" data-st-master
+             data-grid="@Url.Action("BankFormatsGrid", "PayrollSettings")" data-form="@Url.Action("BankFormatForm", "PayrollSettings")"
+             data-save="@Url.Action("BankFormatSave", "PayrollSettings")" data-toggle="@Url.Action("BankFormatToggle", "PayrollSettings")"
+             data-delete="@Url.Action("BankFormatDelete", "PayrollSettings")"
+             data-title-new="@L["prv.add_format"]" data-title-edit="@L["st.edit_format"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_format_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.bank_formats"],
+            SearchPlaceholder = L["prv.search"],
+            Filters = [new SettingsFilter("status", L["common.status"],
+                [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])])],
+            AddMaster = Model.Rights.CanCreate ? "st-formats" : null,
+            AddLabel = L["prv.add_format"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("_Dialogs")
+
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

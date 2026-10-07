@@ -1,0 +1,37 @@
+@model SettingsPageModel
+@{
+    // Payroll Settings > Deduction Rules (db/47-48): the maximum total deductions
+    // (% of gross) and the order deductions are recovered in - a default for
+    // every company, overridden per company or payroll calendar.
+    ViewData["Title"] = "Deduction Rules";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settings";
+    ViewData["PayrollPage"] = "st-deduction-rules";
+    ViewData["Subtitle"] = L["st.deduction_subtitle"];
+}
+<div class="pr-stack st-page" data-st-page>
+    @await Html.PartialAsync("_EngineNote")
+
+    <section class="hrms-card" id="st-deductions" data-st-master
+             data-grid="@Url.Action("DeductionRulesGrid", "PayrollSettings")" data-form="@Url.Action("DeductionRuleForm", "PayrollSettings")"
+             data-save="@Url.Action("DeductionRuleSave", "PayrollSettings")" data-toggle="@Url.Action("DeductionRuleToggle", "PayrollSettings")"
+             data-delete="@Url.Action("DeductionRuleDelete", "PayrollSettings")"
+             data-title-new="@L["st.add_deduction_rule"]" data-title-edit="@L["st.edit_deduction_rule"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_deduction_rule_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.deduction_rules"],
+            SearchPlaceholder = L["prv.search"],
+            Filters = [new SettingsFilter("status", L["common.status"],
+                [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])])],
+            AddMaster = Model.Rights.CanCreate ? "st-deductions" : null,
+            AddLabel = L["st.add_deduction_rule"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("_Dialogs")
+
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

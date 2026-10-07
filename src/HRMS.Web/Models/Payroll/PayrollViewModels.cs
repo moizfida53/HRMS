@@ -42,9 +42,9 @@ public static class PayrollNav
         ]),
         new("settings", "Payroll Settings", "sliders",
         [
-            new("st-rules", "Payroll Rules", true), new("st-components", "Pay Item Types", true), new("st-deduction-rules", "Deduction Rules"),
-            new("st-proration", "Proration Rules"), new("st-approval", "Approval Workflow"), new("st-banks", "Banks & Accounts", true),
-            new("st-bank-formats", "Bank Formats"), new("st-gl-mapping", "GL Mapping")
+            new("st-rules", "Payroll Rules", true), new("st-components", "Pay Item Types", true), new("st-deduction-rules", "Deduction Rules", true),
+            new("st-proration", "Proration Rules", true), new("st-approval", "Approval Workflow", true), new("st-banks", "Banks & Accounts", true),
+            new("st-bank-formats", "Bank Formats", true), new("st-gl-mapping", "GL Mapping", true)
         ], SubNav: true),
     ];
 

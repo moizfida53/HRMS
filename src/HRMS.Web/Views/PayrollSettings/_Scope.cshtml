@@ -1,0 +1,10 @@
+@model (bool IsDefault, string? CompanyName)
+@* "Default - every company" or the company a row overrides it for. *@
+@if (Model.IsDefault)
+{
+    <span class="hrms-badge hrms-badge--info"><span class="hrms-badge__dot"></span>@L["st.default_all_companies"]</span>
+}
+else
+{
+    <span class="hrms-badge hrms-badge--purple"><span class="hrms-badge__dot"></span>@Model.CompanyName</span>
+}

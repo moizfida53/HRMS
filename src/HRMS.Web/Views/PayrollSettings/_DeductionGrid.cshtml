@@ -1,0 +1,70 @@
+@using HRMS.Web.Models.Organization
+@model SettingsGridModel<DeductionPolicy>
+@{
+    var pg = Model.Page;
+    var countText = pg.TotalCount == 1 ? L["st.1_rule"] : L["st.0_rules", PayrollFormat.Count(pg.TotalCount)];
+}
+<div data-total="@pg.TotalCount" data-count-text="@countText">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "percent", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["st.no_rules_yet"])</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table st-table">
+            <caption class="hrms-sr-only">@L["st.deduction_rules"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["st.applies_to"]</th>
+                    <th scope="col" class="text-end">@L["prv.maximum_total_deductions"]</th>
+                    <th scope="col" class="col-p2">@L["prv.when_exceeded"]</th>
+                    <th scope="col" class="col-p2">@L["prv.recovery_priority_top_taken_first"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in pg.Items)
+                {
+                    var name = d.IsDefault ? (string)L["st.default_all_companies"] : d.CompanyName + (d.CalendarName is null ? "" : " · " + d.CalendarName);
+                    <tr data-id="@d.DeductionPolicyId" data-name="@name" class="@(d.IsActive ? null : "is-ended")">
+                        <td data-label="@L["st.applies_to"]">
+                            @await Html.PartialAsync("_Scope", (d.IsDefault, d.CompanyName))
+                            <span class="pr-emp-sub">@(d.CalendarName ?? (string)L["st.all_calendars"])</span>
+                        </td>
+                        <td data-label="@L["prv.maximum_total_deductions"]" class="text-end hrms-numeric"><strong>@StatutoryFormat.Pct(d.MaxDeductionPercent)</strong><span class="pr-emp-sub">@L["st.of_gross"]</span></td>
+                        <td data-label="@L["prv.when_exceeded"]" class="col-p2 hrms-text-sm">@L[RuleFormat.ExceededKey(d.WhenExceeded)]</td>
+                        <td data-label="@L["prv.recovery_priority_top_taken_first"]" class="col-p2">
+                            <ol class="st-order">
+                                @foreach (var g in (d.PriorityOrder ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    <li>@L[RuleFormat.GroupKey(g)]</li>
+                                }
+                            </ol>
+                        </td>
+                        <td data-label="@L["common.status"]">@await Html.PartialAsync("_Status", d.IsActive)</td>
+                        <td class="hrms-table__actions">
+                            @if (d.IsDefault)
+                            {
+                                @await Html.PartialAsync("_DefaultActions", (Model.Rights, Model.CanEditDefaults, name))
+                            }
+                            else
+                            {
+                                @await Html.PartialAsync("_RowActions", (Model.Rights, name, d.IsActive))
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount, FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

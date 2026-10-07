@@ -1,0 +1,135 @@
+@model DeductionFormModel
+@{
+    var d = Model.Policy;
+    string N(decimal v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}
+<input type="hidden" name="DeductionPolicyId" value="@d.DeductionPolicyId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.limit"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="dp-company">@L["st.applies_to"]</label>
+            @if (d.IsDefault)
+            {
+                <input type="hidden" name="CompanyId" value="" />
+                <div class="form-control-plaintext">@await Html.PartialAsync("_Scope", (true, (string?)null))</div>
+                <span class="form-text">@L["st.default_rule_hint"]</span>
+            }
+            else
+            {
+                <select class="form-select" id="dp-company" name="CompanyId" data-searchable
+                        data-options-target="#dp-calendar" data-options-url="@Url.Action("DeductionRuleCalendars", "PayrollSettings")">
+                    @foreach (var co in Model.Companies)
+                    {
+                        <option value="@co.Id" selected="@(co.Id == d.CompanyId)">@co.Text</option>
+                    }
+                </select>
+                <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+            }
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="dp-calendar">@L["pr.calendar"]</label>
+            <select class="form-select" id="dp-calendar" name="PayrollCalendarId" data-searchable disabled="@d.IsDefault">
+                <option value="">@L["st.all_calendars"]</option>
+                @foreach (var c in Model.Calendars)
+                {
+                    <option value="@c.Id" selected="@(c.Id == d.PayrollCalendarId)">@c.Text</option>
+                }
+            </select>
+            <span class="form-text">@L["st.calendar_scope_hint"]</span>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label" for="dp-max">@L["prv.maximum_total_deductions"] <span class="req" aria-hidden="true">*</span></label>
+            <div class="input-group">
+                <input class="form-control" id="dp-max" type="number" min="0.01" max="100" step="0.01" name="MaxDeductionPercent" value="@N(d.MaxDeductionPercent)" dir="ltr" />
+                <span class="input-group-text">@L["prv.of_gross"]</span>
+            </div>
+            <span class="field-validation-error" data-valmsg-for="MaxDeductionPercent"></span>
+        </div>
+        <div class="col-md-7">
+            <span class="form-label d-block">@L["prv.when_exceeded"]</span>
+            <div class="pr-choice st-choice" data-st-choice role="radiogroup" aria-label="@L["prv.when_exceeded"]">
+                @foreach (var (value, key, hint) in new[] { ("DEFER", "st.exceeded_defer", "st.exceeded_defer_hint"), ("WARN", "st.exceeded_warn", "st.exceeded_warn_hint") })
+                {
+                    <label class="@(d.WhenExceeded == value ? "is-selected" : null)">
+                        <input type="radio" class="form-check-input" name="WhenExceeded" value="@value" checked="@(d.WhenExceeded == value)" data-st-field="WhenExceeded" />
+                        <span><strong>@L[key]</strong><span>@L[hint]</span></span>
+                    </label>
+                }
+            </div>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.recovery_priority_top_taken_first"]</legend>
+    <p class="form-text mt-0">@L["st.priority_hint"]</p>
+    <div class="st-lines st-lines--ordered" data-st-lines="Priorities">
+        <table>
+            <thead><tr><th class="st-lines__no">@L["prv.order"]</th><th>@L["pr.deduction"]</th><th>@L["prv.when_the_limit_is_exceeded"]</th><th><span class="hrms-sr-only">@L["common.actions"]</span></th></tr></thead>
+            <tbody data-st-line-body>
+                @for (var i = 0; i < d.Priorities.Count; i++)
+                {
+                    var p = d.Priorities[i];
+                    <tr>
+                        <td class="st-lines__no" data-label="@L["prv.order"]"><span data-st-line-no>@(i + 1)</span></td>
+                        <td data-label="@L["pr.deduction"]">
+                            <select class="form-select form-select-sm" name="Priorities[@i].DeductionGroup" aria-label="@L["pr.deduction"]">
+                                @foreach (var g in PayrollRuleCodes.DeductionGroups)
+                                {
+                                    <option value="@g" selected="@(p.DeductionGroup == g)">@L[RuleFormat.GroupKey(g)]</option>
+                                }
+                            </select>
+                        </td>
+                        <td data-label="@L["prv.when_the_limit_is_exceeded"]">
+                            <select class="form-select form-select-sm" name="Priorities[@i].Behaviour" aria-label="@L["prv.when_the_limit_is_exceeded"]">
+                                @foreach (var b in PayrollRuleCodes.Behaviours)
+                                {
+                                    <option value="@b" selected="@(p.Behaviour == b)">@L[RuleFormat.BehaviourKey(b)]</option>
+                                }
+                            </select>
+                        </td>
+                        <td>@await Html.PartialAsync("_LineMove")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <template data-st-line-template>
+            <tr>
+                <td class="st-lines__no" data-label="@L["prv.order"]"><span data-st-line-no></span></td>
+                <td data-label="@L["pr.deduction"]">
+                    <select class="form-select form-select-sm" name="Priorities[0].DeductionGroup" aria-label="@L["pr.deduction"]">
+                        @foreach (var g in PayrollRuleCodes.DeductionGroups)
+                        {
+                            <option value="@g">@L[RuleFormat.GroupKey(g)]</option>
+                        }
+                    </select>
+                </td>
+                <td data-label="@L["prv.when_the_limit_is_exceeded"]">
+                    <select class="form-select form-select-sm" name="Priorities[0].Behaviour" aria-label="@L["prv.when_the_limit_is_exceeded"]">
+                        @foreach (var b in PayrollRuleCodes.Behaviours)
+                        {
+                            <option value="@b" selected="@(b == "DEFER")">@L[RuleFormat.BehaviourKey(b)]</option>
+                        }
+                    </select>
+                </td>
+                <td>@await Html.PartialAsync("_LineMove")</td>
+            </tr>
+        </template>
+        <div class="st-lines__foot"><button type="button" class="btn btn-sm btn-outline-primary" data-st-line-add>@Html.Icon("plus", 14)<span>@L["st.add_priority"]</span></button></div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.notes"]</legend>
+    <div class="row g-3">
+        <div class="col-12">
+            <textarea class="form-control" id="dp-notes" name="Notes" rows="2" maxlength="500" placeholder="@L["st.notes_hint"]" aria-label="@L["st.notes"]">@d.Notes</textarea>
+        </div>
+        <div class="col-12">
+            <div class="st-switches">
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsActive", L["org.active"], d.IsActive || d.IsDefault, d.IsDefault ? L["st.default_always_active"] : null, d.IsDefault))
+            </div>
+        </div>
+    </div>
+</fieldset>

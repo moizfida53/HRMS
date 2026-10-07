@@ -160,3 +160,187 @@
   font-size: $fs-xs;
   font-weight: $fw-bold;
 }
+
+.st-inforce--muted { background: $surface; color: $ink-500; font-weight: $fw-semibold; }
+.st-inforce--warn { margin-inline-start: 0; background: $amber-050; color: $amber-700; }
+
+// a default row that this user may not edit
+.st-lock { display: inline-flex; color: $ink-400; padding: 6px; }
+
+// ------------------------------------------- rule screens (db/47-48) --------
+
+// the recovery order of a deduction rule, as numbered chips
+.st-order {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: st-order;
+
+  li {
+    counter-increment: st-order;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px 1px 2px;
+    border: 1px solid $line-200;
+    border-radius: $radius-pill;
+    background: $white;
+    font-size: $fs-xs;
+    color: $ink-700;
+    white-space: nowrap;
+
+    &::before {
+      content: counter(st-order);
+      display: inline-grid;
+      place-items: center;
+      inline-size: 18px;
+      block-size: 18px;
+      border-radius: 50%;
+      background: $blue-050;
+      color: $blue-700;
+      font-weight: $fw-bold;
+      font-size: 10px;
+    }
+  }
+}
+
+// ordered line editors (deduction priorities, bank file fields)
+.st-lines--ordered {
+  .st-lines__no {
+    inline-size: 44px;
+    text-align: center;
+    font-weight: $fw-bold;
+    color: $blue-700;
+  }
+
+  [data-st-line-no] {
+    display: inline-grid;
+    place-items: center;
+    min-inline-size: 24px;
+    block-size: 24px;
+    border-radius: 50%;
+    background: $blue-050;
+    font-size: $fs-xs;
+  }
+
+  tbody tr { @include motion(background-color); }
+  tbody tr:hover { background: $surface-2; }
+}
+
+.st-line-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+
+  .btn-icon:disabled { opacity: .35; cursor: default; }
+}
+
+.st-flip { display: inline-flex; transform: rotate(180deg); }
+
+// the bank file field editor is wide: scroll sideways on tablets, stack on phones
+.st-lines--wide {
+  overflow-x: auto;
+  @include thin-scrollbar;
+
+  table { min-width: 860px; }
+  td:nth-child(5) .form-control { min-width: 72px; max-width: 90px; }
+  td:nth-child(6) .form-control { min-width: 48px; max-width: 56px; }
+
+  @include down("md") {
+    table { min-width: 0; }
+    thead { display: none; }
+    tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: space("2"); padding: space("2"); border-block-start: 1px solid $line-100; }
+    td { border: 0; padding: 0; }
+    td.st-lines__no { text-align: start; }
+    td[data-label]::before { content: attr(data-label); display: block; font-size: $fs-xs; color: $ink-500; }
+    td:last-child { grid-column: 1 / -1; text-align: end; }
+  }
+}
+
+// the live sample of a bank salary file
+.st-sample {
+  margin-block-start: space("3");
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  overflow: hidden;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    padding: space("2") space("3");
+    background: $surface;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    color: $ink-600;
+    @include label-caps;
+  }
+
+  &__body {
+    margin: 0;
+    padding: space("3");
+    max-block-size: 180px;
+    overflow: auto;
+    background: $navy-900;
+    color: #d6e4ff;
+    font-family: $font-mono;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre;
+    tab-size: 4;
+    @include thin-scrollbar(rgba(255, 255, 255, .25));
+  }
+}
+
+// proration: the three day bases explained
+.st-explain {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: space("3");
+  margin-block-end: space("3");
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: space("3");
+    border: 1px solid $line-200;
+    border-inline-start: 3px solid $blue-600;
+    border-radius: $radius;
+    background: $surface-2;
+    font-size: $fs-sm;
+    color: $ink-600;
+
+    strong { color: $ink-900; font-size: $fs-base; }
+  }
+}
+
+.st-choice--3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+
+// the record a dialog edits, above its fields (proration: the calendar)
+.st-form-head {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  margin-block-end: space("3");
+  padding: space("3");
+  border-radius: $radius;
+  background: $blue-050;
+
+  &__icon {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 36px;
+    block-size: 36px;
+    border-radius: $radius;
+    background: $white;
+    color: $blue-700;
+    box-shadow: $shadow-xs;
+  }
+
+  strong { display: block; color: $ink-900; }
+}

@@ -1,0 +1,126 @@
+@model ApprovalFormModel
+@{
+    var a = Model.Process;
+    var isNew = a.ApprovalProcessId <= 0;
+    string N(decimal? v) => v?.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+}
+<input type="hidden" name="ApprovalProcessId" value="@a.ApprovalProcessId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.process"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="ap-process">@L["prv.process"]</label>
+            @if (isNew)
+            {
+                <select class="form-select" id="ap-process" name="ProcessCode">
+                    @foreach (var p in PayrollRuleCodes.Processes)
+                    {
+                        <option value="@p" selected="@(a.ProcessCode == p)">@L[RuleFormat.ProcessKey(p)]</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <input type="hidden" name="ProcessCode" value="@a.ProcessCode" />
+                <div class="form-control-plaintext fw-semibold">@L[RuleFormat.ProcessKey(a.ProcessCode)]</div>
+            }
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-company">@L["st.applies_to"]</label>
+            @if (isNew)
+            {
+                <select class="form-select" id="ap-company" name="CompanyId" data-searchable
+                        data-options-target="#ap-role1, #ap-role2, #ap-del1, #ap-del2">
+                    @foreach (var co in Model.Companies)
+                    {
+                        <option value="@co.Id" selected="@(co.Id == a.CompanyId)">@co.Text</option>
+                    }
+                </select>
+                <span class="form-text">@L["st.company_route_hint"]</span>
+                <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+            }
+            else
+            {
+                <input type="hidden" name="CompanyId" value="@a.CompanyId" />
+                <div class="form-control-plaintext">@await Html.PartialAsync("_Scope", (a.IsDefault, a.CompanyName))</div>
+            }
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.level_1"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="ap-role1">@L["prv.approver"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="ap-role1" name="Level1RoleId" data-searchable data-options-src="@Url.Action("ApprovalRoles", "PayrollSettings")">
+                <option value="">@L["st.select_role"]</option>
+                @foreach (var r in Model.Roles)
+                {
+                    <option value="@r.Id" selected="@(r.Id == a.Level1RoleId)">@r.Text</option>
+                }
+            </select>
+            <span class="field-validation-error" data-valmsg-for="Level1RoleId"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-del1">@L["prv.delegate_when_away"]</label>
+            <select class="form-select" id="ap-del1" name="Level1DelegateUserId" data-searchable data-options-src="@Url.Action("ApprovalUsers", "PayrollSettings")">
+                <option value="">@L["st.no_delegate"]</option>
+                @foreach (var u in Model.Users)
+                {
+                    <option value="@u.Id" selected="@(u.Id == a.Level1DelegateUserId)">@u.Text</option>
+                }
+            </select>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.level_2"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="ap-role2">@L["prv.approver"]</label>
+            <select class="form-select" id="ap-role2" name="Level2RoleId" data-searchable data-options-src="@Url.Action("ApprovalRoles", "PayrollSettings")">
+                <option value="">@L["st.one_level_only"]</option>
+                @foreach (var r in Model.Roles)
+                {
+                    <option value="@r.Id" selected="@(r.Id == a.Level2RoleId)">@r.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-del2">@L["prv.delegate_when_away"]</label>
+            <select class="form-select" id="ap-del2" name="Level2DelegateUserId" data-searchable data-options-src="@Url.Action("ApprovalUsers", "PayrollSettings")">
+                <option value="">@L["st.no_delegate"]</option>
+                @foreach (var u in Model.Users)
+                {
+                    <option value="@u.Id" selected="@(u.Id == a.Level2DelegateUserId)">@u.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-amount">@L["prv.required_above_kwd"]</label>
+            <div class="input-group">
+                <input class="form-control" id="ap-amount" type="number" min="0" step="0.001" name="Level2AboveAmount" value="@N(a.Level2AboveAmount)" placeholder="@L["prv.always_both_levels"]" dir="ltr" />
+                <span class="input-group-text">KWD</span>
+            </div>
+            <span class="form-text">@L["st.level2_amount_hint"]</span>
+            <span class="field-validation-error" data-valmsg-for="Level2AboveAmount"></span>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.notes"]</legend>
+    <div class="row g-3">
+        <div class="col-12">
+            <textarea class="form-control" id="ap-notes" name="Notes" rows="2" maxlength="500" placeholder="@L["st.notes_hint"]" aria-label="@L["st.notes"]">@a.Notes</textarea>
+        </div>
+        <div class="col-12">
+            <div class="st-switches">
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("AllowSelfApproval", L["prv.self_approval"], a.AllowSelfApproval, L["st.self_approval_hint"]))
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsActive", L["org.active"], a.IsActive || a.IsDefault, a.IsDefault ? L["st.default_always_active"] : null, a.IsDefault))
+            </div>
+        </div>
+    </div>
+</fieldset>

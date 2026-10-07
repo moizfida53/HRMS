@@ -1,0 +1,98 @@
+@model BankFormatFormModel
+@{ var f = Model.Format; }
+<div data-st-wide hidden></div>
+<input type="hidden" name="BankFileFormatId" value="@f.BankFileFormatId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.format"]</legend>
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label" for="bf-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control text-uppercase" id="bf-code" name="FormatCode" value="@f.FormatCode" maxlength="30" dir="ltr" placeholder="NBK_WPS" />
+            <span class="field-validation-error" data-valmsg-for="FormatCode"></span>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label" for="bf-name">@L["st.name_english"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="bf-name" name="FormatName" value="@f.FormatName" maxlength="150" />
+            <span class="field-validation-error" data-valmsg-for="FormatName"></span>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="bf-bank">@L["st.bank"]</label>
+            <select class="form-select" id="bf-bank" name="BankId" data-searchable>
+                <option value="">@L["prv.all_banks_without_their_own_format"]</option>
+                @foreach (var b in Model.Banks)
+                {
+                    <option value="@b.Id" selected="@(b.Id == f.BankId)">@b.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="bf-type">@L["prv.type"]</label>
+            <select class="form-select" id="bf-type" name="FileType" data-st-sample-type>
+                @foreach (var t in PayrollRuleCodes.FileTypes)
+                {
+                    <option value="@t" selected="@(f.FileType == t)">@L[RuleFormat.FileTypeKey(t)]</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2" data-show-if="FileType=CSV|TXT">
+            <label class="form-label" for="bf-delim">@L["st.delimiter"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control text-center font-monospace" id="bf-delim" name="Delimiter" value="@RuleFormat.Delimiter(f.Delimiter)" maxlength="3" dir="ltr" data-st-sample-delim />
+            <span class="form-text">@L["st.delimiter_hint"]</span>
+        </div>
+        <div class="col-md-7">
+            <label class="form-label" for="bf-file">@L["st.file_name"]</label>
+            <input class="form-control font-monospace" id="bf-file" name="FileNamePattern" value="@f.FileNamePattern" maxlength="100" dir="ltr" placeholder="SAL_{EMPLOYER}_{PERIOD}.csv" />
+            <span class="form-text">@L["st.file_name_hint"]</span>
+        </div>
+        <div class="col-12">
+            <div class="st-switches">
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("HasHeader", L["st.header_row"], f.HasHeader, L["st.header_row_hint"]))
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("HasTrailer", L["st.trailer_row"], f.HasTrailer, L["st.trailer_row_hint"]))
+            </div>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.fields"]</legend>
+    <p class="form-text mt-0">@L["st.fields_hint"]</p>
+    <div class="st-lines st-lines--ordered st-lines--wide" data-st-lines="Fields">
+        <table>
+            <thead>
+                <tr>
+                    <th class="st-lines__no">#</th><th>@L["prv.field"]</th><th>@L["pr.source"]</th><th>@L["st.fixed_value"]</th>
+                    <th>@L["st.width"]</th><th>@L["st.pad"]</th><th>@L["st.align_right"]</th><th><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody data-st-line-body>
+                @for (var i = 0; i < f.Fields.Count; i++)
+                {
+                    @await Html.PartialAsync("_BankFormatField", (i, f.Fields[i]))
+                }
+            </tbody>
+        </table>
+        <template data-st-line-template>
+            @await Html.PartialAsync("_BankFormatField", (0, new BankFileField()))
+        </template>
+        <div class="st-lines__foot"><button type="button" class="btn btn-sm btn-outline-primary" data-st-line-add>@Html.Icon("plus", 14)<span>@L["st.add_field"]</span></button></div>
+    </div>
+    <div class="st-sample">
+        <div class="st-sample__head">@Html.Icon("file", 14)<span>@L["prv.sample_output"]</span></div>
+        <pre class="st-sample__body" dir="ltr" data-st-sample data-trailer-text="@L["st.sample_trailer"]"></pre>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.notes"]</legend>
+    <div class="row g-3">
+        <div class="col-12">
+            <textarea class="form-control" id="bf-notes" name="Notes" rows="2" maxlength="500" placeholder="@L["st.notes_hint"]" aria-label="@L["st.notes"]">@f.Notes</textarea>
+        </div>
+        <div class="col-12">
+            <div class="st-switches">
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsDefault", L["st.default_format"], f.IsDefault, f.IsDefault ? L["st.default_format_locked"] : L["st.default_format_hint"], f.IsDefault))
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsActive", L["org.active"], f.IsActive || f.IsDefault, f.IsDefault ? L["st.default_always_active"] : null, f.IsDefault))
+            </div>
+        </div>
+    </div>
+</fieldset>

@@ -1,0 +1,44 @@
+@model ProrationRule
+@{ var r = Model; }
+<input type="hidden" name="PayrollCalendarId" value="@r.PayrollCalendarId" />
+<div class="st-form-head">
+    <span class="st-form-head__icon" aria-hidden="true">@Html.Icon("calendar", 18)</span>
+    <div>
+        <strong>@r.CalendarName</strong>
+        <span class="pr-emp-sub"><span class="hrms-code-chip">@r.CalendarCode</span> · @r.CompanyName</span>
+    </div>
+</div>
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.basis"]</legend>
+    <div class="pr-choice st-choice st-choice--3" data-st-choice role="radiogroup" aria-label="@L["prv.basis"]">
+        @foreach (var b in PayrollRuleCodes.DayBases)
+        {
+            <label class="@(r.WorkingDaysBasis == b ? "is-selected" : null)">
+                <input type="radio" class="form-check-input" name="WorkingDaysBasis" value="@b" checked="@(r.WorkingDaysBasis == b)" data-st-field="WorkingDaysBasis" />
+                <span><strong>@L[RuleFormat.BasisKey(b)]</strong><span>@L[RuleFormat.BasisKey(b) + "_text"]</span></span>
+            </label>
+        }
+    </div>
+    <div class="row g-3 mt-1" data-show-if="WorkingDaysBasis=FIXED">
+        <div class="col-md-4">
+            <label class="form-label" for="pr-days">@L["st.days_per_month"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="pr-days" type="number" min="1" max="31" step="1" name="FixedDaysPerMonth" value="@(r.FixedDaysPerMonth ?? 26)" dir="ltr" />
+            <span class="field-validation-error" data-valmsg-for="FixedDaysPerMonth"></span>
+        </div>
+    </div>
+    <p class="form-text mb-0 mt-2">@L["st.basis_on_calendar_hint"]</p>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.prorate_for"]</legend>
+    <div class="st-switches">
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("ProrateJoiners", L["st.ev_joiners"], r.ProrateJoiners, L["st.ev_joiners_hint"]))
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("ProrateLeavers", L["st.ev_leavers"], r.ProrateLeavers, L["st.ev_leavers_hint"]))
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("ProrateRevisions", L["st.ev_revisions"], r.ProrateRevisions, L["st.ev_revisions_hint"]))
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("ProrateUnpaidLeave", L["st.ev_unpaid_leave"], r.ProrateUnpaidLeave, L["st.ev_unpaid_leave_hint"]))
+        @await Html.PartialAsync("_Switch", new SettingsSwitch("ExcludeRestDays", L["st.rest_days_excluded"], r.ExcludeRestDays, L["st.rest_days_hint"]))
+    </div>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.notes"]</legend>
+    <textarea class="form-control" id="pr-notes" name="Notes" rows="2" maxlength="500" placeholder="@L["st.notes_hint"]" aria-label="@L["st.notes"]">@r.Notes</textarea>
+</fieldset>

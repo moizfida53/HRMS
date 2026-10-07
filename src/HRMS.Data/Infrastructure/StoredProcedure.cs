@@ -108,6 +108,11 @@ public static class StoredProcedure
 
     /// <summary>The company's own salary accounts (IBAN mod-97 checked, one default per company).</summary>
     public const string CompanyBankAccountManage = "Payroll.usp_CompanyBankAccount_Manage";
+    public const string DeductionPolicyManage = "Payroll.usp_DeductionPolicy_Manage";
+    public const string ProrationRuleManage = "Payroll.usp_ProrationRule_Manage";
+    public const string ApprovalProcessManage = "Payroll.usp_ApprovalProcess_Manage";
+    public const string BankFileFormatManage = "Payroll.usp_BankFileFormat_Manage";
+    public const string GLMappingManage = "Payroll.usp_GLMapping_Manage";
 
     // ---- Payslips (db/42-43) ----
 

@@ -26,14 +26,16 @@ public sealed partial class PayrollSettingsController : Controller
     private readonly IPayItemTypeRepository _itemTypes;
     private readonly IStatutoryRepository _statutory;
     private readonly IBankRepository _banks;
+    private readonly IPayrollRulesRepository _rules;
     private readonly ILookupRepository _lookups;
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
 
     public PayrollSettingsController(IPayItemTypeRepository itemTypes, IStatutoryRepository statutory, IBankRepository banks,
-                                     ILookupRepository lookups, ICurrentUser currentUser, ICompanyFilter companyFilter)
+                                     IPayrollRulesRepository rules, ILookupRepository lookups, ICurrentUser currentUser, ICompanyFilter companyFilter)
     {
         _banks = banks;
+        _rules = rules;
         _itemTypes = itemTypes;
         _statutory = statutory;
         _lookups = lookups;

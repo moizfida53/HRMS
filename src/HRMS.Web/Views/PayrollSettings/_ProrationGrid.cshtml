@@ -1,0 +1,72 @@
+@using HRMS.Web.Models.Organization
+@model SettingsGridModel<ProrationRule>
+@{
+    var pg = Model.Page;
+    var countText = pg.TotalCount == 1 ? L["st.1_calendar"] : L["prv.0_calendars", PayrollFormat.Count(pg.TotalCount)];
+}
+<div data-total="@pg.TotalCount" data-count-text="@countText">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "calendar", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["st.no_calendars_yet"])</p>
+        <p class="hrms-empty__text">@L["st.no_calendars_text"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table st-table">
+            <caption class="hrms-sr-only">@L["st.payroll_calendars"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["pr.calendar"]</th>
+                    <th scope="col">@L["prv.basis"]</th>
+                    <th scope="col" class="col-p2">@L["prv.prorate_for"]</th>
+                    <th scope="col" class="col-p3">@L["st.rest_days"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in pg.Items)
+                {
+                    var events = new List<string>();
+                    if (r.ProrateJoiners) events.Add(L["st.ev_joiners"]);
+                    if (r.ProrateLeavers) events.Add(L["st.ev_leavers"]);
+                    if (r.ProrateRevisions) events.Add(L["st.ev_revisions"]);
+                    if (r.ProrateUnpaidLeave) events.Add(L["st.ev_unpaid_leave"]);
+                    <tr data-id="@r.PayrollCalendarId" data-name="@r.CalendarName" class="@(r.IsActive ? null : "is-ended")">
+                        <td data-label="@L["pr.calendar"]">
+                            <span class="hrms-table__primary">@r.CalendarName</span>
+                            <span class="pr-emp-sub"><span class="hrms-code-chip">@r.CalendarCode</span>@(Model.ManyCompanies ? " · " + r.CompanyName : "")@(r.IsActive ? "" : " · " + L["org.inactive"])</span>
+                        </td>
+                        <td data-label="@L["prv.basis"]">
+                            <strong>@L[RuleFormat.BasisKey(r.WorkingDaysBasis)]</strong>
+                            @if (r.WorkingDaysBasis == "FIXED")
+                            {
+                                <span class="pr-emp-sub">@L["prv.fixed_0_days", r.FixedDaysPerMonth ?? 26]</span>
+                            }
+                            @if (!r.HasRule)
+                            {
+                                <span class="st-inforce st-inforce--muted">@L["st.not_set_defaults"]</span>
+                            }
+                        </td>
+                        <td data-label="@L["prv.prorate_for"]" class="col-p2 hrms-text-sm">@(events.Count > 0 ? string.Join(", ", events) : (string)L["st.nothing_prorated"])</td>
+                        <td data-label="@L["st.rest_days"]" class="col-p3 hrms-text-sm">@(r.ExcludeRestDays ? L["st.rest_days_excluded"] : L["st.rest_days_counted"])</td>
+                        <td class="hrms-table__actions">
+                            @if (Model.Rights.CanEdit)
+                            {
+                                <button type="button" class="btn-icon" data-st-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", r.CalendarName ?? ""]">@Html.Icon("edit", 15)</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount, FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

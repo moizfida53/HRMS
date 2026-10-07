@@ -1,0 +1,45 @@
+@model SettingsPageModel
+@{
+    // Payroll Settings > Proration Rules (db/47-48): how a partial period is paid,
+    // per payroll calendar - the day basis (kept on the calendar) and which
+    // events are prorated.
+    ViewData["Title"] = "Proration Rules";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settings";
+    ViewData["PayrollPage"] = "st-proration";
+    ViewData["Subtitle"] = L["st.proration_subtitle"];
+}
+<div class="pr-stack st-page" data-st-page>
+    @await Html.PartialAsync("_EngineNote")
+
+    <section class="hrms-card" id="st-proration" data-st-master
+             data-grid="@Url.Action("ProrationGrid", "PayrollSettings")" data-form="@Url.Action("ProrationForm", "PayrollSettings")"
+             data-save="@Url.Action("ProrationSave", "PayrollSettings")"
+             data-title-new="@L["st.edit_proration"]" data-title-edit="@L["st.edit_proration"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.payroll_calendars"],
+            SearchPlaceholder = L["prv.search"],
+            Filters = [new SettingsFilter("status", L["common.status"],
+                [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])])]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+
+    <section class="hrms-card">
+        <div class="pr-card-body">
+            <h2 class="pr-card-title">@L["prv.how_it_is_calculated"]</h2>
+            <div class="st-explain">
+                <div class="st-explain__item"><strong>@L["st.basis_fixed"]</strong><span>@L["st.basis_fixed_text"]</span></div>
+                <div class="st-explain__item"><strong>@L["st.basis_calendar"]</strong><span>@L["st.basis_calendar_text"]</span></div>
+                <div class="st-explain__item"><strong>@L["st.basis_working"]</strong><span>@L["st.basis_working_text"]</span></div>
+            </div>
+            <p class="form-text mb-0">@L["st.proration_example"]</p>
+        </div>
+    </section>
+</div>
+@await Html.PartialAsync("_Dialogs")
+
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

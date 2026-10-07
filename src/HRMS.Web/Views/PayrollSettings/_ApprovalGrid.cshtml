@@ -1,0 +1,87 @@
+@using HRMS.Web.Models.Organization
+@model SettingsGridModel<ApprovalProcess>
+@{
+    var pg = Model.Page;
+    var countText = pg.TotalCount == 1 ? L["st.1_route"] : L["st.0_routes", PayrollFormat.Count(pg.TotalCount)];
+}
+<div data-total="@pg.TotalCount" data-count-text="@countText">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "step-check", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["st.no_routes_yet"])</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table st-table">
+            <caption class="hrms-sr-only">@L["st.approval_routes"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["prv.process"]</th>
+                    <th scope="col">@L["st.level_1"]</th>
+                    <th scope="col">@L["st.level_2"]</th>
+                    <th scope="col" class="col-p3">@L["prv.self_approval"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in pg.Items)
+                {
+                    string process = L[RuleFormat.ProcessKey(a.ProcessCode)];
+                    var name = process + " · " + (a.IsDefault ? (string)L["st.default_all_companies"] : a.CompanyName);
+                    <tr data-id="@a.ApprovalProcessId" data-name="@name" class="@(a.IsActive ? null : "is-ended")">
+                        <td data-label="@L["prv.process"]">
+                            <span class="hrms-table__primary">@process</span>
+                            <span class="pr-emp-sub">@await Html.PartialAsync("_Scope", (a.IsDefault, a.CompanyName))</span>
+                        </td>
+                        <td data-label="@L["st.level_1"]">
+                            @if (a.Level1RoleName is null)
+                            {
+                                <span class="st-inforce st-inforce--warn">@L["st.not_set"]</span>
+                            }
+                            else
+                            {
+                                <span>@a.Level1RoleName</span>
+                                @if (a.Level1DelegateName is not null)
+                                {
+                                    <span class="pr-emp-sub">@L["st.delegate_0", a.Level1DelegateName]</span>
+                                }
+                            }
+                        </td>
+                        <td data-label="@L["st.level_2"]">
+                            @if (a.Level2RoleName is null)
+                            {
+                                <span class="text-muted hrms-text-sm">@L["st.one_level_only"]</span>
+                            }
+                            else
+                            {
+                                <span>@a.Level2RoleName</span>
+                                <span class="pr-emp-sub">@(a.Level2AboveAmount is { } amt ? L["st.above_kwd_0", PayrollFormat.Money(amt)] : L["prv.always_both_levels"])@(a.Level2DelegateName is not null ? " · " + L["st.delegate_0", a.Level2DelegateName] : "")</span>
+                            }
+                        </td>
+                        <td data-label="@L["prv.self_approval"]" class="col-p3 hrms-text-sm">@(a.AllowSelfApproval ? L["st.allowed"] : L["prv.not_allowed"])</td>
+                        <td data-label="@L["common.status"]">@await Html.PartialAsync("_Status", a.IsActive)</td>
+                        <td class="hrms-table__actions">
+                            @if (a.IsDefault)
+                            {
+                                @await Html.PartialAsync("_DefaultActions", (Model.Rights, Model.CanEditDefaults, name))
+                            }
+                            else
+                            {
+                                @await Html.PartialAsync("_RowActions", (Model.Rights, name, a.IsActive))
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount, FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

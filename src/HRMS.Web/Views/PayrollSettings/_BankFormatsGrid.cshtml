@@ -1,0 +1,68 @@
+@using HRMS.Web.Models.Organization
+@model SettingsGridModel<BankFileFormat>
+@{
+    var pg = Model.Page;
+    var countText = pg.TotalCount == 1 ? L["st.1_format"] : L["prv.0_formats", PayrollFormat.Count(pg.TotalCount)];
+}
+<div data-total="@pg.TotalCount" data-count-text="@countText">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "file", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["st.no_formats_yet"])</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table st-table">
+            <caption class="hrms-sr-only">@L["st.bank_formats"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["prv.format"]</th>
+                    <th scope="col">@L["prv.banks"]</th>
+                    <th scope="col">@L["prv.type"]</th>
+                    <th scope="col" class="col-p2">@L["prv.header_trailer"]</th>
+                    <th scope="col" class="col-p3 text-end">@L["st.fields"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in pg.Items)
+                {
+                    <tr data-id="@f.BankFileFormatId" data-name="@f.FormatName" class="@(f.IsActive ? null : "is-ended")">
+                        <td data-label="@L["prv.format"]">
+                            <span class="hrms-table__primary">@f.FormatName</span>
+                            @if (f.IsDefault)
+                            {
+                                <span class="st-inforce">@L["st.default"]</span>
+                            }
+                            <span class="pr-emp-sub"><span class="hrms-code-chip">@f.FormatCode</span>@(f.FileNamePattern is not null ? " · " + f.FileNamePattern : "")</span>
+                        </td>
+                        <td data-label="@L["prv.banks"]">@(f.BankName ?? (string)L["prv.all_banks_without_their_own_format"])</td>
+                        <td data-label="@L["prv.type"]" class="hrms-text-sm">@L[RuleFormat.FileTypeKey(f.FileType)]@(f.FileType != "FIXED" && f.Delimiter is not null ? " (" + (f.Delimiter == "\t" ? "TAB" : f.Delimiter) + ")" : "")</td>
+                        <td data-label="@L["prv.header_trailer"]" class="col-p2 hrms-text-sm">@(f.HasHeader ? L["st.header_yes"] : L["st.header_no"]) · @(f.HasTrailer ? L["st.trailer_yes"] : L["st.trailer_no"])</td>
+                        <td data-label="@L["st.fields"]" class="col-p3 text-end hrms-numeric">@f.FieldCount</td>
+                        <td data-label="@L["common.status"]">@await Html.PartialAsync("_Status", f.IsActive)</td>
+                        <td class="hrms-table__actions">
+                            @if (f.IsDefault)
+                            {
+                                @await Html.PartialAsync("_DefaultActions", (Model.Rights, true, f.FormatName))
+                            }
+                            else
+                            {
+                                @await Html.PartialAsync("_RowActions", (Model.Rights, f.FormatName, f.IsActive))
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount, FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

@@ -1,0 +1,10 @@
+@model (SettingsRights Rights, bool CanEditDefaults, string Name)
+@* A default row (applies to every company): edited, never deactivated or removed. *@
+@if (Model.Rights.CanEdit && Model.CanEditDefaults)
+{
+    <button type="button" class="btn-icon" data-st-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", Model.Name]">@Html.Icon("edit", 15)</button>
+}
+else
+{
+    <span class="hrms-sr-only">@L["st.default_locked"]</span><span class="st-lock" title="@L["st.default_locked"]" aria-hidden="true">@Html.Icon("lock", 14)</span>
+}

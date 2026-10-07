@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IPayItemTypeRepository, PayItemTypeRepository>();
         services.AddScoped<IStatutoryRepository, StatutoryRepository>();
         services.AddScoped<IBankRepository, BankRepository>();
+        services.AddScoped<IPayrollRulesRepository, PayrollRulesRepository>();
 
         // ---- Payroll: payslips (db/42-43) ----
         services.AddScoped<IPayslipRepository, PayslipRepository>();

@@ -1,0 +1,41 @@
+@model SettingsPageModel
+@{
+    // Payroll Settings > GL Mapping (db/47-48): the debit / credit GL accounts each
+    // pay item type posts to, for one cost center or any. A pay item type's own
+    // GL code stays the default where there is no mapping.
+    ViewData["Title"] = "GL Mapping";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "settings";
+    ViewData["PayrollPage"] = "st-gl-mapping";
+    ViewData["Subtitle"] = L["st.gl_subtitle"];
+}
+<div class="pr-stack st-page" data-st-page>
+    @await Html.PartialAsync("_EngineNote")
+
+    <section class="hrms-card" id="st-gl" data-st-master
+             data-grid="@Url.Action("GLMappingGrid", "PayrollSettings")" data-form="@Url.Action("GLMappingForm", "PayrollSettings")"
+             data-save="@Url.Action("GLMappingSave", "PayrollSettings")" data-toggle="@Url.Action("GLMappingToggle", "PayrollSettings")"
+             data-delete="@Url.Action("GLMappingDelete", "PayrollSettings")"
+             data-title-new="@L["prv.add_mapping"]" data-title-edit="@L["st.edit_mapping"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["st.delete_mapping_text"]">
+        @await Html.PartialAsync("_Toolbar", new SettingsToolbarModel
+        {
+            Title = L["st.gl_mappings"],
+            SearchPlaceholder = L["prv.search"],
+            Filters =
+            [
+                new SettingsFilter("type", L["st.type"], [("", L["prv.all_components"]), ("EARNING", L["pr.earnings"]), ("DEDUCTION", L["pr.deductions"])]),
+                new SettingsFilter("status", L["common.status"],
+                    [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])])
+            ],
+            AddMaster = Model.Rights.CanCreate ? "st-gl" : null,
+            AddLabel = L["prv.add_mapping"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("_Dialogs")
+
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

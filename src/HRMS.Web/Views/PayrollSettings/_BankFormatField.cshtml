@@ -1,0 +1,23 @@
+@model (int Index, BankFileField Field)
+@* One field row of a bank file format (also the add-row template, Index 0). *@
+@{ var f = Model.Field; var i = Model.Index; }
+<tr>
+    <td class="st-lines__no" data-label="#"><span data-st-line-no>@(i + 1)</span></td>
+    <td data-label="@L["prv.field"]"><input class="form-control form-control-sm" name="Fields[@i].FieldName" value="@f.FieldName" maxlength="50" dir="ltr" aria-label="@L["prv.field"]" data-st-sample-name /></td>
+    <td data-label="@L["pr.source"]">
+        <select class="form-select form-select-sm" name="Fields[@i].SourceCode" aria-label="@L["pr.source"]" data-st-sample-source>
+            @foreach (var s in PayrollRuleCodes.FieldSources)
+            {
+                <option value="@s" selected="@(f.SourceCode == s)">@L[RuleFormat.SourceKey(s)]</option>
+            }
+        </select>
+    </td>
+    <td data-label="@L["st.fixed_value"]"><input class="form-control form-control-sm" name="Fields[@i].ConstantValue" value="@f.ConstantValue" maxlength="100" dir="ltr" aria-label="@L["st.fixed_value"]" placeholder="@L["st.fixed_value_hint"]" data-st-sample-constant /></td>
+    <td data-label="@L["st.width"]"><input class="form-control form-control-sm" type="number" min="1" max="500" name="Fields[@i].Width" value="@f.Width" dir="ltr" aria-label="@L["st.width"]" data-st-sample-width /></td>
+    <td data-label="@L["st.pad"]"><input class="form-control form-control-sm text-center" name="Fields[@i].PadChar" value="@f.PadChar" maxlength="1" dir="ltr" aria-label="@L["st.pad"]" placeholder="␠" data-st-sample-pad /></td>
+    <td data-label="@L["st.align_right"]" class="text-center">
+        <input class="form-check-input" type="checkbox" name="Fields[@i].AlignRight" value="true" checked="@f.AlignRight" aria-label="@L["st.align_right"]" data-st-sample-right />
+        <input type="hidden" name="Fields[@i].AlignRight" value="false" />
+    </td>
+    <td>@await Html.PartialAsync("_LineMove")</td>
+</tr>

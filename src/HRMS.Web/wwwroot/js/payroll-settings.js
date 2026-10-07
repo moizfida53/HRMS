@@ -20,8 +20,12 @@
  *   data-show-if="Field=A|B"         shown only while Field has one of the values
  *   [data-st-choice]                 radio cards (keeps .is-selected in step)
  *   select[data-options-target][data-options-url]  reloads the target's options
- *                                    (?companyId=value) when it changes
+ *                                    (?companyId=value) when it changes; the target
+ *                                    may be a selector list, each target can name its
+ *                                    own url (data-options-src)
  *   [data-st-lines] + template[data-st-line-template]  editable rows, see below
+ *   [data-st-wide]                   the dialog opens extra wide
+ *   pre[data-st-sample]              live sample of a bank salary file (bank formats)
  * Every text shown comes from the server (already translated) or HRMS.t().
  * ========================================================================== */
 (function () {
@@ -180,6 +184,7 @@
     var dialog = $("#st-modal");
     var form = dialog && $("[data-st-form]", dialog);
     var body = dialog && $("[data-st-form-body]", dialog);
+    var dialogBox = dialog && $(".modal-dialog", dialog);
     var current = null;
 
     function openForm(master, title, url) {
@@ -188,8 +193,10 @@
         $("[data-st-form-title]", dialog).textContent = title;
         body.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
         modal(dialog).show();
+        dialogBox.classList.remove("modal-xl");
         HRMS.getHtml(url).then(function (html) {
             body.innerHTML = html;
+            dialogBox.classList.toggle("modal-xl", !!body.querySelector("[data-st-wide]"));
             wireForm(body);
             var first = body.querySelector("input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea");
             if (first) { window.setTimeout(function () { try { first.focus(); } catch (e) { /* hidden */ } }, 200); }
@@ -236,55 +243,130 @@
             syncShowIf(root);
             var src = ev.target.closest("[data-options-target]");
             if (src) {
-                var target = $(src.getAttribute("data-options-target"), root);
-                if (!target) { return; }
-                HRMS.getJson(withQs(src.getAttribute("data-options-url"), { companyId: src.value })).then(function (list) {
-                    var keep = target.options[0] && !target.options[0].value ? target.options[0] : null;
-                    target.innerHTML = "";
-                    if (keep) { target.appendChild(keep); }
-                    (list || []).forEach(function (o) {
-                        var opt = document.createElement("option");
-                        opt.value = o.id; opt.textContent = o.text;
-                        target.appendChild(opt);
+                $all(src.getAttribute("data-options-target"), root).forEach(function (target) {
+                    var url = target.getAttribute("data-options-src") || src.getAttribute("data-options-url");
+                    if (!url) { return; }
+                    HRMS.getJson(withQs(url, { companyId: src.value })).then(function (list) {
+                        var keep = target.options[0] && !target.options[0].value ? target.options[0] : null;
+                        target.innerHTML = "";
+                        if (keep) { target.appendChild(keep); }
+                        (list || []).forEach(function (o) {
+                            var opt = document.createElement("option");
+                            opt.value = o.id; opt.textContent = o.text;
+                            target.appendChild(opt);
+                        });
+                        target.dispatchEvent(new Event("hrms:refresh"));
                     });
-                    target.dispatchEvent(new Event("hrms:refresh"));
                 });
             }
         });
         wireLines(root);
+        wireSample(root);
     }
 
     /* Editable rows inside a form (e.g. indemnity service slabs):
          <div data-st-lines="Slabs">  <tbody data-st-line-body> rows </tbody>
            <template data-st-line-template> one row </template>
            <button data-st-line-add> </div>
-       Each row: inputs named "Slabs[i].Field" are renumbered on add / remove;
-       [data-st-line-remove] removes its row. */
+       Each row: inputs named "Slabs[i].Field" are renumbered on add / remove /
+       move; [data-st-line-remove] removes its row, [data-st-line-up] /
+       [data-st-line-down] move it (the order is what is saved), and
+       [data-st-line-no] shows its position. */
     function wireLines(root) {
         $all("[data-st-lines]", root).forEach(function (box) {
             var prefix = box.getAttribute("data-st-lines");
             var tbody = $("[data-st-line-body]", box);
             var template = $("template[data-st-line-template]", box);
             function renumber() {
-                $all("tr", tbody).forEach(function (tr, i) {
+                var rows = $all("tr", tbody);
+                rows.forEach(function (tr, i) {
                     $all("[name]", tr).forEach(function (input) {
                         input.name = input.name.replace(new RegExp("^" + prefix + "\\[\\d+\\]"), prefix + "[" + i + "]");
                     });
+                    var no = $("[data-st-line-no]", tr);
+                    if (no) { no.textContent = String(i + 1); }
+                    var up = $("[data-st-line-up]", tr), down = $("[data-st-line-down]", tr);
+                    if (up) { up.disabled = i === 0; }
+                    if (down) { down.disabled = i === rows.length - 1; }
                 });
+                box.dispatchEvent(new Event("st:lines", { bubbles: true }));
             }
             box.addEventListener("click", function (ev) {
+                var tr = ev.target.closest("tr");
                 if (ev.target.closest("[data-st-line-add]")) {
                     tbody.appendChild(template.content.cloneNode(true));
                     renumber();
                     var last = tbody.lastElementChild && tbody.lastElementChild.querySelector("input, select");
                     if (last) { last.focus(); }
                 } else if (ev.target.closest("[data-st-line-remove]")) {
-                    ev.target.closest("tr").remove();
+                    tr.remove();
                     renumber();
+                } else if (ev.target.closest("[data-st-line-up]") && tr.previousElementSibling) {
+                    tbody.insertBefore(tr, tr.previousElementSibling);
+                    renumber();
+                    $("[data-st-line-up]", tr).focus();
+                } else if (ev.target.closest("[data-st-line-down]") && tr.nextElementSibling) {
+                    tbody.insertBefore(tr.nextElementSibling, tr);
+                    renumber();
+                    $("[data-st-line-down]", tr).focus();
                 }
             });
             renumber();
         });
+    }
+
+    /* Bank formats: a live sample of the salary file from the fields as typed
+       (two made-up employees) - shows the delimiter, header, widths and padding. */
+    var SAMPLE = [
+        { EMPLOYER_CODE: "10045", PAM_FILE_NO: "PAM-7781", EMPLOYEE_CODE: "E0012", CIVIL_ID: "289010112345", EMPLOYEE_NAME: "Ahmad Al-Sabah",
+          BANK_WPS_CODE: "NBK", BANK_SWIFT: "NBOKKWKW", IBAN: "KW81NBOK0000000000001000372151", ACCOUNT_NO: "1000372151",
+          NET_AMOUNT: "1250.500", BASIC_AMOUNT: "1000.000", ALLOWANCES: "350.000", DEDUCTIONS: "99.500",
+          PERIOD_YYYYMM: "202610", PAY_DATE: "2026-10-28", DEBIT_IBAN: "KW81CBKU0000000000001234560101" },
+        { EMPLOYER_CODE: "10045", PAM_FILE_NO: "PAM-7781", EMPLOYEE_CODE: "E0047", CIVIL_ID: "290120254321", EMPLOYEE_NAME: "Maria Santos",
+          BANK_WPS_CODE: "KFH", BANK_SWIFT: "KFHOKWKW", IBAN: "KW31KFHO0000000000051010173254", ACCOUNT_NO: "51010173254",
+          NET_AMOUNT: "420.000", BASIC_AMOUNT: "400.000", ALLOWANCES: "50.000", DEDUCTIONS: "30.000",
+          PERIOD_YYYYMM: "202610", PAY_DATE: "2026-10-28", DEBIT_IBAN: "KW81CBKU0000000000001234560101" }
+    ];
+
+    function wireSample(root) {
+        var out = $("pre[data-st-sample]", root);
+        if (!out) { return; }
+        function fit(text, f, fixed) {
+            text = String(text == null ? "" : text);
+            if (!f.width) { return text; }
+            if (text.length > f.width) { return text.slice(0, f.width); }
+            if (!fixed && !f.pad) { return text; }
+            var pad = new Array(f.width - text.length + 1).join(f.pad || " ");
+            return f.right ? pad + text : text + pad;
+        }
+        function render() {
+            var typeEl = $("[data-st-sample-type]", root), delimEl = $("[data-st-sample-delim]", root);
+            var fixed = typeEl && typeEl.value === "FIXED";
+            var delim = fixed ? "" : ((delimEl && delimEl.value) || ",").replace("\\t", "\t");
+            var fields = $all("[data-st-line-body] tr", root).map(function (tr) {
+                var v = function (sel) { var el = $(sel, tr); return el ? el.value : ""; };
+                var right = $("[data-st-sample-right]", tr);
+                return {
+                    name: v("[data-st-sample-name]"), source: v("[data-st-sample-source]"), constant: v("[data-st-sample-constant]"),
+                    width: parseInt(v("[data-st-sample-width]"), 10) || 0, pad: v("[data-st-sample-pad]"), right: !!(right && right.checked)
+                };
+            });
+            var lines = [];
+            var header = root.querySelector('input[type=checkbox][name="HasHeader"]');
+            if (header && header.checked) {
+                lines.push(fields.map(function (f) { return fit(f.name, f, fixed); }).join(delim));
+            }
+            SAMPLE.forEach(function (emp) {
+                lines.push(fields.map(function (f) { return fit(f.source === "CONSTANT" ? f.constant : emp[f.source], f, fixed); }).join(delim));
+            });
+            var trailer = root.querySelector('input[type=checkbox][name="HasTrailer"]');
+            if (trailer && trailer.checked) { lines.push(out.getAttribute("data-trailer-text") || ""); }
+            out.textContent = lines.join("\n");
+        }
+        root.addEventListener("input", render);
+        root.addEventListener("change", render);
+        root.addEventListener("st:lines", render);
+        render();
     }
 
     if (form) {

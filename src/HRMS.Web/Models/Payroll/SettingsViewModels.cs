@@ -28,6 +28,8 @@ public sealed class SettingsGridModel<T>
     public required SettingsRights Rights { get; init; }
     public bool ManyCompanies { get; init; }
     public bool IsFiltered { get; init; }
+    /// <summary>The user may edit the defaults that apply to every company (deduction rules, approval routes).</summary>
+    public bool CanEditDefaults { get; init; }
 }
 
 public sealed class ItemTypeFormModel
@@ -143,4 +145,54 @@ public sealed class AccountFormModel
     public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
     public IReadOnlyList<Bank> Banks { get; init; } = Array.Empty<Bank>();
     public IReadOnlyList<LookupItem> Currencies { get; init; } = Array.Empty<LookupItem>();
+}
+
+// ---------------------------------------------------------------------------
+// The rule screens (db/47-48)
+// ---------------------------------------------------------------------------
+
+public sealed class DeductionFormModel
+{
+    public required DeductionPolicy Policy { get; init; }
+    public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
+    public IReadOnlyList<LookupItem> Calendars { get; init; } = Array.Empty<LookupItem>();
+}
+
+public sealed class ApprovalFormModel
+{
+    public required ApprovalProcess Process { get; init; }
+    public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
+    public IReadOnlyList<LookupItem> Roles { get; init; } = Array.Empty<LookupItem>();
+    public IReadOnlyList<LookupItem> Users { get; init; } = Array.Empty<LookupItem>();
+}
+
+public sealed class BankFormatFormModel
+{
+    public required BankFileFormat Format { get; init; }
+    public IReadOnlyList<LookupItem> Banks { get; init; } = Array.Empty<LookupItem>();
+}
+
+public sealed class GLMappingFormModel
+{
+    public required GLMapping Mapping { get; init; }
+    public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
+    public IReadOnlyList<LookupItem> Components { get; init; } = Array.Empty<LookupItem>();
+    public IReadOnlyList<LookupItem> CostCenters { get; init; } = Array.Empty<LookupItem>();
+}
+
+/// <summary>Label keys of the rule screens.</summary>
+public static class RuleFormat
+{
+    public static string GroupKey(string? v) => "st.dg_" + (v ?? "STANDING").ToLowerInvariant();
+    public static string BehaviourKey(string? v) => "st.beh_" + (v ?? "TAKEN").ToLowerInvariant();
+    public static string ExceededKey(string? v) => v == "WARN" ? "st.exceeded_warn" : "st.exceeded_defer";
+    public static string BasisKey(string? v) => "st.basis_" + (v ?? "FIXED").ToLowerInvariant();
+    public static string ProcessKey(string? v) => "st.proc_" + (v ?? "PAYROLL_RUN").ToLowerInvariant();
+    public static string FileTypeKey(string? v) => "st.ft_" + (v ?? "CSV").ToLowerInvariant();
+    public static string SourceKey(string? v) => "st.src_" + (v ?? "CONSTANT").ToLowerInvariant();
+
+    public static string BehaviourBadge(string? v) => v switch { "ALWAYS" => "info", "DEFER" => "warning", _ => "success" };
+
+    /// <summary>A delimiter as typed in the form (a tab shows as \t).</summary>
+    public static string Delimiter(string? v) => v == "\t" ? "\\t" : v ?? "";
 }

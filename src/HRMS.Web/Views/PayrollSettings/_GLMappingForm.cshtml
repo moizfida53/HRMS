@@ -1,0 +1,72 @@
+@model GLMappingFormModel
+@{ var g = Model.Mapping; }
+<input type="hidden" name="GLMappingId" value="@g.GLMappingId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.component"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="gl-company">@L["common.company"]</label>
+            <select class="form-select" id="gl-company" data-searchable data-options-target="#gl-component, #gl-cc" aria-describedby="gl-company-hint">
+                @foreach (var co in Model.Companies)
+                {
+                    <option value="@co.Id" selected="@(co.Id == g.CompanyId)">@co.Text</option>
+                }
+            </select>
+            <span class="form-text" id="gl-company-hint">@L["st.gl_company_hint"]</span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="gl-component">@L["prv.component"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="gl-component" name="PayComponentId" data-searchable data-options-src="@Url.Action("GLMappingComponents", "PayrollSettings")">
+                <option value="">@L["st.select_item_type"]</option>
+                @foreach (var c in Model.Components)
+                {
+                    <option value="@c.Id" selected="@(c.Id == g.PayComponentId)">@c.Text</option>
+                }
+            </select>
+            <span class="field-validation-error" data-valmsg-for="PayComponentId"></span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="gl-cc">@L["prv.cost_center"]</label>
+            <select class="form-select" id="gl-cc" name="CostCenterId" data-searchable data-options-src="@Url.Action("CostCenters", "PayrollSettings")">
+                <option value="">@L["st.any_cost_center"]</option>
+                @foreach (var c in Model.CostCenters)
+                {
+                    <option value="@c.Id" selected="@(c.Id == g.CostCenterId)">@c.Text</option>
+                }
+            </select>
+            <span class="form-text">@L["st.cost_center_hint"]</span>
+        </div>
+    </div>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.gl_accounts"]</legend>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="gl-dr">@L["prv.debit_gl"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control font-monospace" id="gl-dr" name="DebitAccountCode" value="@g.DebitAccountCode" maxlength="50" dir="ltr" placeholder="5100" />
+            <span class="field-validation-error" data-valmsg-for="DebitAccountCode"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="gl-dr-name">@L["st.account_name"]</label>
+            <input class="form-control" id="gl-dr-name" name="DebitAccountName" value="@g.DebitAccountName" maxlength="150" placeholder="@L["prv.salaries_basic"]" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="gl-cr">@L["prv.credit_gl"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control font-monospace" id="gl-cr" name="CreditAccountCode" value="@g.CreditAccountCode" maxlength="50" dir="ltr" placeholder="2100" />
+            <span class="field-validation-error" data-valmsg-for="CreditAccountCode"></span>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="gl-cr-name">@L["st.account_name"]</label>
+            <input class="form-control" id="gl-cr-name" name="CreditAccountName" value="@g.CreditAccountName" maxlength="150" placeholder="@L["prv.salaries_payable"]" />
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="gl-notes">@L["st.notes"]</label>
+            <textarea class="form-control" id="gl-notes" name="Notes" rows="2" maxlength="500" placeholder="@L["st.notes_hint"]">@g.Notes</textarea>
+        </div>
+        <div class="col-12">
+            <div class="st-switches">
+                @await Html.PartialAsync("_Switch", new SettingsSwitch("IsActive", L["org.active"], g.IsActive))
+            </div>
+        </div>
+    </div>
+</fieldset>
