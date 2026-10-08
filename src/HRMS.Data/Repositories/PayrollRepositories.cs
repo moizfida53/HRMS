@@ -138,6 +138,8 @@ public sealed class RunListFilter
     public string? Type { get; set; }
     public int? Year { get; set; }
     public string? Search { get; set; }
+    /// <summary>Closed payrolls with payslips still to generate (any stage filter is ignored).</summary>
+    public bool PayslipPending { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 25;
 }
@@ -200,6 +202,7 @@ public sealed class PayrollRunRepository : IPayrollRunRepository
         p.Add("@TypeFilter", Trim(filter.Type, 10), DbType.AnsiString, size: 10);
         p.Add("@Year", filter.Year, DbType.Int32);
         p.Add("@Search", Trim(filter.Search, 200), DbType.String, size: 200);
+        p.Add("@PayslipPending", filter.PayslipPending, DbType.Boolean);
         p.Add("@PageNumber", Math.Max(1, filter.PageNumber), DbType.Int32);
         p.Add("@PageSize", Math.Clamp(filter.PageSize, 1, 500), DbType.Int32);
 

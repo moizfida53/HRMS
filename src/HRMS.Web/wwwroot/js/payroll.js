@@ -497,6 +497,20 @@
         var rSlot = $("[data-runs-slot]", runsCard);
         var monthSel = $("[data-runs-month]", runsCard), stageSel = $("[data-runs-stage]", runsCard);
         var yearSel = $("[data-runs-year]", runsCard), typeSel = $("[data-runs-type]", runsCard), rSearch = $("[data-runs-search]", runsCard);
+        var pendingChk = $("[data-runs-pending]", runsCard);
+        /* "Pending Generate PaySlips": closed payrolls with payslips to generate - the stage list does not apply */
+        var syncPending = function () { if (pendingChk && stageSel) { stageSel.disabled = pendingChk.checked; } };
+        syncPending();
+        if (pendingChk) {
+            pendingChk.addEventListener("change", function () {
+                syncPending();
+                rState.page = 1;
+                loadRuns();
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, "", pendingChk.checked ? withQs(window.location.pathname, { slips: "pending" }) : window.location.pathname);
+                }
+            });
+        }
         loadRuns = function () {
             return loadInto(rSlot, withQs(runsCard.getAttribute("data-url"), {
                 mode: runsCard.getAttribute("data-mode"),
@@ -505,6 +519,7 @@
                 year: yearSel ? yearSel.value : "",
                 type: typeSel ? typeSel.value : "",
                 search: rSearch ? rSearch.value.trim() : "",
+                pending: pendingChk && pendingChk.checked ? "true" : "",
                 page: rState.page
             })).then(function () { setCount(rSlot, $("[data-runs-count]", runsCard)); });
         };

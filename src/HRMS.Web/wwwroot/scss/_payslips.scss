@@ -707,3 +707,21 @@ $ps-stack: "sm";
   .ps-panel__actions { flex-wrap: wrap; }
   .ps-panel__actions .btn { flex: 1 1 auto; justify-content: center; }
 }
+
+/* the Generate Payslips popup: its Generate button sits in the header, right-aligned before the close */
+.ps-modal .modal-header {
+  gap: .75rem;
+  .modal-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn-close { margin: 0 0 0 .25rem; flex: 0 0 auto; }
+  [dir="rtl"] & .btn-close { margin: 0 .25rem 0 0; }
+}
+.ps-modal__actions {
+  display: flex; align-items: center; gap: .5rem; margin-inline-start: auto; flex: 0 0 auto;
+  &:empty { display: none; }
+  .btn { display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
+}
+@media (max-width: 575.98px) {
+  .ps-modal .modal-header { flex-wrap: wrap; }
+  .ps-modal .modal-title { flex: 1 1 calc(100% - 3rem); }
+  .ps-modal__actions { order: 3; flex: 1 1 100%; margin-inline-start: 0; .btn { flex: 1 1 auto; justify-content: center; } }
+}

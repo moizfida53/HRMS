@@ -487,6 +487,7 @@ CREATE OR ALTER PROCEDURE [Payroll].[usp_PayrollRun_Manage]
     @TypeFilter           VARCHAR(10)     = NULL,
     @Year                 INT             = NULL,
     @Search               NVARCHAR(200)   = NULL,
+    @PayslipPending       BIT             = 0,        -- closed payrolls with payslips still to generate (db/42-43)
     @PageNumber           INT             = 1,
     @PageSize             INT             = 25,
 
@@ -551,7 +552,12 @@ BEGIN
                     AND (@TypeFilter IS NULL OR r.RunType = @TypeFilter)
                     AND (@StageFilter IS NULL OR r.Stage = @StageFilter OR (@StageFilter = 'FINISHED' AND r.Stage IN ('CLOSED', 'CANCELLED'))
                                               OR (@StageFilter = 'LIVE' AND r.Stage IN ('REGISTERED', 'VALIDATION', 'AWAITING_APPROVAL')))
-                    AND (@Pattern IS NULL OR r.RunCode LIKE @Pattern ESCAPE '\' OR r.Description LIKE @Pattern ESCAPE '\')));
+                    AND (@Pattern IS NULL OR r.RunCode LIKE @Pattern ESCAPE '\' OR r.Description LIKE @Pattern ESCAPE '\')
+                    AND (ISNULL(@PayslipPending, 0) = 0 OR (r.Stage = 'CLOSED' AND EXISTS (SELECT 1 FROM [Payroll].[PayrollRunEmployees] AS pe
+                                         LEFT JOIN [Payroll].[Payslips] AS ps ON ps.PayrollRunId = pe.PayrollRunId AND ps.EmployeeId = pe.EmployeeId AND ps.Deleted = 0
+                                         WHERE pe.PayrollRunId = r.PayrollRunId AND pe.Deleted = 0 AND pe.IsExcluded = 0
+                                           AND (r.RunType = 'REGULAR' OR pe.LineCount > 0)
+                                           AND (ps.PayslipId IS NULL OR ps.NetPay <> pe.NetPay OR ps.GeneratedDate < r.ClosedDate))))));
 
         SET @TotalCount = (SELECT COUNT(1) FROM @L);
 
@@ -573,7 +579,15 @@ BEGIN
                 COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(ke.FirstName, N' ', ke.LastName))), N''), ku.Username) AS CancelledByName,
                 (SELECT MAX(h.ActionDate) FROM [Payroll].[PayrollRunHistory] h WHERE h.PayrollRunId = r.PayrollRunId AND h.Deleted = 0) AS LastActionDate,
                 (SELECT TOP 1 h.ActionBy FROM [Payroll].[PayrollRunHistory] h WHERE h.PayrollRunId = r.PayrollRunId AND h.Deleted = 0
-                   AND h.ActionCode = 'APPROVED' AND h.ApprovalLevel = 1 ORDER BY h.ActionDate DESC) AS Level1ApprovedBy
+                   AND h.ActionCode = 'APPROVED' AND h.ApprovalLevel = 1 ORDER BY h.ActionDate DESC) AS Level1ApprovedBy,
+                /* payslips still to generate (none yet or outdated) - closed payrolls only */
+                CASE WHEN r.Stage = 'CLOSED' THEN
+                    (SELECT COUNT(1) FROM [Payroll].[PayrollRunEmployees] AS pe
+                     LEFT JOIN [Payroll].[Payslips] AS ps ON ps.PayrollRunId = pe.PayrollRunId AND ps.EmployeeId = pe.EmployeeId AND ps.Deleted = 0
+                     WHERE pe.PayrollRunId = r.PayrollRunId AND pe.Deleted = 0 AND pe.IsExcluded = 0
+                       AND (r.RunType = 'REGULAR' OR pe.LineCount > 0)
+                       AND (ps.PayslipId IS NULL OR ps.NetPay <> pe.NetPay OR ps.GeneratedDate < r.ClosedDate))
+                ELSE 0 END AS PayslipsToGenerate
         FROM    @L AS l
         JOIN    [Payroll].[PayrollRuns]      AS r  ON r.PayrollRunId = l.PayrollRunId
         JOIN    [Core].[Companies]           AS co ON co.CompanyId = r.CompanyId

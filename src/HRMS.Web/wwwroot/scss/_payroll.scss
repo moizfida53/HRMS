@@ -470,3 +470,13 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
 [data-issues] .hrms-table__actions { white-space: nowrap; }
 [data-issues] .hrms-table__actions .btn { display: inline-flex; align-items: center; gap: .3rem; }
 [data-issues] .hrms-table__actions .btn + .btn { margin-inline-start: .35rem; }
+
+/* ---- Payrolls: "Pending Generate PaySlips" filter and its Goto PaySlips button ---- */
+.pr-pending-check {
+  display: inline-flex; align-items: center; gap: .45rem; margin: 0; padding: .4rem .75rem;
+  border: 1px solid var(--hrms-line-200); border-radius: 8px; background: #fff; white-space: nowrap; cursor: pointer;
+  .form-check-input { float: none; margin: 0; cursor: pointer; }
+  .form-check-label { font-size: .85rem; font-weight: 600; color: var(--hrms-ink-700); cursor: pointer; }
+  &:has(.form-check-input:checked) { border-color: var(--hrms-blue-200, #bfdbfe); background: var(--hrms-blue-050); .form-check-label { color: var(--hrms-blue-700); } }
+}
+.pr-goto-slips { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; margin-inline-end: .35rem; }

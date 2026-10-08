@@ -80,7 +80,7 @@ public sealed class PayrollController : Controller
 
     /// <summary>Payrolls: the open payrolls (any stage on request) - opening one goes to the page of its stage.</summary>
     [HttpGet("payrolls")]
-    public async Task<IActionResult> Payrolls(string? month, string? stage)
+    public async Task<IActionResult> Payrolls(string? month, string? stage, string? slips)
     {
         if (!Can(PermView)) return Forbid();
 
@@ -91,7 +91,8 @@ public sealed class PayrollController : Controller
             Months = months,
             SelectedMonth = ParseMonth(month),
             SelectedStage = stage is null ? "LIVE" : stage,
-            CanProcess = Can(PermProcess)
+            CanProcess = Can(PermProcess),
+            PayslipPending = slips == "pending"
         });
     }
 
@@ -304,17 +305,20 @@ public sealed class PayrollController : Controller
     // =======================================================================
 
     [HttpGet("runs-grid")]
-    public async Task<IActionResult> RunsGrid(string? mode, string? month, string? stage, string? type, int? year, string? search, int page = 1)
+    public async Task<IActionResult> RunsGrid(string? mode, string? month, string? stage, string? type, int? year, string? search, bool pending = false, int page = 1)
     {
         if (!Can(PermView)) return Forbid();
 
         var history = mode == "history";
+        // "Pending Generate PaySlips" (Payrolls): closed payrolls with payslips to generate, whatever stage is chosen
+        pending = pending && !history;
         var filter = new RunListFilter
         {
             CompanyId = OwnCompany,
             CompanyIds = CompanyCsv,
             RunMonth = ParseMonth(month),
-            Stage = history ? (string.IsNullOrEmpty(stage) ? "FINISHED" : stage) : NullIfEmpty(stage),
+            Stage = pending ? null : history ? (string.IsNullOrEmpty(stage) ? "FINISHED" : stage) : NullIfEmpty(stage),
+            PayslipPending = pending,
             Type = NullIfEmpty(type),
             Year = year,
             Search = search,
@@ -326,9 +330,11 @@ public sealed class PayrollController : Controller
         {
             Page = result,
             Mode = history ? "history" : "payrolls",
-            IsFiltered = (!string.IsNullOrEmpty(stage) && stage != "LIVE") || !string.IsNullOrEmpty(type) || year is not null
+            IsFiltered = pending || (!string.IsNullOrEmpty(stage) && stage != "LIVE") || !string.IsNullOrEmpty(type) || year is not null
                          || !string.IsNullOrWhiteSpace(search) || filter.RunMonth is not null,
-            OpenOnly = !history && stage == "LIVE"
+            OpenOnly = !history && !pending && stage == "LIVE",
+            PayslipPending = pending,
+            CanSlips = Can("PAYROLL_SLIP_GENERATE") || Can("PAYROLL_SLIP_VIEW") || Can("PAYROLL_SLIP_EMAIL")
         });
     }
 

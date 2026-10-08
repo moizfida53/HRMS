@@ -1,6 +1,7 @@
 @using HRMS.Web.Models.Payroll
 @using HRMS.Web.Models.Organization
 @using HRMS.Domain.Payroll
+@inject IRefProtector Refs
 @model RunsGridModel
 @{
     var history = Model.Mode == "history";
@@ -11,7 +12,12 @@
 {
     <div class="hrms-empty">
         <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "calculator", 26)</span>
-        @if (Model.IsFiltered)
+        @if (Model.PayslipPending)
+        {
+            <p class="hrms-empty__title">@L["ps.all_generated_title"]</p>
+            <p class="hrms-empty__text">@L["pr.no_payslips_pending_text"]</p>
+        }
+        else if (Model.IsFiltered)
         {
             <p class="hrms-empty__title">@L["pr.no_payrolls_match_the_filters"]</p>
             <p class="hrms-empty__text">@L["pr.change_the_period_or_stage_to_see_more_payrolls"]</p>
@@ -45,6 +51,10 @@ else
                     <th scope="col" class="text-center col-p3">@L["common.employees"]</th>
                     <th scope="col" class="pr-money col-p2">@L["pr.net_kwd"]</th>
                     <th scope="col">@L["pr.stage"]</th>
+                    @if (Model.PayslipPending)
+                    {
+                        <th scope="col">@L["ps.payslips"]</th>
+                    }
                     @if (history)
                     {
                         <th scope="col" class="col-p2">@L["pr.closed_cancelled_by"]</th>
@@ -91,6 +101,12 @@ else
                             }
                             <span class="hrms-badge hrms-badge--@RunStage.Badge(r.Stage)"><span class="hrms-badge__dot"></span>@L.Tr(RunStage.Label(r.Stage))@(r.Stage == RunStage.AwaitingApproval ? " " + L["pr.level_0_of_2", r.ApprovalLevel + 1] : "")</span>
                         </td>
+                        @if (Model.PayslipPending)
+                        {
+                            <td data-label="@L["ps.payslips"]">
+                                <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["ps.n_to_generate", PayrollFormat.Count(r.PayslipsToGenerate)]</span>
+                            </td>
+                        }
                         @if (history)
                         {
                             <td data-label="@L["pr.closed_cancelled_by"]" class="col-p2 hrms-text-sm">
@@ -98,6 +114,13 @@ else
                             </td>
                         }
                         <td class="hrms-table__actions">
+                            @if (Model.PayslipPending && Model.CanSlips)
+                            {
+                                @* opens Generate Payslips with this payroll's popup open (an opaque reference, not its id) *@
+                                <a class="btn btn-sm btn-primary pr-goto-slips" href="@Url.Action("Generate", "Payslips", new { open = Refs.Protect(RefPurpose.PayslipRun, r.PayrollRunId) })">
+                                    @Html.Icon("receipt", 14)<span>@L["pr.goto_payslips"]</span>
+                                </a>
+                            }
                             <a class="btn-icon" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })" title="@L["pr.open"]" aria-label="@L["common.open_named", r.RunCode]">@Html.Icon(r.IsEditable ? "edit" : "eye", 15)</a>
                             @if (history && !r.IsCancelled)
                             {

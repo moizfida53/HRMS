@@ -223,6 +223,8 @@
             var modalEl = document.getElementById(modalId);
             if (!modalEl || !window.bootstrap) { return; }
             var body = $("[data-ps-modal-body]", modalEl);
+            var actions = $("[data-ps-modal-actions]", modalEl);
+            if (actions) { actions.innerHTML = ""; }
             $("[data-ps-modal-title]", modalEl).textContent = title || "";
             body.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
             window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -232,28 +234,39 @@
                 body.innerHTML = html;
                 var t = $("[data-ps-panel-title]", body);
                 if (t) { $("[data-ps-modal-title]", modalEl).textContent = t.textContent.trim(); }
-                ready(body);
+                // the panel's header buttons (Generate Payslips) go to the popup header, right-aligned
+                var head = $("[data-ps-header-actions]", body);
+                if (head && actions) {
+                    while (head.firstChild) { actions.appendChild(head.firstChild); }
+                    head.remove();
+                }
+                ready(body, modalEl);
             }, function (error) {
                 body.innerHTML = "";
                 HRMS.toast((error && error.message) || failed(), "error");
             });
         };
 
+        /** The Generate Payslips popup of a payroll (its reference): the form, the button in the header. */
+        var openGenerate = function (ref, title) {
+            openPanel("ps-run-modal", page.getAttribute("data-urls-panel"), ref, title, function (body, modalEl) {
+                var form = $("[data-ps-generate-form]", body);
+                if (!form) { return; }
+                wireGenerateForm(form);
+                var button = $("[data-ps-generate]", modalEl);
+                if (button) {
+                    button.addEventListener("click", function () {
+                        var fd = generateBody(form);
+                        if (fd) { post(page.getAttribute("data-urls-generate"), fd, button); }
+                    });
+                }
+            });
+        };
+
         page.addEventListener("click", function (e) {
             var view = e.target.closest("[data-ps-view]");
             if (view) {
-                openPanel("ps-run-modal", page.getAttribute("data-urls-panel"), view.getAttribute("data-ps-view"), view.getAttribute("data-ps-title"), function (body) {
-                    var form = $("[data-ps-generate-form]", body);
-                    if (!form) { return; }
-                    wireGenerateForm(form);
-                    var button = $("[data-ps-generate]", body);
-                    if (button) {
-                        button.addEventListener("click", function () {
-                            var fd = generateBody(form);
-                            if (fd) { post(page.getAttribute("data-urls-generate"), fd, button); }
-                        });
-                    }
-                });
+                openGenerate(view.getAttribute("data-ps-view"), view.getAttribute("data-ps-title"));
                 return;
             }
             var slips = e.target.closest("[data-ps-slips]");
@@ -265,6 +278,17 @@
                 });
             }
         });
+
+        // "Goto PaySlips" on Payrolls: open that payroll's popup straight away, then drop the reference from the address
+        var openRef = page.getAttribute("data-open");
+        if (openRef) {
+            openGenerate(openRef, page.getAttribute("data-open-title"));
+            if (window.history && window.history.replaceState) {
+                var u = new URL(window.location.href);
+                u.searchParams.delete("open");
+                window.history.replaceState(null, "", u.pathname + u.search);
+            }
+        }
         return;
     }
 

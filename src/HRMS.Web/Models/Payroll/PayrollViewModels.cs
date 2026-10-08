@@ -242,6 +242,8 @@ public sealed class CalendarPageModel
     /// <summary>Payrolls: the stage filter - "LIVE" (open payrolls, the default), a stage, or "" for every stage.</summary>
     public string SelectedStage { get; init; } = "LIVE";
     public bool CanProcess { get; init; }
+    /// <summary>Payrolls: "Pending Generate PaySlips" ticked (?slips=pending).</summary>
+    public bool PayslipPending { get; init; }
     public bool CanCreateCalendar { get; init; }
     public IReadOnlyList<PayrollCalendar> Calendars { get; init; } = Array.Empty<PayrollCalendar>();
     public int? SelectedCalendarId { get; init; }
@@ -288,6 +290,10 @@ public sealed class RunsGridModel
     public bool IsFiltered { get; init; }
     /// <summary>Only the open payrolls were asked for (the Payrolls default).</summary>
     public bool OpenOnly { get; init; }
+    /// <summary>"Pending Generate PaySlips": closed payrolls with payslips still to generate.</summary>
+    public bool PayslipPending { get; init; }
+    /// <summary>The user may open Generate Payslips (Goto PaySlips).</summary>
+    public bool CanSlips { get; init; }
 }
 
 public sealed class RunEmployeesGridModel

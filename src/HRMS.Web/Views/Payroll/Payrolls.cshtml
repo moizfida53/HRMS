@@ -24,6 +24,10 @@
                     }
                     <option value="" selected="@(Model.SelectedStage == "")">@L["pr.all_stages"]</option>
                 </select>
+                <label class="form-check pr-pending-check">
+                    <input class="form-check-input" type="checkbox" data-runs-pending checked="@Model.PayslipPending" />
+                    <span class="form-check-label">@L["pr.pending_generate_payslips"]</span>
+                </label>
                 <select class="form-select pr-filter" data-runs-month data-searchable aria-label="@L["pr.period"]">
                     <option value="all" selected="@(selectedMonth is null)">@L["pr.all_periods"]</option>
                     @foreach (var m in Model.Months)

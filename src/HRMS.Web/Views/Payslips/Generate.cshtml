@@ -18,7 +18,8 @@
      data-urls-panel="@Url.Action("RunPanel", "Payslips")"
      data-urls-slips="@Url.Action("SlipsPanel", "Payslips")"
      data-urls-grid="@Url.Action("Grid", "Payslips")"
-     data-urls-generate="@Url.Action("GeneratePayslips", "Payslips")">
+     data-urls-generate="@Url.Action("GeneratePayslips", "Payslips")"
+     data-open="@Model.OpenRef" data-open-title="@Model.OpenTitle">
 
     @* ------------------------------------------------ filters *@
     <section class="hrms-card ps-gen-filters">
@@ -148,8 +149,8 @@
                                     }
                                 </td>
                                 <td class="hrms-table__actions ps-run-actions"><div class="ps-run-actions__wrap">
-                                    <button type="button" class="btn-icon" data-ps-view="@rref" data-ps-title="@r.RunCode"
-                                            title="@L["ps.view"]" aria-label="@L["ps.view_payroll_0", r.RunCode ?? ""]">@Html.Icon("eye", 15)</button>
+                                    <button type="button" class="btn btn-sm btn-primary" data-ps-view="@rref" data-ps-title="@r.RunCode"
+                                            aria-label="@L["ps.view_payroll_0", r.RunCode ?? ""]">@Html.Icon("receipt", 14)<span>@L["ps.generate_payslips"]</span></button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary" data-ps-slips="@rref" data-ps-title="@r.RunCode">
                                         @Html.Icon("receipt", 14)<span>@L["ps.view_payslips"]</span>
                                     </button>
@@ -176,6 +177,8 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title h5" id="ps-run-modal-title" data-ps-modal-title></h2>
+                @* the popup's Generate Payslips button is moved here (right) when the panel loads *@
+                <div class="ps-modal__actions" data-ps-modal-actions></div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
             </div>
             <div class="modal-body" data-ps-modal-body></div>

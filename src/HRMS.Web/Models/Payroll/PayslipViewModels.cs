@@ -101,6 +101,9 @@ public sealed class PayslipGenerateModel
     public string? Search { get; init; }
     public bool ManyCompanies { get; init; }
     public bool EmailConfigured { get; init; }
+    /// <summary>The payroll whose popup opens with the page (Goto PaySlips) - its reference.</summary>
+    public string? OpenRef { get; init; }
+    public string? OpenTitle { get; init; }
 
     public IReadOnlyList<int> Years => Runs.Select(r => r.RunMonth.Year).Distinct().OrderByDescending(y => y).ToList();
     public IReadOnlyList<DateTime> Months => Runs.Select(r => r.RunMonth).Distinct().OrderByDescending(m => m).ToList();

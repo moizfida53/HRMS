@@ -805,12 +805,21 @@ outdated). Filters: Year, Period, Show (*To generate* / *Not closed yet* / *All
 generated* / *All payrolls*) and a search. Each row shows its progress (*x of y
 generated*) and three actions:
 
-* **View** (eye icon): a popup with the payroll's figures (employees, generated, to
-  generate, emailed), the banners and the **generate form** (everyone or one
-  department; language). View / Email Payslips are not in it - they are on the row.
+* **Generate Payslips** (button): a popup with the payroll's facts, the banners and the
+  **generate form** (everyone or one department; language). Its **Generate Payslips**
+  button sits in the popup header, on the right. View / Email Payslips are not in it -
+  they are on the row.
 * **View Payslips**: a popup with the payroll's employees and their payslip (search,
   department, status, paging). The eye / printer icons open the payslip in a new tab.
 * **Email Payslips**: opens Email Payslips for that payroll (closed, with payslips).
+
+**Payrolls - Pending Generate PaySlips:** the checkbox on Payroll Processing > Payrolls
+lists the closed payrolls with payslips still to generate (the stage filter does not apply;
+`?slips=pending` opens it ticked), with the number to generate. **Goto PaySlips** opens
+Generate Payslips with that payroll's popup already open (the payroll travels as an opaque
+reference, `?open=`, removed from the address once opened). Re-run `db/35` (both copies):
+`LIST` takes `@PayslipPending` and returns `PayslipsToGenerate` (it reads `Payroll.Payslips`,
+so run db/42 before using the Payrolls page on a new database).
 
 **Payroll Dashboard:** when the 12-month trend covers two or more companies, every month
 shows **one bar per company** (a fixed colour per company, a legend with each company's

@@ -85,6 +85,8 @@ public sealed class PayrollRun
     public string? ScopeNationality { get; init; }
     public int EmployeeCount { get; init; }
     public int ExcludedCount { get; init; }
+    /// <summary>LIST: payslips still to generate (closed payrolls; none yet or outdated).</summary>
+    public int PayslipsToGenerate { get; init; }
     public decimal TotalSalary { get; init; }
     public decimal TotalEarnings { get; init; }
     public decimal TotalDeductions { get; init; }

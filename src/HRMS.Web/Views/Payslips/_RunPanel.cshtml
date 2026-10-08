@@ -1,7 +1,7 @@
 @model PayslipRunPanelModel
 @{
-    // The View popup of Generate Payslips: one payroll's figures and the generate form.
-    // View Payslips and Email Payslips are on the list itself, not here.
+    // The Generate Payslips popup: one payroll's facts, banners and the generate form - the
+    // Generate button sits in the popup header. View / Email Payslips are on the list itself.
     var run = Model.Run;
     var sum = Model.Summary;
     var closed = run.IsClosed;
@@ -9,6 +9,20 @@
 }
 <div class="ps-panel" data-ps-run-panel>
     <span hidden data-ps-panel-title>@run.RunCode · @PayslipFormat.Period(L, run)</span>
+
+    @* moved into the popup header (right) by payslips.js *@
+    <div hidden data-ps-header-actions>
+        @if (Model.Rights.CanGenerate)
+        {
+            <button type="button" class="btn btn-primary" data-ps-generate @(closed ? null : "disabled")>
+                @Html.Icon("receipt", 15)<span>@(sum.GeneratedCount > 0 ? L["ps.generate_again"] : L["ps.generate_payslips"])</span>
+            </button>
+        }
+    </div>
+    @if (!Model.Rights.CanGenerate)
+    {
+        <p class="hrms-muted hrms-text-sm mb-0">@L["ps.no_generate_right"]</p>
+    }
 
     <dl class="fin-facts fin-facts--popup">
         @if (!string.IsNullOrWhiteSpace(run.CompanyName))
@@ -22,29 +36,6 @@
             <dd><span class="hrms-badge hrms-badge--@(closed ? "success" : "warning")"><span class="hrms-badge__dot"></span>@L[PayslipFormat.StageKey(run.Stage)]</span></dd>
         </div>
     </dl>
-
-    <section class="pr-kpis pr-kpis--4 ps-panel__kpis" aria-label="@L["pr.key_figures"]">
-        <div class="hrms-card hrms-kpi">
-            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["common.employees"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("users", 16)</span></div>
-            <div class="hrms-kpi__value">@PayrollFormat.Count(sum.EmployeeCount)</div>
-            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_net_note", PayrollFormat.Money(sum.TotalNet)]</span></div>
-        </div>
-        <div class="hrms-card hrms-kpi">
-            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_generated"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("receipt", 16)</span></div>
-            <div class="hrms-kpi__value">@PayrollFormat.Count(sum.GeneratedCount)</div>
-            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@(sum.LastGeneratedDate is { } lg ? L["ps.kpi_generated_note", L.Date(lg)] : L["ps.kpi_not_yet"])</span></div>
-        </div>
-        <div class="hrms-card hrms-kpi @(toGenerate > 0 ? "ps-kpi--warn" : null)">
-            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_to_generate"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("alert", 16)</span></div>
-            <div class="hrms-kpi__value">@PayrollFormat.Count(toGenerate)</div>
-            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_to_generate_note", PayrollFormat.Count(sum.NotGeneratedCount), PayrollFormat.Count(sum.OutdatedCount)]</span></div>
-        </div>
-        <div class="hrms-card hrms-kpi">
-            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_emailed"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("mail", 16)</span></div>
-            <div class="hrms-kpi__value">@PayrollFormat.Count(sum.SentCount)</div>
-            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_viewed_note", PayrollFormat.Count(sum.ViewedCount)]</span></div>
-        </div>
-    </section>
 
     @if (!closed)
     {
@@ -126,21 +117,5 @@
                 </li>
             </ul>
         </form>
-        <div class="pr-actionbar ps-panel__actions">
-            <div class="pr-actionbar__status hrms-muted hrms-text-sm">
-                @if (!Model.Rights.CanGenerate)
-                {
-                    @L["ps.no_generate_right"]
-                }
-            </div>
-            <div class="pr-actionbar__spacer"></div>
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
-            @if (Model.Rights.CanGenerate)
-            {
-                <button type="button" class="btn btn-primary" data-ps-generate @(closed ? null : "disabled")>
-                    @Html.Icon("receipt", 15)<span>@(sum.GeneratedCount > 0 ? L["ps.generate_again"] : L["ps.generate_payslips"])</span>
-                </button>
-            }
-        </div>
     </section>
 </div>

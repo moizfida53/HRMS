@@ -72,9 +72,12 @@ public sealed class PayslipsController : Controller
     [HttpGet("")]
     public IActionResult Index() => RedirectToAction(nameof(Generate));
 
-    /// <summary>Generate Payslips: the payrolls - by default the closed ones with payslips still to generate.</summary>
+    /// <summary>
+    /// Generate Payslips: the payrolls - by default the closed ones with payslips still to generate.
+    /// <paramref name="open"/> (a payroll reference, e.g. from "Goto PaySlips" on Payrolls) opens its popup.
+    /// </summary>
     [HttpGet("generate")]
-    public async Task<IActionResult> Generate(int? year, string? month, string? show, string? q)
+    public async Task<IActionResult> Generate(int? year, string? month, string? show, string? q, string? open)
     {
         var rights = Rights;
         if (!rights.CanView) return Forbid();
@@ -94,8 +97,13 @@ public sealed class PayslipsController : Controller
                         || (r.CalendarName?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
             .ToList();
 
+        var openId = _refs.One(RefPurpose.PayslipRun, open);
+        var openRun = openId is null ? null : runs.FirstOrDefault(r => r.PayrollRunId == openId);
+
         return View("~/Views/Payslips/Generate.cshtml", new PayslipGenerateModel
         {
+            OpenRef = openRun is null ? null : open,
+            OpenTitle = openRun?.RunCode,
             Rights = rights,
             Runs = runs,
             Rows = rows,

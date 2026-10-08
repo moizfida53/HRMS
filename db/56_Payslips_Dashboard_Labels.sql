@@ -38,7 +38,10 @@ INSERT INTO #Seed (LabelKey, Module, EnglishText, ArabicText, SourceText) VALUES
     ('ps.show_done', 'ps', N'All generated', N'تم إنشاء الكل', NULL),
     ('ps.show_all', 'ps', N'All payrolls', N'جميع الرواتب', NULL),
     ('ps.show_pending_link', 'ps', N'Show them', N'اعرضها', NULL),
-    ('ps.view_payroll_0', 'ps', N'View payroll {0} and generate its payslips', N'عرض الرواتب {0} وإنشاء قسائمها', NULL);
+    ('ps.view_payroll_0', 'ps', N'Generate the payslips of payroll {0}', N'إنشاء قسائم الرواتب {0}', NULL),
+    ('pr.pending_generate_payslips', 'pr', N'Pending Generate PaySlips', N'قسائم بانتظار الإنشاء', NULL),
+    ('pr.goto_payslips', 'pr', N'Goto PaySlips', N'الانتقال إلى القسائم', NULL),
+    ('pr.no_payslips_pending_text', 'pr', N'Every closed payroll has its payslips generated.', N'تم إنشاء قسائم جميع الرواتب المغلقة.', NULL);
 INSERT INTO [Core].[UiLabels] (LabelKey, Module, EnglishText, ArabicText, SourceText)
 SELECT s.LabelKey, s.Module, s.EnglishText, s.ArabicText, s.SourceText
 FROM   #Seed AS s
