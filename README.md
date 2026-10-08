@@ -797,6 +797,55 @@ Files: `Controllers/PayrollDashboardController.cs`, `Domain/Payroll/PayrollDashb
 `wwwroot/scss/_dashboard-payroll.scss`. The old preview now opens the live page.
 
 
+### Generate Payslips (list + popups) and the dashboard per-company bars
+
+**Generate Payslips** (`/payroll/payslips/generate`) now lists the **payrolls**. By
+default it shows only the closed payrolls with payslips still to generate (none yet, or
+outdated). Filters: Year, Period, Show (*To generate* / *Not closed yet* / *All
+generated* / *All payrolls*) and a search. Each row shows its progress (*x of y
+generated*) and three actions:
+
+* **View** (eye icon): a popup with the payroll's figures (employees, generated, to
+  generate, emailed), the banners and the **generate form** (everyone or one
+  department; language). View / Email Payslips are not in it - they are on the row.
+* **View Payslips**: a popup with the payroll's employees and their payslip (search,
+  department, status, paging). The eye / printer icons open the payslip in a new tab.
+* **Email Payslips**: opens Email Payslips for that payroll (closed, with payslips).
+
+**Payroll Dashboard:** when the 12-month trend covers two or more companies, every month
+shows **one bar per company** (a fixed colour per company, a legend with each company's
+12-month total, hover for the figure; a hidden table carries the figures for screen
+readers). One company keeps the single bar.
+
+Scripts: re-run `db/43_Payslip_StoredProcedures.sql` (RUNS returns the payslips still to
+generate) and `db/53_Payroll_Dashboard.sql` (TREND_CO), then run
+`db/56_Payslips_Dashboard_Labels.sql` (labels, safe to re-run).
+
+### No record ids in addresses (parameter tampering / IDOR)
+
+* **Opaque references.** On the Payslips pages no database id travels in an address or a
+  posted field. A payroll or a payslip is named by a **reference**
+  (`Security/RefProtector.cs`): the ids encrypted and signed with ASP.NET Core Data
+  Protection, bound to a purpose and to the signed-in user, valid for 12 hours. A changed
+  character, another user's reference, or one for another purpose is refused (the page
+  opens without it). Popups and lists load by **POST** with the anti-forgery token
+  (`HRMS.postHtml`). Payslip addresses are `/payroll/payslips/view/{reference}` and
+  `/payroll/payslips/my/{reference}`; Employee / Email Payslips take `?ref=`.
+* **Company scope on every id.** A user pinned to a company (`ActiveCompanyId`) can only
+  read or change that company's records, whatever id is sent (`Security/CompanyScope.cs`).
+  This is now enforced on the employee profile, dependents, documents (including the file
+  download), employee save / delete / activate, the Organization forms, save / delete /
+  activate and lookups (also the Companies tab and `?CompanyId=` on the grids), and the
+  payroll calendar / period form, save, delete, period list and next-code. Another
+  company's id answers "not found".
+* The other modules already checked the company of every id they load (payroll runs,
+  bank files, journals, settlements, pay items, payroll settings). Their addresses still
+  carry ids (`?run=`, `/{id}`); moving them to references uses the same `IRefProtector`.
+
+The Data Protection keys sign these references (and the sign-in cookie). With more than
+one web server, or to keep references valid across restarts, persist the key ring
+(`services.AddDataProtection().PersistKeysToFileSystem(...)` or to the database).
+
 ### Sidebar: auto-minimize and auto-collapse
 
 On desktop (992 px and wider) the sidebar **auto-minimizes** to an icon rail

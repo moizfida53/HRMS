@@ -73,6 +73,22 @@ public sealed class EmployeesController : Controller
     // {ControllerName} convention.
     private const string ViewsRoot = "~/Views/Workforce/";
 
+    /// <summary>
+    /// The employee an id names exists and is in the user's company (CompanyScope) - checked
+    /// on every action that takes an employee id, so changing it in the address or a posted
+    /// field cannot reach another company's employee.
+    /// </summary>
+    private async Task<bool> OwnsEmployeeAsync(long employeeId)
+    {
+        if (employeeId <= 0) return false;
+        if (_currentUser.ActiveCompanyId is null) return true;
+        var employee = await _employees.GetByIdAsync(employeeId, Ct);
+        return employee is not null && _currentUser.Allows(employee.CompanyId);
+    }
+
+    private static IActionResult NotYours() =>
+        new JsonResult(ActionResponse.Failed("That record was not found.", "NOT_FOUND"));
+
     [HttpGet("")]
     [HttpGet("index")]
     public IActionResult Index() => View(ViewsRoot + "Index.cshtml");
@@ -82,7 +98,8 @@ public sealed class EmployeesController : Controller
     {
         // Scope the list to the user's active company once they have one,
         // same as every Organization Setup grid.
-        request.CompanyId ??= _currentUser.ActiveCompanyId;
+        // a pinned user's own company always wins over a CompanyId in the query string
+        request.CompanyId = _currentUser.ActiveCompanyId ?? request.CompanyId;
 
         // Top-bar company filter (cookie) - always from the server, never the query string.
         request.CompanyIds = _companyFilter.Csv;
@@ -143,7 +160,8 @@ public sealed class EmployeesController : Controller
 
         var employee = await _employees.GetByIdAsync(id, Ct);
 
-        if (employee is null)
+        // another company's employee answers "not found", like a missing one
+        if (employee is null || !_currentUser.Allows(employee.CompanyId))
         {
             return NotFound();
         }
@@ -176,12 +194,13 @@ public sealed class EmployeesController : Controller
 
         foreach (var type in ProfileLookupTypes)
         {
-            lookups[type] = await _lookups.GetAsync(
+            // a user pinned to a company only gets that company's lists
+            lookups[type] = _currentUser.OwnCompanies(type, await _lookups.GetAsync(
                 type,
-                companyId: null,
+                companyId: _currentUser.LookupCompany(null),
                 parentId: null,
                 includeInactive: includeInactive,
-                cancellationToken: Ct);
+                cancellationToken: Ct));
         }
 
         return lookups;
@@ -200,6 +219,12 @@ public sealed class EmployeesController : Controller
         if (!await TryUpdateModelAsync(model))
         {
             return Json(ActionResponse.Invalid(CollectErrors()));
+        }
+
+        // the employee (when editing) and the company chosen must both be the user's
+        if (!_currentUser.Allows(model.CompanyId) || (model.EmployeeId > 0 && !await OwnsEmployeeAsync(model.EmployeeId)))
+        {
+            return NotYours();
         }
 
         var result = await _employees.SaveAsync(model, _currentUser.UserId, Ct);
@@ -232,6 +257,11 @@ public sealed class EmployeesController : Controller
                 "Save the employee's Personal Info first, then add Kuwait compliance details."));
         }
 
+        if (!await OwnsEmployeeAsync(model.EmployeeId))
+        {
+            return NotYours();
+        }
+
         var (code, message) = await _compliance.UpsertAsync(model, _currentUser.UserId, Ct);
         var success = string.Equals(code, ResultCode.Success, StringComparison.Ordinal);
 
@@ -257,6 +287,8 @@ public sealed class EmployeesController : Controller
     [HttpGet("dependents/{employeeId:long}/grid")]
     public async Task<IActionResult> DependentsGrid(long employeeId)
     {
+        if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
+
         var dependents = await _dependents.ListAsync(employeeId, Ct);
 
         return PartialView(ViewsRoot + "Partials/_DependentsGrid.cshtml", dependents);
@@ -277,6 +309,11 @@ public sealed class EmployeesController : Controller
             return Json(ActionResponse.Failed("Save the employee first, then add dependents."));
         }
 
+        if (!await OwnsEmployeeAsync(model.EmployeeId))
+        {
+            return NotYours();
+        }
+
         var result = await _dependents.SaveAsync(model, _currentUser.UserId, Ct);
 
         return Json(result.Success
@@ -287,6 +324,8 @@ public sealed class EmployeesController : Controller
     [HttpPost("dependents/delete")]
     public async Task<IActionResult> DeleteDependent(long id, long employeeId)
     {
+        if (!await OwnsEmployeeAsync(employeeId)) return NotYours();
+
         var result = await _dependents.DeleteAsync(id, employeeId, _currentUser.UserId, Ct);
 
         return Json(result.Success
@@ -305,6 +344,8 @@ public sealed class EmployeesController : Controller
     [HttpGet("documents/{employeeId:long}/grid")]
     public async Task<IActionResult> DocumentsGrid(long employeeId)
     {
+        if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
+
         var rows = await _documents.ListAsync(employeeId, Ct);
 
         return PartialView(ViewsRoot + "Partials/_DocumentsGrid.cshtml", new EmployeeDocumentsViewModel
@@ -329,6 +370,11 @@ public sealed class EmployeesController : Controller
         if (file is null)
         {
             return Json(ActionResponse.Failed("Choose a file to upload."));
+        }
+
+        if (!await OwnsEmployeeAsync(employeeId))
+        {
+            return NotYours();
         }
 
         var (stored, error) = await _storage.SaveAsync(employeeId, file, Ct);
@@ -369,6 +415,8 @@ public sealed class EmployeesController : Controller
     [HttpGet("documents/{employeeId:long}/file/{attachmentId:long}")]
     public async Task<IActionResult> DocumentFile(long employeeId, long attachmentId, bool download = false)
     {
+        if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
+
         var file = await _documents.GetAsync(employeeId, attachmentId, Ct);
         var path = file is null ? null : _storage.Resolve(file.StoredFileName);
 
@@ -392,6 +440,8 @@ public sealed class EmployeesController : Controller
     [HttpPost("documents/delete")]
     public async Task<IActionResult> DeleteDocument(long id, long employeeId)
     {
+        if (!await OwnsEmployeeAsync(employeeId)) return NotYours();
+
         // Soft delete: the row and the file on disk are kept as history.
         var result = await _documents.DeleteAsync(employeeId, id, _currentUser.UserId, Ct);
 
@@ -403,6 +453,8 @@ public sealed class EmployeesController : Controller
     [HttpPost("delete")]
     public async Task<IActionResult> Delete(long id)
     {
+        if (!await OwnsEmployeeAsync(id)) return NotYours();
+
         var result = await _employees.DeleteAsync(id, _currentUser.UserId, Ct);
 
         return Json(result.Success
@@ -413,6 +465,8 @@ public sealed class EmployeesController : Controller
     [HttpPost("toggle")]
     public async Task<IActionResult> Toggle(long id)
     {
+        if (!await OwnsEmployeeAsync(id)) return NotYours();
+
         var result = await _employees.ToggleActiveAsync(id, _currentUser.UserId, Ct);
 
         return Json(result.Success

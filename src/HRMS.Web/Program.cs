@@ -176,6 +176,7 @@ builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<ISignInService, SignInService>();
 builder.Services.AddScoped<ICurrentUser, ClaimsCurrentUser>();
 builder.Services.AddScoped<ICompanyFilter, CookieCompanyFilter>();   // top-bar company filter (cookie)
+builder.Services.AddScoped<IRefProtector, RefProtector>();             // opaque, user-bound references instead of ids in URLs
 
 // Bilingual UI (English / Arabic): labels in Core.UiLabels, the user's choice
 // in Security.Users.PreferredLanguage + the Hrms-Lang cookie. db/33.

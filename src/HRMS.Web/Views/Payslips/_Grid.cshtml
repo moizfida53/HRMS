@@ -1,3 +1,4 @@
+@inject IRefProtector Refs
 @model PayslipGridModel
 @{
     // Employees of a payroll with their payslip ("employees") or email delivery ("email").
@@ -47,7 +48,9 @@ else
                 @foreach (var r in pg.Items)
                 {
                     var name = PayrollFormat.EmployeeName(L, r.EmployeeName, r.ArabicName);
-                    var viewUrl = Url.Action("Slip", "Payslips", new { runId = r.PayrollRunId, employeeId = r.EmployeeId });
+                    // the payslip is named by a reference (payroll + employee), never by ids in the address
+                    var slipRef = Refs.Protect(RefPurpose.Payslip, r.PayrollRunId, r.EmployeeId);
+                    var viewUrl = Url.Action("Slip", "Payslips", new { slipRef });
                     <tr>
                         <td data-label="@L["pr.employee"]" class="hrms-nowrap">
                             <span class="hrms-table__primary">@name</span>
@@ -146,10 +149,10 @@ else
                             </td>
                         }
                         <td class="hrms-table__actions">
-                            <a class="btn-icon" href="@viewUrl" title="@L["ps.view"]" aria-label="@L["ps.view_0", name]">@Html.Icon("eye", 15)</a>
+                            <a class="btn-icon" href="@viewUrl" target="_blank" rel="noopener" title="@L["ps.view"]" aria-label="@L["ps.view_0", name]">@Html.Icon("eye", 15)</a>
                             @if (!email)
                             {
-                                <a class="btn-icon" href="@(viewUrl + "?print=1")" title="@L["ps.print"]" aria-label="@L["ps.print_0", name]">@Html.Icon("printer", 15)</a>
+                                <a class="btn-icon" href="@(viewUrl + "?print=1")" target="_blank" rel="noopener" title="@L["ps.print"]" aria-label="@L["ps.print_0", name]">@Html.Icon("printer", 15)</a>
                             }
                             else if (Model.Rights.CanEmail && r.IsClosed)
                             {
@@ -159,7 +162,7 @@ else
                                 }
                                 else if (r.IsGenerated && !r.IsOutdated && r.EmailStatus is PayslipEmailStatus.NotSent or PayslipEmailStatus.Failed or PayslipEmailStatus.Sent)
                                 {
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-ps-send="@r.EmployeeId"
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-ps-send="@slipRef"
                                             data-ps-resend="@(r.EmailStatus == PayslipEmailStatus.Sent ? "true" : "false")">
                                         @Html.Icon(r.EmailStatus == PayslipEmailStatus.NotSent ? "send" : "refresh", 14)
                                         <span>@(r.EmailStatus == PayslipEmailStatus.NotSent ? L["ps.send"] : L["ps.resend"])</span>

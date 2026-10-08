@@ -268,6 +268,8 @@ public sealed class PayrollDashboardModel
     public IReadOnlyList<DateTime> Months { get; init; } = Array.Empty<DateTime>();
     public required DashboardSummary Summary { get; init; }
     public IReadOnlyList<DashboardTrendPoint> Trend { get; init; } = Array.Empty<DashboardTrendPoint>();
+    /// <summary>Net pay per company and month (TREND_CO) - one bar per company when several are in scope.</summary>
+    public IReadOnlyList<DashboardTrendCompany> TrendByCompany { get; init; } = Array.Empty<DashboardTrendCompany>();
     public IReadOnlyList<DashboardDepartment> Departments { get; init; } = Array.Empty<DashboardDepartment>();
     public IReadOnlyList<DashboardPeriod> Calendar { get; init; } = Array.Empty<DashboardPeriod>();
     public required DashboardAttention Attention { get; init; }
@@ -280,6 +282,36 @@ public sealed class PayrollDashboardModel
 
     /// <summary>Chart values in KWD thousands once any month reaches 10,000 KWD, else in KWD.</summary>
     public bool InThousands => Trend.Any(t => t.NetPay >= 10_000) || Departments.Any(d => d.Gross >= 10_000);
+
+    private IReadOnlyList<DashboardTrendCompany>? _trendCompanies;
+
+    /// <summary>The companies with a payroll in the 12 months, in a fixed (name) order - the colour order of the bars.</summary>
+    public IReadOnlyList<DashboardTrendCompany> TrendCompanies => _trendCompanies ??= TrendByCompany
+        .GroupBy(c => c.CompanyId)
+        .Select(g => new DashboardTrendCompany
+        {
+            CompanyId = g.Key, CompanyCode = g.First().CompanyCode, CompanyName = g.First().CompanyName,
+            NetPay = g.Sum(x => x.NetPay)
+        })
+        .OrderBy(c => c.CompanyName, StringComparer.CurrentCultureIgnoreCase)
+        .ToList();
+
+    /// <summary>Grouped bars (one per company) once two or more companies have payrolls in the 12 months.</summary>
+    public bool TrendPerCompany => TrendCompanies.Count > 1;
+
+    public decimal CompanyNet(DateTime month, int companyId) =>
+        TrendByCompany.Where(c => c.RunMonth == month && c.CompanyId == companyId).Sum(c => c.NetPay);
+
+    public int CompanyEmployees(DateTime month, int companyId) =>
+        TrendByCompany.Where(c => c.RunMonth == month && c.CompanyId == companyId).Sum(c => c.Employees);
+
+    /// <summary>Colour slot (dash-co-0 .. dash-co-7) of a company.</summary>
+    public int CompanyColour(int companyId)
+    {
+        for (var i = 0; i < TrendCompanies.Count; i++)
+            if (TrendCompanies[i].CompanyId == companyId) return i % 8;
+        return 0;
+    }
 
     public string Short(decimal v) => InThousands
         ? (v / 1000m).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)

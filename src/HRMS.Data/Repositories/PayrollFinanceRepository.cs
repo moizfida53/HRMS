@@ -60,6 +60,7 @@ public interface IPayrollFinanceRepository
     Task<IReadOnlyList<DateTime>> DashboardMonthsAsync(int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<DashboardSummary?> DashboardSummaryAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DashboardTrendPoint>> DashboardTrendAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DashboardTrendCompany>> DashboardTrendByCompanyAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DashboardDepartment>> DashboardDepartmentsAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DashboardPeriod>> DashboardCalendarAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<DashboardAttention?> DashboardAttentionAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
@@ -387,6 +388,9 @@ public sealed class PayrollFinanceRepository : IPayrollFinanceRepository
 
     public Task<IReadOnlyList<DashboardTrendPoint>> DashboardTrendAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default) =>
         _sql.QueryAsync<DashboardTrendPoint>(StoredProcedure.PayrollDashboard, DashEnv("TREND", month, companyId, companyIds), cancellationToken);
+
+    public Task<IReadOnlyList<DashboardTrendCompany>> DashboardTrendByCompanyAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default) =>
+        _sql.QueryAsync<DashboardTrendCompany>(StoredProcedure.PayrollDashboard, DashEnv("TREND_CO", month, companyId, companyIds), cancellationToken);
 
     public Task<IReadOnlyList<DashboardDepartment>> DashboardDepartmentsAsync(DateTime month, int? companyId, string? companyIds, CancellationToken cancellationToken = default) =>
         _sql.QueryAsync<DashboardDepartment>(StoredProcedure.PayrollDashboard, DashEnv("DEPT", month, companyId, companyIds), cancellationToken);

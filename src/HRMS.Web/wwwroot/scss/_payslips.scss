@@ -643,3 +643,67 @@ $ps-stack: "sm";
   .ps-doc__tables { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ps-doc__table, .ps-doc__net { break-inside: avoid; }
 }
+
+/* ===================================================== Generate Payslips list
+ * The payrolls grid (filters | rows with progress | actions) and its popups. */
+.ps-gen-filters {
+  .hrms-card__filters { gap: .5rem; }
+  &__icon {
+    display: inline-grid; place-items: center; inline-size: 34px; block-size: 34px; flex: 0 0 auto;
+    border-radius: 8px; background: var(--hrms-blue-050); color: var(--hrms-blue-700);
+  }
+  &__year { width: auto; min-width: 120px; }
+  &__month, &__show { width: auto; min-width: 170px; }
+  &__search { flex: 1 1 220px; max-width: 320px; }
+}
+@container content (max-width: 699.98px) {
+  .ps-gen-filters__icon { display: none; }
+  .ps-gen-filters__year, .ps-gen-filters__month, .ps-gen-filters__show { flex: 1 1 calc(50% - .5rem); min-width: 0; }
+  .ps-gen-filters__search { flex: 1 1 100%; max-width: none; }
+}
+
+.ps-run-row--pending td:first-child { box-shadow: inset 3px 0 0 var(--hrms-amber-600, #d97706); }
+[dir="rtl"] .ps-run-row--pending td:first-child { box-shadow: inset -3px 0 0 var(--hrms-amber-600, #d97706); }
+
+.ps-run-progress {
+  min-width: 140px;
+  &__text { display: block; font-size: .8rem; font-weight: 600; color: var(--hrms-ink-700); font-variant-numeric: tabular-nums; }
+  &__bar {
+    display: block; height: 6px; margin: .3rem 0 .35rem; border-radius: 999px; background: var(--hrms-line-200); overflow: hidden;
+    > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--hrms-blue-500), var(--hrms-blue-600)); transition: width .3s ease; }
+    > span.is-done { background: linear-gradient(90deg, #12a150, #0b7a3b); }
+  }
+  &__todo { font-size: .7rem; }
+}
+
+/* the actions wrap inside the cell (eye + View payslips, Email payslips below) instead of widening the table */
+.ps-run-table td.ps-run-actions {
+  width: 1%;
+  white-space: normal;
+  > .ps-run-actions__wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .35rem; min-width: 196px; max-width: 250px; margin-inline-start: auto; }
+  .btn { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
+}
+@container content (max-width: 699.98px) {
+  .ps-run-table td.ps-run-actions { width: auto; > .ps-run-actions__wrap { max-width: none; min-width: 0; } }
+  .ps-run-progress { min-width: 0; }
+}
+
+/* the popups */
+.ps-modal {
+  .modal-body { padding: 1rem 1.25rem; background: var(--hrms-surface-2, #f7f8fb); container-type: inline-size; container-name: content; }
+  .modal-content { overflow: hidden; }
+}
+.ps-panel {
+  display: grid;
+  gap: 1rem;
+  .fin-facts--popup { margin: 0; }
+  .pr-kpis { margin: 0; }
+  .pr-banner { margin: 0; }
+  .ps-generate { margin: 0; }
+  &__actions.pr-actionbar { position: static; margin: 0; box-shadow: none; border-radius: 0 0 12px 12px; }
+}
+@media (max-width: 575.98px) {
+  .ps-modal .modal-body { padding: .75rem; }
+  .ps-panel__actions { flex-wrap: wrap; }
+  .ps-panel__actions .btn { flex: 1 1 auto; justify-content: center; }
+}

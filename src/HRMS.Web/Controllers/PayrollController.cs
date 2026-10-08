@@ -485,6 +485,7 @@ public sealed class PayrollController : Controller
     public async Task<IActionResult> Periods(int calendarId)
     {
         if (!Can(PermView)) return Forbid();
+        if (!await OwnsCalendar(calendarId)) return NotFound();
         var periods = await _calendars.PeriodsAsync(calendarId, null, openableOnly: true, Ct);
         return Json(periods.Select(p => new
         {
@@ -519,6 +520,7 @@ public sealed class PayrollController : Controller
     public async Task<IActionResult> NextCode(int periodId)
     {
         if (!Can(PermView)) return Forbid();
+        if (!await OwnsPeriod(periodId)) return NotFound();
         var next = await _runs.NextCodeAsync(periodId, Ct);
         if (next is null) return Json(new { ok = false });
 
@@ -726,7 +728,8 @@ public sealed class PayrollController : Controller
         var calendar = isNew
             ? new PayrollCalendar { CompanyId = OwnCompany ?? _companyFilter.SingleCompanyId ?? 0, FirstPeriodStartDate = new DateTime(DateTime.Today.Year, 1, 1), CutOffDay = 25, PaymentDay = 28 }
             : await _calendars.GetByIdAsync(id, Ct);
-        if (calendar is null) return NotFound();
+        // another company's calendar answers "not found", like a missing one
+        if (calendar is null || (OwnCompany is { } mine && !isNew && calendar.CompanyId != mine)) return NotFound();
 
         var companies = await _lookups.GetAsync(LookupType.Company, includeInactive: !isNew, cancellationToken: Ct);
         if (OwnCompany is { } own) companies = companies.Where(c => c.Id == own).ToList();
@@ -781,7 +784,7 @@ public sealed class PayrollController : Controller
     {
         if (!Can(PermSetupEdit)) return Forbid();
         var period = await _calendars.GetPeriodAsync(id, Ct);
-        if (period is null) return NotFound();
+        if (period is null || (OwnCompany is { } own && period.CompanyId != own)) return NotFound();
         return PartialView("_PeriodForm", new PeriodFormModel { Period = period });
     }
 
@@ -791,6 +794,7 @@ public sealed class PayrollController : Controller
         if (!Can(PermSetupEdit)) return Denied();
         var model = new PayrollPeriodEdit();
         if (!await TryUpdateModelAsync(model)) return Json(ActionResponse.Invalid(CollectErrors()));
+        if (!await OwnsPeriod(model.PayrollPeriodId)) return Denied();
         return Result(await _calendars.SavePeriodAsync(model, UserId, Ct));
     }
 
@@ -798,6 +802,7 @@ public sealed class PayrollController : Controller
     public async Task<IActionResult> PeriodDelete(int id)
     {
         if (!Can(PermSetupDelete)) return Denied();
+        if (!await OwnsPeriod(id)) return Denied();
         return Result(await _calendars.DeletePeriodAsync(id, UserId, Ct));
     }
 
@@ -835,6 +840,15 @@ public sealed class PayrollController : Controller
     private bool CanSee(PayrollRun run) =>
         (OwnCompany is not { } own || run.CompanyId == own)
         && (run.Stage != RunStage.Draft || run.CreatedBy == UserId || IsSysAdmin);
+
+    /// <summary>The period an id names exists and its calendar is in the user's company.</summary>
+    private async Task<bool> OwnsPeriod(int periodId)
+    {
+        if (periodId <= 0) return false;
+        if (OwnCompany is not { } own) return true;
+        var p = await _calendars.GetPeriodAsync(periodId, Ct);
+        return p is not null && p.CompanyId == own;
+    }
 
     private async Task<bool> OwnsCalendar(int calendarId)
     {

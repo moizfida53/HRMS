@@ -93,7 +93,8 @@ public sealed class OrganizationController : Controller
         var descriptor = OrganizationTabs.Resolve(tab);
 
         // Scope every grid to the user's active company once they have one.
-        request.CompanyId ??= _currentUser.ActiveCompanyId;
+        // a pinned user's own company always wins over a CompanyId in the query string
+        request.CompanyId = _currentUser.ActiveCompanyId ?? request.CompanyId;
 
         // Top-bar company filter (cookie). Companies tab ignores it (Core.usp_Company_Manage
         // accepts but does not apply @CompanyIds) so every company stays listed there.
@@ -192,14 +193,14 @@ public sealed class OrganizationController : Controller
     public Task<IActionResult> Delete(string tab, long id) =>
         OrganizationTabs.Resolve(tab).Key switch
         {
-            OrganizationTabs.Companies    => WriteAsync(ct => _companies.DeleteAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Branches     => WriteAsync(ct => _branches.DeleteAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Departments  => WriteAsync(ct => _departments.DeleteAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Sections     => WriteAsync(ct => _sections.DeleteAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Designations => WriteAsync(ct => _designations.DeleteAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.JobPositions => WriteAsync(ct => _jobPositions.DeleteAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Locations    => WriteAsync(ct => _locations.DeleteAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.CostCenters  => WriteAsync(ct => _costCenters.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Companies    => GuardedAsync(_companies, id, ct => _companies.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Branches     => GuardedAsync(_branches, id, ct => _branches.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Departments  => GuardedAsync(_departments, id, ct => _departments.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Sections     => GuardedAsync(_sections, id, ct => _sections.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Designations => GuardedAsync(_designations, id, ct => _designations.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.JobPositions => GuardedAsync(_jobPositions, id, ct => _jobPositions.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Locations    => GuardedAsync(_locations, id, ct => _locations.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.CostCenters  => GuardedAsync(_costCenters, id, ct => _costCenters.DeleteAsync(id, _currentUser.UserId, ct)),
             _ => Task.FromResult<IActionResult>(BadRequest())
         };
 
@@ -207,14 +208,14 @@ public sealed class OrganizationController : Controller
     public Task<IActionResult> Toggle(string tab, long id) =>
         OrganizationTabs.Resolve(tab).Key switch
         {
-            OrganizationTabs.Companies    => WriteAsync(ct => _companies.ToggleActiveAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Branches     => WriteAsync(ct => _branches.ToggleActiveAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Departments  => WriteAsync(ct => _departments.ToggleActiveAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Sections     => WriteAsync(ct => _sections.ToggleActiveAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Designations => WriteAsync(ct => _designations.ToggleActiveAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.JobPositions => WriteAsync(ct => _jobPositions.ToggleActiveAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.Locations    => WriteAsync(ct => _locations.ToggleActiveAsync(id, _currentUser.UserId, ct)),
-            OrganizationTabs.CostCenters  => WriteAsync(ct => _costCenters.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Companies    => GuardedAsync(_companies, id, ct => _companies.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Branches     => GuardedAsync(_branches, id, ct => _branches.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Departments  => GuardedAsync(_departments, id, ct => _departments.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Sections     => GuardedAsync(_sections, id, ct => _sections.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Designations => GuardedAsync(_designations, id, ct => _designations.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.JobPositions => GuardedAsync(_jobPositions, id, ct => _jobPositions.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.Locations    => GuardedAsync(_locations, id, ct => _locations.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.CostCenters  => GuardedAsync(_costCenters, id, ct => _costCenters.ToggleActiveAsync(id, _currentUser.UserId, ct)),
             _ => Task.FromResult<IActionResult>(BadRequest())
         };
 
@@ -228,8 +229,9 @@ public sealed class OrganizationController : Controller
     {
         try
         {
-            var items = await _lookups.GetAsync(type, companyId, parentId, includeInactive, Ct);
-            return Json(items);
+            // a user pinned to a company only gets that company's lists, whatever companyId is asked for
+            var items = await _lookups.GetAsync(type, _currentUser.LookupCompany(companyId), parentId, includeInactive, Ct);
+            return Json(_currentUser.OwnCompanies(type, items));
         }
         catch (ArgumentException)
         {
@@ -266,6 +268,13 @@ public sealed class OrganizationController : Controller
     {
         var page = await repository.ListAsync(request, Ct);
 
+        // Core.usp_Company_Manage lists every company - a pinned user sees only their own
+        if (_currentUser.ActiveCompanyId is not null && typeof(T) == typeof(Company))
+        {
+            var own = page.Items.Where(x => _currentUser.Allows(CompanyScope.CompanyOf(x))).ToList();
+            page = new PagedResult<T> { Items = own, TotalCount = own.Count, PageNumber = 1, PageSize = page.PageSize };
+        }
+
         return PartialView(tab.GridPartial, new GridViewModel<T>
         {
             Tab = tab,
@@ -284,7 +293,8 @@ public sealed class OrganizationController : Controller
         var isNew = id <= 0;
         T? model = isNew ? createNew() : await repository.GetByIdAsync(id, Ct);
 
-        if (model is null)
+        // another company's record answers "not found", like a missing one
+        if (model is null || (!isNew && !_currentUser.Allows(CompanyScope.CompanyOf(model))))
         {
             return NotFound();
         }
@@ -295,12 +305,12 @@ public sealed class OrganizationController : Controller
         {
             // includeInactive on edit, so a value pointing at a deactivated row
             // does not silently disappear from its dropdown.
-            lookups[type] = await _lookups.GetAsync(
+            lookups[type] = _currentUser.OwnCompanies(type, await _lookups.GetAsync(
                 type,
-                companyId: null,
+                companyId: _currentUser.LookupCompany(null),
                 parentId: null,
                 includeInactive: !isNew,
-                cancellationToken: Ct);
+                cancellationToken: Ct));
         }
 
         return PartialView(tab.FormPartial, new FormViewModel<T>
@@ -323,6 +333,11 @@ public sealed class OrganizationController : Controller
             return Json(ActionResponse.Invalid(CollectErrors()));
         }
 
+        if (!await MaySaveAsync(repository, model))
+        {
+            return Json(ActionResponse.Failed("That record was not found.", "NOT_FOUND"));
+        }
+
         var result = await repository.SaveAsync(model, _currentUser.UserId, Ct);
 
         if (!result.Success)
@@ -335,6 +350,50 @@ public sealed class OrganizationController : Controller
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)
             : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    /// <summary>
+    /// A pinned user may only save their own company's records: the company posted, the record
+    /// being edited (its id property, e.g. BranchId), and - for a section - its department.
+    /// </summary>
+    private async Task<bool> MaySaveAsync<T>(IMasterRepository<T> repository, T model) where T : class
+    {
+        if (_currentUser.ActiveCompanyId is null) return true;
+
+        if (model is Section section)
+        {
+            var department = section.DepartmentId > 0 ? await _departments.GetByIdAsync(section.DepartmentId, Ct) : null;
+            if (department is null || !_currentUser.Allows(department.CompanyId)) return false;
+        }
+        else if (!_currentUser.Allows(CompanyScope.CompanyOf(model)))
+        {
+            return false;
+        }
+
+        // the record's key: <Type>Id (BranchId, SectionId, ...), PositionId for a job position
+        var keyName = typeof(T) == typeof(JobPosition) ? nameof(JobPosition.PositionId) : typeof(T).Name + "Id";
+        var key = typeof(T).GetProperty(keyName)?.GetValue(model);
+        var id = key switch { int i => i, long l => l, _ => 0L };
+        return id <= 0 || await OwnsAsync(repository, id);
+    }
+
+    /// <summary>The record an id names exists and is in the user's company (CompanyScope).</summary>
+    private async Task<bool> OwnsAsync<T>(IMasterRepository<T> repository, long id) where T : class
+    {
+        if (_currentUser.ActiveCompanyId is null) return true;
+        if (id <= 0) return false;
+        var record = await repository.GetByIdAsync(id, Ct);
+        return record is not null && _currentUser.Allows(CompanyScope.CompanyOf(record));
+    }
+
+    /// <summary>A delete / toggle, only on a record of the user's company.</summary>
+    private async Task<IActionResult> GuardedAsync<T>(IMasterRepository<T> repository, long id, Func<CancellationToken, Task<SaveResult>> operation) where T : class
+    {
+        if (!await OwnsAsync(repository, id))
+        {
+            return Json(ActionResponse.Failed("That record was not found.", "NOT_FOUND"));
+        }
+        return await WriteAsync(operation);
     }
 
     private async Task<IActionResult> WriteAsync(Func<CancellationToken, Task<SaveResult>> operation)

@@ -70,7 +70,7 @@
         </div>
         @if (s.IsClosed && Model.CanGenerate)
         {
-            <button type="button" class="btn btn-sm btn-primary ms-auto" data-ps-generate-one="@s.EmployeeId" data-ps-run-id="@s.PayrollRunId"
+            <button type="button" class="btn btn-sm btn-primary ms-auto" data-ps-generate-one="@Model.SlipRef"
                     data-url="@Url.Action("GeneratePayslips", "Payslips")">@Html.Icon("receipt", 14)<span>@L["ps.generate_this"]</span></button>
         }
     </div>

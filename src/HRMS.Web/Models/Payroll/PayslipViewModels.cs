@@ -31,6 +31,8 @@ public sealed class PayslipPageModel
     public int? Year { get; init; }
     public DateTime? Month { get; init; }
     public bool EmailConfigured { get; init; }
+    /// <summary>The reference of the chosen payroll (never its id).</summary>
+    public string? RunRef { get; init; }
 
     /// <summary>The years that have payrolls, newest first.</summary>
     public IReadOnlyList<int> Years => Runs.Select(r => r.RunMonth.Year).Distinct().OrderByDescending(y => y).ToList();
@@ -53,6 +55,78 @@ public sealed class PayslipGridModel
     public bool AllRuns { get; init; }
 }
 
+/// <summary>Which payrolls the Generate Payslips list shows.</summary>
+public static class PayslipShow
+{
+    /// <summary>Closed, with payslips still to generate (the default).</summary>
+    public const string Pending = "pending";
+    /// <summary>Not closed yet - payslips can only be previewed.</summary>
+    public const string Open = "open";
+    /// <summary>Closed, every payslip generated and up to date.</summary>
+    public const string Done = "done";
+    public const string All = "all";
+
+    public static readonly string[] Values = [Pending, Open, Done, All];
+
+    public static string Normalize(string? show) => Values.Contains(show) ? show! : Pending;
+
+    public static bool Matches(PayslipRun r, string show) => show switch
+    {
+        Pending => r.IsPending,
+        Open => !r.IsClosed,
+        Done => r.IsClosed && r.ToGenerateCount == 0,
+        _ => true
+    };
+
+    public static string Key(string show) => show switch
+    {
+        Open => "ps.show_open",
+        Done => "ps.show_done",
+        All => "ps.show_all",
+        _ => "ps.show_pending"
+    };
+}
+
+/// <summary>Generate Payslips: the payrolls (pending ones first), each opening its details in a popup.</summary>
+public sealed class PayslipGenerateModel
+{
+    public required PayslipRights Rights { get; init; }
+    /// <summary>Every payroll in scope (for the Year / Period lists and the counts).</summary>
+    public IReadOnlyList<PayslipRun> Runs { get; init; } = Array.Empty<PayslipRun>();
+    /// <summary>The payrolls listed (filters applied).</summary>
+    public IReadOnlyList<PayslipRun> Rows { get; init; } = Array.Empty<PayslipRun>();
+    public int? Year { get; init; }
+    public DateTime? Month { get; init; }
+    public string Show { get; init; } = PayslipShow.Pending;
+    public string? Search { get; init; }
+    public bool ManyCompanies { get; init; }
+    public bool EmailConfigured { get; init; }
+
+    public IReadOnlyList<int> Years => Runs.Select(r => r.RunMonth.Year).Distinct().OrderByDescending(y => y).ToList();
+    public IReadOnlyList<DateTime> Months => Runs.Select(r => r.RunMonth).Distinct().OrderByDescending(m => m).ToList();
+    public int PendingCount => Runs.Count(r => r.IsPending);
+    public bool IsFiltered => Year is not null || Month is not null || !string.IsNullOrWhiteSpace(Search) || Show != PayslipShow.Pending;
+}
+
+/// <summary>The View popup of Generate Payslips: the payroll's figures and the generate form.</summary>
+public sealed class PayslipRunPanelModel
+{
+    public required PayslipRun Run { get; init; }
+    public required string Ref { get; init; }
+    public required PayslipSummary Summary { get; init; }
+    public IReadOnlyList<LookupItem> Departments { get; init; } = Array.Empty<LookupItem>();
+    public required PayslipRights Rights { get; init; }
+}
+
+/// <summary>The View Payslips popup: the employees of one payroll with their payslip.</summary>
+public sealed class PayslipSlipsPanelModel
+{
+    public required PayslipRun Run { get; init; }
+    public required string Ref { get; init; }
+    public IReadOnlyList<LookupItem> Departments { get; init; } = Array.Empty<LookupItem>();
+    public required PayslipRights Rights { get; init; }
+}
+
 /// <summary>My Payslips - the signed-in employee's own payslips.</summary>
 public sealed class MyPayslipsModel
 {
@@ -71,6 +145,8 @@ public sealed class PayslipDocumentModel
     public bool IsSelf { get; init; }
     public bool CanGenerate { get; init; }
     public string? BackUrl { get; init; }
+    /// <summary>The reference of this payslip (payroll + employee) for "Generate this payslip".</summary>
+    public string? SlipRef { get; init; }
     /// <summary>The text of a label key in English and in Arabic.</summary>
     public required Func<string, object?[], (string En, string Ar)> Both { get; init; }
 

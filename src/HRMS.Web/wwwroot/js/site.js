@@ -355,6 +355,22 @@
         });
     };
 
+    /** POST (anti-forgery token included) and return the HTML of a panel - for panels that
+     *  name a record, so its reference travels in the request body, never in the address. */
+    HRMS.postHtml = function (url, body) {
+        return fetch(url, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "RequestVerificationToken": HRMS.antiForgeryToken(), "Accept": "text/html", "X-Requested-With": "XMLHttpRequest" },
+            body: body
+        }).then(function (response) {
+            if (!response.ok) {
+                throw new Error(HRMS.t("js.could_not_load_panel", "Could not load the panel ({0}).", response.status));
+            }
+            return response.text();
+        });
+    };
+
     /* --------------------------------------------------- company filter -- */
 
     // Top-bar company dropdown. The choice is saved in a cookie that the

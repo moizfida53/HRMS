@@ -48,6 +48,7 @@ public sealed class PayrollDashboardController : PayrollFinanceControllerBase
             Months = offered.OrderByDescending(x => x).ToList(),
             Summary = await _finance.DashboardSummaryAsync(m, OwnCompany, CompanyCsv, Ct) ?? new DashboardSummary { RunMonth = m },
             Trend = await _finance.DashboardTrendAsync(m, OwnCompany, CompanyCsv, Ct),
+            TrendByCompany = await _finance.DashboardTrendByCompanyAsync(m, OwnCompany, CompanyCsv, Ct),
             Departments = await _finance.DashboardDepartmentsAsync(m, OwnCompany, CompanyCsv, Ct),
             Calendar = await _finance.DashboardCalendarAsync(m, OwnCompany, CompanyCsv, Ct),
             Attention = await _finance.DashboardAttentionAsync(m, OwnCompany, CompanyCsv, Ct) ?? new DashboardAttention(),

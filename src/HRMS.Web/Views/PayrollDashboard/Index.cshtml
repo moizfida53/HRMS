@@ -141,23 +141,72 @@
             }
             else
             {
-                <div class="pr-trend dash-trend" role="img" aria-label="@L["prv.net_payroll_last_0_months", 12]">
-                    @foreach (var t in Model.Trend)
-                    {
-                        var h = t.NetPay <= 0 ? 0 : Math.Max(4, (int)Math.Round(t.NetPay / trendMax * 130m));
-                        <div class="pr-trend__col @(t.RunMonth == month ? "is-current" : null)"
-                             title="@L.MonthYear(t.RunMonth): @PayrollFormat.Money(t.NetPay) · @L["dash.n_employees", t.Employees]">
-                            <span class="pr-trend__val">@(t.NetPay > 0 ? Model.Short(t.NetPay) : "")</span>
-                            <span class="pr-trend__bar" style="height:@(h)px"></span>
-                        </div>
-                    }
-                </div>
+                @if (Model.TrendPerCompany)
+                {
+                    @* one bar per company in each month; the scale is the largest single bar *@
+                    var coMax = Model.TrendByCompany.Count == 0 ? 0m : Model.TrendByCompany.Max(c => c.NetPay);
+                    <div class="pr-trend dash-trend dash-trend--grouped" role="img" aria-label="@L["dash.trend_by_company"]">
+                        @foreach (var t in Model.Trend)
+                        {
+                            <div class="pr-trend__col @(t.RunMonth == month ? "is-current" : null)">
+                                <span class="pr-trend__val" title="@L["dash.total_0", PayrollFormat.Money(t.NetPay)]">@(t.NetPay > 0 ? Model.Short(t.NetPay) : "")</span>
+                                <span class="dash-trend__group">
+                                    @foreach (var co in Model.TrendCompanies)
+                                    {
+                                        var v = Model.CompanyNet(t.RunMonth, co.CompanyId);
+                                        var h = v <= 0 || coMax <= 0 ? 0 : Math.Max(3, (int)Math.Round(v / coMax * 130m));
+                                        <span class="dash-trend__bar dash-co-@Model.CompanyColour(co.CompanyId)" style="height:@(h)px"
+                                              title="@co.CompanyName · @L.MonthYear(t.RunMonth): @PayrollFormat.Money(v) · @L["dash.n_employees", Model.CompanyEmployees(t.RunMonth, co.CompanyId)]"></span>
+                                    }
+                                </span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="pr-trend dash-trend" role="img" aria-label="@L["prv.net_payroll_last_0_months", 12]">
+                        @foreach (var t in Model.Trend)
+                        {
+                            var h = t.NetPay <= 0 ? 0 : Math.Max(4, (int)Math.Round(t.NetPay / trendMax * 130m));
+                            <div class="pr-trend__col @(t.RunMonth == month ? "is-current" : null)"
+                                 title="@L.MonthYear(t.RunMonth): @PayrollFormat.Money(t.NetPay) · @L["dash.n_employees", t.Employees]">
+                                <span class="pr-trend__val">@(t.NetPay > 0 ? Model.Short(t.NetPay) : "")</span>
+                                <span class="pr-trend__bar" style="height:@(h)px"></span>
+                            </div>
+                        }
+                    </div>
+                }
                 <div class="pr-trend__labels">
                     @foreach (var t in Model.Trend)
                     {
                         <span class="@(t.RunMonth == month ? "is-current" : null)">@MonthShort(t.RunMonth)</span>
                     }
                 </div>
+                @if (Model.TrendPerCompany)
+                {
+                    <ul class="dash-legend" aria-label="@L["dash.companies"]">
+                        @foreach (var co in Model.TrendCompanies)
+                        {
+                            <li title="@L["dash.total_0", PayrollFormat.Money(co.NetPay)]">
+                                <span class="dash-legend__swatch dash-co-@Model.CompanyColour(co.CompanyId)" aria-hidden="true"></span>
+                                <span class="dash-legend__name">@co.CompanyName</span>
+                                <span class="dash-legend__value">@Model.Short(co.NetPay)</span>
+                            </li>
+                        }
+                    </ul>
+                    @* the figures for screen readers *@
+                    <table class="hrms-sr-only">
+                        <caption>@L["dash.trend_by_company"]</caption>
+                        <thead><tr><th scope="col">@L["pr.period"]</th>@foreach (var co in Model.TrendCompanies) { <th scope="col">@co.CompanyName</th> }</tr></thead>
+                        <tbody>
+                            @foreach (var t in Model.Trend)
+                            {
+                                <tr><th scope="row">@L.MonthYear(t.RunMonth)</th>@foreach (var co in Model.TrendCompanies) { <td>@PayrollFormat.Money(Model.CompanyNet(t.RunMonth, co.CompanyId))</td> }</tr>
+                            }
+                        </tbody>
+                    </table>
+                }
             }
         </section>
 

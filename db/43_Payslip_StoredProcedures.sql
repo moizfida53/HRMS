@@ -6,7 +6,8 @@
      Payroll.usp_Payslip_Manage
        RUNS          payrolls that have payslips to show (in validation,
                      awaiting approval or closed), newest first, with
-                     generated / emailed counts
+                     generated / emailed counts and the payslips still to
+                     generate (none yet or outdated)
        SUMMARY       key figures of one payroll's payslips
        LIST          employees of a payroll (or of every payroll, or of a year
                      / month) with their payslip and email status - paged,
@@ -184,13 +185,18 @@ BEGIN
                 pc.CalendarName, pc.ArabicName AS CalendarArabicName, pc.PayFrequency,
                 pp.PeriodNumber, pp.StartDate, pp.EndDate, pp.PaymentDate,
                 ISNULL(x.EmployeeCount, 0) AS EmployeeCount, ISNULL(x.TotalNet, 0) AS TotalNet,
-                ISNULL(s.GeneratedCount, 0) AS GeneratedCount, ISNULL(s.SentCount, 0) AS SentCount
+                ISNULL(s.GeneratedCount, 0) AS GeneratedCount, ISNULL(s.SentCount, 0) AS SentCount,
+                ISNULL(x.ToGenerateCount, 0) AS ToGenerateCount
         FROM    [Payroll].[PayrollRuns]      AS r
         JOIN    [Core].[Companies]           AS co ON co.CompanyId = r.CompanyId
         JOIN    [Payroll].[PayrollCalendars] AS pc ON pc.PayrollCalendarId = r.PayrollCalendarId
         JOIN    [Payroll].[PayrollPeriods]   AS pp ON pp.PayrollPeriodId = r.PayrollPeriodId
-        OUTER APPLY (SELECT COUNT(1) AS EmployeeCount, SUM(re.NetPay) AS TotalNet
+        OUTER APPLY (SELECT COUNT(1) AS EmployeeCount, SUM(re.NetPay) AS TotalNet,
+                            /* payslips still to generate: none yet, or outdated (figures changed / reopened) */
+                            SUM(t.ToDo) AS ToGenerateCount
                      FROM   [Payroll].[PayrollRunEmployees] AS re
+                     LEFT JOIN [Payroll].[Payslips] AS p ON p.PayrollRunId = re.PayrollRunId AND p.EmployeeId = re.EmployeeId AND p.Deleted = 0
+                     CROSS APPLY (SELECT CASE WHEN p.PayslipId IS NULL OR p.NetPay <> re.NetPay OR p.GeneratedDate < r.ClosedDate THEN 1 ELSE 0 END AS ToDo) AS t
                      WHERE  re.PayrollRunId = r.PayrollRunId AND re.Deleted = 0 AND re.IsExcluded = 0
                        AND  (r.RunType = 'REGULAR' OR re.LineCount > 0)) AS x
         OUTER APPLY (SELECT COUNT(1) AS GeneratedCount, COUNT(CASE WHEN p.EmailStatus = 'SENT' THEN 1 END) AS SentCount

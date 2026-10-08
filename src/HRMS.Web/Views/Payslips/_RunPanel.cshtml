@@ -1,0 +1,146 @@
+@model PayslipRunPanelModel
+@{
+    // The View popup of Generate Payslips: one payroll's figures and the generate form.
+    // View Payslips and Email Payslips are on the list itself, not here.
+    var run = Model.Run;
+    var sum = Model.Summary;
+    var closed = run.IsClosed;
+    var toGenerate = sum.NotGeneratedCount + sum.OutdatedCount;
+}
+<div class="ps-panel" data-ps-run-panel>
+    <span hidden data-ps-panel-title>@run.RunCode · @PayslipFormat.Period(L, run)</span>
+
+    <dl class="fin-facts fin-facts--popup">
+        @if (!string.IsNullOrWhiteSpace(run.CompanyName))
+        {
+            <div><dt>@L["common.company"]</dt><dd title="@run.CompanyName">@run.CompanyName</dd></div>
+        }
+        <div><dt>@L["pr.period"]</dt><dd>@L.Date(run.StartDate) – @L.Date(run.EndDate)</dd></div>
+        <div><dt>@L["pr.pay_date"]</dt><dd>@L.Date(run.PaymentDate)</dd></div>
+        <div>
+            <dt>@L["common.status"]</dt>
+            <dd><span class="hrms-badge hrms-badge--@(closed ? "success" : "warning")"><span class="hrms-badge__dot"></span>@L[PayslipFormat.StageKey(run.Stage)]</span></dd>
+        </div>
+    </dl>
+
+    <section class="pr-kpis pr-kpis--4 ps-panel__kpis" aria-label="@L["pr.key_figures"]">
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["common.employees"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("users", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(sum.EmployeeCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_net_note", PayrollFormat.Money(sum.TotalNet)]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_generated"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("receipt", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(sum.GeneratedCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@(sum.LastGeneratedDate is { } lg ? L["ps.kpi_generated_note", L.Date(lg)] : L["ps.kpi_not_yet"])</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi @(toGenerate > 0 ? "ps-kpi--warn" : null)">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_to_generate"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("alert", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(toGenerate)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_to_generate_note", PayrollFormat.Count(sum.NotGeneratedCount), PayrollFormat.Count(sum.OutdatedCount)]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["ps.kpi_emailed"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("mail", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(sum.SentCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["ps.kpi_viewed_note", PayrollFormat.Count(sum.ViewedCount)]</span></div>
+        </div>
+    </section>
+
+    @if (!closed)
+    {
+        <div class="pr-banner pr-banner--lock" role="note">
+            @Html.Icon("lock", 18)
+            <div><strong>@L["ps.not_closed_title"]</strong> @L["ps.not_closed_text"]</div>
+        </div>
+    }
+    else if (sum.OutdatedCount > 0)
+    {
+        <div class="pr-banner pr-banner--lock" role="note">
+            @Html.Icon("refresh", 18)
+            <div><strong>@L["ps.outdated_title", PayrollFormat.Count(sum.OutdatedCount)]</strong> @L["ps.outdated_text"]</div>
+        </div>
+    }
+
+    <section class="hrms-card ps-generate" aria-labelledby="ps-gen-title">
+        <form class="pr-card-body" data-ps-generate-form novalidate>
+            <input type="hidden" name="ref" value="@Model.Ref" />
+            <h3 class="pr-card-title" id="ps-gen-title">@L["ps.generate_title"]</h3>
+
+            <div class="row g-4">
+                <div class="col-12 col-lg-5">
+                    <fieldset class="ps-fieldset">
+                        <legend class="form-label">@L["ps.who"]</legend>
+                        <div class="pr-choice ps-choice" data-ps-choice>
+                            <label class="is-selected">
+                                <input type="radio" class="form-check-input" name="scope" value="all" checked />
+                                <span><strong>@L["ps.scope_all", PayrollFormat.Count(sum.EmployeeCount)]</strong><span>@L["ps.scope_all_hint"]</span></span>
+                            </label>
+                            <label>
+                                <input type="radio" class="form-check-input" name="scope" value="dept" @(Model.Departments.Count == 0 ? "disabled" : null) />
+                                <span><strong>@L["ps.scope_department"]</strong><span>@L["ps.scope_department_hint"]</span></span>
+                            </label>
+                        </div>
+                        <div class="mt-2" data-ps-dept-wrap hidden>
+                            <label class="form-label" for="ps-dept">@L["common.department"]</label>
+                            <select class="form-select" id="ps-dept" name="dept">
+                                @foreach (var d in Model.Departments)
+                                {
+                                    <option value="@d.Id">@d.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="col-12 col-lg-7">
+                    <fieldset class="ps-fieldset">
+                        <legend class="form-label">@L["ps.language"]</legend>
+                        <div class="pr-choice ps-choice" data-ps-choice>
+                            @foreach (var t in PayslipTemplate.All)
+                            {
+                                var hint = t switch { PayslipTemplate.English => "ps.template_english_hint", PayslipTemplate.Arabic => "ps.template_arabic_hint", _ => "ps.template_bilingual_hint" };
+                                <label class="@(t == PayslipTemplate.Bilingual ? "is-selected" : null)">
+                                    <input type="radio" class="form-check-input" name="template" value="@t" checked="@(t == PayslipTemplate.Bilingual)" />
+                                    <span><strong>@L[PayslipFormat.TemplateKey(t)]</strong><span>@L[hint]</span></span>
+                                </label>
+                            }
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+
+            <ul class="pr-check mt-4 ps-checklist">
+                <li>
+                    <span class="pr-check__icon @(closed ? "is-ok" : "is-err")">@Html.Icon(closed ? "check" : "lock", 14)</span>
+                    <span class="pr-check__text">@L["ps.check_closed"]</span>
+                    <span class="pr-check__meta">@L[PayslipFormat.StageKey(run.Stage)]</span>
+                </li>
+                <li>
+                    <span class="pr-check__icon @(toGenerate == 0 && sum.GeneratedCount > 0 ? "is-ok" : "is-warn")">@Html.Icon(toGenerate == 0 && sum.GeneratedCount > 0 ? "check" : "receipt", 14)</span>
+                    <span class="pr-check__text">@L["ps.check_generated"]</span>
+                    <span class="pr-check__meta">@PayrollFormat.Count(sum.GeneratedCount - sum.OutdatedCount) / @PayrollFormat.Count(sum.EmployeeCount)</span>
+                </li>
+                <li>
+                    <span class="pr-check__icon @(sum.NoEmailCount == 0 ? "is-ok" : "is-warn")">@Html.Icon(sum.NoEmailCount == 0 ? "check" : "mail", 14)</span>
+                    <span class="pr-check__text">@L["ps.check_emails"]</span>
+                    <span class="pr-check__meta">@(sum.NoEmailCount > 0 ? L["ps.n_without_email", PayrollFormat.Count(sum.NoEmailCount)] : L["ps.all_have_email"])</span>
+                </li>
+            </ul>
+        </form>
+        <div class="pr-actionbar ps-panel__actions">
+            <div class="pr-actionbar__status hrms-muted hrms-text-sm">
+                @if (!Model.Rights.CanGenerate)
+                {
+                    @L["ps.no_generate_right"]
+                }
+            </div>
+            <div class="pr-actionbar__spacer"></div>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+            @if (Model.Rights.CanGenerate)
+            {
+                <button type="button" class="btn btn-primary" data-ps-generate @(closed ? null : "disabled")>
+                    @Html.Icon("receipt", 15)<span>@(sum.GeneratedCount > 0 ? L["ps.generate_again"] : L["ps.generate_payslips"])</span>
+                </button>
+            }
+        </div>
+    </section>
+</div>

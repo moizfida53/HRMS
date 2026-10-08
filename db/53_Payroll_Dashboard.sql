@@ -11,6 +11,7 @@
                 stage, employees paid (and the month before), joiners and
                 leavers, net pay (and the month before), gross, employer PIFSS
      TREND      net pay of the 12 months up to @RunMonth
+     TREND_CO   the same per company (months with a payroll only)
      DEPT       gross cost per department in @RunMonth
      CALENDAR   the payroll periods of the month before, this one and the next
      ATTENTION  what needs doing: validation errors and unacknowledged
@@ -54,7 +55,7 @@ BEGIN
     FROM   [Payroll].[PayrollRuns] AS r
     WHERE  r.Deleted = 0 AND r.Stage NOT IN ('DRAFT', 'CANCELLED')
       AND  [Payroll].[ufn_InCompanyScope](r.CompanyId, @CompanyId, @CompanyIds) = 1
-      AND (@Action IN ('MONTHS', 'TREND') OR r.RunMonth IN (@M, @Prev));
+      AND (@Action IN ('MONTHS', 'TREND', 'TREND_CO') OR r.RunMonth IN (@M, @Prev));
 
     /* ======================= MONTHS ============================== */
     IF @Action = 'MONTHS'
@@ -124,6 +125,21 @@ BEGIN
         LEFT JOIN [Payroll].[PayrollRunEmployees] AS re ON re.PayrollRunId = r.PayrollRunId AND re.Deleted = 0 AND re.IsExcluded = 0
         GROUP BY mo.RunMonth
         ORDER BY mo.RunMonth;
+        RETURN;
+    END;
+
+    /* ======================= TREND_CO ============================ */
+    IF @Action = 'TREND_CO'
+    BEGIN
+        SELECT  r.RunMonth, r.CompanyId, co.CompanyCode, co.CompanyName,
+                ISNULL(SUM(re.NetPay), 0) AS NetPay,
+                COUNT(DISTINCT re.EmployeeId) AS Employees
+        FROM    @Runs AS r
+        JOIN    [Core].[Companies] AS co ON co.CompanyId = r.CompanyId
+        LEFT JOIN [Payroll].[PayrollRunEmployees] AS re ON re.PayrollRunId = r.PayrollRunId AND re.Deleted = 0 AND re.IsExcluded = 0
+        WHERE   r.RunMonth BETWEEN DATEADD(MONTH, -11, @M) AND @M
+        GROUP BY r.RunMonth, r.CompanyId, co.CompanyCode, co.CompanyName
+        ORDER BY r.RunMonth, co.CompanyName;
         RETURN;
     END;
 

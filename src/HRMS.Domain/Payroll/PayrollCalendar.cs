@@ -96,6 +96,10 @@ public sealed class PayrollPeriodEdit
 {
     public int PayrollPeriodId { get; set; }
 
+    /// <summary>Read from the database (GET) for the company check - never trusted from a post.</summary>
+    public int PayrollCalendarId { get; set; }
+    public int CompanyId { get; set; }
+
     [Required(ErrorMessage = "Start date is required.")]
     [Display(Name = "Start")]
     public DateTime? StartDate { get; set; }

@@ -40,6 +40,17 @@ public sealed class DashboardTrendPoint
     public int Employees { get; set; }
 }
 
+/// <summary>TREND_CO - net pay of one company in one month (months with a payroll only).</summary>
+public sealed class DashboardTrendCompany
+{
+    public DateTime RunMonth { get; set; }
+    public int CompanyId { get; set; }
+    public string? CompanyCode { get; set; }
+    public string? CompanyName { get; set; }
+    public decimal NetPay { get; set; }
+    public int Employees { get; set; }
+}
+
 public sealed class DashboardDepartment
 {
     public string DepartmentName { get; set; } = string.Empty;

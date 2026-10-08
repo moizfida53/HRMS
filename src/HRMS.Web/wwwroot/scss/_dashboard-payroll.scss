@@ -8,6 +8,7 @@
 // ============================================================================
 
 @use "sass:color";
+@use "sass:list";
 @use "tokens" as *;
 @use "mixins" as *;
 
@@ -160,4 +161,64 @@
 
 @media print {
   .dash-period, .dash-actions { display: none !important; }
+}
+
+// ------------------------------------------- trend: one bar per company ----
+// Eight colour slots, distinguishable side by side and in print.
+$dash-company-colours: (#2563eb, #0d9488, #d97706, #7c3aed, #db2777, #0891b2, #65a30d, #475569);
+
+@for $i from 1 through list.length($dash-company-colours) {
+  .dash-co-#{$i - 1} { --dash-co: #{list.nth($dash-company-colours, $i)}; }
+}
+
+.dash-trend--grouped {
+  .pr-trend__col { min-width: 0; }
+
+  .dash-trend__group {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    width: min(44px, 92%);
+    height: 130px;
+  }
+
+  .dash-trend__bar {
+    flex: 1 1 0;
+    min-width: 3px;
+    max-width: 14px;
+    border-radius: 3px 3px 0 0;
+    background: var(--dash-co);
+    @include motion(opacity, filter);
+
+    &:hover { filter: brightness(1.12); }
+  }
+
+  .pr-trend__col:not(.is-current) .dash-trend__bar { opacity: .82; }
+  .pr-trend__col.is-current .dash-trend__group {
+    box-shadow: inset 0 -2px 0 $blue-700;
+    background: linear-gradient(180deg, rgba($blue-050, 0) 0%, rgba($blue-050, .9) 100%);
+    border-radius: $radius-sm $radius-sm 0 0;
+  }
+}
+
+.dash-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space("2") space("4");
+  margin: space("3") 0 0;
+  padding: space("3") 0 0;
+  border-block-start: 1px dashed $line-200;
+  list-style: none;
+
+  li { display: inline-flex; align-items: center; gap: space("2"); min-width: 0; font-size: $fs-xs; color: $ink-700; }
+
+  &__swatch { flex: 0 0 auto; inline-size: 10px; block-size: 10px; border-radius: 3px; background: var(--dash-co); }
+  &__name { @include truncate; max-width: 180px; font-weight: $fw-semibold; }
+  &__value { color: $ink-500; font-variant-numeric: tabular-nums; }
+}
+
+@include down("sm") {
+  .dash-trend--grouped .dash-trend__group { gap: 1px; }
+  .dash-trend--grouped .dash-trend__bar { min-width: 2px; }
 }

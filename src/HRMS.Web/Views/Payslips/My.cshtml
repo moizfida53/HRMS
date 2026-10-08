@@ -1,3 +1,4 @@
+@inject IRefProtector Refs
 @using HRMS.Web.Models.Organization
 @model MyPayslipsModel
 @{
@@ -45,8 +46,8 @@
                         <strong><small>KWD</small> @PayrollFormat.Money(latest.NetPay)</strong>
                     </div>
                     <div class="ps-latest__actions">
-                        <a class="btn btn-light" href="@Url.Action("MyPayslip", "Payslips", new { runId = latest.PayrollRunId })">@Html.Icon("eye", 15)<span>@L["ps.view"]</span></a>
-                        <a class="btn btn-outline-light" href="@Url.Action("MyPayslip", "Payslips", new { runId = latest.PayrollRunId, print = 1 })">@Html.Icon("printer", 15)<span>@L["ps.print"]</span></a>
+                        <a class="btn btn-light" href="@Url.Action("MyPayslip", "Payslips", new { runRef = Refs.Protect(RefPurpose.MyPayslip, latest.PayrollRunId) })">@Html.Icon("eye", 15)<span>@L["ps.view"]</span></a>
+                        <a class="btn btn-outline-light" href="@Url.Action("MyPayslip", "Payslips", new { runRef = Refs.Protect(RefPurpose.MyPayslip, latest.PayrollRunId), print = 1 })">@Html.Icon("printer", 15)<span>@L["ps.print"]</span></a>
                     </div>
                 </div>
             </section>
@@ -60,7 +61,7 @@
             <ul class="ps-my-list">
                 @foreach (var r in pg.Items)
                 {
-                    var url = Url.Action("MyPayslip", "Payslips", new { runId = r.PayrollRunId });
+                    var url = Url.Action("MyPayslip", "Payslips", new { runRef = Refs.Protect(RefPurpose.MyPayslip, r.PayrollRunId) });
                     <li class="ps-my-item">
                         <a class="ps-my-item__link" href="@url">
                             <span class="ps-my-item__icon" aria-hidden="true">@Html.Icon("receipt", 18)</span>

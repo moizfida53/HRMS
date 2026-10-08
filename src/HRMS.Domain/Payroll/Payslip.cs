@@ -66,8 +66,12 @@ public sealed class PayslipRun
     public decimal TotalNet { get; init; }
     public int GeneratedCount { get; init; }
     public int SentCount { get; init; }
+    /// <summary>Payslips still to generate: none yet, or outdated.</summary>
+    public int ToGenerateCount { get; init; }
 
     public bool IsClosed => Stage == RunStage.Closed;
+    /// <summary>Closed, with payslips still to generate - the Generate Payslips list shows these first.</summary>
+    public bool IsPending => IsClosed && ToGenerateCount > 0;
 }
 
 /// <summary>SUMMARY - key figures of one payroll's payslips.</summary>
