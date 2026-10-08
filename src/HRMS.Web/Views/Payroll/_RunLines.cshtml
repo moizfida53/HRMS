@@ -15,7 +15,7 @@
 @if (Model.IsExcluded)
 {
     <div class="pr-banner pr-banner--lock">@Html.Icon("lock", 18)<div><strong>@L["pr.excluded_from_this_payroll_2"]</strong> @Model.ExcludeReason
-        @if (Model.Editable)
+        @if (Model.CanExclude)
         {
             <button type="button" class="btn btn-sm btn-outline-secondary ms-2" data-emp-include="@Model.EmployeeId">@L["pr.include_again"]</button>
         }
@@ -89,6 +89,8 @@ else
             <input class="form-control form-control-sm" data-add-com maxlength="500" placeholder="@L["pr.comment_why_is_it_paid_or_deducted"]" aria-label="@L["pr.comment"]" />
             <button type="button" class="btn btn-sm btn-primary" data-add-line>@Html.Icon("plus", 14)<span>@L["pr.add_line"]</span></button>
         </div>
+        @if (Model.CanExclude)
+        {
         <div>
             <button type="button" class="btn btn-sm btn-link px-0 text-danger"
                     data-reason-open
@@ -100,5 +102,6 @@ else
                     data-reason-button="@L["pr.exclude"]"
                     data-reason-refresh="employees">@Html.Icon("x-circle", 14)<span>@L["pr.exclude_from_this_payroll"]</span></button>
         </div>
+        }
     }
 }

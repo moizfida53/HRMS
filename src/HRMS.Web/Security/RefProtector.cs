@@ -37,6 +37,12 @@ public static class RefPurpose
 
     /// <summary>A payroll in My Payslips (always the signed-in employee's own).</summary>
     public const string MyPayslip = "payslip.my";
+
+    /// <summary>A role on Security > Create Roles / Assign Roles.</summary>
+    public const string Role = "security.role";
+
+    /// <summary>A user on Security > Assign Roles.</summary>
+    public const string User = "security.user";
 }
 
 public sealed class RefProtector : IRefProtector

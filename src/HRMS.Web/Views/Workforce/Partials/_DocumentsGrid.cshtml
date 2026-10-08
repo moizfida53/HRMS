@@ -1,5 +1,7 @@
+@inject ICurrentUser CurrentUser
 @model EmployeeDocumentsViewModel
 @{
+    var acc = CurrentUser.EmployeeAccess();
     static string FileSize(long? bytes) => bytes switch
     {
         null => "",
@@ -197,10 +199,13 @@
                                     }
                                 </td>
                                 <td class="col-file" data-label="@L.Tr("Attachment")">
+                                    @if (acc.DocumentUpload)
+                                    {
                                     <input type="file" class="hrms-docs__file-input" id="@inputId"
                                            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                                            data-docs-file="@row.DocumentTypeId"
                                            aria-label="@(row.HasFile ? L["common.replace_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)] : L["common.upload_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)])" />
+                                    }
                                     @if (row.HasFile)
                                     {
                                         var badge = FileBadge(row.ContentType);
@@ -210,8 +215,15 @@
                                                 <a class="hrms-file__name" href="@(fileUrl + row.AttachmentId)" target="_blank" rel="noopener" title="@row.OriginalFileName">@row.OriginalFileName</a>
                                                 <span class="hrms-file__size">@FileSize(row.FileSizeBytes)</span>
                                             </span>
-                                            <label class="btn btn-outline-primary btn-sm mb-0" for="@inputId">@L["emp.replace"]</label>
+                                            @if (acc.DocumentUpload)
+                                            {
+                                                <label class="btn btn-outline-primary btn-sm mb-0" for="@inputId">@L["emp.replace"]</label>
+                                            }
                                         </div>
+                                    }
+                                    else if (!acc.DocumentUpload)
+                                    {
+                                        <span class="hrms-docs__none">—</span>
                                     }
                                     else
                                     {
@@ -258,10 +270,13 @@
                                                title="@L["emp.view"]" aria-label="@L["common.view_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("eye", 15)</a>
                                             <a class="btn-icon" href="@(fileUrl + row.AttachmentId)?download=true"
                                                title="@L["emp.download"]" aria-label="@L["common.download_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("download", 15)</a>
-                                            <button type="button" class="btn-icon btn-icon--danger" data-docs-remove="@row.AttachmentId"
-                                                    title="@L["emp.remove"]" aria-label="@L["common.remove_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("trash", 15)</button>
+                                            @if (acc.DocumentDelete)
+                                            {
+                                                <button type="button" class="btn-icon btn-icon--danger" data-docs-remove="@row.AttachmentId"
+                                                        title="@L["emp.remove"]" aria-label="@L["common.remove_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("trash", 15)</button>
+                                            }
                                         }
-                                        else
+                                        else if (acc.DocumentUpload)
                                         {
                                             <label class="btn-icon mb-0" for="@inputId" title="@L["emp.upload"]" aria-label="@L["common.upload_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">
                                                 @Html.Icon("plus", 15)

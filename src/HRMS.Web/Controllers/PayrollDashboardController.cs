@@ -15,10 +15,8 @@ namespace HRMS.Web.Controllers;
 [Route("payroll/dashboard")]
 public sealed class PayrollDashboardController : PayrollFinanceControllerBase
 {
-    private static readonly string[] ViewPermissions =
-    [
-        "PAYROLL_RUN_VIEW", "PAYROLL_SETUP_VIEW", "PAYROLL_REPORT_VIEW", "PAYROLL_SLIP_VIEW", "PAYROLL_BANK_VIEW", "PAYROLL_GL_VIEW"
-    ];
+    // Security > Create Roles: "Payroll dashboard" (db/57 grants it to every role that had a payroll view right)
+    private static readonly string[] ViewPermissions = ["PAYROLL_DASHBOARD_VIEW"];
 
     private readonly IPayrollFinanceRepository _finance;
 

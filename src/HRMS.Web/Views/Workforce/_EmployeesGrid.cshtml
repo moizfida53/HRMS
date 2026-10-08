@@ -1,4 +1,6 @@
+@inject ICurrentUser CurrentUser
 @model EmployeeGridViewModel
+@{ var canDelete = CurrentUser.EmployeeAccess().Delete; }
 
 <div class="hrms-card">
     @await Html.PartialAsync("~/Views/Workforce/Partials/_GridToolbar.cshtml", Model)
@@ -42,11 +44,14 @@
                             <td class="hrms-table__actions">
                                 <a class="btn-icon" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId"
                                    title="@L["emp.open_profile"]" aria-label="@L["common.open_named", row.FullName]">@Html.Icon("edit", 15)</a>
-                                <button type="button" class="btn-icon btn-icon--success" data-action="toggle"
-                                        title="@(row.IsActive ? L["common.deactivate"] : L["common.activate"])"
-                                        aria-label="@(row.IsActive ? L["common.deactivate_named", row.FullName] : L["common.activate_named", row.FullName])">@Html.Icon("power", 15)</button>
-                                <button type="button" class="btn-icon btn-icon--danger" data-action="delete"
-                                        title="@L["common.delete"]" aria-label="@L["common.delete_named", row.FullName]">@Html.Icon("trash", 15)</button>
+                                @if (canDelete)
+                                {
+                                    <button type="button" class="btn-icon btn-icon--success" data-action="toggle"
+                                            title="@(row.IsActive ? L["common.deactivate"] : L["common.activate"])"
+                                            aria-label="@(row.IsActive ? L["common.deactivate_named", row.FullName] : L["common.activate_named", row.FullName])">@Html.Icon("power", 15)</button>
+                                    <button type="button" class="btn-icon btn-icon--danger" data-action="delete"
+                                            title="@L["common.delete"]" aria-label="@L["common.delete_named", row.FullName]">@Html.Icon("trash", 15)</button>
+                                }
                             </td>
                         </tr>
                     }

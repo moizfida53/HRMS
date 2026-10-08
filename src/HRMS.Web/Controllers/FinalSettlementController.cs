@@ -22,8 +22,10 @@ public sealed class FinalSettlementController : Controller
     private const string PermProcess = "PAYROLL_FS_PROCESS";
     private const string PermPay = "PAYROLL_FS_PAY";
     private const string PermCancel = "PAYROLL_FS_CANCEL";
-    private const string PermApproveHr = "PAYROLL_RUN_APPROVE_HR";
-    private const string PermApproveFinance = "PAYROLL_RUN_APPROVE_FINANCE";
+    // Approval rights of this process (Security > Create Roles > Approval rights)
+    private const string PermApproveHr = "PAYROLL_FS_APPROVE_L1";
+    private const string PermApproveFinance = "PAYROLL_FS_APPROVE_L2";
+    private const string PermApproveSelf = "PAYROLL_FS_APPROVE_SELF";
 
     private readonly IFinalSettlementRepository _settlements;
     private readonly ICurrentUser _currentUser;
@@ -44,6 +46,8 @@ public sealed class FinalSettlementController : Controller
     private string? CompanyCsv => _companyFilter.Csv;
     private bool Can(string permission) => _currentUser.HasPermission(permission);
     private bool IsSysAdmin => _currentUser.IsInRole("SYSADMIN") || Can("SYSTEM_ADMIN");
+    /// <summary>May approve their own submissions (System Administrator, or the "approve own" right).</summary>
+    private bool CanApproveOwn => IsSysAdmin || Can(PermApproveSelf);
     private bool CanView => Can(PermView) || Can(PermProcess);
 
     private SettlementRights Rights => new()
@@ -54,7 +58,7 @@ public sealed class FinalSettlementController : Controller
         CanApproveHr = Can(PermApproveHr),
         CanApproveFinance = Can(PermApproveFinance),
         UserId = UserId,
-        IsSysAdmin = IsSysAdmin
+        CanApproveOwn = CanApproveOwn
     };
 
     // =======================================================================
@@ -266,7 +270,7 @@ public sealed class FinalSettlementController : Controller
         if (!s.IsPending || !Rights.CanApprove(s.ApprovalLevel)) return Json(ActionResponse.Failed("You are not an approver for this level.", "FORBIDDEN"));
         return Result(await _settlements.ActionAsync("APPROVE", id, OwnCompany, CompanyCsv, UserId, new SettlementActionArgs
         {
-            Comment = comment, AllowSelfApproval = IsSysAdmin, ExpectedLevel = s.ApprovalLevel
+            Comment = comment, AllowSelfApproval = CanApproveOwn, ExpectedLevel = s.ApprovalLevel
         }, Ct));
     }
 

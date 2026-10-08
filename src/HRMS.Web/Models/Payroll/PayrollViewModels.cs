@@ -314,6 +314,8 @@ public sealed class RunLinesModel
     public required IReadOnlyList<PayrollRunLine> Lines { get; init; }
     public IReadOnlyList<PayComponentOption> Components { get; init; } = Array.Empty<PayComponentOption>();
     public bool Editable { get; init; }
+    /// <summary>May exclude / include the employee (Security: "Exclude / include employees").</summary>
+    public bool CanExclude { get; init; }
     public bool HasSalary { get; init; } = true;
     public bool IsExcluded { get; init; }
     public string? ExcludeReason { get; init; }

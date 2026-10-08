@@ -24,8 +24,10 @@ public sealed class PayItemsController : Controller
     private const string PermCreate = "PAYROLL_ITEM_CREATE";
     private const string PermEdit = "PAYROLL_ITEM_EDIT";
     private const string PermDelete = "PAYROLL_ITEM_DELETE";
-    private const string PermApproveHr = "PAYROLL_RUN_APPROVE_HR";
-    private const string PermApproveFinance = "PAYROLL_RUN_APPROVE_FINANCE";
+    // Approval rights of this process (Security > Create Roles > Approval rights)
+    private const string PermApproveHr = "PAYROLL_ITEM_APPROVE_L1";
+    private const string PermApproveFinance = "PAYROLL_ITEM_APPROVE_L2";
+    private const string PermApproveSelf = "PAYROLL_ITEM_APPROVE_SELF";
 
     private const int MaxImportRows = 2000;
     private const long MaxImportBytes = 5 * 1024 * 1024;
@@ -49,6 +51,8 @@ public sealed class PayItemsController : Controller
     private string? CompanyCsv => _companyFilter.Csv;
     private bool Can(string permission) => _currentUser.HasPermission(permission);
     private bool IsSysAdmin => _currentUser.IsInRole("SYSADMIN") || Can("SYSTEM_ADMIN");
+    /// <summary>May approve their own submissions (System Administrator, or the "approve own" right).</summary>
+    private bool CanApproveOwn => IsSysAdmin || Can(PermApproveSelf);
     private static DateTime ThisMonth => new(DateTime.Today.Year, DateTime.Today.Month, 1);
 
     private PayItemRights Rights => new()
@@ -59,7 +63,7 @@ public sealed class PayItemsController : Controller
         CanApproveHr = Can(PermApproveHr),
         CanApproveFinance = Can(PermApproveFinance),
         UserId = UserId,
-        IsSysAdmin = IsSysAdmin
+        CanApproveOwn = CanApproveOwn
     };
 
     // =======================================================================
@@ -198,7 +202,7 @@ public sealed class PayItemsController : Controller
         var item = await _items.GetAsync(id, OwnCompany, Ct);
         if (item is null) return Json(ActionResponse.Failed("This pay item no longer exists.", "NOT_FOUND"));
         if (!Rights.CanApprove(item)) return Json(ActionResponse.Failed("You are not an approver for this level.", "FORBIDDEN"));
-        return Result(await _items.ActionAsync("APPROVE", id, OwnCompany, CompanyCsv, UserId, comment, allowSelfApproval: IsSysAdmin,
+        return Result(await _items.ActionAsync("APPROVE", id, OwnCompany, CompanyCsv, UserId, comment, allowSelfApproval: CanApproveOwn,
                                                expectedLevel: item.ApprovalLevel, cancellationToken: Ct));
     }
 

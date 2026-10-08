@@ -1,9 +1,27 @@
+@inject ICurrentUser CurrentUser
 @model OrganizationIndexViewModel
 @{
     ViewData["Title"] = "Organization Setup";   // translated by the layout (L.Tr)
     ViewData["ActiveArea"] = "organization";
     ViewData["ActiveTab"] = Model.ActiveTab.Key;
     ViewData["Subtitle"] = Model.ActiveTab.Description;   // organization.js updates it on tab change
+
+    // Security > Create Roles: the buttons a user may not use are hidden (the server refuses them anyway).
+    var canCreate = CurrentUser.HasPermission("ORGANIZATION_CREATE");
+    var canEdit = CurrentUser.HasPermission("ORGANIZATION_EDIT");
+    var canDelete = CurrentUser.HasPermission("ORGANIZATION_DELETE");
+    var canCompanyEdit = CurrentUser.HasPermission("ORGANIZATION_COMPANY_EDIT");
+    var canCompanyDelete = CurrentUser.HasPermission("ORGANIZATION_COMPANY_DELETE");
+}
+@if (!canCreate || !canEdit || !canDelete || !canCompanyEdit || !canCompanyDelete)
+{
+    <style>
+        @if (!canCreate) { <text>[data-action="add"] { display: none !important; }</text> }
+        @if (!canCreate && !canEdit) { <text>#record-modal [data-submit] { display: none !important; }</text> }
+        @if (!canDelete) { <text>#grid-slot [data-action="toggle"], #grid-slot [data-action="delete"] { display: none !important; }</text> }
+        @if (!canCompanyEdit) { <text>html[data-org-tab="companies"] [data-action="add"], html[data-org-tab="companies"] #record-modal [data-submit] { display: none !important; }</text> }
+        @if (!canCompanyDelete) { <text>html[data-org-tab="companies"] #grid-slot [data-action="toggle"], html[data-org-tab="companies"] #grid-slot [data-action="delete"] { display: none !important; }</text> }
+    </style>
 }
 
 

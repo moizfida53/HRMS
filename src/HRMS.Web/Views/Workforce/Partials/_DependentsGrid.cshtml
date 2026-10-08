@@ -1,5 +1,7 @@
+@inject ICurrentUser CurrentUser
 @model IReadOnlyList<EmployeeDependent>
 @{
+    var acc = CurrentUser.EmployeeAccess();
     // Relationship pill colour, purely cosmetic grouping - immediate family
     // (spouse/parents) reads as purple, children as blue, anything else muted.
     static string RelationshipBadgeClass(string relationship) => relationship switch
@@ -13,10 +15,17 @@
 <div class="hrms-card">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" style="padding:1.1rem 1.25rem">
         <h2 class="h6 mb-0">@L["emp.dependents"]</h2>
-        <button type="button" class="btn btn-primary btn-sm" data-action="add-dependent">
-            @Html.Icon("plus", 14)
-            <span>@L["emp.add_dependent"]</span>
-        </button>
+        @if (acc.DependentEdit)
+        {
+            <button type="button" class="btn btn-primary btn-sm" data-action="add-dependent">
+                @Html.Icon("plus", 14)
+                <span>@L["emp.add_dependent"]</span>
+            </button>
+        }
+        else
+        {
+            <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["sec.read_only"]</span>
+        }
     </div>
 
     @if (Model.Count == 0)
@@ -66,10 +75,16 @@
                                 }
                             </td>
                             <td class="hrms-table__actions">
-                                <button type="button" class="btn-icon" data-action="edit-dependent"
-                                        title="@L["common.edit"]" aria-label="@L["common.edit_named", row.FullName]">@Html.Icon("edit", 15)</button>
-                                <button type="button" class="btn-icon btn-icon--danger" data-action="delete-dependent"
-                                        title="@L["common.delete"]" aria-label="@L["common.delete_named", row.FullName]">@Html.Icon("trash", 15)</button>
+                                @if (acc.DependentEdit)
+                                {
+                                    <button type="button" class="btn-icon" data-action="edit-dependent"
+                                            title="@L["common.edit"]" aria-label="@L["common.edit_named", row.FullName]">@Html.Icon("edit", 15)</button>
+                                }
+                                @if (acc.DependentDelete)
+                                {
+                                    <button type="button" class="btn-icon btn-icon--danger" data-action="delete-dependent"
+                                            title="@L["common.delete"]" aria-label="@L["common.delete_named", row.FullName]">@Html.Icon("trash", 15)</button>
+                                }
                             </td>
                         </tr>
                     }

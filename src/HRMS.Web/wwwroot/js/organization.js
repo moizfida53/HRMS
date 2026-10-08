@@ -25,6 +25,8 @@
         duplicate: slot.dataset.duplicateUrl
     };
 
+    document.documentElement.setAttribute("data-org-tab", slot.dataset.tab || "");
+
     var state = {
         tab: slot.dataset.tab,
         singular: "",
@@ -121,6 +123,8 @@
         if (!button) { return; }
 
         state.tab = key;
+        // the tab in use, for the rights-based rules (Security > Create Roles) on the page
+        document.documentElement.setAttribute("data-org-tab", key);
         state.singular = button.dataset.singular || "";
         state.search = "";
         state.status = "";

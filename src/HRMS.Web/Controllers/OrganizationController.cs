@@ -63,6 +63,17 @@ public sealed class OrganizationController : Controller
     private CancellationToken Ct => HttpContext.RequestAborted;
 
     /// <summary>Company pre-selected on a new record: the user's own, else the one picked in the top-bar filter.</summary>
+    // Security > Create Roles (AccessCatalog "ORG.*")
+    private bool Can(string permission) => _currentUser.HasPermission(permission);
+    private bool CanView => Can("ORGANIZATION_VIEW");
+    private static bool IsCompanies(string? tab) => OrganizationTabs.Resolve(tab).Key == OrganizationTabs.Companies;
+    /// <summary>Add (new) or change (existing) a record of a tab; Companies also needs its own right.</summary>
+    private bool CanWrite(string? tab, bool isNew) =>
+        Can(isNew ? "ORGANIZATION_CREATE" : "ORGANIZATION_EDIT") && (!IsCompanies(tab) || Can("ORGANIZATION_COMPANY_EDIT"));
+    private bool CanDelete(string? tab) =>
+        Can("ORGANIZATION_DELETE") && (!IsCompanies(tab) || Can("ORGANIZATION_COMPANY_DELETE"));
+    private IActionResult NoRight() => Json(ActionResponse.Failed("You do not have permission to do this.", "FORBIDDEN"));
+
     private int DefaultCompanyId => _currentUser.ActiveCompanyId ?? _companyFilter.SingleCompanyId ?? 0;
 
     // =======================================================================
@@ -75,6 +86,7 @@ public sealed class OrganizationController : Controller
     [HttpGet("index")]
     public IActionResult Index(string? tab)
     {
+        if (!CanView) return Forbid();
         var model = new OrganizationIndexViewModel
         {
             ActiveTab = OrganizationTabs.Resolve(tab)
@@ -90,6 +102,7 @@ public sealed class OrganizationController : Controller
     [HttpGet("grid")]
     public Task<IActionResult> Grid(string tab, [FromQuery] GridRequest request)
     {
+        if (!CanView) return Task.FromResult<IActionResult>(Forbid());
         var descriptor = OrganizationTabs.Resolve(tab);
 
         // Scope every grid to the user's active company once they have one.
@@ -123,6 +136,8 @@ public sealed class OrganizationController : Controller
     {
         var descriptor = OrganizationTabs.Resolve(tab);
         var isNew = id <= 0;
+        // an existing record opens read-only for a user who may only view it (Save is refused)
+        if (isNew ? !CanWrite(tab, true) : !CanView) return Forbid();
 
         return descriptor.Key switch
         {
@@ -176,6 +191,7 @@ public sealed class OrganizationController : Controller
 
     [HttpPost("save")]
     public Task<IActionResult> Save(string tab) =>
+        !CanWrite(tab, isNew: !PostedId(tab)) ? Task.FromResult(NoRight()) :
         OrganizationTabs.Resolve(tab).Key switch
         {
             OrganizationTabs.Companies    => SaveAsync<Company>(_companies),
@@ -191,6 +207,7 @@ public sealed class OrganizationController : Controller
 
     [HttpPost("delete")]
     public Task<IActionResult> Delete(string tab, long id) =>
+        !CanDelete(tab) ? Task.FromResult(NoRight()) :
         OrganizationTabs.Resolve(tab).Key switch
         {
             OrganizationTabs.Companies    => GuardedAsync(_companies, id, ct => _companies.DeleteAsync(id, _currentUser.UserId, ct)),
@@ -206,6 +223,7 @@ public sealed class OrganizationController : Controller
 
     [HttpPost("toggle")]
     public Task<IActionResult> Toggle(string tab, long id) =>
+        !CanDelete(tab) ? Task.FromResult(NoRight()) :
         OrganizationTabs.Resolve(tab).Key switch
         {
             OrganizationTabs.Companies    => GuardedAsync(_companies, id, ct => _companies.ToggleActiveAsync(id, _currentUser.UserId, ct)),
@@ -350,6 +368,24 @@ public sealed class OrganizationController : Controller
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)
             : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    /// <summary>The posted form edits an existing record: the tab's own key field (BranchId, ...) is set.</summary>
+    private bool PostedId(string? tab)
+    {
+        var key = OrganizationTabs.Resolve(tab).Key switch
+        {
+            OrganizationTabs.Companies => "CompanyId",
+            OrganizationTabs.Branches => "BranchId",
+            OrganizationTabs.Departments => "DepartmentId",
+            OrganizationTabs.Sections => "SectionId",
+            OrganizationTabs.Designations => "DesignationId",
+            OrganizationTabs.JobPositions => "PositionId",
+            OrganizationTabs.Locations => "LocationId",
+            OrganizationTabs.CostCenters => "CostCenterId",
+            _ => null
+        };
+        return key is not null && Request.HasFormContentType && long.TryParse(Request.Form[key], out var v) && v > 0;
     }
 
     /// <summary>

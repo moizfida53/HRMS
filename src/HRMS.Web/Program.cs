@@ -110,6 +110,9 @@ builder.Services
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         }
 
+        // Security > Create Roles / Assign Roles apply to signed-in users within a minute.
+        options.Events.OnValidatePrincipal = HRMS.Web.Security.PermissionRefresh.ValidateAsync;
+
         // An expired session should land on the login page with an explanation
         // rather than a bare redirect the user cannot interpret.
         options.Events.OnRedirectToLogin = context =>

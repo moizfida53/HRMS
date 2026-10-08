@@ -1,4 +1,5 @@
 @using HRMS.Web.Models.Payroll
+@inject ICurrentUser CurrentUser
 @model (PayrollNav.Section Section, bool Active, HRMS.Web.Services.PayrollNavCountsResult? Counts)
 @{
     // A payroll section that opens in the sidebar into its pages (sub-sections), each with
@@ -16,6 +17,8 @@
 <div class="collapse hrms-nav-sub @(Model.Active ? "show" : null)" id="@subId">
     @foreach (var tab in section.Tabs)
     {
+        // a page the user has no read access to is not offered (Security > Create Roles)
+        if (!CurrentUser.CanOpen("tab:" + tab.Slug)) { continue; }
         var count = Model.Counts?.For(tab.Slug);
         string? title = count is null ? null : tab.Slug switch
         {

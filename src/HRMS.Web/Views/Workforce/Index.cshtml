@@ -1,3 +1,4 @@
+@inject ICurrentUser CurrentUser
 @{
     ViewData["Title"] = "Employees";             // translated by the layout (L.Tr)
     ViewData["ActiveArea"] = "workforce";
@@ -70,8 +71,11 @@
         @Html.Icon("download", 15)
         <span>@L["common.export"]</span>
     </button>
-    <a class="btn btn-primary" asp-controller="Employees" asp-action="Add">
-        @Html.Icon("plus", 15)
-        <span>@L["emp.add_employee"]</span>
-    </a>
+    @if (CurrentUser.EmployeeAccess().Create)
+    {
+        <a class="btn btn-primary" asp-controller="Employees" asp-action="Add">
+            @Html.Icon("plus", 15)
+            <span>@L["emp.add_employee"]</span>
+        </a>
+    }
 }

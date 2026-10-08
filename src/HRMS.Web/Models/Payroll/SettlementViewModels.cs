@@ -14,7 +14,8 @@ public sealed class SettlementRights
     public bool CanApproveHr { get; init; }
     public bool CanApproveFinance { get; init; }
     public long? UserId { get; init; }
-    public bool IsSysAdmin { get; init; }
+    /// <summary>May approve their own submissions (System Administrator or the "approve own" right).</summary>
+    public bool CanApproveOwn { get; init; }
 
     public bool IsApprover => CanApproveHr || CanApproveFinance;
 
@@ -22,7 +23,7 @@ public sealed class SettlementRights
     public bool CanApprove(int approvalLevel) => approvalLevel == 0 ? CanApproveHr : CanApproveFinance;
 
     /// <summary>The approval would be refused for segregation of duties (a hint; the procedure enforces it).</summary>
-    public bool IsOwnSubmission(long? submittedBy) => !IsSysAdmin && submittedBy is { } s && s == UserId;
+    public bool IsOwnSubmission(long? submittedBy) => !CanApproveOwn && submittedBy is { } s && s == UserId;
 }
 
 public sealed class SettlementListPageModel

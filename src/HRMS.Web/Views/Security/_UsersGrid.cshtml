@@ -1,0 +1,87 @@
+@using HRMS.Web.Models.Security
+@using HRMS.Web.Models.Organization
+@model UsersGridModel
+@{
+    var pg = Model.Page;
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["sec.1_user"] : L["sec.n_users_count", pg.TotalCount])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "users", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["sec.no_users_match"] : L["sec.no_users"])</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table sec-users-table">
+            <caption class="hrms-sr-only">@L["sec.users"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["sec.user"]</th>
+                    @if (Model.ManyCompanies)
+                    {
+                        <th scope="col" class="col-p2">@L["common.company"]</th>
+                    }
+                    <th scope="col">@L["sec.roles"]</th>
+                    <th scope="col" class="col-p3">@L["sec.last_sign_in"]</th>
+                    <th scope="col" class="col-p2">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var u in pg.Items)
+                {
+                    var uref = Model.Refs[u.UserId];
+                    var name = string.IsNullOrWhiteSpace(u.DisplayName) ? u.Username : u.DisplayName;
+                    <tr>
+                        <td data-label="@L["sec.user"]">
+                            <span class="sec-user">
+                                <span class="hrms-avatar sec-user__avatar" aria-hidden="true">@(name.Length > 0 ? name[..1].ToUpperInvariant() : "?")</span>
+                                <span class="sec-user__text">
+                                    <span class="hrms-table__primary">@name</span>
+                                    <span class="pr-emp-sub">@u.Username@(string.IsNullOrWhiteSpace(u.Email) ? "" : " · " + u.Email)@(string.IsNullOrWhiteSpace(u.EmployeeCode) ? "" : " · " + u.EmployeeCode)</span>
+                                </span>
+                            </span>
+                        </td>
+                        @if (Model.ManyCompanies)
+                        {
+                            <td data-label="@L["common.company"]" class="col-p2">@(u.CompanyName ?? L["sec.all_companies"])</td>
+                        }
+                        <td data-label="@L["sec.roles"]">
+                            @if (u.RoleNameList.Count == 0)
+                            {
+                                <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["sec.no_role"]</span>
+                            }
+                            else
+                            {
+                                <span class="sec-chips">
+                                    @foreach (var rn in u.RoleNameList)
+                                    {
+                                        <span class="sec-chip">@rn</span>
+                                    }
+                                </span>
+                            }
+                        </td>
+                        <td data-label="@L["sec.last_sign_in"]" class="col-p3 hrms-nowrap">@(u.LastLoginDate is { } ll ? L.Date(ll) : "—")</td>
+                        <td data-label="@L["common.status"]" class="col-p2">
+                            <span class="hrms-badge hrms-badge--@(u.IsActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(u.IsActive ? L["sec.active"] : L["sec.inactive"])</span>
+                        </td>
+                        <td class="hrms-table__actions">
+                            <button type="button" class="btn btn-sm @(Model.CanAssign ? "btn-primary" : "btn-outline-secondary") sec-assign-btn" data-sec-user="@uref" data-sec-user-name="@name">
+                                @Html.Icon(Model.CanAssign ? "key" : "eye", 14)<span>@(Model.CanAssign ? L["sec.assign_roles"] : L["sec.view_roles"])</span>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

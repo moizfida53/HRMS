@@ -1,0 +1,284 @@
+@using HRMS.Web.Models.Security
+@using HRMS.Web.Security
+@model RoleEditorModel
+@{
+    // The editor of one role: details, the access matrix (module > page > function, Read /
+    // Write / Full) and the approval rights. Ticks are posted as access=ITEM:R|W|F and
+    // approval=APR:L1|L2|SELF; AccessCatalog turns them into permission codes.
+    var r = Model.Role;
+    var ro = Model.ReadOnly;
+    var levels = new[] { (AccessLevel.Read, "R", "sec.read"), (AccessLevel.Write, "W", "sec.write"), (AccessLevel.Full, "F", "sec.full") };
+}
+<form class="sec-form" data-sec-role-form novalidate data-dirty="false">
+    <input type="hidden" name="ref" value="@Model.Ref" />
+    <span hidden data-sec-editor-title>@(r?.RoleName ?? L["sec.new_role"])</span>
+
+    <fieldset class="sec-fieldset" disabled="@ro">
+        @* ------------------------------------------------ details *@
+        <section class="hrms-card sec-details">
+            <div class="sec-details__head">
+                <span class="sec-details__icon" aria-hidden="true">@Html.Icon(r?.IsSystem == true ? "lock" : "key", 20)</span>
+                <div class="sec-details__title">
+                    <h2>@(r?.RoleName ?? L["sec.new_role"])</h2>
+                    <p>
+                        @if (r is null)
+                        {
+                            @L["sec.new_role_text"]
+                        }
+                        else
+                        {
+                            @L["sec.role_meta", r.UserCount, r.PermissionCount]
+                        }
+                    </p>
+                </div>
+                @if (r?.IsSystem == true)
+                {
+                    <span class="hrms-badge hrms-badge--purple"><span class="hrms-badge__dot"></span>@L["sec.system_role"]</span>
+                }
+            </div>
+            @if (r?.IsSystem == true)
+            {
+                <div class="pr-banner pr-banner--lock" role="note">@Html.Icon("lock", 18)<div><strong>@L["sec.system_role"]</strong> @L["sec.system_role_text"]</div></div>
+            }
+            else if (ro)
+            {
+                <div class="pr-banner pr-banner--lock" role="note">@Html.Icon("eye", 18)<div><strong>@L["sec.read_only"]</strong> @L["sec.read_only_text"]</div></div>
+            }
+            <div class="row g-3">
+                <div class="col-12 col-md-6 col-xl-4">
+                    <label class="form-label" for="sec-role-name">@L["sec.role_name"] <span class="text-danger">*</span></label>
+                    <input class="form-control" id="sec-role-name" name="roleName" value="@r?.RoleName" maxlength="100" required />
+                </div>
+                <div class="col-12 col-md-6 col-xl-3">
+                    <label class="form-label" for="sec-role-code">@L["sec.role_code"] <span class="text-danger">*</span></label>
+                    <input class="form-control text-uppercase" id="sec-role-code" name="roleCode" value="@r?.RoleCode" maxlength="50" required
+                           pattern="[A-Za-z0-9_]+" placeholder="PAYROLL_CLERK" />
+                </div>
+                @if (Model.ChooseCompany)
+                {
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <label class="form-label" for="sec-role-company">@L["common.company"]</label>
+                        <select class="form-select" id="sec-role-company" name="companyId">
+                            <option value="">@L["sec.all_companies"]</option>
+                            @foreach (var c in Model.Companies)
+                            {
+                                <option value="@c.Id" selected="@(r?.CompanyId == c.Id)">@c.Text</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="col-12 col-md-6 col-xl-2 d-flex align-items-end">
+                    <div class="form-check form-switch sec-active">
+                        <input class="form-check-input" type="checkbox" role="switch" id="sec-role-active" name="isActive" value="true" checked="@(r?.IsActive ?? true)" />
+                        <label class="form-check-label" for="sec-role-active">@L["sec.active"]</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="sec-role-desc">@L["sec.description"]</label>
+                    <textarea class="form-control" id="sec-role-desc" name="description" rows="2" maxlength="500" placeholder="@L["sec.description_hint"]">@r?.Description</textarea>
+                </div>
+            </div>
+        </section>
+
+        @* ------------------------------------------------ page access *@
+        <section class="hrms-card sec-access" aria-labelledby="sec-access-title">
+            <div class="sec-access__head">
+                <div>
+                    <h3 class="sec-card-title" id="sec-access-title">@L["sec.page_access"]</h3>
+                    <p class="sec-card-sub">@L["sec.page_access_text"]</p>
+                </div>
+                <div class="sec-access__tools">
+                    <label class="hrms-search sec-access__search">
+                        @Html.Icon("search", 15)
+                        <input type="search" data-sec-filter autocomplete="off" placeholder="@L["sec.search_pages"]" aria-label="@L["sec.search_pages"]" />
+                    </label>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="@L["sec.quick_set"]">
+                        <button type="button" class="btn btn-outline-secondary" data-sec-preset="R">@L["sec.all_read"]</button>
+                        <button type="button" class="btn btn-outline-secondary" data-sec-preset="F">@L["sec.all_full"]</button>
+                        <button type="button" class="btn btn-outline-secondary" data-sec-preset="N">@L["sec.clear_all"]</button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-link sec-access__expand" data-sec-expand-all>@L["sec.expand_all"]</button>
+                </div>
+            </div>
+            <ul class="sec-legend" aria-label="@L["sec.legend"]">
+                <li><span class="sec-legend__dot is-read"></span><strong>@L["sec.read"]</strong> @L["sec.read_hint"]</li>
+                <li><span class="sec-legend__dot is-write"></span><strong>@L["sec.write"]</strong> @L["sec.write_hint"]</li>
+                <li><span class="sec-legend__dot is-full"></span><strong>@L["sec.full"]</strong> @L["sec.full_hint"]</li>
+            </ul>
+            <div class="sec-matrix-wrap">
+                <table class="sec-matrix" data-sec-matrix>
+                    <caption class="hrms-sr-only">@L["sec.page_access"]</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["sec.page_function"]</th>
+                            @foreach (var (_, key, label) in levels)
+                            {
+                                <th scope="col" class="sec-col sec-col--@key.ToLowerInvariant()">@L[label]</th>
+                            }
+                        </tr>
+                    </thead>
+                    @foreach (var m in AccessCatalog.Modules)
+                    {
+                        <tbody class="sec-module" data-sec-module="@m.Code">
+                            <tr class="sec-row sec-row--module">
+                                <th scope="rowgroup">
+                                    <span class="sec-row__name"><span class="sec-row__icon" aria-hidden="true">@Html.Icon(m.Icon, 15)</span>@L[m.TitleKey]</span>
+                                </th>
+                                @foreach (var (_, key, label) in levels)
+                                {
+                                    <td class="sec-col">
+                                        <input class="form-check-input sec-check sec-check--@key.ToLowerInvariant()" type="checkbox" data-sec-module-col="@key"
+                                               aria-label="@L["sec.all_0_in_1", L[label], L[m.TitleKey]]" />
+                                    </td>
+                                }
+                            </tr>
+                            @foreach (var p in m.Pages)
+                            {
+                                var pl = Model.LevelOf(p.Code);
+                                var hasFn = p.Children.Count > 0;
+                                <tr class="sec-row sec-row--page" data-sec-item="@p.Code" data-sec-search="@L[p.TitleKey].ToLowerInvariant()">
+                                    <th scope="row">
+                                        <span class="sec-row__name">
+                                            @if (hasFn)
+                                            {
+                                                <button type="button" class="sec-row__toggle" data-sec-toggle aria-expanded="false" aria-label="@L["sec.functions_of_0", L[p.TitleKey]]">@Html.Icon("chevron-right", 14)</button>
+                                            }
+                                            else
+                                            {
+                                                <span class="sec-row__toggle-space" aria-hidden="true"></span>
+                                            }
+                                            <span>
+                                                <strong>@L[p.TitleKey]</strong>
+                                                @if (p.HintKey is not null)
+                                                {
+                                                    <span class="sec-row__hint">@L[p.HintKey]</span>
+                                                }
+                                            </span>
+                                            @if (hasFn)
+                                            {
+                                                <span class="sec-row__count">@L["sec.n_functions", p.Children.Count]</span>
+                                            }
+                                        </span>
+                                    </th>
+                                    @foreach (var (lvl, key, label) in levels)
+                                    {
+                                        <td class="sec-col">
+                                            @if (p.Offers(lvl))
+                                            {
+                                                <input class="form-check-input sec-check sec-check--@key.ToLowerInvariant()" type="checkbox" data-sec-level="@key"
+                                                       checked="@(pl >= lvl)" aria-label="@L["sec.0_on_1", L[label], L[p.TitleKey]]" />
+                                            }
+                                            else
+                                            {
+                                                <span class="sec-na" title="@L["sec.not_applicable"]">—</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                                @foreach (var f in p.Children)
+                                {
+                                    var fl = Model.LevelOf(f.Code);
+                                    <tr class="sec-row sec-row--fn" data-sec-item="@f.Code" data-sec-parent="@p.Code" hidden
+                                        data-sec-search="@($"{L[p.TitleKey]} {L[f.TitleKey]}".ToLowerInvariant())">
+                                        <th scope="row">
+                                            <span class="sec-row__name">
+                                                <span class="sec-row__branch" aria-hidden="true"></span>
+                                                <span>
+                                                    @L[f.TitleKey]
+                                                    @if (f.HintKey is not null)
+                                                    {
+                                                        <span class="sec-row__hint">@L[f.HintKey]</span>
+                                                    }
+                                                </span>
+                                            </span>
+                                        </th>
+                                        @foreach (var (lvl, key, label) in levels)
+                                        {
+                                            <td class="sec-col">
+                                                @if (f.Offers(lvl))
+                                                {
+                                                    <input class="form-check-input sec-check sec-check--@key.ToLowerInvariant()" type="checkbox" data-sec-level="@key"
+                                                           checked="@(fl >= lvl)" aria-label="@L["sec.0_on_1", L[label], L[f.TitleKey]]" />
+                                                }
+                                                else if (lvl == AccessLevel.Read)
+                                                {
+                                                    <span class="sec-inherit" data-sec-inherit title="@L["sec.with_page"]">@Html.Icon("check", 13)</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="sec-na" title="@L["sec.not_applicable"]">—</span>
+                                                }
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    }
+                </table>
+            </div>
+            <p class="sec-matrix__empty" data-sec-filter-empty hidden>@L["sec.no_pages_match"]</p>
+        </section>
+
+        @* ------------------------------------------------ approvals *@
+        <section class="hrms-card sec-access" aria-labelledby="sec-apr-title">
+            <div class="sec-access__head">
+                <div>
+                    <h3 class="sec-card-title" id="sec-apr-title">@L["sec.approval_rights"]</h3>
+                    <p class="sec-card-sub">@L["sec.approval_rights_text"]</p>
+                </div>
+            </div>
+            <div class="sec-matrix-wrap">
+                <table class="sec-matrix sec-matrix--approvals">
+                    <caption class="hrms-sr-only">@L["sec.approval_rights"]</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["sec.process"]</th>
+                            <th scope="col" class="sec-col sec-col--apr">@L["sec.level_1"]<span>@L["sec.level_1_hint"]</span></th>
+                            <th scope="col" class="sec-col sec-col--apr">@L["sec.level_2"]<span>@L["sec.level_2_hint"]</span></th>
+                            <th scope="col" class="sec-col sec-col--apr">@L["sec.self_approve"]<span>@L["sec.self_approve_hint"]</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in AccessCatalog.Approvals)
+                        {
+                            <tr class="sec-row sec-row--page" data-sec-approval="@a.Code">
+                                <th scope="row">
+                                    <span class="sec-row__name"><span class="sec-row__toggle-space" aria-hidden="true"></span>
+                                        <span><strong>@L[a.TitleKey]</strong><span class="sec-row__hint">@L[a.HintKey]</span></span>
+                                    </span>
+                                </th>
+                                @foreach (var col in new[] { "L1", "L2", "SELF" })
+                                {
+                                    <td class="sec-col">
+                                        <input class="form-check-input sec-check sec-check--apr" type="checkbox" name="approval" value="@a.Code:@col"
+                                               checked="@Model.Approves(a.Code, col)"
+                                               aria-label="@(col switch { "L1" => L["sec.level_1"], "L2" => L["sec.level_2"], _ => L["sec.self_approve"] }) · @L[a.TitleKey]" />
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p class="sec-footnote">@Html.Icon("info", 14)<span>@L["sec.approval_note"]</span></p>
+        </section>
+    </fieldset>
+
+    @* ------------------------------------------------ actions *@
+    @if (!ro)
+    {
+        <div class="sec-actionbar">
+            <span class="sec-actionbar__status" data-sec-summary></span>
+            <span class="sec-actionbar__dirty" data-sec-dirty hidden>@Html.Icon("info", 14)<span>@L["sec.unsaved"]</span></span>
+            <span class="sec-actionbar__spacer"></span>
+            @if (Model.CanDelete)
+            {
+                <button type="button" class="btn btn-outline-danger" data-sec-delete
+                        data-confirm="@L["sec.delete_confirm", r!.RoleName]">@Html.Icon("trash", 15)<span>@L["sec.delete_role"]</span></button>
+            }
+            <button type="button" class="btn btn-outline-secondary" data-sec-discard>@L["sec.discard"]</button>
+            <button type="submit" class="btn btn-primary" data-sec-save>@Html.Icon("check", 15)<span>@(Model.IsNew ? L["sec.create_role"] : L["sec.save_role"])</span></button>
+        </div>
+    }
+</form>

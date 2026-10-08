@@ -86,16 +86,21 @@ public sealed class EmployeesController : Controller
         return employee is not null && _currentUser.Allows(employee.CompanyId);
     }
 
+    private EmployeeAccess Access => _currentUser.EmployeeAccess();
+    private static IActionResult NoRight() =>
+        new JsonResult(ActionResponse.Failed("You do not have permission to do this.", "FORBIDDEN"));
+
     private static IActionResult NotYours() =>
         new JsonResult(ActionResponse.Failed("That record was not found.", "NOT_FOUND"));
 
     [HttpGet("")]
     [HttpGet("index")]
-    public IActionResult Index() => View(ViewsRoot + "Index.cshtml");
+    public IActionResult Index() => Access.View ? View(ViewsRoot + "Index.cshtml") : Forbid();
 
     [HttpGet("grid")]
     public async Task<IActionResult> Grid([FromQuery] GridRequest request)
     {
+        if (!Access.View) return Forbid();
         // Scope the list to the user's active company once they have one,
         // same as every Organization Setup grid.
         // a pinned user's own company always wins over a CompanyId in the query string
@@ -127,6 +132,7 @@ public sealed class EmployeesController : Controller
     [HttpGet("add")]
     public async Task<IActionResult> Add()
     {
+        if (!Access.Create) return Forbid();
         // Pre-select the company when the top-bar filter is narrowed to exactly one.
         var employee = new Employee { CompanyId = _currentUser.ActiveCompanyId ?? _companyFilter.SingleCompanyId ?? 0 };
         var lookups = await LoadProfileLookupsAsync(includeInactive: false);
@@ -157,6 +163,8 @@ public sealed class EmployeesController : Controller
         {
             return RedirectToAction(nameof(Add));
         }
+
+        if (!Access.View) return Forbid();
 
         var employee = await _employees.GetByIdAsync(id, Ct);
 
@@ -221,6 +229,9 @@ public sealed class EmployeesController : Controller
             return Json(ActionResponse.Invalid(CollectErrors()));
         }
 
+        // a new employee needs Create, an existing one Edit (Personal info & employment)
+        if (model.EmployeeId > 0 ? !Access.Edit : !Access.Create) return NoRight();
+
         // the employee (when editing) and the company chosen must both be the user's
         if (!_currentUser.Allows(model.CompanyId) || (model.EmployeeId > 0 && !await OwnsEmployeeAsync(model.EmployeeId)))
         {
@@ -257,6 +268,7 @@ public sealed class EmployeesController : Controller
                 "Save the employee's Personal Info first, then add Kuwait compliance details."));
         }
 
+        if (!Access.ComplianceEdit) return NoRight();
         if (!await OwnsEmployeeAsync(model.EmployeeId))
         {
             return NotYours();
@@ -287,6 +299,7 @@ public sealed class EmployeesController : Controller
     [HttpGet("dependents/{employeeId:long}/grid")]
     public async Task<IActionResult> DependentsGrid(long employeeId)
     {
+        if (!Access.DependentView) return Forbid();
         if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
 
         var dependents = await _dependents.ListAsync(employeeId, Ct);
@@ -309,6 +322,7 @@ public sealed class EmployeesController : Controller
             return Json(ActionResponse.Failed("Save the employee first, then add dependents."));
         }
 
+        if (!Access.DependentEdit) return NoRight();
         if (!await OwnsEmployeeAsync(model.EmployeeId))
         {
             return NotYours();
@@ -324,6 +338,7 @@ public sealed class EmployeesController : Controller
     [HttpPost("dependents/delete")]
     public async Task<IActionResult> DeleteDependent(long id, long employeeId)
     {
+        if (!Access.DependentDelete) return NoRight();
         if (!await OwnsEmployeeAsync(employeeId)) return NotYours();
 
         var result = await _dependents.DeleteAsync(id, employeeId, _currentUser.UserId, Ct);
@@ -344,6 +359,7 @@ public sealed class EmployeesController : Controller
     [HttpGet("documents/{employeeId:long}/grid")]
     public async Task<IActionResult> DocumentsGrid(long employeeId)
     {
+        if (!Access.DocumentView) return Forbid();
         if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
 
         var rows = await _documents.ListAsync(employeeId, Ct);
@@ -372,6 +388,7 @@ public sealed class EmployeesController : Controller
             return Json(ActionResponse.Failed("Choose a file to upload."));
         }
 
+        if (!Access.DocumentUpload) return NoRight();
         if (!await OwnsEmployeeAsync(employeeId))
         {
             return NotYours();
@@ -415,6 +432,7 @@ public sealed class EmployeesController : Controller
     [HttpGet("documents/{employeeId:long}/file/{attachmentId:long}")]
     public async Task<IActionResult> DocumentFile(long employeeId, long attachmentId, bool download = false)
     {
+        if (!Access.DocumentView) return Forbid();
         if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
 
         var file = await _documents.GetAsync(employeeId, attachmentId, Ct);
@@ -440,6 +458,7 @@ public sealed class EmployeesController : Controller
     [HttpPost("documents/delete")]
     public async Task<IActionResult> DeleteDocument(long id, long employeeId)
     {
+        if (!Access.DocumentDelete) return NoRight();
         if (!await OwnsEmployeeAsync(employeeId)) return NotYours();
 
         // Soft delete: the row and the file on disk are kept as history.
@@ -453,6 +472,7 @@ public sealed class EmployeesController : Controller
     [HttpPost("delete")]
     public async Task<IActionResult> Delete(long id)
     {
+        if (!Access.Delete) return NoRight();
         if (!await OwnsEmployeeAsync(id)) return NotYours();
 
         var result = await _employees.DeleteAsync(id, _currentUser.UserId, Ct);
@@ -465,6 +485,7 @@ public sealed class EmployeesController : Controller
     [HttpPost("toggle")]
     public async Task<IActionResult> Toggle(long id)
     {
+        if (!Access.Delete) return NoRight();
         if (!await OwnsEmployeeAsync(id)) return NotYours();
 
         var result = await _employees.ToggleActiveAsync(id, _currentUser.UserId, Ct);

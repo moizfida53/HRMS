@@ -77,7 +77,7 @@ public sealed class PayrollNavCounts : IPayrollNavCounts
     public async Task<PayrollNavCountsResult?> GetAsync(CancellationToken cancellationToken = default)
     {
         var canRuns = _user.HasPermission("PAYROLL_RUN_VIEW");
-        var canSetup = canRuns || _user.HasPermission("PAYROLL_SETUP_VIEW");
+        var canSetup = canRuns || _user.HasPermission("PAYROLL_CALENDAR_VIEW");   // calendars and pay periods
         var canSlips = _user.HasPermission("PAYROLL_SLIP_VIEW") || _user.HasPermission("PAYROLL_SLIP_GENERATE")
                        || _user.HasPermission("PAYROLL_SLIP_EMAIL");
         var canBank = _user.HasPermission("PAYROLL_BANK_VIEW") || _user.HasPermission("PAYROLL_BANK_PROCESS");

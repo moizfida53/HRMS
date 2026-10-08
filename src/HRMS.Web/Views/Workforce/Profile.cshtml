@@ -1,5 +1,9 @@
+@inject ICurrentUser CurrentUser
 @model EmployeeProfileViewModel
 @{
+    // Security > Create Roles: each section is shown read-only, editable, or not at all.
+    var acc = CurrentUser.EmployeeAccess();
+
     ViewData["Title"] = Model.DisplayName;
     ViewData["ActiveArea"] = "workforce";
     // Top bar shows the screen name; the employee's own name appears once,
@@ -14,6 +18,11 @@
     // Wizard mode (Add Employee, and the steps after the employee is created):
     // the very same sections as the tabs, shown one at a time with Previous / Next.
     var wizard = Model.Wizard;
+    var canSave = Model.IsNew ? acc.Create : acc.Edit;
+    // the wizard (Add Employee) walks every section; the tabs only offer the readable ones
+    var showCompliance = wizard || acc.ComplianceView;
+    var showDependents = wizard || acc.DependentView;
+    var showDocuments = wizard || acc.DocumentView;
     var wizardTabs = new[] {
         ("personal", "Personal Info"), ("employment", "Employment"),
         ("compliance", "Kuwait Compliance"), ("dependents", "Dependents"),
@@ -54,8 +63,12 @@
             }
         </div>
     </div>
+    @if (!canSave && !wizard)
+    {
+        <span class="hrms-badge hrms-badge--muted ms-auto"><span class="hrms-badge__dot"></span>@L["sec.read_only"]</span>
+    }
 
-    <div class="hrms-emp-strip__actions" hidden="@(wizard ? "hidden" : null)">
+    <div class="hrms-emp-strip__actions" hidden="@(wizard || !canSave ? "hidden" : null)">
         <button type="submit" form="employee-form" class="btn btn-primary" data-submit="employee">
             @Html.Icon("check", 15)
             <span>@(Model.IsNew ? L["emp.create_employee"] : L["emp.save_changes"])</span>
@@ -94,6 +107,8 @@
             @Html.Icon("briefcase", 15)<span>@L["emp.employment"]</span>
         </button>
     </li>
+    @if (showCompliance)
+    {
     <li class="nav-item" role="presentation">
         <button class="nav-link @(Model.ActiveTab == "compliance" ? "active" : null)" id="tab-compliance-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-compliance" type="button" role="tab"
@@ -103,6 +118,9 @@
             @Html.Icon("shield", 15)<span>@L["common.kuwait_compliance"]</span>
         </button>
     </li>
+    }
+    @if (showDependents)
+    {
     <li class="nav-item" role="presentation">
         <button class="nav-link @(Model.ActiveTab == "dependents" ? "active" : null)" id="tab-dependents-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-dependents" type="button" role="tab"
@@ -112,6 +130,9 @@
             @Html.Icon("heart", 15)<span>@L["emp.dependents"]</span>
         </button>
     </li>
+    }
+    @if (showDocuments)
+    {
     <li class="nav-item" role="presentation">
         <button class="nav-link @(Model.ActiveTab == "documents" ? "active" : null)" id="tab-documents-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-documents" type="button" role="tab"
@@ -121,6 +142,7 @@
             @Html.Icon("folder", 15)<span>@L["emp.documents"]</span>
         </button>
     </li>
+    }
 </ul>
 
 <div class="tab-content hrms-profile-tab-content">
@@ -133,6 +155,7 @@
        Kuwait Compliance <form> lives in its own pane a few lines down. *@
 
     <div class="tab-pane fade @(Model.ActiveTab == "personal" ? "show active" : null)" id="tab-personal" role="tabpanel" aria-labelledby="tab-personal-btn">
+        <fieldset class="hrms-ro-fieldset" disabled="@(!canSave)">
         <div class="hrms-card"><div class="p-3 p-md-4">
 
             <input type="hidden" form="employee-form" name="EmployeeId" value="@e.EmployeeId" />
@@ -450,9 +473,11 @@
             </div>
 
         </div></div>
+        </fieldset>
     </div>
 
     <div class="tab-pane fade @(Model.ActiveTab == "employment" ? "show active" : null)" id="tab-employment" role="tabpanel" aria-labelledby="tab-employment-btn">
+        <fieldset class="hrms-ro-fieldset" disabled="@(!canSave)">
         <div class="hrms-card"><div class="p-3 p-md-4">
 
             <div class="accordion hrms-accordion" id="acc-employment">
@@ -720,8 +745,11 @@
             </div>
 
         </div></div>
+        </fieldset>
     </div>
 
+    @if (showCompliance)
+    {
     <div class="tab-pane fade @(Model.ActiveTab == "compliance" ? "show active" : null)" id="tab-compliance" role="tabpanel" aria-labelledby="tab-compliance-btn">
         <div class="hrms-card"><div class="p-3 p-md-4">
         @if (Model.IsNew)
@@ -732,6 +760,7 @@
         {
             <form id="compliance-form" novalidate>
                 <input type="hidden" name="EmployeeId" value="@e.EmployeeId" />
+                <fieldset class="hrms-ro-fieldset" disabled="@(!acc.ComplianceEdit)">
 
                 <div class="accordion hrms-accordion" id="acc-compliance">
 
@@ -981,17 +1010,24 @@
 
                 </div>
 
-                <div class="d-flex justify-content-end pt-2">
-                    <button type="submit" class="btn btn-primary" data-submit="compliance">
-                        @Html.Icon("check", 15)
-                        <span>@L["emp.save_compliance_details"]</span>
-                    </button>
-                </div>
+                </fieldset>
+                @if (acc.ComplianceEdit)
+                {
+                    <div class="d-flex justify-content-end pt-2">
+                        <button type="submit" class="btn btn-primary" data-submit="compliance">
+                            @Html.Icon("check", 15)
+                            <span>@L["emp.save_compliance_details"]</span>
+                        </button>
+                    </div>
+                }
             </form>
         }
         </div></div>
     </div>
+    }
 
+    @if (showDependents)
+    {
     <div class="tab-pane fade @(Model.ActiveTab == "dependents" ? "show active" : null)" id="tab-dependents" role="tabpanel" aria-labelledby="tab-dependents-btn">
         @if (Model.IsNew)
         {
@@ -1006,7 +1042,10 @@
             </div>
         }
     </div>
+    }
 
+    @if (showDocuments)
+    {
     <div class="tab-pane fade @(Model.ActiveTab == "documents" ? "show active" : null)" id="tab-documents" role="tabpanel" aria-labelledby="tab-documents-btn">
         @if (Model.IsNew)
         {
@@ -1023,6 +1062,7 @@
             </div>
         }
     </div>
+    }
 </div>
 
 @if (wizard)

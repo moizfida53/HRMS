@@ -85,6 +85,17 @@
             var onPayrollSettings = activeArea == "payroll" && (ViewData["PayrollSection"] as string) == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey;
             var openSetup = activeArea == "organization" || onPayrollSettings;
             var openPayroll = activeArea == "payroll" && !onPayrollSettings;
+            var openSecurity = activeArea == "security";
+
+            // Pages the user has no read access to are not offered (Security > Create Roles).
+            var canEmployees = CurrentUser.CanOpen("employees");
+            var canOrganization = CurrentUser.CanOpen("organization");
+            var canSettings = CurrentUser.CanOpen("payroll:settings");
+            var canRoles = CurrentUser.CanOpen("security:roles");
+            var canAssign = CurrentUser.CanOpen("security:assign");
+            var payrollSections = HRMS.Web.Models.Payroll.PayrollNav.Sections
+                .Where(s => s.Key != HRMS.Web.Models.Payroll.PayrollNav.SettingsKey && CurrentUser.CanOpen("payroll:" + s.Key))
+                .ToList();
 
             // Time & Attendance is hidden for now (Attendance, Overtime).
             // Set to true to bring the group back.
@@ -108,6 +119,8 @@
                 </a>
             }
 
+            @if (canEmployees)
+            {
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle @(openWorkforce ? null : "collapsed")" data-bs-toggle="collapse"
                         data-bs-target="#nav-workforce" aria-expanded="@(openWorkforce ? "true" : "false")" aria-controls="nav-workforce">
@@ -123,6 +136,7 @@
                     </a>
                 </div>
             </div>
+            }
 
             @if (showTimeAttendance)
             {
@@ -144,6 +158,8 @@
 
             @* Payroll: one link per section (db/34+). Payroll Processing is live; the
                other sections are previews of the approved designs, wired up one by one. *@
+            @if (payrollSections.Count > 0)
+            {
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle @(openPayroll ? null : "collapsed")" data-bs-toggle="collapse"
                         data-bs-target="#nav-payroll" aria-expanded="@(openPayroll ? "true" : "false")" aria-controls="nav-payroll">
@@ -151,11 +167,9 @@
                 </button>
                 <div class="collapse hrms-nav-group__items @(openPayroll ? "show" : null)" id="nav-payroll">
                     @{ HRMS.Web.Services.PayrollNavCountsResult? navCounts = null; }
-                    @foreach (var section in HRMS.Web.Models.Payroll.PayrollNav.Sections)
+                    @foreach (var section in payrollSections)
                     {
                         var sectionActive = openPayroll && section.Key == (ViewData["PayrollSection"] as string);
-                        // Payroll Settings sits under Setup (below)
-                        if (section.Key == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey) { continue; }
                         if (section.SubNav)
                         {
                             // Sections that open into their pages, each with its record count (Payroll History has none).
@@ -173,6 +187,7 @@
                     </a>
                 </div>
             </div>
+            }
 
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle collapsed" data-bs-toggle="collapse"
@@ -190,13 +205,15 @@
             </div>
 
             @* Formerly "Organization" - the company/branch/department masters. *@
+            @if (canOrganization || canSettings)
+            {
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle @(openSetup ? null : "collapsed")" data-bs-toggle="collapse"
                         data-bs-target="#nav-setup" aria-expanded="@(openSetup ? "true" : "false")" aria-controls="nav-setup">
                     <span>@L["layout.setup"]</span>@Html.Icon("chevron-down", 14)
                 </button>
                 <div class="collapse hrms-nav-group__items @(openSetup ? "show" : null)" id="nav-setup">
-                    @foreach (var tab in OrganizationTabs.All)
+                    @foreach (var tab in OrganizationTabs.All.Where(_ => canOrganization))
                     {
                         <a class="hrms-nav-link @(activeArea == "organization" && tab.Key == (ViewData["ActiveTab"] as string) ? "is-active" : null)"
                            asp-controller="Organization" asp-action="Index" asp-route-tab="@tab.Key">
@@ -204,12 +221,40 @@
                         </a>
                     }
                     @* Payroll Settings - the payroll masters, opening into their pages *@
-                    @if (HRMS.Web.Models.Payroll.PayrollNav.Sections.FirstOrDefault(s => s.Key == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey) is { } settingsSection)
+                    @if (canSettings && HRMS.Web.Models.Payroll.PayrollNav.Sections.FirstOrDefault(s => s.Key == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey) is { } settingsSection)
                     {
                         await Html.RenderPartialAsync("_PayrollSubNav", (settingsSection, onPayrollSettings, (HRMS.Web.Services.PayrollNavCountsResult?)null));
                     }
                 </div>
             </div>
+            }
+
+            @* Security: roles and their access (db/57) *@
+            @if (canRoles || canAssign)
+            {
+                <div class="hrms-nav-group">
+                    <button type="button" class="hrms-nav-group__toggle @(openSecurity ? null : "collapsed")" data-bs-toggle="collapse"
+                            data-bs-target="#nav-security" aria-expanded="@(openSecurity ? "true" : "false")" aria-controls="nav-security">
+                        <span>@L["layout.security"]</span>@Html.Icon("chevron-down", 14)
+                    </button>
+                    <div class="collapse hrms-nav-group__items @(openSecurity ? "show" : null)" id="nav-security">
+                        @if (canRoles)
+                        {
+                            <a class="hrms-nav-link @(openSecurity && (ViewData["SecurityPage"] as string) == "roles" ? "is-active" : null)"
+                               asp-controller="Security" asp-action="Roles">
+                                @Html.Icon("key")<span>@L["layout.create_roles"]</span>
+                            </a>
+                        }
+                        @if (canAssign)
+                        {
+                            <a class="hrms-nav-link @(openSecurity && (ViewData["SecurityPage"] as string) == "assign" ? "is-active" : null)"
+                               asp-controller="Security" asp-action="Assign">
+                                @Html.Icon("user-check")<span>@L["layout.assign_roles"]</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
         </nav>
 
         @* Account menu - lives here (bottom-left) instead of the top bar. *@

@@ -1,0 +1,82 @@
+@using HRMS.Web.Models.Security
+@model RolesPageModel
+@{
+    // Security > Create Roles (db/57): the roles on the left, the editor of the chosen one on the
+    // right - access to every page and function (Read / Write / Full) and the approval rights.
+    ViewData["Title"] = "Create Roles";
+    ViewData["ActiveArea"] = "security";
+    ViewData["SecurityPage"] = "roles";
+    ViewData["Subtitle"] = L["sec.roles_subtitle"];
+}
+
+<div class="sec-page" data-sec-roles
+     data-urls-panel="@Url.Action("RolePanel", "Security")"
+     data-urls-save="@Url.Action("SaveRole", "Security")"
+     data-urls-delete="@Url.Action("DeleteRole", "Security")"
+     data-open="@Model.OpenRef">
+    <div class="sec-layout">
+        @* ------------------------------------------------ roles *@
+        <aside class="hrms-card sec-roles" aria-label="@L["sec.roles"]">
+            <div class="sec-roles__head">
+                <h2 class="sec-roles__title">@L["sec.roles"] <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@Model.Roles.Count</span></h2>
+                @if (Model.CanEdit)
+                {
+                    <button type="button" class="btn btn-sm btn-primary" data-sec-new>@Html.Icon("plus", 14)<span>@L["sec.new_role"]</span></button>
+                }
+            </div>
+            <label class="hrms-search sec-roles__search">
+                @Html.Icon("search", 15)
+                <input type="search" data-sec-role-search autocomplete="off" placeholder="@L["sec.search_roles"]" aria-label="@L["sec.search_roles"]" />
+            </label>
+            <ul class="sec-roles__list" role="listbox" aria-label="@L["sec.roles"]">
+                @foreach (var r in Model.Roles)
+                {
+                    var rref = Model.Refs[r.RoleId];
+                    <li>
+                        <button type="button" class="sec-role @(r.IsActive ? null : "is-inactive")" role="option" aria-selected="false"
+                                data-sec-role="@rref" data-sec-search-text="@($"{r.RoleName} {r.RoleCode}".ToLowerInvariant())">
+                            <span class="sec-role__icon" aria-hidden="true">@Html.Icon(r.IsSystem ? "lock" : "key", 16)</span>
+                            <span class="sec-role__text">
+                                <strong>@r.RoleName</strong>
+                                <span class="sec-role__meta">
+                                    <span class="hrms-code-chip">@r.RoleCode</span>
+                                    <span>@L["sec.n_users", r.UserCount]</span>
+                                    @if (r.CompanyName is not null)
+                                    {
+                                        <span title="@r.CompanyName">@r.CompanyName</span>
+                                    }
+                                </span>
+                            </span>
+                            @if (r.IsSystem)
+                            {
+                                <span class="hrms-badge hrms-badge--purple sec-role__badge"><span class="hrms-badge__dot"></span>@L["sec.system"]</span>
+                            }
+                            else if (!r.IsActive)
+                            {
+                                <span class="hrms-badge hrms-badge--muted sec-role__badge"><span class="hrms-badge__dot"></span>@L["sec.inactive"]</span>
+                            }
+                        </button>
+                    </li>
+                }
+            </ul>
+            @if (Model.Roles.Count == 0)
+            {
+                <p class="sec-roles__empty">@L["sec.no_roles"]</p>
+            }
+        </aside>
+
+        @* ------------------------------------------------ editor *@
+        <section class="sec-editor" data-sec-editor aria-live="polite">
+            <div class="hrms-card hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("shield", 26)</span>
+                <p class="hrms-empty__title">@L["sec.pick_role"]</p>
+                <p class="hrms-empty__text">@L["sec.pick_role_text"]</p>
+            </div>
+        </section>
+    </div>
+</div>
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script src="~/js/security.js" asp-append-version="true"></script>
+}

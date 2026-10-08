@@ -1,0 +1,384 @@
+// ============================================================================
+// Security > Create Roles / Assign Roles (db/57)
+// ----------------------------------------------------------------------------
+// Create Roles: the role list (left) and the editor (right) - details, the access
+// matrix (module > page > function x Read / Write / Full) and the approval rights.
+// Read is blue, Write green, Full purple, so a column reads at a glance. Layout
+// follows the CONTENT width (container "content"): the two columns stack on
+// tablets, phones and at high zoom.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+$sec-read: $blue-600;
+$sec-write: $green-600;
+$sec-full: $purple-700;
+
+.sec-page { display: grid; gap: 1rem; }
+
+.sec-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+
+  @include cq-down("lg") { grid-template-columns: minmax(0, 1fr); }
+}
+
+// ------------------------------------------------------------ role list ----
+.sec-roles {
+  display: flex;
+  flex-direction: column;
+  gap: space("3");
+  padding: space("4");
+  position: sticky;
+  inset-block-start: space("3");
+  max-block-size: calc(100vh - 7rem);
+
+  @include cq-down("lg") { position: static; max-block-size: none; }
+
+  &__head { display: flex; align-items: center; justify-content: space-between; gap: space("2"); }
+  &__title { display: inline-flex; align-items: center; gap: space("2"); margin: 0; font-size: $fs-base; font-weight: $fw-semibold; color: $ink-900; }
+  &__head .btn { display: inline-flex; align-items: center; gap: .35rem; }
+  &__search { max-width: none; }
+
+  &__list {
+    display: grid;
+    gap: 4px;
+    margin: 0 calc(-1 * #{space("2")});
+    padding: 0 space("2");
+    list-style: none;
+    overflow-y: auto;
+    @include thin-scrollbar;
+
+    @include cq-down("lg") {
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(220px, 260px);
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-block-end: space("2");
+    }
+  }
+
+  &__empty { margin: 0; font-size: $fs-sm; color: $ink-500; }
+}
+
+.sec-role {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  inline-size: 100%;
+  padding: space("2") space("3");
+  border: 1px solid transparent;
+  border-radius: $radius-md;
+  background: transparent;
+  text-align: start;
+  color: inherit;
+  @include motion(background-color, border-color, box-shadow);
+
+  &:hover { background: $surface-2; }
+  &:focus-visible { @include focus-ring; }
+
+  &__icon {
+    display: inline-grid; place-items: center; flex: 0 0 auto;
+    inline-size: 34px; block-size: 34px; border-radius: $radius;
+    background: $surface; color: $ink-600;
+  }
+  &__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+  &__text strong { font-size: $fs-sm; color: $ink-900; @include truncate; }
+  &__meta {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: $fs-xs; color: $ink-500;
+    > span:last-child:not(.hrms-code-chip) { @include truncate; max-width: 110px; }
+  }
+  &__badge { flex: 0 0 auto; font-size: .68rem; }
+
+  &.is-inactive &__text strong { color: $ink-500; }
+
+  &.is-active {
+    border-color: $blue-200;
+    background: linear-gradient(90deg, $blue-050 0%, rgba($white, 0) 100%);
+    box-shadow: inset 3px 0 0 $blue-600;
+    [dir="rtl"] & { box-shadow: inset -3px 0 0 $blue-600; }
+    .sec-role__icon { background: linear-gradient(135deg, $blue-500, $blue-700); color: $white; }
+  }
+}
+
+// --------------------------------------------------------------- editor ----
+.sec-editor { min-width: 0; }
+.sec-form { display: grid; gap: 1rem; }
+.sec-fieldset { display: grid; gap: 1rem; min-width: 0; margin: 0; padding: 0; border: 0; }
+
+.sec-details {
+  display: grid;
+  gap: space("4");
+  padding: space("4") space("5");
+
+  &__head { display: flex; align-items: center; gap: space("3"); flex-wrap: wrap; }
+  &__icon {
+    display: inline-grid; place-items: center; inline-size: 44px; block-size: 44px; flex: 0 0 auto;
+    border-radius: $radius-md; background: linear-gradient(135deg, $blue-500, $blue-700); color: $white;
+    box-shadow: 0 6px 14px -6px rgba($blue-700, .55);
+  }
+  &__title { min-width: 0; flex: 1 1 auto; }
+  &__title h2 { margin: 0; font-size: $fs-lg; font-weight: $fw-semibold; color: $ink-900; }
+  &__title p { margin: 2px 0 0; font-size: $fs-sm; color: $ink-500; }
+  .pr-banner { margin: 0; }
+
+  @include cq-down("sm") { padding: space("3") space("4"); }
+}
+
+.sec-active { margin: 0 0 .45rem; .form-check-label { font-weight: $fw-semibold; } }
+
+.sec-card-title { margin: 0; font-size: $fs-base; font-weight: $fw-semibold; color: $ink-900; }
+.sec-card-sub { margin: 2px 0 0; font-size: $fs-sm; color: $ink-500; }
+
+.sec-access {
+  overflow: hidden;
+
+  &__head {
+    display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: space("3");
+    padding: space("4") space("5") space("3");
+    @include cq-down("sm") { padding: space("3") space("4"); }
+  }
+  &__tools { display: flex; align-items: center; flex-wrap: wrap; gap: space("2"); }
+  &__search { min-width: 200px; max-width: 260px; }
+  &__expand { padding-inline: 0; font-weight: $fw-semibold; text-decoration: none; }
+
+  @include cq-down("sm") {
+    &__tools { width: 100%; }
+    &__search { flex: 1 1 100%; max-width: none; }
+  }
+}
+
+.sec-legend {
+  display: flex; flex-wrap: wrap; gap: space("2") space("5");
+  margin: 0; padding: 0 space("5") space("3"); list-style: none;
+  font-size: $fs-xs; color: $ink-500;
+
+  li { display: inline-flex; align-items: center; gap: 6px; }
+  strong { color: $ink-700; }
+  &__dot { inline-size: 10px; block-size: 10px; border-radius: 3px; }
+  &__dot.is-read { background: $sec-read; }
+  &__dot.is-write { background: $sec-write; }
+  &__dot.is-full { background: $sec-full; }
+
+  @include cq-down("sm") { padding: 0 space("4") space("3"); }
+}
+
+// --------------------------------------------------------------- matrix ----
+.sec-matrix-wrap { overflow-x: auto; border-block-start: 1px solid $line-100; @include thin-scrollbar; }
+
+.sec-matrix {
+  inline-size: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: $fs-sm;
+
+  thead th {
+    position: sticky; inset-block-start: 0; z-index: 1;
+    padding: space("2") space("3");
+    background: $surface-2;
+    border-block-end: 1px solid $line-200;
+    font-size: $fs-xs; font-weight: $fw-semibold; color: $ink-500;
+    @include label-caps;
+    text-align: start;
+
+    &:first-child { padding-inline-start: space("5"); }
+  }
+
+  th, td { vertical-align: middle; }
+
+  .sec-col {
+    inline-size: 92px;
+    text-align: center;
+    padding: space("2") space("1");
+  }
+  thead .sec-col { text-align: center; }
+  .sec-col--r { color: $sec-read; }
+  .sec-col--w { color: $sec-write; }
+  .sec-col--f { color: $sec-full; }
+  .sec-col--apr { inline-size: 130px; span { display: block; margin-block-start: 2px; font-size: .62rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: $ink-400; } }
+
+  @include cq-down("sm") {
+    .sec-col { inline-size: 58px; }
+    .sec-col--apr { inline-size: 76px; span { display: none; } }
+    thead th:first-child { padding-inline-start: space("3"); }
+  }
+}
+
+.sec-row {
+  > th, > td { border-block-end: 1px solid $line-100; }
+  > th { padding: space("2") space("3") space("2") space("5"); font-weight: 400; text-align: start; }
+  [dir="rtl"] & > th { padding: space("2") space("5") space("2") space("3"); }
+
+  &__name { display: flex; align-items: center; gap: space("2"); min-width: 0; }
+  &__name strong { color: $ink-900; font-weight: $fw-semibold; }
+  &__hint { display: block; font-size: $fs-xs; color: $ink-500; line-height: 1.35; }
+  &__icon {
+    display: inline-grid; place-items: center; inline-size: 26px; block-size: 26px; flex: 0 0 auto;
+    border-radius: $radius-sm; background: $white; color: $blue-700; box-shadow: $shadow-xs;
+  }
+  &__count {
+    margin-inline-start: auto; flex: 0 0 auto;
+    padding: 1px 8px; border-radius: $radius-pill; background: $surface; font-size: .68rem; color: $ink-500; white-space: nowrap;
+  }
+  &__toggle {
+    display: inline-grid; place-items: center; flex: 0 0 auto; inline-size: 24px; block-size: 24px; padding: 0;
+    border: 1px solid $line-200; border-radius: $radius-sm; background: $white; color: $ink-500;
+    @include motion(transform, background-color, color);
+    svg { @include motion(transform); }
+    &:hover { background: $blue-050; color: $blue-700; }
+    &:focus-visible { @include focus-ring; }
+    &[aria-expanded="true"] svg { transform: rotate(90deg); }
+    [dir="rtl"] & svg { transform: scaleX(-1); }
+    [dir="rtl"] &[aria-expanded="true"] svg { transform: rotate(90deg); }
+  }
+  &__toggle-space { inline-size: 24px; flex: 0 0 auto; }
+  &__branch {
+    inline-size: 24px; block-size: 18px; flex: 0 0 auto; margin-inline-start: 12px;
+    border-inline-start: 1px dashed $line-300; border-block-end: 1px dashed $line-300;
+    border-end-start-radius: 6px; transform: translateY(-6px);
+  }
+
+  &--module {
+    > th, > td { background: linear-gradient(90deg, $surface-2 0%, $white 100%); border-block-start: 1px solid $line-200; }
+    > th { padding-block: space("2"); font-size: $fs-xs; font-weight: $fw-semibold; color: $ink-700; @include label-caps; }
+  }
+
+  &--page:hover > th, &--page:hover > td,
+  &--fn:hover > th, &--fn:hover > td { background: rgba($blue-050, .6); }
+  &--page.is-open > th, &--page.is-open > td { background: $blue-050; }
+
+  &--fn {
+    > th, > td { background: $surface-2; }
+    > th { padding-block: 6px; color: $ink-700; }
+    &.is-off { opacity: .55; }
+  }
+
+  @include cq-down("sm") {
+    > th { padding: space("2") space("2") space("2") space("3"); }
+    &__hint, &__count { display: none; }
+    &__branch { margin-inline-start: 4px; inline-size: 14px; }
+  }
+}
+
+.sec-check {
+  inline-size: 1.15rem; block-size: 1.15rem; margin: 0; cursor: pointer;
+  &.sec-check--r:checked, &.sec-check--r:indeterminate { background-color: $sec-read; border-color: $sec-read; }
+  &.sec-check--w:checked, &.sec-check--w:indeterminate { background-color: $sec-write; border-color: $sec-write; }
+  &.sec-check--f:checked, &.sec-check--f:indeterminate { background-color: $sec-full; border-color: $sec-full; }
+  &.sec-check--apr:checked { background-color: $blue-700; border-color: $blue-700; }
+  &:focus { box-shadow: 0 0 0 3px rgba($blue-600, .2); }
+  &:disabled { cursor: not-allowed; }
+}
+
+.sec-na { color: $ink-300; }
+.sec-inherit {
+  display: inline-grid; place-items: center; inline-size: 20px; block-size: 20px; border-radius: 50%;
+  color: $ink-300;
+  &.is-on { background: color.mix($sec-read, $white, 12%); color: $sec-read; }
+}
+
+.sec-matrix__empty { margin: 0; padding: space("4") space("5"); font-size: $fs-sm; color: $ink-500; }
+
+.sec-footnote {
+  display: flex; align-items: flex-start; gap: space("2"); margin: 0;
+  padding: space("3") space("5"); border-block-start: 1px solid $line-100;
+  font-size: $fs-xs; color: $ink-500;
+  svg { flex: 0 0 auto; margin-block-start: 1px; color: $blue-600; }
+}
+
+// ------------------------------------------------------------ action bar ----
+.sec-actionbar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space("2");
+  padding: space("3") space("4");
+  border: 1px solid $line-200;
+  border-radius: $radius-lg;
+  background: rgba($white, .96);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 -6px 18px -10px rgba($ink-900, .25);
+
+  .btn { display: inline-flex; align-items: center; gap: .35rem; }
+  &__status { font-size: $fs-sm; font-weight: $fw-semibold; color: $ink-700; }
+  &__dirty { display: inline-flex; align-items: center; gap: 4px; font-size: $fs-xs; font-weight: $fw-semibold; color: $amber-700; }
+  &__spacer { flex: 1 1 auto; }
+
+  @include cq-down("sm") {
+    &__spacer { display: none; }
+    &__status { flex: 1 1 100%; }
+    .btn { flex: 1 1 auto; justify-content: center; }
+  }
+}
+
+// ---------------------------------------------------------- assign roles ----
+.sec-toolbar-icon {
+  display: inline-grid; place-items: center; inline-size: 34px; block-size: 34px; flex: 0 0 auto;
+  border-radius: $radius; background: $blue-050; color: $blue-700;
+  @include cq-down("sm") { display: none; }
+}
+.sec-users__search { flex: 1 1 240px; max-width: 340px; @include cq-down("sm") { max-width: none; } }
+.sec-users__role { width: auto; min-width: 190px; @include cq-down("sm") { flex: 1 1 100%; } }
+
+.sec-user {
+  display: flex; align-items: center; gap: space("3"); min-width: 0;
+  &__avatar { flex: 0 0 auto; inline-size: 34px; block-size: 34px; font-size: $fs-sm; }
+  &__text { display: flex; flex-direction: column; min-width: 0; }
+}
+
+.sec-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sec-chip {
+  padding: 2px 9px; border-radius: $radius-pill; border: 1px solid $blue-200; background: $blue-050;
+  font-size: $fs-xs; font-weight: $fw-semibold; color: $blue-700; white-space: nowrap;
+}
+.sec-assign-btn { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
+
+.sec-user-panel {
+  display: grid; gap: space("3");
+
+  &__who {
+    display: flex; align-items: center; gap: space("3"); padding: space("3");
+    border: 1px solid $line-200; border-radius: $radius-md; background: $surface-2;
+    > div { display: flex; flex-direction: column; min-width: 0; }
+    strong { color: $ink-900; }
+    span { font-size: $fs-xs; color: $ink-500; }
+  }
+  &__hint { margin: 0; font-size: $fs-sm; color: $ink-600; }
+}
+
+.sec-role-picks { display: grid; gap: space("2"); margin: 0; padding: 0; list-style: none; }
+
+.sec-role-pick {
+  display: flex; align-items: flex-start; gap: space("3"); padding: space("3");
+  border: 1px solid $line-200; border-radius: $radius-md; background: $white; cursor: pointer;
+  @include motion(border-color, background-color, box-shadow);
+
+  .form-check-input { flex: 0 0 auto; margin: 2px 0 0; inline-size: 1.1rem; block-size: 1.1rem; }
+  &__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+  &__text strong { display: inline-flex; align-items: center; flex-wrap: wrap; gap: space("2"); font-size: $fs-sm; color: $ink-900; }
+  &__text > span { font-size: $fs-xs; color: $ink-600; }
+  &__meta { color: $ink-400 !important; }
+  &__lock { color: $ink-400; flex: 0 0 auto; }
+
+  &:hover:not(.is-disabled) { border-color: $blue-200; }
+  &.is-selected { border-color: $blue-600; background: linear-gradient(180deg, $white 0%, $blue-050 100%); box-shadow: inset 3px 0 0 $blue-600; }
+  [dir="rtl"] &.is-selected { box-shadow: inset -3px 0 0 $blue-600; }
+  &.is-disabled { cursor: not-allowed; opacity: .65; }
+}
+
+// A section the user may only read (Security > Create Roles): the fields stay readable,
+// plainly not editable.
+.hrms-ro-fieldset {
+  min-width: 0; margin: 0; padding: 0; border: 0;
+  &:disabled {
+    .form-control, .form-select, .hrms-combo { background-color: $surface-2; color: $ink-700; opacity: 1; }
+    .form-check-input { opacity: .7; }
+  }
+}

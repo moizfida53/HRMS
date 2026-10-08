@@ -29,10 +29,14 @@ public sealed class PayrollController : Controller
     private const string PermApproveFinance = "PAYROLL_RUN_APPROVE_FINANCE";
     private const string PermCancel = "PAYROLL_RUN_CANCEL";
     private const string PermReopen = "PAYROLL_RUN_REOPEN";
-    private const string PermSetupView = "PAYROLL_SETUP_VIEW";
-    private const string PermSetupEdit = "PAYROLL_SETUP_EDIT";
-    private const string PermSetupCreate = "PAYROLL_SETUP_CREATE";
-    private const string PermSetupDelete = "PAYROLL_SETUP_DELETE";
+    // Payroll Calendar & Pay Periods have their own rights (Security > Create Roles, "PR.CALENDAR");
+    // creating and editing a calendar is one right (Write), deleting another (Full).
+    private const string PermSetupView = "PAYROLL_CALENDAR_VIEW";
+    private const string PermSetupEdit = "PAYROLL_CALENDAR_EDIT";
+    private const string PermSetupCreate = "PAYROLL_CALENDAR_EDIT";
+    private const string PermSetupDelete = "PAYROLL_CALENDAR_DELETE";
+    private const string PermExclude = "PAYROLL_RUN_EXCLUDE";
+    private const string PermApproveSelf = "PAYROLL_RUN_APPROVE_SELF";
 
     /// <summary>Remembers the payroll last opened, so the stage tabs follow it from page to page.</summary>
     internal const string RunCookie = "hrms_pr_run";
@@ -64,6 +68,8 @@ public sealed class PayrollController : Controller
     private long? UserId => _currentUser.UserId;
     private bool Can(string permission) => _currentUser.HasPermission(permission);
     private bool IsSysAdmin => _currentUser.IsInRole("SYSADMIN") || Can("SYSTEM_ADMIN");
+    /// <summary>May approve a payroll they submitted or approved at level 1 (Security > approval rights).</summary>
+    private bool CanApproveOwn => IsSysAdmin || Can(PermApproveSelf);
     private string? CompanyCsv => _companyFilter.Csv;
     private int? OwnCompany => _currentUser.ActiveCompanyId;
 
@@ -292,7 +298,7 @@ public sealed class PayrollController : Controller
                 ? (await _runs.EmployeesAsync(run.PayrollRunId, new RunEmployeeFilter { Filter = "changed", Sort = "Change", PageSize = 8 }, Ct)).Items
                 : Array.Empty<PayrollRunEmployee>(),
             CanApproveLevel = run is null ? 0 : ApprovalLevelFor(run),
-            IsSelfApprovalBlocked = run is not null && !IsSysAdmin && run.Stage == RunStage.AwaitingApproval
+            IsSelfApprovalBlocked = run is not null && !CanApproveOwn && run.Stage == RunStage.AwaitingApproval
                                     && (run.SubmittedBy == UserId || (run.ApprovalLevel == 1 && run.Level1ApprovedBy == UserId))
         };
 
@@ -381,6 +387,7 @@ public sealed class PayrollController : Controller
             Lines = lines,
             Components = editable ? await _runs.ComponentsAsync(run, Ct) : Array.Empty<PayComponentOption>(),
             Editable = editable,
+            CanExclude = r.CanExclude && Can(PermExclude),
             HasSalary = emp?.HasSalary ?? true,
             IsExcluded = emp?.IsExcluded ?? false,
             ExcludeReason = emp?.ExcludeReason
@@ -426,7 +433,7 @@ public sealed class PayrollController : Controller
         var r = await LoadRunAsync(run);
         if (r is null) return NotFound();
         ViewData["Run"] = r;
-        ViewData["Editable"] = r.CanExclude && Can(PermProcess);
+        ViewData["Editable"] = r.CanExclude && Can(PermExclude);
         return PartialView("_Excluded", await _runs.ExcludedAsync(run, Ct));
     }
 
@@ -441,7 +448,7 @@ public sealed class PayrollController : Controller
             Run = r,
             Page = result,
             CanAcknowledge = r.Stage == RunStage.Validation && Can(PermProcess),
-            CanExclude = r.CanExclude && Can(PermProcess),
+            CanExclude = r.CanExclude && Can(PermExclude),
             IsFiltered = !string.IsNullOrEmpty(severity) || !string.IsNullOrEmpty(status) || !string.IsNullOrWhiteSpace(search)
         });
     }
@@ -614,7 +621,7 @@ public sealed class PayrollController : Controller
     [HttpPost("exclude")]
     public async Task<IActionResult> Exclude(long run, long employeeId, string? reason)
     {
-        if (!Can(PermProcess)) return Denied();
+        if (!Can(PermExclude)) return Denied();
         if (await LoadRunAsync(run) is null) return Denied();
         return Result(await _runs.ExcludeAsync(run, employeeId, true, reason, UserId, Ct));
     }
@@ -622,7 +629,7 @@ public sealed class PayrollController : Controller
     [HttpPost("include")]
     public async Task<IActionResult> Include(long run, long employeeId)
     {
-        if (!Can(PermProcess)) return Denied();
+        if (!Can(PermExclude)) return Denied();
         if (await LoadRunAsync(run) is null) return Denied();
         return Result(await _runs.ExcludeAsync(run, employeeId, false, null, UserId, Ct));
     }
@@ -645,7 +652,7 @@ public sealed class PayrollController : Controller
             return Json(ActionResponse.Failed("You are not an approver for this level.", "FORBIDDEN"));
         }
 
-        return Result(await _runs.RunActionAsync("APPROVE", run, UserId, comment: comment, allowSelfApproval: IsSysAdmin, cancellationToken: Ct));
+        return Result(await _runs.RunActionAsync("APPROVE", run, UserId, comment: comment, allowSelfApproval: CanApproveOwn, cancellationToken: Ct));
     }
 
     [HttpPost("return")]
