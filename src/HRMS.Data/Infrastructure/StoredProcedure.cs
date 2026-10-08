@@ -120,6 +120,7 @@ public static class StoredProcedure
     public const string PayrollFinanceNavCounts = "Payroll.usp_PayrollFinance_NavCounts";
     public const string PayrollReport = "Payroll.usp_PayrollReport";
     public const string PayrollReportPeriods = "Payroll.usp_PayrollReport_Periods";
+    public const string PayrollDashboard = "Payroll.usp_PayrollDashboard";
 
     // ---- Payslips (db/42-43) ----
 

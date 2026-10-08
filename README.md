@@ -739,6 +739,35 @@ Files: `Controllers/{BankProcessing,Accounting,PayrollReports}Controller.cs`,
 these pages now open the live screens.
 
 
+### Payroll Dashboard (live)
+
+`/payroll/dashboard` (Payroll > Payroll Dashboard) shows **one payroll month** at a
+glance; the month picker in the top bar lists every month with a pay period or a
+payroll (default: the latest one up to today). Visible with any payroll view
+permission (run, setup, payslips, bank, GL or reports); figures follow the
+company selector.
+
+| Block | What it shows |
+|---|---|
+| Key figures | Current period (calendar, cut-off), run status of the month's main payroll, employees in run (vs last month, joiners / leavers), net payroll (vs last month), employer cost (gross + employer PIFSS share) |
+| Net payroll - last 12 months | Bars per month, the chosen month highlighted; KWD or KWD thousands |
+| Needs attention | Only what is open, each linking to its screen: validation errors, failed bank payments, warnings, work permits expiring this month, unverified payroll rules, pay items / loans awaiting approval, closed payrolls without a bank file or journal, journals not posted |
+| Gross cost by department | Top 8 departments of the month |
+| Payroll calendar | The pay periods around the month with their status |
+| Quick actions | Links the user's permissions allow |
+
+| # | Script | What it does |
+|---|---|---|
+| 53 | `db/53_Payroll_Dashboard.sql` | `Payroll.usp_PayrollDashboard` (`@Action` MONTHS, SUMMARY, TREND, DEPT, CALENDAR, ATTENTION) |
+| 54 | `db/54_Payroll_Dashboard_Labels.sql` | English + Arabic labels (`dash.*`) - safe to re-run |
+
+Files: `Controllers/PayrollDashboardController.cs`, `Domain/Payroll/PayrollDashboard.cs`,
+`Data/Repositories/PayrollFinanceRepository.cs` (`Dashboard*Async`),
+`Models/Payroll/FinanceViewModels.cs` (`PayrollDashboardModel`),
+`Views/PayrollDashboard/Index.cshtml`, `wwwroot/js/payroll-dashboard.js`,
+`wwwroot/scss/_dashboard-payroll.scss`. The old preview now opens the live page.
+
+
 ### Sidebar: auto-minimize and auto-collapse
 
 On desktop (992 px and wider) the sidebar **auto-minimizes** to an icon rail

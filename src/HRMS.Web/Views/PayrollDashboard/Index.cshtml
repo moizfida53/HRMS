@@ -1,0 +1,298 @@
+@using System.Globalization
+@using HRMS.Web.Controllers
+@model PayrollDashboardModel
+@{
+    // Payroll > Payroll Dashboard (db/53): one payroll month at a glance.
+    var s = Model.Summary;
+    var a = Model.Attention;
+    var month = Model.Month;
+    var prevMonth = month.AddMonths(-1);
+    ViewData["Title"] = "Payroll Dashboard";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "dashboard";
+    ViewData["PayrollPage"] = "payroll-dashboard";
+    ViewData["Subtitle"] = L["dash.subtitle", L.MonthYear(month)];
+
+    var empChange = DashboardSummary.Change(s.EmployeeCount, s.PrevEmployeeCount);
+    var netChange = DashboardSummary.Change(s.NetPay, s.PrevNetPay);
+    string Delta(decimal? v) => v is null ? "" : (v > 0 ? "↑ " : v < 0 ? "↓ " : "") + Math.Abs(v.Value).ToString("0.#", CultureInfo.InvariantCulture) + "%";
+    string StageBadge(string? stage) => stage switch { "CLOSED" => "success", "AWAITING_APPROVAL" => "purple", "VALIDATION" => "warning", _ => "info" };
+    string PeriodBadge(string st) => st switch { "OPEN" => "info", "PROCESSING" => "warning", "APPROVED" => "success", "POSTED" => "purple", _ => "muted" };
+    string MonthShort(DateTime d) => CultureInfo.CurrentUICulture.DateTimeFormat.GetAbbreviatedMonthName(d.Month);
+
+    var trendMax = Model.Trend.Count == 0 ? 0m : Model.Trend.Max(t => t.NetPay);
+    var depts = Model.Departments.Take(8).ToList();
+    var deptMax = depts.Count == 0 ? 0m : depts.Max(d => d.Gross);
+    var unit = Model.InThousands ? L["dash.kwd_thousands"] : L["dash.kwd"];
+
+    // Needs attention: (count, tone, icon, label key, link)
+    var attention = new List<(int Count, string Tone, string Icon, string Key, string Href)>
+    {
+        (a.ValidationErrors, "is-critical", "alert", "dash.att_errors", Url.Content("~/payroll/payrolls")),
+        (a.PaymentsFailed, "is-critical", "x-circle", "dash.att_payments_failed", Url.Action("Register", "BankProcessing", new { status = "FAILED" })!),
+        (a.OpenWarnings, "is-warning", "alert", "dash.att_warnings", Url.Content("~/payroll/payrolls")),
+        (a.PermitsExpiring, "is-serious", "id-card", "dash.att_permits", Url.Content("~/employees")),
+        (a.UnverifiedRules, "is-warning", "shield", "dash.att_unverified", Url.Content("~/payroll/settings/rules")),
+        (a.PayItemsPending, "is-info", "card", "dash.att_items_pending", Url.Content("~/payroll/pay-items")),
+        (a.LoansPending, "is-info", "wallet", "dash.att_loans_pending", Url.Content("~/payroll/pay-items")),
+        (a.BankFilesToMake, "is-info", "bank", "dash.att_bank_files", Url.Action("FilePage", "BankProcessing")!),
+        (a.JournalsToMake, "is-info", "book", "dash.att_journals_make", Url.Action("Journal", "Accounting", new { status = "NONE" })!),
+        (a.JournalsToPost, "is-info", "send", "dash.att_journals_post", Url.Action("Posting", "Accounting", new { status = "OPEN" })!)
+    };
+    var open = attention.Where(x => x.Count > 0).ToList();
+}
+
+@section PageActions {
+    <form class="dash-period" method="get" action="@Url.Action("Index", "PayrollDashboard")" data-dash-period>
+        <span class="dash-period__icon" aria-hidden="true">@Html.Icon("calendar", 15)</span>
+        <select class="form-select form-select-sm" name="month" data-dash-month aria-label="@L["pr.period"]">
+            @foreach (var m in Model.Months)
+            {
+                <option value="@FinancePeriod.Key(m)" selected="@(m == month)">@L.MonthYear(m)</option>
+            }
+        </select>
+        <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">@L["dash.show"]</button></noscript>
+    </form>
+}
+
+<div class="pr-stack dash-page">
+    @* ------------------------------------------------ key figures *@
+    <section class="pr-kpis" aria-label="@L["pr.key_figures"]">
+        <div class="hrms-card hrms-kpi dash-kpi--period">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.current_period"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span></div>
+            <div class="hrms-kpi__value">@L.MonthYear(month)</div>
+            <div class="hrms-kpi__foot">
+                <span class="hrms-kpi__note">
+                    @if (s.CalendarName is not null)
+                    {
+                        @s.CalendarName@(s.CutOffDate is { } co ? " · " + L["dash.cut_off_0", L.Date(co)] : "")
+                    }
+                    else
+                    {
+                        @L["dash.no_payroll_yet"]
+                    }
+                </span>
+            </div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["prv.run_status"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("calculator", 16)</span></div>
+            <div class="hrms-kpi__value">
+                @if (s.MainStage is not null)
+                {
+                    <span class="hrms-badge hrms-badge--@StageBadge(s.MainStage)"><span class="hrms-badge__dot"></span>@ReportText.Code(L, s.MainStage)</span>
+                }
+                else
+                {
+                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["dash.not_started"]</span>
+                }
+            </div>
+            <div class="hrms-kpi__foot">
+                <span class="hrms-kpi__note">
+                    @if (s.MainRunCode is not null)
+                    {
+                        <a href="@Url.Content("~/payroll/payrolls")">@s.MainRunCode</a>@(s.RunCount > 1 ? " · " + L["dash.n_payrolls", s.RunCount] : "")
+                    }
+                    else
+                    {
+                        <a href="@Url.Content("~/payroll/payrolls")">@L["dash.create_payroll"]</a>
+                    }
+                </span>
+            </div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["prv.employees_in_run"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("users", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(s.EmployeeCount)</div>
+            <div class="hrms-kpi__foot">
+                @if (empChange is not null)
+                {
+                    <span class="hrms-kpi__delta @(empChange > 0 ? "is-good" : empChange < 0 ? "is-bad" : null)">@Delta(empChange)</span>
+                }
+                <span class="hrms-kpi__note">@L["prv.0_joiners_1_leavers", s.Joiners, s.Leavers]</span>
+            </div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["prv.net_payroll_kwd"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("wallet", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Money(s.NetPay)</div>
+            <div class="hrms-kpi__foot">
+                @if (netChange is not null)
+                {
+                    <span class="hrms-kpi__delta">@Delta(netChange)</span>
+                }
+                <span class="hrms-kpi__note">@L["dash.vs_0", L.MonthYear(prevMonth)]</span>
+            </div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["prv.employer_cost"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("building", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Money(s.EmployerCost)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note" title="@L["dash.cost_hint", PayrollFormat.Money(s.Gross), PayrollFormat.Money(s.EmployerPifss)]">@L["prv.kwd_gross_employer_pifss"]</span></div>
+        </div>
+    </section>
+
+    <div class="pr-row pr-row--wide-left">
+        @* ------------------------------------------------ 12-month trend *@
+        <section class="hrms-card hrms-panel">
+            <header class="hrms-panel__head">
+                <h2 class="hrms-panel__title">@L["prv.net_payroll_last_0_months", 12]</h2>
+                <span class="hrms-panel__meta">@unit</span>
+            </header>
+            @if (trendMax <= 0)
+            {
+                <div class="hrms-empty dash-empty"><p class="hrms-empty__title">@L["dash.no_figures"]</p></div>
+            }
+            else
+            {
+                <div class="pr-trend dash-trend" role="img" aria-label="@L["prv.net_payroll_last_0_months", 12]">
+                    @foreach (var t in Model.Trend)
+                    {
+                        var h = t.NetPay <= 0 ? 0 : Math.Max(4, (int)Math.Round(t.NetPay / trendMax * 130m));
+                        <div class="pr-trend__col @(t.RunMonth == month ? "is-current" : null)"
+                             title="@L.MonthYear(t.RunMonth): @PayrollFormat.Money(t.NetPay) · @L["dash.n_employees", t.Employees]">
+                            <span class="pr-trend__val">@(t.NetPay > 0 ? Model.Short(t.NetPay) : "")</span>
+                            <span class="pr-trend__bar" style="height:@(h)px"></span>
+                        </div>
+                    }
+                </div>
+                <div class="pr-trend__labels">
+                    @foreach (var t in Model.Trend)
+                    {
+                        <span class="@(t.RunMonth == month ? "is-current" : null)">@MonthShort(t.RunMonth)</span>
+                    }
+                </div>
+            }
+        </section>
+
+        @* ------------------------------------------------ needs attention *@
+        <section class="hrms-card hrms-panel">
+            <header class="hrms-panel__head">
+                <h2 class="hrms-panel__title">@L["prv.needs_attention"]</h2>
+                @if (open.Count > 0)
+                {
+                    <span class="hrms-panel__meta">@L["dash.n_items", open.Count]</span>
+                }
+            </header>
+            @if (open.Count == 0)
+            {
+                <div class="dash-allclear">
+                    <span class="dash-allclear__icon" aria-hidden="true">@Html.Icon("check", 20)</span>
+                    <div><strong>@L["dash.all_clear"]</strong><span>@L["dash.all_clear_text"]</span></div>
+                </div>
+            }
+            else
+            {
+                <ul class="hrms-actions">
+                    @foreach (var x in open)
+                    {
+                        <li class="hrms-actions__item @x.Tone">
+                            <span class="hrms-actions__icon" aria-hidden="true">@Html.Icon(x.Icon, 16)</span>
+                            <a class="hrms-actions__text" href="@x.Href">@L[x.Key]</a>
+                            <span class="hrms-actions__count">@PayrollFormat.Count(x.Count)</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </section>
+    </div>
+
+    <div class="pr-row pr-row--3">
+        @* ------------------------------------------------ cost by department *@
+        <section class="hrms-card hrms-panel">
+            <header class="hrms-panel__head">
+                <h2 class="hrms-panel__title">@L["prv.gross_cost_by_department"]</h2>
+                <span class="hrms-panel__meta">@unit · @L.MonthYear(month)</span>
+            </header>
+            @if (depts.Count == 0)
+            {
+                <div class="hrms-empty dash-empty"><p class="hrms-empty__title">@L["dash.no_figures"]</p></div>
+            }
+            else
+            {
+                <ul class="hrms-hbars">
+                    @foreach (var d in depts)
+                    {
+                        var w = deptMax <= 0 ? 0 : Math.Max(2, (int)Math.Round(d.Gross / deptMax * 100m));
+                        <li class="hrms-hbars__row" tabindex="0" title="@d.DepartmentName: @PayrollFormat.Money(d.Gross) · @L["dash.n_employees", d.Employees]">
+                            <span class="hrms-hbars__label">@d.DepartmentName</span>
+                            <span class="hrms-hbars__track"><span class="hrms-hbars__bar" style="width:@(w)%"></span></span>
+                            <span class="hrms-hbars__value">@Model.Short(d.Gross)</span>
+                        </li>
+                    }
+                </ul>
+                @if (Model.Departments.Count > depts.Count)
+                {
+                    <p class="dash-more">@L["dash.n_more_departments", Model.Departments.Count - depts.Count]</p>
+                }
+            }
+        </section>
+
+        @* ------------------------------------------------ payroll calendar *@
+        <section class="hrms-card hrms-panel hrms-panel--flush">
+            <header class="hrms-panel__head">
+                <h2 class="hrms-panel__title">@L["pr.payroll_calendar"]</h2>
+                <a class="hrms-panel__link" href="@Url.Content("~/payroll/pay-periods")">@L["prv.open_calendar"]</a>
+            </header>
+            @if (Model.Calendar.Count == 0)
+            {
+                <div class="hrms-empty dash-empty"><p class="hrms-empty__title">@L["dash.no_periods"]</p></div>
+            }
+            else
+            {
+                <div class="hrms-table-wrap">
+                    <table class="hrms-table">
+                        <caption class="hrms-sr-only">@L["pr.payroll_calendar"]</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["pr.period"]</th>
+                                <th scope="col">@L["pr.pay_date"]</th>
+                                <th scope="col">@L["common.status"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model.Calendar.Take(6))
+                            {
+                                <tr class="@(p.PeriodMonth == month ? "dash-row--current" : null)">
+                                    <td data-label="@L["pr.period"]">
+                                        <span class="hrms-table__primary">@L.MonthYear(p.PeriodMonth)</span>
+                                        <span class="pr-emp-sub">@p.CalendarName@(Model.ManyCompanies ? " · " + p.CompanyName : "")@(p.RunCode is not null ? " · " + p.RunCode : "")</span>
+                                    </td>
+                                    <td data-label="@L["pr.pay_date"]" class="hrms-nowrap">@L.Date(p.PaymentDate)</td>
+                                    <td data-label="@L["common.status"]"><span class="hrms-badge hrms-badge--@PeriodBadge(p.Status)"><span class="hrms-badge__dot"></span>@L.Tr(PayrollController.PeriodStatusLabel(p.Status))</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        @* ------------------------------------------------ quick actions *@
+        <section class="hrms-card hrms-panel">
+            <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["prv.quick_actions"]</h2></header>
+            <div class="dash-actions">
+                @if (Model.CanRun)
+                {
+                    <a class="dash-action dash-action--primary" href="@Url.Content("~/payroll/payrolls")">@Html.Icon("calculator", 16)<span>@L["dash.qa_payrolls"]</span></a>
+                }
+                @if (Model.CanSlips)
+                {
+                    <a class="dash-action" href="@Url.Content("~/payroll/payslips/generate")">@Html.Icon("receipt", 16)<span>@L["prv.generate_payslips"]</span></a>
+                }
+                @if (Model.CanBank)
+                {
+                    <a class="dash-action" href="@Url.Action("FilePage", "BankProcessing")">@Html.Icon("bank", 16)<span>@L["fin.bank_file"]</span></a>
+                }
+                @if (Model.CanGl)
+                {
+                    <a class="dash-action" href="@Url.Action("Journal", "Accounting")">@Html.Icon("book", 16)<span>@L["dash.qa_journal"]</span></a>
+                }
+                @if (Model.CanReports)
+                {
+                    <a class="dash-action" href="@Url.Content("~/payroll/reports/payroll")">@Html.Icon("chart", 16)<span>@L["dash.qa_reports"]</span></a>
+                }
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/payroll-dashboard.js" asp-append-version="true"></script>
+}

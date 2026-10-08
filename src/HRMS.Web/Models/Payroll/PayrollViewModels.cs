@@ -22,7 +22,7 @@ public static class PayrollNav
 
     public static readonly IReadOnlyList<Section> Sections =
     [
-        new("dashboard", "Payroll Dashboard", "grid", [new("payroll-dashboard", "Dashboard")]),
+        new("dashboard", "Payroll Dashboard", "grid", [new("payroll-dashboard", "Dashboard", true)]),
         new("processing", "Payroll Processing", "calculator",
         [
             new("payrolls", "Payrolls", true), new("calendars", "Payroll Calendar", true),
@@ -93,6 +93,7 @@ public static class PayrollNav
     {
         "payrolls" or "calendars" or "pay-periods" or "calendar" or "create" or "register" or "validation" or "approval" or "history"
             or "pay-items" => $"/payroll/{slug}",
+        "payroll-dashboard" => "/payroll/dashboard",
         "fs-list" => "/payroll/settlement",
         "fs-new" => "/payroll/settlement/new",
         "fs-encashment" => "/payroll/settlement/encashment",
@@ -128,7 +129,7 @@ public static class PayrollNav
         _ when Sections.SelectMany(s => s.Tabs).Any(t => t.Slug == slug && t.IsLive)
                && (slug.StartsWith("st-", StringComparison.Ordinal) || slug.StartsWith("bk-", StringComparison.Ordinal)
                    || slug.StartsWith("ac-", StringComparison.Ordinal) || slug.StartsWith("rp-", StringComparison.Ordinal)) => Url(slug),
-        "slip-generate" or "slip-employee" or "slip-email" or "slip-my" => Url(slug),
+        "slip-generate" or "slip-employee" or "slip-email" or "slip-my" or "payroll-dashboard" => Url(slug),
         "slip-view" => "/payroll/payslips/employees",
         "fs-history" => "/payroll/settlement",
         "fs-resignation" => "/payroll/settlement/new?type=RESIGNATION",

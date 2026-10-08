@@ -259,3 +259,29 @@ public sealed class ReportPageModel
     public bool HasPeriods { get; init; }
     public string ExportUrl { get; init; } = string.Empty;
 }
+
+// ------------------------------------------------------------- dashboard
+
+public sealed class PayrollDashboardModel
+{
+    public DateTime Month { get; init; }
+    public IReadOnlyList<DateTime> Months { get; init; } = Array.Empty<DateTime>();
+    public required DashboardSummary Summary { get; init; }
+    public IReadOnlyList<DashboardTrendPoint> Trend { get; init; } = Array.Empty<DashboardTrendPoint>();
+    public IReadOnlyList<DashboardDepartment> Departments { get; init; } = Array.Empty<DashboardDepartment>();
+    public IReadOnlyList<DashboardPeriod> Calendar { get; init; } = Array.Empty<DashboardPeriod>();
+    public required DashboardAttention Attention { get; init; }
+    public bool ManyCompanies { get; init; }
+    public bool CanRun { get; init; }
+    public bool CanSlips { get; init; }
+    public bool CanBank { get; init; }
+    public bool CanGl { get; init; }
+    public bool CanReports { get; init; }
+
+    /// <summary>Chart values in KWD thousands once any month reaches 10,000 KWD, else in KWD.</summary>
+    public bool InThousands => Trend.Any(t => t.NetPay >= 10_000) || Departments.Any(d => d.Gross >= 10_000);
+
+    public string Short(decimal v) => InThousands
+        ? (v / 1000m).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)
+        : v.ToString("0", System.Globalization.CultureInfo.InvariantCulture);
+}
