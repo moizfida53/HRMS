@@ -32,7 +32,8 @@
                            role filter; @UserId = that one user)
           USER_ROLES_SET   replace a user's roles (within the roles in scope)
 
-   Rules: SYSADMIN is a system role - its rights cannot be edited and only a
+   Rules: a user gets global roles and their own company's roles only.
+   SYSADMIN is a system role - its rights cannot be edited and only a
    System Administrator may assign it; the last active System Administrator
    cannot lose the role. A user pinned to a company (@CompanyId) sees the
    global roles and their company's roles, edits only their company's roles,
@@ -662,10 +663,14 @@ BEGIN
             RETURN;
         END;
 
+        /* a user gets global roles and their own company's roles only */
+        DECLARE @UserCompany INT = (SELECT CompanyId FROM [Security].[Users] WHERE UserId = @UserId);
         DECLARE @Want TABLE (RoleId INT PRIMARY KEY);
         INSERT INTO @Want
         SELECT DISTINCT v.RoleId FROM @Visible v
-        WHERE v.RoleId IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(ISNULL(@RoleIds, N''), N','));
+        JOIN [Security].[Roles] r ON r.RoleId = v.RoleId
+        WHERE v.RoleId IN (SELECT TRY_CAST(value AS INT) FROM STRING_SPLIT(ISNULL(@RoleIds, N''), N','))
+          AND (r.CompanyId IS NULL OR @UserCompany IS NULL OR r.CompanyId = @UserCompany);
 
         DECLARE @SysRole INT = (SELECT TOP 1 RoleId FROM [Security].[Roles] WHERE RoleCode = N'SYSADMIN' AND Deleted = 0 ORDER BY CASE WHEN CompanyId IS NULL THEN 0 ELSE 1 END);
         DECLARE @HasSys BIT = CASE WHEN EXISTS (SELECT 1 FROM [Security].[UserRoles] WHERE UserId = @UserId AND RoleId = @SysRole AND Deleted = 0) THEN 1 ELSE 0 END;

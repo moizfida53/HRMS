@@ -19,7 +19,7 @@
     "use strict";
 
     var HRMS = window.HRMS || (window.HRMS = {});
-    var FLASH = "hrms-sec-flash", OPEN = "hrms-sec-open";
+    var FLASH = "hrms-sec-flash";
     var ORDER = { R: 1, W: 2, F: 3 };
     var KEYS = ["R", "W", "F"];
 
@@ -95,10 +95,12 @@
 
         window.addEventListener("beforeunload", function (e) { if (isDirty()) { e.preventDefault(); e.returnValue = ""; } });
 
-        var reopen = read(OPEN);
-        store(OPEN, null);
-        var first = reopen && $('[data-sec-role="' + (window.CSS && CSS.escape ? CSS.escape(reopen) : reopen) + '"]', rolesPage) ? reopen : rolesPage.getAttribute("data-open");
+        // the role to open: the one just saved (?open=, mapped by the server) or the first one
+        var first = rolesPage.getAttribute("data-open");
         if (first) { load(first); }
+        if (window.history && window.history.replaceState && /[?&]open=/.test(window.location.search)) {
+            window.history.replaceState(null, "", window.location.pathname);
+        }
 
         /* ---------------------------------------------- the editor */
         var wireEditor = function (f) {
@@ -314,8 +316,8 @@
                     if (res && res.success) {
                         f.setAttribute("data-dirty", "false");
                         store(FLASH, res.message);
-                        store(OPEN, res.ref || current);
-                        window.location.reload();
+                        // references differ on every request: the server maps this one back to its list
+                        window.location.href = window.location.pathname + "?open=" + encodeURIComponent(res.ref || current || "");
                     } else {
                         HRMS.toast((res && res.message) || failed(), "error");
                     }

@@ -106,7 +106,7 @@ public sealed class PayrollController : Controller
     [HttpGet("calendars")]
     public async Task<IActionResult> Calendars()
     {
-        if (!Can(PermView) && !Can(PermSetupView)) return Forbid();
+        if (!Can(PermSetupView)) return Forbid();   // Payroll Calendar & Pay Periods (Security: "PR.CALENDAR")
         ViewData["ActiveRun"] = await RememberedRunAsync();
         return View(new CalendarPageModel
         {
@@ -119,7 +119,7 @@ public sealed class PayrollController : Controller
     [HttpGet("pay-periods")]
     public async Task<IActionResult> PayPeriods(int? calendar, int? year)
     {
-        if (!Can(PermView) && !Can(PermSetupView)) return Forbid();
+        if (!Can(PermSetupView)) return Forbid();   // Payroll Calendar & Pay Periods (Security: "PR.CALENDAR")
 
         var calendars = await _calendars.ListAsync(new GridRequest { CompanyId = OwnCompany, CompanyIds = CompanyCsv, PageSize = 200 }, Ct);
         var selected = calendars.Items.FirstOrDefault(c => c.PayrollCalendarId == calendar)
@@ -692,7 +692,7 @@ public sealed class PayrollController : Controller
     [HttpGet("calendars-grid")]
     public async Task<IActionResult> CalendarsGrid(string? search, string? status, int page = 1)
     {
-        if (!Can(PermView) && !Can(PermSetupView)) return Forbid();
+        if (!Can(PermSetupView)) return Forbid();   // Payroll Calendar & Pay Periods (Security: "PR.CALENDAR")
         var request = new GridRequest
         {
             CompanyId = OwnCompany,
@@ -713,7 +713,7 @@ public sealed class PayrollController : Controller
     [HttpGet("periods-grid")]
     public async Task<IActionResult> PeriodsGrid(int calendarId, int? year)
     {
-        if (!Can(PermView) && !Can(PermSetupView)) return Forbid();
+        if (!Can(PermSetupView)) return Forbid();   // Payroll Calendar & Pay Periods (Security: "PR.CALENDAR")
         var calendar = calendarId > 0 ? await _calendars.GetByIdAsync(calendarId, Ct) : null;
         if (calendar is not null && OwnCompany is { } own && calendar.CompanyId != own) return NotFound();
         var y = year ?? DateTime.Today.Year;

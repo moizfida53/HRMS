@@ -855,6 +855,67 @@ The Data Protection keys sign these references (and the sign-in cookie). With mo
 one web server, or to keep references valid across restarts, persist the key ring
 (`services.AddDataProtection().PersistKeysToFileSystem(...)` or to the database).
 
+### Security: Create Roles and Assign Roles
+
+A **Security** group in the sidebar (for users with the rights below) with two pages.
+
+**Create Roles** (`/security/roles`): the roles on the left, the chosen role on the right.
+
+* **Details:** name, code, company (or *All companies*), active, description.
+* **Page access:** every module, its pages and the functions inside each page, with
+  **Read** (see it), **Write** (add, edit, process) and **Full** (write + delete,
+  cancel, reopen) checkboxes. Each level includes the ones below it. A page tick applies
+  to its functions (expand a page to fine-tune them); a function needs its page; a
+  module tick sets all its pages. A dash means the level does not apply to that row.
+  Search, *Read everything*, *Full everywhere* and *Clear all* help with large roles.
+* **Approval rights** (a separate table, because approvals have their own columns):
+  per process (payroll run, pay items / salary changes / loans, final settlement) -
+  **Level 1** (HR review), **Level 2** (Finance approval) and **Approve own** (approve
+  their own submissions; before, only System Administrator could).
+* **System Administrator** is a system role: always every right, never edited or deleted.
+
+**Assign Roles** (`/security/assign`): every user with their roles (search, filter by
+role or *No role*). **Assign roles** opens a popup with the roles to tick. A user gets
+global roles and their own company's roles only.
+
+**How it is enforced.** `Security/AccessCatalog.cs` lists the pages, functions and
+approvals and the permission codes each level grants - the same codes the controllers
+check. Saving a role writes those codes to `Security.RolePermissions`; codes the screen
+does not manage (e.g. `SYSTEM_ADMIN`) are left alone. Signed-in users pick up changes
+within a minute (`Security/PermissionRefresh.cs`), without signing in again. The sidebar
+hides pages a user cannot read, and the pages refuse them on the server.
+
+**Newly enforced** (these had no checks or shared one code):
+
+| Area | Rights |
+|---|---|
+| Employees | page (`EMPLOYEE_VIEW / CREATE / DELETE`); Personal info & employment (`EMPLOYEE_EDIT`), Kuwait compliance, Dependents, Documents - each read-only or editable; the profile shows a section read-only, or hides it |
+| Organization Setup | `ORGANIZATION_VIEW / CREATE / EDIT / DELETE`, plus Companies (`ORGANIZATION_COMPANY_EDIT / DELETE`) |
+| Payroll | dashboard (`PAYROLL_DASHBOARD_VIEW`), calendar & pay periods (`PAYROLL_CALENDAR_*`, was payroll setup), exclude / include employees (`PAYROLL_RUN_EXCLUDE`) |
+| Approvals | pay items `PAYROLL_ITEM_APPROVE_L1/L2/SELF`, settlements `PAYROLL_FS_APPROVE_L1/L2/SELF` (both used the payroll run codes), payroll run `PAYROLL_RUN_APPROVE_SELF` |
+| Security | `SECURITY_ROLE_VIEW / EDIT / DELETE`, `SECURITY_USER_VIEW / ASSIGN` |
+
+**Safeguards.** Nobody without System Administrator can give or take away a right they do
+not hold themselves, or assign a role that holds more than they do. Only a System
+Administrator can give or remove the System Administrator role, and the last active
+one cannot lose it. A user pinned to a company edits only their company's roles and
+assigns only their company's users. Roles and users are named by opaque references
+(no ids in addresses). Every change is logged in `Security.RoleAccessLog`.
+
+**Scripts:** run `db/57_Security_Access.sql`, then `db/58_Security_Labels.sql`. db/57:
+
+* adds the codes and, **the first time only**, grants what keeps today's access. Every
+  role gets the Employees and Organization codes (those pages had no check). The split
+  codes go to the roles that held the shared code. System Administrator gets everything.
+  **Review your roles on Create Roles afterwards** - e.g. take Employees delete or
+  Organization rights away from roles that should not have them.
+* re-issues `Security.usp_Auth_Manage` so sign-in ignores soft-deleted role links. db/28
+  turns every DELETE into `Deleted = 1`, so before this a removed right kept working.
+* creates `Security.usp_SecurityAdmin_Manage`.
+
+Users with **no role at all** lose the pages that had no check (Employees, Organization).
+Give them a role on Assign Roles (filter *No role*).
+
 ### Sidebar: auto-minimize and auto-collapse
 
 On desktop (992 px and wider) the sidebar **auto-minimizes** to an icon rail

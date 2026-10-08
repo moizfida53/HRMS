@@ -49,8 +49,9 @@ public sealed class SecurityController : Controller
     // Create Roles
     // =======================================================================
 
+    /// <param name="open">A role reference to open first (after a save) - mapped back to the list's own reference.</param>
     [HttpGet("roles")]
-    public async Task<IActionResult> Roles()
+    public async Task<IActionResult> Roles(string? open)
     {
         if (!Can(PermRoleView)) return Forbid();
         var roles = await _security.RolesAsync(OwnCompany, null, Ct);
@@ -60,7 +61,9 @@ public sealed class SecurityController : Controller
             Roles = roles,
             Refs = refs,
             CanEdit = Can(PermRoleEdit),
-            OpenRef = roles.Count > 0 ? refs[(roles.FirstOrDefault(r => !r.IsSystem) ?? roles[0]).RoleId] : null
+            OpenRef = _refs.One(RefPurpose.Role, open) is { } openId && refs.TryGetValue((int)openId, out var openRef)
+                ? openRef
+                : roles.Count > 0 ? refs[(roles.FirstOrDefault(r => !r.IsSystem) ?? roles[0]).RoleId] : null
         });
     }
 
@@ -236,7 +239,8 @@ public sealed class SecurityController : Controller
         var roles = await _security.RolesAsync(OwnCompany, null, Ct);
         var held = user.RoleIdList.ToHashSet();
         var options = new List<RoleOption>();
-        foreach (var r in roles)
+        // a user gets global roles and their own company's roles only
+        foreach (var r in roles.Where(r => r.CompanyId is null || user.CompanyId is null || r.CompanyId == user.CompanyId))
         {
             options.Add(new RoleOption(_refs.Protect(RefPurpose.Role, r.RoleId), r, held.Contains(r.RoleId), await MayAssignAsync(r)));
         }
