@@ -313,7 +313,9 @@ INSERT INTO #Seed (LabelKey, Module, EnglishText, ArabicText, SourceText) VALUES
     ('fin.view', 'fin', N'View', N'عرض', NULL),
     ('fin.balance_check', 'fin', N'Debits = credits', N'المدين = الدائن', NULL),
     ('fin.n_employees', 'fin', N'{0} employees', N'{0} موظف', NULL),
-    ('fin.defaults_saved_note', 'fin', N'A saved journal keeps its accounts - the default applies to journals created from now on.', N'يحتفظ القيد المحفوظ بحساباته - يُطبّق الحساب الافتراضي على القيود المنشأة من الآن.', NULL);
+    ('fin.defaults_saved_note', 'fin', N'A saved journal keeps its accounts - the default applies to journals created from now on.', N'يحتفظ القيد المحفوظ بحساباته - يُطبّق الحساب الافتراضي على القيود المنشأة من الآن.', NULL),
+    ('layout.nav_keep_open', 'layout', N'Keep the sidebar open', N'إبقاء القائمة الجانبية مفتوحة', NULL),
+    ('layout.nav_auto_minimize', 'layout', N'Auto-minimize the sidebar', N'تصغير القائمة الجانبية تلقائياً', NULL);
 INSERT INTO [Core].[UiLabels] (LabelKey, Module, EnglishText, ArabicText, SourceText)
 SELECT s.LabelKey, s.Module, s.EnglishText, s.ArabicText, s.SourceText
 FROM   #Seed AS s

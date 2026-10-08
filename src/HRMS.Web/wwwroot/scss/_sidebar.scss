@@ -1,0 +1,261 @@
+// ============================================================================
+// Sidebar - refreshed look and the desktop auto-minimize rail
+// ----------------------------------------------------------------------------
+// Builds on _layout.scss (same markup). Desktop (>= lg):
+//   html.nav-mini            the sidebar rests as an icon rail ($sidebar-width-collapsed)
+//   html.nav-mini.nav-peek   it expands OVER the page (hover, mouse wheel, keyboard)
+//   html.nav-ready           transitions on (set after the first paint)
+// The pin button in the header switches between auto-minimize and kept open
+// (wwwroot/js/site.js + nav-mode.js). Below lg the sidebar stays a drawer.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+$rail: $sidebar-width-collapsed;
+$tile: 32px;
+
+// ---------------------------------------------------------- the look -------
+.hrms-sidebar {
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba($blue-050, .9) 0%, rgba($white, 0) 60%),
+    linear-gradient(180deg, $white 0%, $surface-2 100%);
+  overflow-x: hidden;
+
+  &__header {
+    position: relative;
+    gap: space("3");
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset-inline: space("4");
+      inset-block-end: -1px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba($blue-600, .35), rgba($blue-600, 0));
+    }
+  }
+
+  &__logo {
+    background: linear-gradient(135deg, $blue-500 0%, $blue-700 100%);
+    box-shadow: 0 6px 14px -6px rgba($blue-700, .55), inset 0 1px 0 rgba($white, .25);
+  }
+
+  // keep open / auto-minimize (desktop only)
+  &__pin {
+    display: none;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid $line-200;
+    border-radius: $radius-sm;
+    background: $white;
+    color: $ink-500;
+    @include motion(background-color, color, border-color);
+    @include focus-ring;
+
+    &:hover { border-color: $blue-200; background: $blue-050; color: $blue-700; }
+
+    // auto-minimize on: offer to pin (thumbtack); pinned: offer the rail (panel)
+    .hrms-sidebar__pin-off { display: none; }
+    &[aria-pressed="true"] {
+      .hrms-sidebar__pin-on { display: none; }
+      .hrms-sidebar__pin-off { display: inline-flex; }
+    }
+
+    span { display: inline-flex; }
+
+    @include up("lg") { display: inline-flex; }
+  }
+
+  &__nav { overflow-x: hidden; }
+
+  &__footer {
+    background: rgba($white, .7);
+    backdrop-filter: blur(6px);
+  }
+}
+
+// group headers: small caps with a fading rule
+.hrms-nav-group {
+  & + & { margin-block-start: space("2"); }
+
+  &__toggle {
+    gap: space("2");
+
+    span { flex: 0 0 auto; }
+
+    &::after {
+      content: "";
+      flex: 1 1 auto;
+      height: 1px;
+      margin-inline: space("2") 0;
+      background: linear-gradient(90deg, $line-200, rgba($line-200, 0));
+      order: 1;
+    }
+
+    svg { order: 2; }
+
+    &:not(.collapsed)::after { background: linear-gradient(90deg, rgba($blue-600, .4), rgba($blue-600, 0)); }
+  }
+}
+
+// links: the icon sits in a soft tile; the active link gets an accent bar
+.hrms-nav-link {
+  position: relative;
+  margin-block: 1px;
+  @include motion(background-color, color, transform);
+
+  > svg:not(.hrms-nav-parent__chev) {
+    box-sizing: content-box;
+    width: 17px;
+    height: 17px;
+    padding: calc((#{$tile} - 17px) / 2);
+    border-radius: $radius;
+    background: rgba($surface, .9);
+    @include motion(background-color, color, box-shadow);
+  }
+
+  &:not(.hrms-nav-sub__link) { padding-block: 5px; }
+
+  &:hover:not(.is-disabled) {
+    transform: translateX(2px);
+    [dir="rtl"] & { transform: translateX(-2px); }
+
+    > svg:not(.hrms-nav-parent__chev) { background: $white; box-shadow: $shadow-xs; }
+  }
+
+  &.is-active {
+    background: linear-gradient(90deg, $blue-100 0%, rgba($blue-050, .6) 100%);
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset-block: 7px;
+      inset-inline-start: calc(-1 * #{space("2")});
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: $blue-600;
+
+      [dir="rtl"] & { border-radius: 3px 0 0 3px; }
+    }
+
+    > svg:not(.hrms-nav-parent__chev) {
+      background: linear-gradient(135deg, $blue-500, $blue-700);
+      color: $white;
+      box-shadow: 0 4px 10px -4px rgba($blue-700, .6);
+    }
+  }
+
+  &.is-disabled > svg:not(.hrms-nav-parent__chev) { background: transparent; }
+}
+
+// a parent (opens into sub-sections) that holds the current page
+.hrms-nav-parent.is-open,
+.hrms-nav-parent:not(.collapsed) {
+  > svg:not(.hrms-nav-parent__chev) { background: $blue-100; color: $blue-700; }
+}
+
+// sub-sections line up under the parent's icon tile
+.hrms-nav-sub {
+  margin-inline-start: calc(#{space("2")} + #{space("3")} + #{$tile} / 2);
+
+  &__link {
+    &:hover:not(.is-disabled) { transform: none; }
+
+    &.is-active {
+      background: $blue-050;
+
+      &::before {
+        inset-inline-start: calc(-1 * #{space("2")} - 1px);
+        width: 2px;
+        border-radius: 2px;
+      }
+    }
+  }
+}
+
+.hrms-user {
+  .hrms-avatar { box-shadow: 0 0 0 2px $white, 0 0 0 3px $blue-200; }
+}
+
+// ------------------------------------------------- auto-minimize (desktop) --
+@include up("lg") {
+  html.nav-ready {
+    .hrms-sidebar { transition: width $dur $ease-out, box-shadow $dur $ease-out; }
+    .hrms-main { transition: margin-inline-start $dur $ease-out; }
+  }
+
+  html.nav-mini {
+    .hrms-main { margin-inline-start: $rail; }
+    .hrms-sidebar { width: $rail; }
+
+    // expanded over the page
+    &.nav-peek .hrms-sidebar {
+      width: $sidebar-width;
+      box-shadow: 0 0 0 1px rgba($ink-900, .04), 18px 0 40px -18px rgba($ink-900, .35);
+
+      [dir="rtl"] & { box-shadow: 0 0 0 1px rgba($ink-900, .04), -18px 0 40px -18px rgba($ink-900, .35); }
+    }
+
+    // the rail: icons only
+    &:not(.nav-peek) .hrms-sidebar {
+      .hrms-sidebar__header { justify-content: center; padding-inline: 0; }
+      .hrms-sidebar__header::after { inset-inline: space("3"); }
+      .hrms-sidebar__wordmark,
+      .hrms-sidebar__pin,
+      .hrms-nav-link > span,
+      .hrms-nav-parent__chev,
+      .hrms-nav-count,
+      .hrms-nav-soon,
+      .hrms-user__meta,
+      .hrms-user__chev { display: none !important; }
+
+      .hrms-nav-link {
+        justify-content: center;
+        gap: 0;
+        margin-inline: space("2");
+        padding-inline: 0;
+        width: calc(100% - #{space("4")});
+
+        &:hover { transform: none; }
+        &.is-active::before { inset-inline-start: calc(-1 * #{space("2")}); }
+      }
+
+      // groups become thin dividers, and all their section icons stay visible
+      .hrms-nav-group__toggle {
+        height: 1px;
+        margin: space("2") space("4");
+        padding: 0;
+        overflow: hidden;
+        font-size: 0;
+        background: $line-200;
+        pointer-events: none;
+
+        span, svg, &::after { display: none; }
+      }
+
+      .hrms-nav-group__items.collapse,
+      .hrms-nav-group__items.collapsing {
+        display: block !important;
+        height: auto !important;
+      }
+
+      .hrms-nav-sub { display: none !important; }
+
+      // a section holding the current page shows as active on the rail
+      .hrms-nav-parent.is-open > svg:not(.hrms-nav-parent__chev) {
+        background: linear-gradient(135deg, $blue-500, $blue-700);
+        color: $white;
+        box-shadow: 0 4px 10px -4px rgba($blue-700, .6);
+      }
+
+      .hrms-user { justify-content: center; padding-inline: 0; }
+      .hrms-sidebar__footer .hrms-account-menu { width: 240px; }
+    }
+  }
+}

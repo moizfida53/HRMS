@@ -738,6 +738,26 @@ Files: `Controllers/{BankProcessing,Accounting,PayrollReports}Controller.cs`,
 `wwwroot/js/payroll-finance.js`, `wwwroot/scss/_finance.scss`. The old previews of
 these pages now open the live screens.
 
+
+### Sidebar: auto-minimize and auto-collapse
+
+On desktop (992 px and wider) the sidebar **auto-minimizes** to an icon rail
+(72 px) so the page gets the width. It **expands over the page** when the pointer
+rests on it, when the **mouse wheel** turns over it, or when the keyboard tabs into
+it, and minimizes again shortly after the pointer leaves (not while the account
+menu is open). The pin button in its header **keeps it open** instead - the choice
+is remembered per browser (`localStorage` key `hrms:nav-mode`).
+
+Sections **auto-collapse**: opening a group (Workforce, Payroll, System, Setup) or a
+sub-section (Payroll Processing, Payslips, ...) closes the others at its level, and
+when the sidebar minimizes it folds back to the current page's section only. On the
+rail every section shows its icon; the current one is highlighted.
+
+Below 992 px nothing changes - the sidebar is the slide-in drawer of the menu
+button. Files: `wwwroot/scss/_sidebar.scss` (the look and the rail),
+`wwwroot/js/site.js` (behaviour), `wwwroot/js/nav-mode.js` (loaded in `<head>` so the
+rail never flashes open - the Content-Security-Policy allows no inline script).
+
 ---
 
 ## Bilingual UI (English / Arabic) — labels in the database

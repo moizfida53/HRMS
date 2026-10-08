@@ -48,6 +48,8 @@ public static class IconHelper
         ["search"]    = """<circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.7-4.7"/>""",
         ["bell"]      = """<path d="M6 9a6 6 0 1 1 12 0c0 4.5 1.5 6 2 6.5H4c.5-.5 2-2 2-6.5z"/><path d="M9.5 18.5a2.5 2.5 0 0 0 5 0"/>""",
         ["menu"]      = """<path d="M4 7h16M4 12h16M4 17h16"/>""",
+        ["panel"]     = """<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9.5 4v16"/><path d="M15.5 10l-2 2 2 2"/>""",
+        ["thumbtack"] = """<path d="M9 3.5h6l-1.2 5.2 3.2 3.3H7l3.2-3.3z"/><path d="M12 12v8.5"/>""",
         ["close"]     = """<path d="M6 6l12 12M18 6L6 18"/>""",
         ["plus"]      = """<path d="M12 5v14M5 12h14"/>""",
         ["download"]  = """<path d="M12 3v12"/><polyline points="7,10 12,15 17,10"/><path d="M4 20h16"/>""",

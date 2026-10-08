@@ -69,6 +69,121 @@
         }
     });
 
+    /* --------------------------------------- sidebar: auto-minimize ----- */
+    // Desktop (>= 992px): the sidebar rests as an icon rail (html.nav-mini, set by
+    // nav-mode.js before the first paint) and expands over the page (html.nav-peek)
+    // when the pointer rests on it, the mouse wheel scrolls over it, or the keyboard
+    // moves into it; it minimizes again shortly after the pointer leaves. The pin
+    // button keeps it open (remembered per browser). Below 992px it stays a drawer.
+    var root = document.documentElement;
+    var desktop = window.matchMedia("(min-width: 992px)");
+    var NAV_MODE = "hrms:nav-mode";
+    var pinButton = sidebar ? sidebar.querySelector("[data-nav-pin]") : null;
+    var peekTimer = null, leaveTimer = null;
+
+    function isMini() { return root.classList.contains("nav-mini"); }
+    function isPeek() { return root.classList.contains("nav-peek"); }
+    function accountMenuOpen() { return !!(sidebar && sidebar.querySelector(".hrms-sidebar__footer .dropdown-menu.show")); }
+
+    function collapseOf(el) { return window.bootstrap ? window.bootstrap.Collapse.getOrCreateInstance(el, { toggle: false }) : null; }
+
+    // Auto-collapse inactive sections: back to only what leads to the current page
+    // (inactive groups / sub-sections close, the current page's ones reopen).
+    function foldInactive() {
+        if (!sidebar) { return; }
+        Array.prototype.forEach.call(sidebar.querySelectorAll(".hrms-sidebar__nav .collapse"), function (el) {
+            var holdsActive = !!el.querySelector(".is-active");
+            var shown = el.classList.contains("show");
+            if (holdsActive === shown) { return; }
+            var c = collapseOf(el);
+            if (c) { if (holdsActive) { c.show(); } else { c.hide(); } }
+        });
+    }
+
+    function syncPin() {
+        if (!pinButton) { return; }
+        var pinned = !isMini();
+        var label = pinButton.getAttribute(pinned ? "data-label-unpin" : "data-label-pin") || "";
+        pinButton.setAttribute("aria-pressed", pinned ? "true" : "false");
+        pinButton.setAttribute("title", label);
+        pinButton.setAttribute("aria-label", label);
+    }
+
+    function setPeek(on) {
+        window.clearTimeout(peekTimer);
+        window.clearTimeout(leaveTimer);
+        if (on && (!isMini() || !desktop.matches)) { return; }
+        if (on === isPeek()) { return; }
+        root.classList.toggle("nav-peek", on);
+        if (!on) { foldInactive(); }
+    }
+
+    function setPinned(pinned) {
+        root.classList.toggle("nav-mini", !pinned);
+        root.classList.remove("nav-peek");
+        try { window.localStorage.setItem(NAV_MODE, pinned ? "pinned" : "auto"); } catch (e) { /* storage off */ }
+        syncPin();
+        if (!pinned) { foldInactive(); }
+    }
+
+    if (sidebar) {
+        syncPin();
+        // transitions only after the first paint (no animation on page load)
+        window.requestAnimationFrame(function () { root.classList.add("nav-ready"); });
+
+        if (pinButton) {
+            pinButton.addEventListener("click", function () {
+                var pinNow = isMini();
+                setPinned(pinNow);
+                if (!pinNow && sidebar.matches(":hover")) { root.classList.add("nav-peek"); }
+            });
+        }
+
+        sidebar.addEventListener("mouseenter", function () {
+            window.clearTimeout(leaveTimer);
+            if (!isMini() || isPeek()) { return; }
+            peekTimer = window.setTimeout(function () { setPeek(true); }, 140);
+        });
+        sidebar.addEventListener("mouseleave", function () {
+            window.clearTimeout(peekTimer);
+            if (!isPeek() || accountMenuOpen()) { return; }
+            leaveTimer = window.setTimeout(function () { setPeek(false); }, 380);
+        });
+        // a turn of the mouse wheel over the rail opens it at once
+        sidebar.addEventListener("wheel", function () {
+            if (isMini() && !isPeek()) { setPeek(true); }
+        }, { passive: true });
+        // keyboard users: tabbing into the rail opens it, tabbing out closes it
+        sidebar.addEventListener("focusin", function (event) {
+            if (isMini() && event.target.matches && event.target.matches(":focus-visible")) { setPeek(true); }
+        });
+        sidebar.addEventListener("focusout", function (event) {
+            if (isPeek() && !sidebar.contains(event.relatedTarget) && !sidebar.matches(":hover") && !accountMenuOpen()) { setPeek(false); }
+        });
+        // the account menu closed while the pointer is elsewhere
+        sidebar.addEventListener("hidden.bs.dropdown", function () {
+            if (isPeek() && !sidebar.matches(":hover")) { setPeek(false); }
+        });
+
+        // Accordion: opening a group or a sub-section closes the others at its level.
+        sidebar.addEventListener("show.bs.collapse", function (event) {
+            var el = event.target;
+            var level = el.classList.contains("hrms-nav-group__items") ? ".hrms-nav-group__items"
+                      : el.classList.contains("hrms-nav-sub") ? ".hrms-nav-sub" : null;
+            if (!level) { return; }
+            var scope = level === ".hrms-nav-sub" ? (el.closest(".hrms-nav-group__items") || sidebar) : sidebar;
+            Array.prototype.forEach.call(scope.querySelectorAll(level + ".show"), function (other) {
+                if (other !== el) {
+                    var c = collapseOf(other);
+                    if (c) { c.hide(); }
+                }
+            });
+        });
+
+        var onDesktopChange = function () { if (!desktop.matches) { root.classList.remove("nav-peek"); } };
+        if (desktop.addEventListener) { desktop.addEventListener("change", onDesktopChange); } else if (desktop.addListener) { desktop.addListener(onDesktopChange); }
+    }
+
     /* ------------------------------------------------- top-bar search --- */
 
     // The search field is tucked behind an icon button at the top right and

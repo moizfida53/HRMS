@@ -47,6 +47,8 @@
         <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     }
     <link rel="stylesheet" href="~/css/hrms.css" asp-append-version="true" />
+    @* Sidebar mode before the first paint (no flash): auto-minimize unless the user pinned it open. *@
+    <script src="~/js/nav-mode.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
@@ -62,6 +64,12 @@
                 <strong>@L["common.hr_payroll"]</strong>
                 <span>@L["common.kuwait_edition"]</span>
             </span>
+            @* Desktop: keep the sidebar open (pinned) or let it auto-minimize to an icon rail. *@
+            <button type="button" class="hrms-sidebar__pin" data-nav-pin
+                    data-label-pin="@L["layout.nav_keep_open"]" data-label-unpin="@L["layout.nav_auto_minimize"]"
+                    title="@L["layout.nav_keep_open"]" aria-label="@L["layout.nav_keep_open"]" aria-pressed="false">
+                <span class="hrms-sidebar__pin-on">@Html.Icon("thumbtack", 16)</span><span class="hrms-sidebar__pin-off">@Html.Icon("panel", 16)</span>
+            </button>
             <button type="button" class="hrms-sidebar__close" data-nav-close aria-label="@L["layout.close_navigation"]">
                 @Html.Icon("close", 15)
             </button>
