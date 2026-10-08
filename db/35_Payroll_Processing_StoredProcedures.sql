@@ -22,6 +22,11 @@
        on or before the period end and not terminated before its start,
        narrowed by the run's scope (department, location, employment type,
        nationality). Excluded employees stay listed with a reason, unpaid.
+     * Excluded: an employee excluded from the CLOSED regular payroll of a
+       period is paid by an off-cycle payroll of the same period as in a
+       regular payroll (salary items, pay items of the month, PIFSS) - a
+       "catch-up" - unless another off-cycle payroll of the period pays him.
+       Exclude / include works in Registered and Validation (the checks re-run).
      * Salary items (class SALARY, every month) are prorated by days
        employed in the period when the item type is "Prorated":
        monthly calendar  amount x paid days / period days
@@ -53,17 +58,18 @@ BEGIN
     SET XACT_ABORT ON;
 
     DECLARE @CompanyId INT, @Start DATE, @End DATE, @RunMonth DATE, @RunType VARCHAR(10), @Stage VARCHAR(20),
-            @Freq VARCHAR(10), @Dept INT, @Loc INT, @EmpType NVARCHAR(20), @Nat VARCHAR(12), @CalendarId INT;
+            @Freq VARCHAR(10), @Dept INT, @Loc INT, @EmpType NVARCHAR(20), @Nat VARCHAR(12), @CalendarId INT, @PeriodId INT;
 
     SELECT  @CompanyId = r.CompanyId, @Start = p.StartDate, @End = p.EndDate, @RunMonth = r.RunMonth,
-            @RunType = r.RunType, @Stage = r.Stage, @Freq = pc.PayFrequency, @CalendarId = r.PayrollCalendarId,
+            @RunType = r.RunType, @Stage = r.Stage, @Freq = pc.PayFrequency, @CalendarId = r.PayrollCalendarId, @PeriodId = r.PayrollPeriodId,
             @Dept = r.ScopeDepartmentId, @Loc = r.ScopeWorkLocationId, @EmpType = r.ScopeEmploymentType, @Nat = r.ScopeNationality
     FROM    [Payroll].[PayrollRuns]      AS r
     JOIN    [Payroll].[PayrollPeriods]   AS p  ON p.PayrollPeriodId    = r.PayrollPeriodId
     JOIN    [Payroll].[PayrollCalendars] AS pc ON pc.PayrollCalendarId = r.PayrollCalendarId
     WHERE   r.PayrollRunId = @RunId AND r.Deleted = 0;
 
-    IF @CompanyId IS NULL OR @Stage NOT IN ('DRAFT', 'REGISTERED')
+    /* in Validation only one employee's exclude / include recalculates */
+    IF @CompanyId IS NULL OR NOT (@Stage IN ('DRAFT', 'REGISTERED') OR (@Stage = 'VALIDATION' AND @EmployeeIds IS NOT NULL))
         RETURN;
 
     DECLARE @PeriodDays INT = DATEDIFF(DAY, @Start, @End) + 1;
@@ -112,12 +118,28 @@ BEGIN
     END;
 
     /* ---- 2. target employees ----------------------------------------- */
-    DECLARE @T TABLE (RunEmployeeId BIGINT PRIMARY KEY, EmployeeId BIGINT NOT NULL, IsExcluded BIT NOT NULL);
+    DECLARE @T TABLE (RunEmployeeId BIGINT PRIMARY KEY, EmployeeId BIGINT NOT NULL, IsExcluded BIT NOT NULL, CatchUp BIT NOT NULL DEFAULT (0));
     INSERT INTO @T (RunEmployeeId, EmployeeId, IsExcluded)
     SELECT re.RunEmployeeId, re.EmployeeId, re.IsExcluded
     FROM   [Payroll].[PayrollRunEmployees] AS re
     WHERE  re.PayrollRunId = @RunId AND re.Deleted = 0
       AND  (@EmployeeIds IS NULL OR re.EmployeeId IN (SELECT TRY_CAST(value AS BIGINT) FROM STRING_SPLIT(@EmployeeIds, ',')));
+
+    /* catch-up (off-cycle): excluded from the closed regular payroll of this period
+       and not paid by another off-cycle payroll of the period */
+    IF @RunType = 'OFFCYCLE'
+        UPDATE t SET CatchUp = 1
+        FROM   @T AS t
+        WHERE  t.IsExcluded = 0
+          AND  EXISTS (SELECT 1 FROM [Payroll].[PayrollRunEmployees] AS x
+                       JOIN   [Payroll].[PayrollRuns] AS g ON g.PayrollRunId = x.PayrollRunId
+                       WHERE  g.PayrollPeriodId = @PeriodId AND g.RunType = 'REGULAR' AND g.Stage = 'CLOSED' AND g.Deleted = 0
+                         AND  x.EmployeeId = t.EmployeeId AND x.Deleted = 0 AND x.IsExcluded = 1)
+          AND  NOT EXISTS (SELECT 1 FROM [Payroll].[PayrollRunEmployees] AS y
+                           JOIN   [Payroll].[PayrollRuns] AS o ON o.PayrollRunId = y.PayrollRunId
+                           WHERE  o.PayrollPeriodId = @PeriodId AND o.RunType = 'OFFCYCLE' AND o.PayrollRunId <> @RunId
+                             AND  o.Deleted = 0 AND o.Stage <> 'CANCELLED'
+                             AND  y.EmployeeId = t.EmployeeId AND y.Deleted = 0 AND y.IsExcluded = 0 AND y.SalaryTotal > 0);
 
     /* ---- 3. snapshot of the employee -------------------------------- */
     UPDATE re
@@ -163,15 +185,15 @@ BEGIN
       AND  r.PayrollRunId <> @RunId AND r.Stage NOT IN ('DRAFT', 'CANCELLED')
     GROUP BY l.EmployeePayItemId;
 
-    /* ---- 5a. salary items (regular runs) ----------------------------- */
-    IF @RunType = 'REGULAR'
+    /* ---- 5a. salary items (regular runs, off-cycle catch-up) --------- */
+    IF @RunType = 'REGULAR' OR EXISTS (SELECT 1 FROM @T WHERE CatchUp = 1)
     BEGIN
         ;WITH s AS (
             SELECT  i.*, c.ComponentName, c.ArabicName AS CompArabic, c.IsProrated, c.DisplayOrder,
                     ROW_NUMBER() OVER (PARTITION BY i.EmployeeId, i.PayComponentId ORDER BY i.StartMonth DESC, i.EmployeePayItemId DESC) AS rn
             FROM    [Payroll].[EmployeePayItems] AS i
             JOIN    [Payroll].[PayComponents]    AS c ON c.PayComponentId = i.PayComponentId
-            JOIN    @T AS t ON t.EmployeeId = i.EmployeeId AND t.IsExcluded = 0
+            JOIN    @T AS t ON t.EmployeeId = i.EmployeeId AND t.IsExcluded = 0 AND (@RunType = 'REGULAR' OR t.CatchUp = 1)
             WHERE   i.Deleted = 0 AND i.Status = 'ACTIVE' AND i.PayrollRunId IS NULL
               AND   c.ItemClass = 'SALARY' AND i.AppliesMode = 'MONTHLY'
               AND   i.StartMonth <= @RunMonth AND (i.EndMonth IS NULL OR i.EndMonth >= @RunMonth)
@@ -202,7 +224,7 @@ BEGIN
                      THEN ROUND(v.Amount * re.PaidDays / NULLIF(re.PeriodDays, 0), 3) ELSE v.Amount END,
                 c.DisplayOrder
         FROM    [Payroll].[PayrollRunEmployees] AS re
-        JOIN    @T AS t ON t.RunEmployeeId = re.RunEmployeeId AND t.IsExcluded = 0
+        JOIN    @T AS t ON t.RunEmployeeId = re.RunEmployeeId AND t.IsExcluded = 0 AND (@RunType = 'REGULAR' OR t.CatchUp = 1)
         JOIN    [Employee].[EmployeePayroll] AS ep ON ep.EmployeeId = re.EmployeeId
         CROSS APPLY (VALUES ('BASIC', ep.BasicSalary), ('OTHER_ALW', ep.Allowances)) AS v(Code, Amount)
         JOIN    [Payroll].[PayComponents] AS c ON c.CompanyId = @CompanyId AND c.ComponentCode = v.Code AND c.Deleted = 0
@@ -224,7 +246,7 @@ BEGIN
         WHERE   i.Deleted = 0 AND i.Status = 'ACTIVE'
           AND   c.ItemClass IN ('EARNING', 'DEDUCTION', 'LOAN')
           AND   (   i.PayrollRunId = @RunId
-                 OR (@RunType = 'REGULAR' AND i.PayrollRunId IS NULL AND ISNULL(u.ThisMonth, 0) = 0 AND (
+                 OR ((@RunType = 'REGULAR' OR t.CatchUp = 1) AND i.PayrollRunId IS NULL AND ISNULL(u.ThisMonth, 0) = 0 AND (
                         (i.AppliesMode = 'MONTHLY'    AND i.StartMonth <= @RunMonth AND (i.EndMonth IS NULL OR i.EndMonth >= @RunMonth))
                      OR (i.AppliesMode = 'ONCE'       AND i.StartMonth = @RunMonth)
                      OR (i.AppliesMode = 'INSTALMENT' AND i.StartMonth <= @RunMonth AND ISNULL(u.PaidCount, 0) < i.InstalmentCount))))
@@ -246,8 +268,8 @@ BEGIN
                              ELSE it.Amount END AS Amt) AS a
     WHERE   a.Amt > 0;
 
-    /* ---- 5c. PIFSS employee share (Kuwaiti, regular runs) ------------ */
-    IF @RunType = 'REGULAR'
+    /* ---- 5c. PIFSS employee share (Kuwaiti, regular runs, catch-up) -- */
+    IF @RunType = 'REGULAR' OR EXISTS (SELECT 1 FROM @T WHERE CatchUp = 1)
     BEGIN
         DECLARE @PifssId INT, @PifssName NVARCHAR(150), @PifssArabic NVARCHAR(150), @PifssOrder SMALLINT;
         SELECT TOP 1 @PifssId = PayComponentId, @PifssName = ComponentName, @PifssArabic = ArabicName, @PifssOrder = DisplayOrder
@@ -261,7 +283,7 @@ BEGIN
                 FROM    [Payroll].[PayrollRunLines] AS l
                 JOIN    [Payroll].[PayComponents]   AS c ON c.PayComponentId = l.PayComponentId
                 JOIN    [Payroll].[PayrollRunEmployees] AS re ON re.RunEmployeeId = l.RunEmployeeId
-                JOIN    @T AS t ON t.RunEmployeeId = l.RunEmployeeId AND t.IsExcluded = 0
+                JOIN    @T AS t ON t.RunEmployeeId = l.RunEmployeeId AND t.IsExcluded = 0 AND (@RunType = 'REGULAR' OR t.CatchUp = 1)
                 WHERE   l.PayrollRunId = @RunId AND l.Deleted = 0 AND l.ItemClass = 'SALARY'
                   AND   c.IsPifssApplicable = 1 AND re.IsKuwaiti = 1
                 GROUP BY l.RunEmployeeId, l.EmployeeId
@@ -1116,11 +1138,21 @@ BEGIN
     /* ======================= EXCLUDED ============================ */
     IF @Action = 'EXCLUDED'
     BEGIN
+        DECLARE @xPeriod INT = (SELECT PayrollPeriodId FROM [Payroll].[PayrollRuns] WHERE PayrollRunId = @Id);
         SELECT  re.RunEmployeeId, re.EmployeeId, re.EmployeeNo, re.EmployeeName, re.ArabicName, re.ExcludeReason, re.ExcludedDate,
-                COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(ue.FirstName, N' ', ue.LastName))), N''), u.Username) AS ExcludedByName
+                COALESCE(NULLIF(LTRIM(RTRIM(CONCAT(ue.FirstName, N' ', ue.LastName))), N''), u.Username) AS ExcludedByName,
+                pay.PayrollRunId AS PaidByRunId, pay.RunCode AS PaidByRunCode, pay.Stage AS PaidByStage, pay.NetPay AS PaidByNet
         FROM    [Payroll].[PayrollRunEmployees] re
         LEFT JOIN [Security].[Users] u ON u.UserId = re.ExcludedBy
         LEFT JOIN [Employee].[Employees] ue ON ue.EmployeeId = u.EmployeeId
+        /* the off-cycle payroll of the period that pays the employee instead (catch-up) */
+        OUTER APPLY (SELECT TOP 1 o.PayrollRunId, o.RunCode, o.Stage, y.NetPay
+                     FROM   [Payroll].[PayrollRunEmployees] y
+                     JOIN   [Payroll].[PayrollRuns] o ON o.PayrollRunId = y.PayrollRunId
+                     WHERE  @RunType = 'REGULAR' AND o.PayrollPeriodId = @xPeriod AND o.RunType = 'OFFCYCLE'
+                       AND  o.Deleted = 0 AND o.Stage <> 'CANCELLED'
+                       AND  y.EmployeeId = re.EmployeeId AND y.Deleted = 0 AND y.IsExcluded = 0 AND y.SalaryTotal > 0
+                     ORDER BY o.PayrollRunId) AS pay
         WHERE   re.PayrollRunId = @Id AND re.Deleted = 0 AND re.IsExcluded = 1
         ORDER BY re.EmployeeName;
         RETURN;
@@ -1199,7 +1231,8 @@ BEGIN
     END;
 
     /* ======================= writes ============================== */
-    IF @Stage NOT IN ('DRAFT', 'REGISTERED')
+    /* exclude / include also in Validation (the checks re-run) */
+    IF @Stage NOT IN ('DRAFT', 'REGISTERED') AND NOT (@Stage = 'VALIDATION' AND @Action IN ('EXCLUDE', 'INCLUDE'))
     BEGIN
         SELECT @ResultCode = 'INVALID_STAGE', @ResultMessage = N'Lines and employees can only be changed while the payroll is Registered.';
         RETURN;
@@ -1291,6 +1324,9 @@ BEGIN
 
         DECLARE @Emp NVARCHAR(30) = CAST(@EmployeeId AS NVARCHAR(30));
         EXEC [Payroll].[usp_PayrollRun_Calculate] @RunId = @Id, @EmployeeIds = @Emp, @UserId = @UserId;
+        /* in Validation the checks re-run: an excluded employee's errors no longer block approval */
+        IF @Stage = 'VALIDATION'
+            EXEC [Payroll].[usp_PayrollRun_Validate] @RunId = @Id, @UserId = @UserId;
         /* the run totals count excluded employees */
         SET @ResultMessage = CASE WHEN @Action = 'EXCLUDE' THEN N'Employee excluded from this payroll.' ELSE N'Employee included again.' END;
         RETURN;

@@ -1,10 +1,21 @@
 @model IReadOnlyList<ExcludedEmployee>
 @{
+    // Employees left out of a payroll (db/35). Regular payrolls also show the follow-up:
+    // once the payroll is closed, an off-cycle payroll of the same period pays them (catch-up).
     var editable = ViewData["Editable"] is true;
+    var run = ViewData["Run"] as PayrollRun;
+    var followUp = run?.RunType == RunType.Regular;
+    var canCreate = followUp && run!.IsClosed;
 }
 @if (Model.Count > 0)
 {
-    <p class="pr-section-label">@L["pr.excluded_from_this_payroll"]</p>
+    <div class="pr-excluded-head">
+        <p class="pr-section-label">@L["pr.excluded_from_this_payroll"] <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@PayrollFormat.Count(Model.Count)</span></p>
+        @if (canCreate && Model.Any(x => x.PaidByRunId is null))
+        {
+            <a class="btn btn-sm btn-outline-primary" href="@Url.Action("Create", "Payroll")">@Html.Icon("plus", 14)<span>@L["pr.create_offcycle_for_excluded"]</span></a>
+        }
+    </div>
     <div class="hrms-table-wrap">
         <table class="hrms-table">
             <caption class="hrms-sr-only">@L["pr.excluded_from_this_payroll"]</caption>
@@ -13,6 +24,10 @@
                     <th scope="col">@L["pr.employee"]</th>
                     <th scope="col">@L["pr.reason"]</th>
                     <th scope="col" class="col-p2">@L["pr.by"]</th>
+                    @if (followUp)
+                    {
+                        <th scope="col">@L["pr.separate_payment"]</th>
+                    }
                     <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
                 </tr>
             </thead>
@@ -21,9 +36,34 @@
                 {
                     var name = PayrollFormat.EmployeeName(L, x.EmployeeName, x.ArabicName);
                     <tr>
-                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">@name · @x.EmployeeNo</td>
+                        <td data-label="@L["pr.employee"]">
+                            <span class="hrms-table__primary">@name · @x.EmployeeNo</span>
+                            <span class="pr-emp-flag"><span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["pr.excluded"]</span></span>
+                        </td>
                         <td data-label="@L["pr.reason"]">@x.ExcludeReason</td>
                         <td data-label="@L["pr.by"]" class="col-p2">@x.ExcludedByName · @L.Date(x.ExcludedDate)</td>
+                        @if (followUp)
+                        {
+                            <td data-label="@L["pr.separate_payment"]" class="hrms-text-sm">
+                                @if (x.PaidByRunId is { } paidBy)
+                                {
+                                    <span class="pr-paid-by">
+                                        <a href="@Url.Action("Open", "Payroll", new { id = paidBy })"><span class="hrms-code-chip">@x.PaidByRunCode</span></a>
+                                        <span class="hrms-badge hrms-badge--@RunStage.Badge(x.PaidByStage ?? "")"><span class="hrms-badge__dot"></span>@L.Tr(RunStage.Label(x.PaidByStage ?? ""))</span>
+                                    </span>
+                                    <span class="pr-emp-sub">@L["pr.net_0_kwd", PayrollFormat.Money(x.PaidByNet ?? 0)]</span>
+                                }
+                                else if (run!.IsClosed)
+                                {
+                                    <span class="pr-paid-by"><span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["pr.payment_pending"]</span></span>
+                                    <span class="pr-emp-sub">@L["pr.paid_by_next_offcycle"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-muted">@L["pr.after_this_payroll_closes"]</span>
+                                }
+                            </td>
+                        }
                         <td class="hrms-table__actions">
                             @if (editable)
                             {

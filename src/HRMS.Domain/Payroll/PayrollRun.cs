@@ -112,6 +112,8 @@ public sealed class PayrollRun
     public bool IsCancelled => Stage == RunStage.Cancelled;
     public bool IsClosed => Stage == RunStage.Closed;
     public bool IsEditable => Stage is RunStage.Draft or RunStage.Registered;
+    /// <summary>Employees can be excluded / included again until the payroll is submitted (db/35).</summary>
+    public bool CanExclude => Stage is RunStage.Draft or RunStage.Registered or RunStage.Validation;
     public int StageIndex => RunStage.Index(Stage);
 }
 
@@ -231,6 +233,12 @@ public sealed class ExcludedEmployee
     public string? ExcludeReason { get; init; }
     public DateTime? ExcludedDate { get; init; }
     public string? ExcludedByName { get; init; }
+
+    /// <summary>The off-cycle payroll of the period that pays the employee instead (catch-up), if any.</summary>
+    public long? PaidByRunId { get; init; }
+    public string? PaidByRunCode { get; init; }
+    public string? PaidByStage { get; init; }
+    public decimal? PaidByNet { get; init; }
 }
 
 /// <summary>A calculated line of an employee in a run.</summary>

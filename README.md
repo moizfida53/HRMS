@@ -739,6 +739,35 @@ Files: `Controllers/{BankProcessing,Accounting,PayrollReports}Controller.cs`,
 these pages now open the live screens.
 
 
+### Excluding an employee from a payroll (and paying them separately)
+
+An employee with a validation problem can be **left out of a payroll** and paid
+separately once the problem is fixed, so one person does not hold up everybody's salary.
+
+* **Where:** on the Register (the employee's lines, *Exclude from this payroll*) and
+  now also on **Validation**: every issue that names an employee has an **Exclude**
+  button. A reason is required (pre-filled with the issue). In Validation the checks
+  re-run at once, so the employee's errors no longer block *Submit for approval*.
+  Exclude / include works while the payroll is Draft, Registered or in Validation, not
+  after it is submitted.
+* **The flag:** the employee stays in the payroll flagged **Excluded** (who, when,
+  why) with net 0. Excluded employees get no payslip, bank payment or journal line
+  from that payroll. The Payrolls list shows *N excluded* under the employee count,
+  and the Register / Validation pages list them with their **Separate payment** status.
+* **The separate payment (catch-up):** once the regular payroll is **closed**, the next
+  **off-cycle payroll** of the same period automatically pays each excluded employee
+  as a regular payroll would: salary items (prorated), the month's pay items, loans
+  and PIFSS. It produces its own payslip, bank payment and journal. An employee paid
+  by one off-cycle payroll is not paid again by another one. The excluded list shows
+  the off-cycle payroll that pays them (or *Payment pending*), with a *Create off-cycle
+  payroll* button.
+
+Scripts: re-run `db/35_Payroll_Processing_StoredProcedures.sql` (the engine and the
+exclude / include rules; `db/35_..._StoredProcedures1.sql` carries the same changes),
+then `db/55_Payroll_Exclusion_Labels.sql` (labels, safe to re-run).
+
+The Payrolls grid also shows the **Company** (name and code) in the second column.
+
 ### Payroll Dashboard (live)
 
 `/payroll/dashboard` (Payroll > Payroll Dashboard) shows **one payroll month** at a

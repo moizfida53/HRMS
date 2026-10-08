@@ -420,7 +420,7 @@ public sealed class PayrollController : Controller
         var r = await LoadRunAsync(run);
         if (r is null) return NotFound();
         ViewData["Run"] = r;
-        ViewData["Editable"] = r.IsEditable && Can(PermProcess);
+        ViewData["Editable"] = r.CanExclude && Can(PermProcess);
         return PartialView("_Excluded", await _runs.ExcludedAsync(run, Ct));
     }
 
@@ -435,6 +435,7 @@ public sealed class PayrollController : Controller
             Run = r,
             Page = result,
             CanAcknowledge = r.Stage == RunStage.Validation && Can(PermProcess),
+            CanExclude = r.CanExclude && Can(PermProcess),
             IsFiltered = !string.IsNullOrEmpty(severity) || !string.IsNullOrEmpty(status) || !string.IsNullOrWhiteSpace(search)
         });
     }

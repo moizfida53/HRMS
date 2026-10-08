@@ -318,6 +318,7 @@ public sealed class RunIssuesGridModel
     public required PayrollRun Run { get; init; }
     public required PagedResult<PayrollRunIssue> Page { get; init; }
     public bool CanAcknowledge { get; init; }
+    public bool CanExclude { get; init; }
     public bool IsFiltered { get; init; }
 }
 

@@ -45,7 +45,7 @@
     </section>
     @if (run.ErrorCount > 0)
     {
-        <div class="pr-banner pr-banner--err">@Html.Icon("x-circle", 18)<div><strong>@L["pr.0_errors_must_be_fixed_before_this_payroll_can_be_submit", run.ErrorCount]</strong> @L["pr.go_back_to_the_register_to_exclude_the_employee_or_corre"]</div></div>
+        <div class="pr-banner pr-banner--err">@Html.Icon("x-circle", 18)<div><strong>@L["pr.0_errors_must_be_fixed_before_this_payroll_can_be_submit", run.ErrorCount]</strong> @(inValidation && Model.CanProcess ? L["pr.exclude_here_or_correct"] : L["pr.go_back_to_the_register_to_exclude_the_employee_or_corre"])</div></div>
     }
     else if (inValidation)
     {
@@ -73,6 +73,8 @@
         </div>
         <div data-issues-slot><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
     </div>
+    @* employees left out of this payroll - flagged for a separate (off-cycle) payment *@
+    <div class="hrms-card pr-excluded-card" data-excluded-slot hidden></div>
 </div>
 
 @if (inValidation && Model.CanProcess)

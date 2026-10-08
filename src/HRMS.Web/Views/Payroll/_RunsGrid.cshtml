@@ -38,6 +38,7 @@ else
             <thead>
                 <tr>
                     <th scope="col">@L["layout.payroll"]</th>
+                    <th scope="col">@L["common.company"]</th>
                     <th scope="col" class="col-p2">@L["pr.period"]</th>
                     <th scope="col" class="col-p3">@L["pr.calendar"]</th>
                     <th scope="col" class="col-p3">@L["org.type"]</th>
@@ -60,10 +61,23 @@ else
                             <a class="pr-run-link" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })"><span class="hrms-code-chip">@r.RunCode</span></a>
                             <span class="pr-emp-sub pr-run-desc">@(string.IsNullOrWhiteSpace(r.Description) ? L["pr.regular_payroll"] : r.Description)</span>
                         </td>
+                        <td data-label="@L["common.company"]">
+                            <span class="pr-run-company" title="@r.CompanyName">@r.CompanyName</span>
+                            @if (!string.IsNullOrWhiteSpace(r.CompanyCode))
+                            {
+                                <span class="pr-emp-sub">@r.CompanyCode</span>
+                            }
+                        </td>
                         <td data-label="@L["pr.period"]" class="col-p2">@PayrollFormat.Period(L, r)</td>
                         <td data-label="@L["pr.calendar"]" class="col-p3">@PayrollFormat.Calendar(L, r.CalendarName, r.CalendarArabicName)</td>
                         <td data-label="@L["org.type"]" class="col-p3">@L.Tr(RunType.Label(r.RunType))</td>
-                        <td data-label="@L["common.employees"]" class="text-center col-p3">@PayrollFormat.Count(r.EmployeeCount)</td>
+                        <td data-label="@L["common.employees"]" class="text-center col-p3">
+                            @PayrollFormat.Count(r.EmployeeCount)
+                            @if (r.ExcludedCount > 0)
+                            {
+                                <span class="pr-emp-flag"><span class="hrms-badge hrms-badge--muted" title="@L["pr.0_excluded_hint", r.ExcludedCount]"><span class="hrms-badge__dot"></span>@L["pr.0_excluded", r.ExcludedCount]</span></span>
+                            }
+                        </td>
                         <td data-label="@L["pr.net_kwd"]" class="pr-money col-p2">@(r.IsCancelled ? "—" : PayrollFormat.Money(r.TotalNet))</td>
                         <td data-label="@L["pr.stage"]" class="hrms-nowrap">
                             @if (!r.IsCancelled)

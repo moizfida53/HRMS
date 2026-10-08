@@ -97,7 +97,7 @@
         $("[data-reason-label]", reasonModal).textContent = opener.getAttribute("data-reason-label") || "";
         $("[data-reason-button]", reasonModal).textContent = opener.getAttribute("data-reason-button") || "";
         var input = $("[data-reason-input]", reasonModal);
-        input.value = "";
+        input.value = opener.getAttribute("data-reason-value") || "";
         input.placeholder = opener.getAttribute("data-reason-placeholder") || "";
         input.classList.remove("is-invalid");
         $("[data-reason-error]", reasonModal).hidden = true;
@@ -436,6 +436,16 @@
      * Payroll Validation
      * ===================================================================== */
     if (PAGE === "validation") {
+        var exclSlot = $("[data-excluded-slot]");
+        if (exclSlot) {
+            loadInto(exclSlot, withQs(urls.excluded, { run: RUN })).then(function () { exclSlot.hidden = !exclSlot.children.length; });
+            exclSlot.addEventListener("click", function (ev) {
+                var inc = ev.target.closest("[data-emp-include]");
+                if (!inc) { return; }
+                post(urls.include, { run: RUN, employeeId: inc.getAttribute("data-emp-include") }, inc)
+                    .then(function (res) { if (res && res.success) { window.location.reload(); } });
+            });
+        }
         var issues = $("[data-issues]");
         var iState = { severity: "", status: "", search: "", page: 1 };
         var iSlot = $("[data-issues-slot]");

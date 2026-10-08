@@ -5476,6 +5476,89 @@ tr.pr-row-cancelled .hrms-code-chip {
     justify-content: center;
   }
 }
+/* ---- Payrolls grid: company column ------------------------------------ */
+.pr-run-company {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--hrms-ink-900);
+}
+
+@container content (max-width: 699.98px) {
+  .pr-run-company {
+    max-width: none;
+    white-space: normal;
+  }
+}
+/* ---- excluded employees (Register + Validation) ----------------------- */
+.pr-excluded-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 0.5rem;
+}
+.pr-excluded-head .pr-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+.pr-excluded-head .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pr-excluded-card {
+  overflow: hidden;
+}
+.pr-excluded-card[hidden] {
+  display: none;
+}
+.pr-excluded-card .pr-excluded-head {
+  margin: 0;
+  padding: 1rem 1.25rem 0.75rem;
+}
+
+.pr-paid-by {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+@container content (max-width: 699.98px) {
+  .pr-excluded-card .pr-excluded-head {
+    padding: 0.85rem 1rem 0.6rem;
+  }
+  .pr-excluded-head .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  .pr-paid-by {
+    justify-content: flex-end;
+  }
+}
+/* ---- validation: exclude from an issue -------------------------------- */
+[data-issues] .hrms-table__actions {
+  white-space: nowrap;
+}
+
+[data-issues] .hrms-table__actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+[data-issues] .hrms-table__actions .btn + .btn {
+  margin-inline-start: 0.35rem;
+}
+
 .fs-page {
   display: flex;
   flex-direction: column;

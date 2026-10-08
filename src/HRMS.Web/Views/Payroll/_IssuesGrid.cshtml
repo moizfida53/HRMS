@@ -77,6 +77,23 @@ else
                                         data-reason-button="@L["pr.acknowledge"]"
                                         data-reason-refresh="issues">@L["pr.acknowledge"]</button>
                             }
+                            @if (Model.CanExclude && i.EmployeeId is { } empId)
+                            {
+                                var who = PayrollFormat.EmployeeName(L, i.EmployeeName, i.ArabicName);
+                                <button type="button" class="btn btn-sm btn-outline-danger pr-issue-exclude"
+                                        data-reason-open
+                                        data-reason-url="@Url.Action("Exclude", "Payroll", new { run = Model.Run.PayrollRunId, employeeId = empId })"
+                                        data-reason-field="reason"
+                                        data-reason-title="@L["pr.exclude_0_from_this_payroll", who]"
+                                        data-reason-text="@L["pr.exclude_issue_text"]"
+                                        data-reason-label="@L["pr.reason"]"
+                                        data-reason-placeholder="@L["pr.why_is_the_employee_excluded"]"
+                                        data-reason-value="@L.Tr(i.Message)"
+                                        data-reason-button="@L["pr.exclude"]"
+                                        data-reason-danger="true"
+                                        data-reason-refresh="page"
+                                        title="@L["pr.exclude_0_from_this_payroll", who]">@Html.Icon("x-circle", 14)<span>@L["pr.exclude"]</span></button>
+                            }
                         </td>
                     </tr>
                 }
