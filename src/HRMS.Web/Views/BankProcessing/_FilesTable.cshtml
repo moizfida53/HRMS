@@ -1,0 +1,90 @@
+@model (IReadOnlyList<BankFile> Files, FinanceRights Rights, bool ShowRun)
+@{
+    // The bank files (Bank File: one payroll's files; Payment History: all) with their actions.
+    var files = Model.Files;
+}
+@if (files.Count == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("file", 26)</span>
+        <p class="hrms-empty__title">@L["fin.no_files"]</p>
+        <p class="hrms-empty__text">@L["fin.no_files_text"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table fin-table">
+            <caption class="hrms-sr-only">@L["fin.bank_files"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["prv.file"]</th>
+                    @if (Model.ShowRun)
+                    {
+                        <th scope="col">@L["fin.payroll"]</th>
+                    }
+                    <th scope="col" class="col-p2">@L["prv.bank_format"]</th>
+                    <th scope="col" class="text-end">@L["pr.lines"]</th>
+                    <th scope="col" class="text-end">@L["pr.amount_kwd"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col" class="col-p3">@L["prv.generated"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in files)
+                {
+                    var live = f.Status != "SUPERSEDED";
+                    <tr class="@(live ? null : "is-ended")">
+                        <td data-label="@L["prv.file"]">
+                            <span class="hrms-code-chip">@f.FileNo</span>
+                            @if (f.FileKind == "RETRY")
+                            {
+                                <span class="st-inforce st-inforce--warn ms-1">@L["fin.reissue"]</span>
+                            }
+                            <span class="pr-emp-sub font-monospace" dir="ltr">@f.FileName</span>
+                        </td>
+                        @if (Model.ShowRun)
+                        {
+                            <td data-label="@L["fin.payroll"]">@f.RunCode<span class="pr-emp-sub">@L.MonthYear(f.RunMonth)</span></td>
+                        }
+                        <td data-label="@L["prv.bank_format"]" class="col-p2">@f.FormatName<span class="pr-emp-sub">@(f.BankName ?? (string)L["fin.all_banks"]) · @f.AccountTitle</span></td>
+                        <td data-label="@L["pr.lines"]" class="text-end hrms-numeric">@PayrollFormat.Count(f.LineCount)<span class="pr-emp-sub">@L["fin.paid_failed", f.PaidCount, f.FailedCount]</span></td>
+                        <td data-label="@L["pr.amount_kwd"]" class="text-end pr-money">@PayrollFormat.Money(f.TotalAmount)<span class="pr-emp-sub">@L["fin.value_0", L.Date(f.ValueDate)]</span></td>
+                        <td data-label="@L["common.status"]">
+                            <span class="hrms-badge hrms-badge--@FinanceFormat.FileStatusBadge(f.Status)"><span class="hrms-badge__dot"></span>@L[FinanceFormat.FileStatusKey(f.Status)]</span>
+                            @if (f.SentReference is not null)
+                            {
+                                <span class="pr-emp-sub">@f.SentReference</span>
+                            }
+                            @if (f.Reason is not null)
+                            {
+                                <span class="pr-emp-sub" title="@f.Reason">@L["fin.regenerated"]: @f.Reason</span>
+                            }
+                        </td>
+                        <td data-label="@L["prv.generated"]" class="col-p3 hrms-text-sm">@L.Date(f.CreatedDate)<span class="pr-emp-sub">@f.CreatedByName</span></td>
+                        <td class="hrms-table__actions">
+                            <a class="btn-icon" href="@Url.Action("Download", "BankProcessing", new { id = f.BankFileId })" title="@L["fin.download"]" aria-label="@L["fin.download_named", f.FileNo]">@Html.Icon("download", 15)</a>
+                            <a class="btn-icon" href="@Url.Action("Register", "BankProcessing", new { file = f.BankFileId })" title="@L["fin.view_payments"]" aria-label="@L["fin.view_payments"]">@Html.Icon("eye", 15)</a>
+                            @if (Model.Rights.CanAct && f.Status == "GENERATED")
+                            {
+                                <button type="button" class="btn-icon btn-icon--success" title="@L["fin.mark_sent"]" aria-label="@L["fin.mark_sent"]"
+                                        data-fin-action="@Url.Action("MarkSent", "BankProcessing", new { id = f.BankFileId })"
+                                        data-fin-title="@L["fin.mark_sent"] · @f.FileNo" data-fin-text="@L["fin.mark_sent_text"]"
+                                        data-fin-field="reference" data-fin-label="@L["fin.bank_upload_ref"]" data-fin-ok="@L["fin.mark_sent"]">@Html.Icon("send", 15)</button>
+                            }
+                            @if (Model.Rights.CanAct && live && f.LineCount > f.PaidCount + f.FailedCount)
+                            {
+                                <button type="button" class="btn-icon btn-icon--success" title="@L["fin.mark_file_paid"]" aria-label="@L["fin.mark_file_paid"]"
+                                        data-fin-action="@Url.Action("MarkFilePaid", "BankProcessing", new { id = f.BankFileId })"
+                                        data-fin-title="@L["fin.mark_file_paid"] · @f.FileNo" data-fin-text="@L["fin.mark_file_paid_text"]"
+                                        data-fin-date="paidDate" data-fin-date-value="@f.ValueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)"
+                                        data-fin-ok="@L["fin.mark_file_paid"]">@Html.Icon("check", 15)</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

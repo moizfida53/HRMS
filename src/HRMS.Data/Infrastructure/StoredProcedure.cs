@@ -113,6 +113,13 @@ public static class StoredProcedure
     public const string ApprovalProcessManage = "Payroll.usp_ApprovalProcess_Manage";
     public const string BankFileFormatManage = "Payroll.usp_BankFileFormat_Manage";
     public const string GLMappingManage = "Payroll.usp_GLMapping_Manage";
+    public const string BankFileManage = "Payroll.usp_BankFile_Manage";
+    public const string BankPaymentManage = "Payroll.usp_BankPayment_Manage";
+    public const string JournalManage = "Payroll.usp_Journal_Manage";
+    public const string CostAllocationManage = "Payroll.usp_CostAllocation_Manage";
+    public const string PayrollFinanceNavCounts = "Payroll.usp_PayrollFinance_NavCounts";
+    public const string PayrollReport = "Payroll.usp_PayrollReport";
+    public const string PayrollReportPeriods = "Payroll.usp_PayrollReport_Periods";
 
     // ---- Payslips (db/42-43) ----
 

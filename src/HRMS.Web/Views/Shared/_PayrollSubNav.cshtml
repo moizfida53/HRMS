@@ -1,0 +1,45 @@
+@using HRMS.Web.Models.Payroll
+@model (PayrollNav.Section Section, bool Active, HRMS.Web.Services.PayrollNavCountsResult? Counts)
+@{
+    // A payroll section that opens in the sidebar into its pages (sub-sections), each with
+    // its record count where it has one: Payroll Processing, Payslips, Bank Processing,
+    // Accounting (under Payroll) and Payroll Settings (under Setup).
+    var section = Model.Section;
+    var activeSub = PayrollNav.SubSection(ViewData["PayrollPage"] as string);
+    var subId = "nav-sub-" + section.Key;
+}
+<button type="button" class="hrms-nav-link hrms-nav-parent @(Model.Active ? "is-open" : "collapsed")"
+        data-bs-toggle="collapse" data-bs-target="#@subId"
+        aria-expanded="@(Model.Active ? "true" : "false")" aria-controls="@subId">
+    @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@Html.Icon("chevron-down", 14, "hrms-nav-parent__chev")
+</button>
+<div class="collapse hrms-nav-sub @(Model.Active ? "show" : null)" id="@subId">
+    @foreach (var tab in section.Tabs)
+    {
+        var count = Model.Counts?.For(tab.Slug);
+        string? title = count is null ? null : tab.Slug switch
+        {
+            "payrolls" => L["layout.nav_count_payrolls", count],
+            "calendars" => L["layout.nav_count_calendars", count],
+            "pay-periods" => L["layout.nav_count_periods", count],
+            "slip-generate" => L["layout.nav_count_slips_to_generate", count],
+            "slip-employee" => L["layout.nav_count_slips_generated", count],
+            "slip-email" => L["layout.nav_count_slips_to_email", count],
+            "bk-file" => L["layout.nav_count_bank_files", count],
+            "bk-register" => L["layout.nav_count_payments_open", count],
+            "ac-journal" => L["layout.nav_count_journals_to_make", count],
+            "ac-posting" => L["layout.nav_count_journals_to_post", count],
+            _ => null
+        };
+        var subActive = Model.Active && activeSub == tab.Slug;
+        <a class="hrms-nav-link hrms-nav-sub__link @(subActive ? "is-active" : null)"
+           href="@(Context.Request.PathBase + PayrollNav.Url(tab.Slug))"
+           aria-current="@(subActive ? "page" : null)">
+            <span>@L.Tr(tab.Title)</span>
+            @if (count is { } n)
+            {
+                <span class="hrms-nav-count @(n == 0 ? "is-zero" : null)" title="@title" aria-label="@title">@n.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
+            }
+        </a>
+    }
+</div>

@@ -1,0 +1,28 @@
+@* The dialog of the finance actions (payroll-finance.js): confirm, optionally with a
+   text field (reason / reference) and / or a date. *@
+<div class="modal fade fin-dialog" id="fin-dialog" tabindex="-1" aria-hidden="true" aria-labelledby="fin-dialog-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" data-fin-dialog-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="fin-dialog-title" data-fin-dialog-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3" data-fin-dialog-text></p>
+                <div class="mb-3" data-fin-dialog-field hidden>
+                    <label class="form-label" for="fin-dialog-input" data-fin-dialog-label></label>
+                    <textarea class="form-control" id="fin-dialog-input" rows="2" maxlength="500" data-fin-dialog-input></textarea>
+                    <span class="field-validation-error" data-fin-dialog-error></span>
+                </div>
+                <div class="mb-1" data-fin-dialog-date hidden>
+                    <label class="form-label" for="fin-dialog-date">@L["fin.paid_date"]</label>
+                    <input class="form-control" type="date" id="fin-dialog-date" data-fin-dialog-date-input />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="submit" class="btn btn-primary" data-fin-dialog-ok></button>
+            </div>
+        </form>
+    </div>
+</div>

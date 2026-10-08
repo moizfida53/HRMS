@@ -1,0 +1,168 @@
+@using System.Globalization
+@model ReportPageModel
+@{
+    // Payroll > Payroll Reports (db/51): a tab per report family (kept as tabs); the reports of
+    // the tab on the left, the chosen one on the right - Year / Month / department filters,
+    // totals, export to Excel (CSV) and print.
+    var report = Model.Report;
+    ViewData["Title"] = "Payroll Reports";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "reports";
+    ViewData["PayrollPage"] = "rp-" + Model.Family;
+    ViewData["Subtitle"] = L["fin.reports_subtitle"];
+    var section = PayrollNav.Sections.First(s => s.Key == "reports");
+    var keep = new Dictionary<string, string?>
+    {
+        ["year"] = Model.Filters.Year?.ToString(CultureInfo.InvariantCulture),
+        ["month"] = Model.Filters.Month is { } km ? FinancePeriod.Key(km) : null
+    };
+    string Q(IDictionary<string, string?> p) =>
+        string.Join("&", p.Where(x => !string.IsNullOrEmpty(x.Value)).Select(x => x.Key + "=" + Uri.EscapeDataString(x.Value!)));
+    var period = Model.Filters.Month is { } pm ? L.MonthYear(pm) : Model.Filters.Year?.ToString(CultureInfo.InvariantCulture) ?? "";
+
+    decimal Num(object? v) => v switch
+    {
+        null => 0, decimal d => d, int i => i, long l => l, short s => s, double db => (decimal)db,
+        _ => decimal.TryParse(Convert.ToString(v, CultureInfo.InvariantCulture), NumberStyles.Number, CultureInfo.InvariantCulture, out var x) ? x : 0
+    };
+    string Cell(object? v, ReportColumnKind kind) => v switch
+    {
+        null => "—",
+        DateTime d when kind == ReportColumnKind.Month => L.MonthYear(d),
+        DateTime d => d.TimeOfDay == TimeSpan.Zero ? L.Date(d) : L.Date(d) + " " + d.ToString("HH:mm", CultureInfo.InvariantCulture),
+        _ when kind == ReportColumnKind.Money => PayrollFormat.Money(Num(v)),
+        _ when kind == ReportColumnKind.Number => PayrollFormat.Count((int)Num(v)),
+        _ when kind == ReportColumnKind.Percent => Num(v).ToString("0.##", CultureInfo.InvariantCulture) + "%",
+        string s when kind == ReportColumnKind.Status => HRMS.Web.Controllers.ReportText.Code(L, s),
+        _ => Convert.ToString(v, CultureInfo.InvariantCulture) ?? "—"
+    };
+    string Align(ReportColumnKind k) => k is ReportColumnKind.Money or ReportColumnKind.Number or ReportColumnKind.Percent ? "text-end" : "";
+}
+
+@* Tab rail (kept as tabs): the period chosen carries over to the other tabs. *@
+<nav class="hrms-tabs pr-tabs" aria-label="@L.Tr(section.Title)">
+    <div class="hrms-tabs__rail" role="tablist">
+        @foreach (var tab in section.Tabs)
+        {
+            var href = Context.Request.PathBase + PayrollNav.Url(tab.Slug) + (Q(keep) is { Length: > 0 } qs ? "?" + qs : "");
+            var active = tab.Slug == "rp-" + Model.Family;
+            <a role="tab" class="hrms-tab @(active ? "is-active" : null)" href="@href" aria-selected="@(active ? "true" : "false")">@L.Tr(tab.Title)</a>
+        }
+    </div>
+</nav>
+
+<div class="fin-reports fin-page" data-fin-page>
+    @* ---------------------------------------- the reports of this tab *@
+    <nav class="fin-reports__list" aria-label="@L["fin.reports"]">
+        @foreach (var r in Model.Reports)
+        {
+            var p = new Dictionary<string, string?>(keep) { ["report"] = r.Code };
+            var active = r.Code == report.Code;
+            <a class="fin-report-card @(active ? "is-active" : null)" href="@Url.Action("Family", "PayrollReports", new { family = Model.Family })?@Q(p)"
+               aria-current="@(active ? "page" : null)">
+                <span class="fin-report-card__icon" aria-hidden="true">@Html.Icon(r.Icon, 16)</span>
+                <span class="fin-report-card__text"><strong>@L[r.TitleKey]</strong><span>@L[r.HintKey]</span></span>
+            </a>
+        }
+    </nav>
+
+    @* ---------------------------------------- the chosen report *@
+    <section class="hrms-card fin-reports__result">
+        <header class="fin-report-head">
+            <div>
+                <h2 class="fin-report-head__title">@L[report.TitleKey]</h2>
+                <p class="fin-report-head__sub">@period@(report.Code == "SAL_TREND" ? " · " + L["fin.trend_12_months"] : "")</p>
+            </div>
+            <div class="fin-report-head__actions">
+                <a class="btn btn-sm btn-outline-primary" href="@Model.ExportUrl">@Html.Icon("download", 14)<span>@L["prv.export_excel"]</span></a>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">@Html.Icon("printer", 14)<span>@L["fin.print"]</span></button>
+            </div>
+        </header>
+        @await Html.PartialAsync("~/Views/PayrollFinance/_Filters.cshtml", Model.Filters)
+
+        @if (report.NoteKey is not null)
+        {
+            <p class="fin-footnote fin-footnote--top">@Html.Icon("info", 14) @L[report.NoteKey]</p>
+        }
+
+        @if (!Model.HasPeriods)
+        {
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("chart", 26)</span>
+                <p class="hrms-empty__title">@L["fin.no_closed_payrolls"]</p>
+                <p class="hrms-empty__text">@L["fin.reports_need_closed"]</p>
+            </div>
+        }
+        else if (Model.Rows.Count == 0)
+        {
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("search", 26)</span>
+                <p class="hrms-empty__title">@L["fin.no_rows"]</p>
+                <p class="hrms-empty__text">@L["fin.no_rows_text"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="hrms-table-wrap">
+                <table class="hrms-table fin-table fin-report-table">
+                    <caption class="hrms-sr-only">@L[report.TitleKey] · @period</caption>
+                    <thead>
+                        <tr>
+                            @foreach (var c in report.Columns)
+                            {
+                                <th scope="col" class="@Align(c.Kind)">@L[c.LabelKey]</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                @for (var i = 0; i < report.Columns.Count; i++)
+                                {
+                                    var c = report.Columns[i];
+                                    var v = row.TryGetValue(c.Key, out var raw) ? raw : null;
+                                    var negative = c.Kind is ReportColumnKind.Money or ReportColumnKind.Percent && Num(v) < 0;
+                                    <td data-label="@L[c.LabelKey]" class="@Align(c.Kind) @(c.Kind == ReportColumnKind.Money ? "pr-money" : null) @(negative ? "text-danger" : null) @(i == 0 ? "fw-semibold" : null)">
+                                        @if (c.Kind == ReportColumnKind.Code && v is not null)
+                                        {
+                                            <span class="hrms-code-chip">@Cell(v, c.Kind)</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@Cell(v, c.Kind)</span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                    @if (report.Columns.Any(c => c.Total))
+                    {
+                        <tfoot>
+                            <tr>
+                                @for (var i = 0; i < report.Columns.Count; i++)
+                                {
+                                    var c = report.Columns[i];
+                                    if (c.Total)
+                                    {
+                                        var total = Model.Rows.Sum(r => Num(r.TryGetValue(c.Key, out var tv) ? tv : null));
+                                        <td class="text-end fw-semibold @(c.Kind == ReportColumnKind.Money ? "pr-money" : null)">@(c.Kind == ReportColumnKind.Money ? PayrollFormat.Money(total) : PayrollFormat.Count((int)total))</td>
+                                    }
+                                    else
+                                    {
+                                        <th scope="row">@(i == 0 ? L["prv.total"] : "")</th>
+                                    }
+                                }
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/payroll-finance.js" asp-append-version="true"></script>
+}

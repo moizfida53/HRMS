@@ -1,0 +1,184 @@
+@using HRMS.Web.Models.Organization
+@model PaymentRegisterModel
+@{
+    // Payroll > Bank Processing > Payment Register (db/49-50): every salary payment of the
+    // closed payrolls - by bank (in a file) or cash / cheque - and what became of it.
+    ViewData["Title"] = "Payment Register";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "bank";
+    ViewData["PayrollPage"] = "bk-register";
+    ViewData["Subtitle"] = L["fin.register_subtitle"];
+    var pg = Model.Page;
+    var s = Model.Summary;
+    var act = Model.Rights.CanAct;
+    var statusUrl = Url.Action("PaymentStatus", "BankProcessing");
+    var reissueUrl = Url.Action("Reissue", "BankProcessing");
+    var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+}
+<div class="pr-stack fin-page" data-fin-page>
+    <section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_paid"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("check", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(s.PaidCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kwd_0", PayrollFormat.Money(s.PaidAmount)]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.pay_in_file"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("send", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(s.InFileCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kwd_0", PayrollFormat.Money(s.InFileAmount)]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi @(s.PendingCount > 0 ? "fin-kpi--warn" : null)">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.pay_pending"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("clock", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(s.PendingCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kwd_0", PayrollFormat.Money(s.PendingAmount)]</span></div>
+        </div>
+        <div class="hrms-card hrms-kpi @(s.FailedCount > 0 ? "fin-kpi--danger" : null)">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.pay_failed"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("alert", 16)</span></div>
+            <div class="hrms-kpi__value">@PayrollFormat.Count(s.FailedCount)</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kwd_0", PayrollFormat.Money(s.FailedAmount)]</span></div>
+        </div>
+    </section>
+
+    <section class="hrms-card" data-fin-select-scope>
+        @await Html.PartialAsync("~/Views/PayrollFinance/_Filters.cshtml", Model.Filters)
+
+        @if (act && pg.TotalCount > 0)
+        {
+            <div class="fin-bulk" data-fin-bulk hidden>
+                <span class="fin-bulk__count" data-fin-bulk-count></span>
+                <button type="button" class="btn btn-sm btn-outline-success" data-fin-action="@statusUrl" data-fin-selected data-fin-extra='{"status":"PAID"}'
+                        data-fin-title="@L["fin.mark_paid"]" data-fin-text="@L["fin.mark_paid_text"]" data-fin-field="reference" data-fin-optional
+                        data-fin-label="@L["fin.reference"]" data-fin-date="paidDate" data-fin-date-value="@today" data-fin-ok="@L["fin.mark_paid"]">@Html.Icon("check", 14)<span>@L["fin.mark_paid"]</span></button>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-fin-action="@statusUrl" data-fin-selected data-fin-extra='{"status":"FAILED"}'
+                        data-fin-title="@L["fin.mark_failed"]" data-fin-text="@L["fin.mark_failed_text"]" data-fin-field="reason"
+                        data-fin-label="@L["fin.failure_reason"]" data-fin-ok="@L["fin.mark_failed"]">@Html.Icon("x-circle", 14)<span>@L["fin.mark_failed"]</span></button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-fin-action="@reissueUrl" data-fin-selected data-fin-extra='{"method":"BANK"}'
+                        data-fin-title="@L["fin.reissue_bank"]" data-fin-text="@L["fin.reissue_bank_text"]" data-fin-ok="@L["fin.reissue_bank"]">@Html.Icon("refresh", 14)<span>@L["fin.reissue_bank"]</span></button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-fin-action="@reissueUrl" data-fin-selected data-fin-extra='{"method":"CASH"}'
+                        data-fin-title="@L["fin.reissue_cash"]" data-fin-text="@L["fin.reissue_cash_text"]" data-fin-ok="@L["fin.reissue_cash"]">@Html.Icon("wallet", 14)<span>@L["fin.reissue_cash"]</span></button>
+            </div>
+        }
+
+        @if (pg.TotalCount == 0)
+        {
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "wallet", 26)</span>
+                <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["fin.no_payments"])</p>
+                <p class="hrms-empty__text">@L["fin.no_payments_text"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="hrms-table-wrap">
+                <table class="hrms-table fin-table">
+                    <caption class="hrms-sr-only">@L["fin.payment_register"]</caption>
+                    <thead>
+                        <tr>
+                            @if (act)
+                            {
+                                <th scope="col" class="fin-check"><input class="form-check-input" type="checkbox" data-fin-check-all aria-label="@L["fin.select_all"]" /></th>
+                            }
+                            <th scope="col">@L["pr.employee"]</th>
+                            <th scope="col">@L["prv.bank"]</th>
+                            <th scope="col" class="col-p3">@L["st.iban"]</th>
+                            <th scope="col" class="text-end">@L["pr.amount_kwd"]</th>
+                            <th scope="col">@L["common.status"]</th>
+                            <th scope="col" class="col-p2">@L["prv.bank_reference"]</th>
+                            <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in pg.Items)
+                        {
+                            var id = p.BankPaymentId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            <tr>
+                                @if (act)
+                                {
+                                    <td class="fin-check"><input class="form-check-input" type="checkbox" value="@id" data-fin-check aria-label="@L["fin.select_named", p.EmployeeName ?? ""]" /></td>
+                                }
+                                <td data-label="@L["pr.employee"]">
+                                    <span class="hrms-table__primary">@p.EmployeeName</span>
+                                    <span class="pr-emp-sub"><span class="hrms-code-chip">@p.EmployeeNo</span> · @p.RunCode@(p.DepartmentName is not null ? " · " + p.DepartmentName : "")</span>
+                                </td>
+                                <td data-label="@L["prv.bank"]">
+                                    @if (p.Method == "CASH")
+                                    {
+                                        <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["fin.method_cash"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(p.BankName ?? (string)L["fin.unknown_bank"])</span>
+                                    }
+                                    @if (p.FileNo is not null)
+                                    {
+                                        <span class="pr-emp-sub font-monospace">@p.FileNo</span>
+                                    }
+                                </td>
+                                <td data-label="@L["st.iban"]" class="col-p3 font-monospace hrms-text-sm" dir="ltr">@FinanceFormat.Iban(p.Iban)</td>
+                                <td data-label="@L["pr.amount_kwd"]" class="text-end pr-money">@PayrollFormat.Money(p.Amount)</td>
+                                <td data-label="@L["common.status"]">
+                                    <span class="hrms-badge hrms-badge--@FinanceFormat.PaymentStatusBadge(p.Status)"><span class="hrms-badge__dot"></span>@L[FinanceFormat.PaymentStatusKey(p.Status)]</span>
+                                    @if (p.AttemptCount > 1)
+                                    {
+                                        <span class="pr-emp-sub">@L["fin.attempt_0", p.AttemptCount]</span>
+                                    }
+                                </td>
+                                <td data-label="@L["prv.bank_reference"]" class="col-p2 hrms-text-sm">
+                                    @if (p.Status == "FAILED")
+                                    {
+                                        <span class="text-danger">@p.FailureReason</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@(p.Reference ?? "—")</span>
+                                    }
+                                    @if (p.PaidDate is { } paid)
+                                    {
+                                        <span class="pr-emp-sub">@L.Date(paid)</span>
+                                    }
+                                </td>
+                                <td class="hrms-table__actions">
+                                    @if (act && (p.Status == "IN_FILE" || (p.Status == "PENDING" && p.Method == "CASH")))
+                                    {
+                                        <button type="button" class="btn-icon btn-icon--success" title="@L["fin.mark_paid"]" aria-label="@L["fin.mark_paid"]"
+                                                data-fin-action="@statusUrl" data-fin-ids="@id" data-fin-extra='{"status":"PAID"}'
+                                                data-fin-title="@L["fin.mark_paid"] · @p.EmployeeName" data-fin-text="@(p.Method == "CASH" ? L["fin.mark_cash_paid_text"] : L["fin.mark_paid_text"])"
+                                                data-fin-field="reference" data-fin-optional data-fin-label="@(p.Method == "CASH" ? L["fin.cheque_voucher"] : L["fin.reference"])"
+                                                data-fin-date="paidDate" data-fin-date-value="@today" data-fin-ok="@L["fin.mark_paid"]">@Html.Icon("check", 15)</button>
+                                    }
+                                    @if (act && p.Status == "IN_FILE")
+                                    {
+                                        <button type="button" class="btn-icon btn-icon--danger" title="@L["fin.mark_failed"]" aria-label="@L["fin.mark_failed"]"
+                                                data-fin-action="@statusUrl" data-fin-ids="@id" data-fin-extra='{"status":"FAILED"}'
+                                                data-fin-title="@L["fin.mark_failed"] · @p.EmployeeName" data-fin-text="@L["fin.mark_failed_text"]"
+                                                data-fin-field="reason" data-fin-label="@L["fin.failure_reason"]" data-fin-ok="@L["fin.mark_failed"]">@Html.Icon("x-circle", 15)</button>
+                                    }
+                                    @if (act && p.Status == "FAILED")
+                                    {
+                                        <button type="button" class="btn-icon" title="@L["fin.reissue_bank"]" aria-label="@L["fin.reissue_bank"]"
+                                                data-fin-action="@reissueUrl" data-fin-ids="@id" data-fin-extra='{"method":"BANK"}'
+                                                data-fin-title="@L["fin.reissue_bank"] · @p.EmployeeName" data-fin-text="@L["fin.reissue_bank_text"]" data-fin-ok="@L["fin.reissue_bank"]">@Html.Icon("refresh", 15)</button>
+                                        <button type="button" class="btn-icon" title="@L["fin.reissue_cash"]" aria-label="@L["fin.reissue_cash"]"
+                                                data-fin-action="@reissueUrl" data-fin-ids="@id" data-fin-extra='{"method":"CASH"}'
+                                                data-fin-title="@L["fin.reissue_cash"] · @p.EmployeeName" data-fin-text="@L["fin.reissue_cash_text"]" data-fin-ok="@L["fin.reissue_cash"]">@Html.Icon("wallet", 15)</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div data-fin-pager>
+                @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+                {
+                    PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount, FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+                })
+            </div>
+        }
+    </section>
+</div>
+@await Html.PartialAsync("~/Views/PayrollFinance/_Dialog.cshtml")
+
+@section Scripts {
+    <script src="~/js/payroll-finance.js" asp-append-version="true"></script>
+}

@@ -9,7 +9,8 @@ namespace HRMS.Web.Services;
 /// <summary>The figures next to the payroll sub-sections in the sidebar (null = the user may not see it).</summary>
 public sealed record PayrollNavCountsResult(
     int? OpenPayrolls, int? Calendars, int? OpenPeriods,
-    int? PayslipsToGenerate = null, int? PayslipsGenerated = null, int? PayslipsToEmail = null)
+    int? PayslipsToGenerate = null, int? PayslipsGenerated = null, int? PayslipsToEmail = null,
+    int? BankFilesToMake = null, int? PaymentsOpen = null, int? JournalsToMake = null, int? JournalsToPost = null)
 {
     /// <summary>The figure of a sub-section (its slug), or null when it has none.</summary>
     public int? For(string slug) => slug switch
@@ -20,6 +21,10 @@ public sealed record PayrollNavCountsResult(
         "slip-generate" => PayslipsToGenerate,
         "slip-employee" => PayslipsGenerated,
         "slip-email" => PayslipsToEmail,
+        "bk-file" => BankFilesToMake,
+        "bk-register" => PaymentsOpen,
+        "ac-journal" => JournalsToMake,
+        "ac-posting" => JournalsToPost,
         _ => null
     };
 }
@@ -49,17 +54,20 @@ public sealed class PayrollNavCounts : IPayrollNavCounts
     private readonly IPayrollRunRepository _runs;
     private readonly IPayrollCalendarRepository _calendars;
     private readonly IPayslipRepository _payslips;
+    private readonly IPayrollFinanceRepository _finance;
     private readonly ICurrentUser _user;
     private readonly ICompanyFilter _companyFilter;
     private readonly IMemoryCache _cache;
     private readonly ILogger<PayrollNavCounts> _logger;
 
-    public PayrollNavCounts(IPayrollRunRepository runs, IPayrollCalendarRepository calendars, IPayslipRepository payslips, ICurrentUser user,
+    public PayrollNavCounts(IPayrollRunRepository runs, IPayrollCalendarRepository calendars, IPayslipRepository payslips,
+                            IPayrollFinanceRepository finance, ICurrentUser user,
                             ICompanyFilter companyFilter, IMemoryCache cache, ILogger<PayrollNavCounts> logger)
     {
         _runs = runs;
         _calendars = calendars;
         _payslips = payslips;
+        _finance = finance;
         _user = user;
         _companyFilter = companyFilter;
         _cache = cache;
@@ -72,14 +80,16 @@ public sealed class PayrollNavCounts : IPayrollNavCounts
         var canSetup = canRuns || _user.HasPermission("PAYROLL_SETUP_VIEW");
         var canSlips = _user.HasPermission("PAYROLL_SLIP_VIEW") || _user.HasPermission("PAYROLL_SLIP_GENERATE")
                        || _user.HasPermission("PAYROLL_SLIP_EMAIL");
-        if (!_user.IsAuthenticated || (!canSetup && !canSlips))
+        var canBank = _user.HasPermission("PAYROLL_BANK_VIEW") || _user.HasPermission("PAYROLL_BANK_PROCESS");
+        var canGl = _user.HasPermission("PAYROLL_GL_VIEW") || _user.HasPermission("PAYROLL_GL_POST");
+        if (!_user.IsAuthenticated || (!canSetup && !canSlips && !canBank && !canGl))
         {
             return null;
         }
 
         var companyId = _user.ActiveCompanyId;
         var companyCsv = _companyFilter.Csv;
-        var key = $"hrms:payroll-nav:{_user.UserId}:{companyId}:{companyCsv}:{canRuns}:{canSetup}:{canSlips}";
+        var key = $"hrms:payroll-nav:{_user.UserId}:{companyId}:{companyCsv}:{canRuns}:{canSetup}:{canSlips}:{canBank}:{canGl}";
         if (_cache.TryGetValue(key, out PayrollNavCountsResult? cached))
         {
             return cached;
@@ -120,8 +130,16 @@ public sealed class PayrollNavCounts : IPayrollNavCounts
                 slips = await _payslips.NavCountsAsync(companyId, companyCsv, cancellationToken).ConfigureAwait(false) ?? new PayslipNavCounts();
             }
 
+            FinanceNavCounts? finance = null;
+            if (canBank || canGl)
+            {
+                finance = await _finance.NavCountsAsync(companyId, companyCsv, cancellationToken).ConfigureAwait(false) ?? new FinanceNavCounts();
+            }
+
             var result = new PayrollNavCountsResult(openPayrolls, calendarCount, openPeriods,
-                                                    slips?.ToGenerateCount, slips?.GeneratedCount, slips?.ToEmailCount);
+                                                    slips?.ToGenerateCount, slips?.GeneratedCount, slips?.ToEmailCount,
+                                                    canBank ? finance?.BankFilesToMake : null, canBank ? finance?.PaymentsOpen : null,
+                                                    canGl ? finance?.JournalsToMake : null, canGl ? finance?.JournalsToPost : null);
             _cache.Set(key, result, new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(CacheFor)
                 .AddExpirationToken(new Microsoft.Extensions.Primitives.CancellationChangeToken(Volatile.Read(ref _reset).Token)));

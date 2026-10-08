@@ -637,7 +637,8 @@ Files: `Controllers/PayslipsController.cs`, `Models/Payroll/PayslipViewModels.cs
 
 ### Payroll Settings (live)
 
-**Payroll > Payroll Settings** opens in the sidebar into eight sub-sections.
+**Setup > Payroll Settings** (it sits under **Setup** in the sidebar, after the
+organization masters) opens into eight sub-sections.
 Every screen is a list with search / filters / a record count, and an add / edit
 dialog; nothing is ever physically deleted (soft delete).
 
@@ -681,6 +682,61 @@ Files: `Controllers/PayrollSettingsController*.cs` (one partial per screen group
 `Views/PayrollSettings/*`, `wwwroot/js/payroll-settings.js` (one script for every
 screen), `wwwroot/scss/_settings.scss`. The old settings preview pages now open
 the live screens.
+
+
+### Bank Processing, Accounting and Payroll Reports (live)
+
+All three work on **closed payrolls** only. Bank Processing and Accounting open in
+the sidebar into sub-sections (with their figures); every page has a **Year /
+Month** filter row (the month list follows the year) with the record count in the
+same row. Payroll Reports keeps its **tab rail**.
+
+| Page | URL | What it does |
+|---|---|---|
+| Bank File | `/payroll/bank/file` | Pick the payroll (Year / Month / Payroll), review it **per bank** (employees, amount, WPS code ready / missing, bank-specific or default format) and the **cash / cheque** employees (no IBAN - never in the file). Choose the banks (all, or one), the debit account, the format and the value date, then **Generate and download**. The file is built from the bank format (Payroll Settings > Bank Formats: CSV / delimited / fixed width, header, trailer, field order, widths, padding) and **kept as generated** - every download is the same file. Generating it again asks for a **reason** and replaces the previous file; it is refused once payments of that file are recorded as paid or failed. Failed payments re-issued by bank get a **re-issue file**. |
+| Payment Register | `/payroll/bank/register` | Every payment (Year / Month / status / method / search, key figures): **Mark paid** (reference, paid date), **Mark failed** (reason), **Re-issue by bank** or **Pay by cash / cheque** - per row or for the ticked rows. |
+| Payment History | `/payroll/bank/history` | Every file generated: download again, **Mark sent** (bank upload reference), **Mark file paid** (all its payments still awaiting the bank), its payments. |
+| Payroll Journal | `/payroll/accounting/journal` | The journal of a closed payroll - previewed, then **Create journal** (`JV-yyyy-mm-nn`). Each payroll line posts both sides from **GL Mapping** (Payroll Settings): an earning *Dr* its debit account (cost center) / *Cr* its credit account; a deduction *Dr* its debit account / *Cr* its credit account. With no mapping, the pay item type's own GL code is used and the other side goes to the company's **salaries payable** account (Default accounts, on this page; `210100` until set). A side with no account at all posts to `UNMAPPED-<code>` and is flagged. Debits always equal credits; the payable account nets to the payroll's net pay. |
+| GL Posting | `/payroll/accounting/posting` | No ERP link yet: **Export Excel** (CSV, Excel opens it), enter it in the books, **Mark posted** with the reference. **Reverse** (with a reason) frees the payroll for a new journal. |
+| Cost Center Allocation | `/payroll/accounting/allocation` | An employee's cost split across cost centers from a date (shares add up to 100 %; a new split ends the previous one). The journal splits the employee's earnings by the split in force at the month end, else uses the employee's (or department's) cost center. |
+| Payroll Reports | `/payroll/reports/{payroll,salary,deduction,overtime,compliance}` | One tab per family; the tab's reports on the left, the chosen one on the right with Year / Month (a month, or the whole year) and department filters, totals, **Export Excel** and **Print**. |
+
+The reports:
+
+| Tab | Reports |
+|---|---|
+| Payroll | Payroll register · Summary by department · Variance month on month (new / left / changed) · Employer cost (gross + employer PIFSS) |
+| Salary | Salary by grade · Revision history (pay item amount changes) · Headcount and cost trend (12 months) |
+| Deduction | Deductions by component · Deductions per employee · Loans outstanding (instalments, recovered, balance) |
+| Overtime | Overtime by employee · Overtime by department (amounts - hours are not recorded on the payroll yet) |
+| Compliance | PIFSS contribution (employee + employer share, Kuwaiti staff, Civil ID masked) · WPS submission (files per period) · Audit (payroll actions) |
+
+Employer PIFSS uses the rates in force at the month end (Payroll Rules) on the
+PIFSS-applicable salary items, capped at the ceiling - the same rule the payroll
+uses for the employee share.
+
+Run after 47-48, in this order:
+
+| # | Script | What it does |
+|---|---|---|
+| 49 | `db/49_Bank_Accounting_Tables.sql` | `Payroll.BankFiles`, `BankPayments`, `JournalBatches`, `JournalLines`, `AccountingDefaults`, `CostAllocations` + `CostAllocationLines`; permissions PAYROLL_BANK_VIEW / PAYROLL_BANK_PROCESS, PAYROLL_GL_VIEW / PAYROLL_GL_POST, PAYROLL_REPORT_VIEW (to SYSADMIN) |
+| 50 | `db/50_Bank_Accounting_StoredProcedures.sql` | `ufn_RunPayees`, `ufn_PayrollJournal`, `usp_BankFile_Manage`, `usp_BankPayment_Manage`, `usp_Journal_Manage`, `usp_CostAllocation_Manage`, `usp_PayrollFinance_NavCounts` |
+| 51 | `db/51_Payroll_Reports_StoredProcedures.sql` | `usp_PayrollReport` (15 reports), `usp_PayrollReport_Periods` |
+| 52 | `db/52_Bank_Accounting_Reports_Labels.sql` | English + Arabic labels (`fin.*`, `js.fin_*`, `msg.fin_*`, sidebar figures) - safe to re-run |
+
+> **Sign out and in again** after script 49 so the new permissions are loaded.
+
+Not built yet: reading a bank's **response file** (paid / rejected lines) - the
+register is updated by hand (per payment, per file); and a direct ERP / GL
+interface - journals go out as Excel.
+
+Files: `Controllers/{BankProcessing,Accounting,PayrollReports}Controller.cs`,
+`Controllers/PayrollFinanceControllerBase.cs`, `Services/BankFileBuilder.cs`,
+`Models/Payroll/FinanceViewModels.cs` (the report catalogue), `Domain/Payroll/PayrollFinance.cs`,
+`Data/Repositories/PayrollFinanceRepository.cs`, `Views/{BankProcessing,Accounting,PayrollReports,PayrollFinance}/*`,
+`Views/Shared/_PayrollSubNav.cshtml` (a section's sub-sections in the sidebar),
+`wwwroot/js/payroll-finance.js`, `wwwroot/scss/_finance.scss`. The old previews of
+these pages now open the live screens.
 
 ---
 

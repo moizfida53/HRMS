@@ -1,0 +1,95 @@
+@model AllocationFormModel
+@{
+    var a = Model.Allocation;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string D(DateTime? d) => d?.ToString("yyyy-MM-dd", inv) ?? "";
+    string N(decimal v) => v.ToString("0.##", inv);
+}
+<input type="hidden" name="CostAllocationId" value="@a.CostAllocationId" />
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.split"]</legend>
+    <div class="row g-3">
+        <div class="col-12">
+            <label class="form-label" for="al-employee">@L["pr.employee"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="al-employee" name="EmployeeId" data-searchable disabled="@(a.CostAllocationId > 0)">
+                <option value="0">@L["fin.select_employee"]</option>
+                @foreach (var e in Model.Employees)
+                {
+                    <option value="@e.Id" selected="@(e.Id == a.EmployeeId)">@e.Text</option>
+                }
+            </select>
+            @if (a.CostAllocationId > 0)
+            {
+                <input type="hidden" name="EmployeeId" value="@a.EmployeeId" />
+            }
+        </div>
+        <div class="col-sm-6">
+            <label class="form-label" for="al-from">@L["pr.effective_from"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" type="date" id="al-from" name="EffectiveFrom" value="@D(a.EffectiveFrom)" />
+            <span class="field-validation-error" data-valmsg-for="EffectiveFrom"></span>
+        </div>
+        <div class="col-sm-6">
+            <label class="form-label" for="al-to">@L["fin.effective_to"]</label>
+            <input class="form-control" type="date" id="al-to" name="EffectiveTo" value="@D(a.EffectiveTo)" />
+            <span class="form-text">@L["fin.effective_to_hint"]</span>
+        </div>
+    </div>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["prv.cost_center"]</legend>
+    <p class="form-text mt-0">@L["prv.shares_must_add_up_to_0", "100"]</p>
+    <div class="st-lines" data-st-lines="Lines">
+        <table>
+            <thead><tr><th>@L["prv.cost_center"]</th><th>@L["prv.share_2"]</th><th><span class="hrms-sr-only">@L["common.actions"]</span></th></tr></thead>
+            <tbody data-st-line-body>
+                @for (var i = 0; i < a.Lines.Count; i++)
+                {
+                    var l = a.Lines[i];
+                    <tr>
+                        <td data-label="@L["prv.cost_center"]">
+                            <select class="form-select form-select-sm" name="Lines[@i].CostCenterId" aria-label="@L["prv.cost_center"]">
+                                <option value="0">@L["fin.select_cost_center"]</option>
+                                @foreach (var c in Model.CostCenters)
+                                {
+                                    <option value="@c.Id" selected="@(c.Id == l.CostCenterId)">@c.Text</option>
+                                }
+                            </select>
+                        </td>
+                        <td data-label="@L["prv.share_2"]">
+                            <div class="input-group input-group-sm">
+                                <input class="form-control" type="number" min="0.01" max="100" step="0.01" name="Lines[@i].SharePercent" value="@N(l.SharePercent)" aria-label="@L["prv.share_2"]" dir="ltr" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                        </td>
+                        <td><button type="button" class="btn-icon btn-icon--danger" data-st-line-remove title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <template data-st-line-template>
+            <tr>
+                <td data-label="@L["prv.cost_center"]">
+                    <select class="form-select form-select-sm" name="Lines[0].CostCenterId" aria-label="@L["prv.cost_center"]">
+                        <option value="0">@L["fin.select_cost_center"]</option>
+                        @foreach (var c in Model.CostCenters)
+                        {
+                            <option value="@c.Id">@c.Text</option>
+                        }
+                    </select>
+                </td>
+                <td data-label="@L["prv.share_2"]">
+                    <div class="input-group input-group-sm">
+                        <input class="form-control" type="number" min="0.01" max="100" step="0.01" name="Lines[0].SharePercent" aria-label="@L["prv.share_2"]" dir="ltr" />
+                        <span class="input-group-text">%</span>
+                    </div>
+                </td>
+                <td><button type="button" class="btn-icon btn-icon--danger" data-st-line-remove title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button></td>
+            </tr>
+        </template>
+        <div class="st-lines__foot"><button type="button" class="btn btn-sm btn-outline-primary" data-st-line-add>@Html.Icon("plus", 14)<span>@L["fin.add_cost_center"]</span></button></div>
+    </div>
+</fieldset>
+<fieldset class="hrms-fieldset">
+    <legend>@L["st.notes"]</legend>
+    <textarea class="form-control" id="al-notes" name="Notes" rows="2" maxlength="500" placeholder="@L["st.notes_hint"]" aria-label="@L["st.notes"]">@a.Notes</textarea>
+</fieldset>

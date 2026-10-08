@@ -73,8 +73,10 @@
             // exception is the group holding the current page, which opens so
             // you can see where you are.
             var openWorkforce = activeArea == "workforce";
-            var openSetup = activeArea == "organization";
-            var openPayroll = activeArea == "payroll";
+            // Payroll Settings is a payroll page (ActiveArea "payroll") shown under Setup.
+            var onPayrollSettings = activeArea == "payroll" && (ViewData["PayrollSection"] as string) == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey;
+            var openSetup = activeArea == "organization" || onPayrollSettings;
+            var openPayroll = activeArea == "payroll" && !onPayrollSettings;
 
             // Time & Attendance is hidden for now (Attendance, Overtime).
             // Set to true to bring the group back.
@@ -144,44 +146,13 @@
                     @foreach (var section in HRMS.Web.Models.Payroll.PayrollNav.Sections)
                     {
                         var sectionActive = openPayroll && section.Key == (ViewData["PayrollSection"] as string);
+                        // Payroll Settings sits under Setup (below)
+                        if (section.Key == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey) { continue; }
                         if (section.SubNav)
                         {
-                            // Payroll Processing and Payslips open into their pages (sub-sections), each with its
-                            // record count: open payrolls, active calendars, open periods this year; payslips to
-                            // generate, payslips generated, emails to send. Payroll History has none.
+                            // Sections that open into their pages, each with its record count (Payroll History has none).
                             navCounts ??= await PayrollNavCounts.GetAsync();
-                            var activeSub = HRMS.Web.Models.Payroll.PayrollNav.SubSection(ViewData["PayrollPage"] as string);
-                            var subId = "nav-sub-" + section.Key;
-                            <button type="button" class="hrms-nav-link hrms-nav-parent @(sectionActive ? "is-open" : "collapsed")"
-                                    data-bs-toggle="collapse" data-bs-target="#@subId"
-                                    aria-expanded="@(sectionActive ? "true" : "false")" aria-controls="@subId">
-                                @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@Html.Icon("chevron-down", 14, "hrms-nav-parent__chev")
-                            </button>
-                            <div class="collapse hrms-nav-sub @(sectionActive ? "show" : null)" id="@subId">
-                                @foreach (var tab in section.Tabs)
-                                {
-                                    var count = navCounts?.For(tab.Slug);
-                                    var title = count is null ? null : tab.Slug switch
-                                    {
-                                        "payrolls" => L["layout.nav_count_payrolls", count],
-                                        "calendars" => L["layout.nav_count_calendars", count],
-                                        "pay-periods" => L["layout.nav_count_periods", count],
-                                        "slip-generate" => L["layout.nav_count_slips_to_generate", count],
-                                        "slip-employee" => L["layout.nav_count_slips_generated", count],
-                                        _ => L["layout.nav_count_slips_to_email", count]
-                                    };
-                                    var subActive = sectionActive && activeSub == tab.Slug;
-                                    <a class="hrms-nav-link hrms-nav-sub__link @(subActive ? "is-active" : null)"
-                                       href="@(Context.Request.PathBase + HRMS.Web.Models.Payroll.PayrollNav.Url(tab.Slug))"
-                                       aria-current="@(subActive ? "page" : null)">
-                                        <span>@L.Tr(tab.Title)</span>
-                                        @if (count is { } n)
-                                        {
-                                            <span class="hrms-nav-count @(n == 0 ? "is-zero" : null)" title="@title" aria-label="@title">@n.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
-                                        }
-                                    </a>
-                                }
-                            </div>
+                            await Html.RenderPartialAsync("_PayrollSubNav", (section, sectionActive, navCounts));
                             continue;
                         }
                         <a class="hrms-nav-link @(sectionActive ? "is-active" : null)"
@@ -223,6 +194,11 @@
                            asp-controller="Organization" asp-action="Index" asp-route-tab="@tab.Key">
                             @Html.Icon(tab.Icon)<span>@L.Tr(tab.Title)</span>
                         </a>
+                    }
+                    @* Payroll Settings - the payroll masters, opening into their pages *@
+                    @if (HRMS.Web.Models.Payroll.PayrollNav.Sections.FirstOrDefault(s => s.Key == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey) is { } settingsSection)
+                    {
+                        await Html.RenderPartialAsync("_PayrollSubNav", (settingsSection, onPayrollSettings, (HRMS.Web.Services.PayrollNavCountsResult?)null));
                     }
                 </div>
             </div>

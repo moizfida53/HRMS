@@ -1,0 +1,72 @@
+@model FinanceFilterBar
+@{
+    // The filter row of Bank Processing / Accounting / Reports: Year and Month (the month
+    // list follows the year), the page's own selects, a search box and the record count -
+    // one GET form, sent as soon as a value changes (wwwroot/js/payroll-finance.js).
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var count = Model.CountText;
+    var match = count is null ? null : System.Text.RegularExpressions.Regex.Match(count, "[0-9][0-9,.]*");
+}
+<form class="hrms-card__toolbar fin-filters" method="get" action="@Model.Action" data-fin-filters role="search">
+    <div class="hrms-card__filters">
+        <span class="fin-filters__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span>
+        <select class="form-select pr-filter fin-filters__year" name="year" data-fin-year data-searchable aria-label="@L["pr.year"]">
+            @if (Model.AllYears)
+            {
+                <option value="" selected="@(Model.Year is null)">@L["pr.all_years"]</option>
+            }
+            @foreach (var y in Model.Years)
+            {
+                <option value="@y" selected="@(Model.Year == y)">@y</option>
+            }
+        </select>
+        <select class="form-select pr-filter" name="month" data-fin-month data-searchable aria-label="@L["pr.period"]">
+            @if (Model.AllMonths)
+            {
+                <option value="" selected="@(Model.Month is null)">@L["pr.all_periods"]</option>
+            }
+            @foreach (var m in Model.Months)
+            {
+                <option value="@FinancePeriod.Key(m)" data-year="@m.Year" selected="@(Model.Month == m)">@L.MonthYear(m)</option>
+            }
+        </select>
+        @foreach (var s in Model.Selects)
+        {
+            <select class="form-select pr-filter" name="@s.Name" data-fin-auto data-searchable aria-label="@s.Label" disabled="@(s.Options.Count == 0)">
+                @if (s.Options.Count == 0)
+                {
+                    <option value="">@L["fin.none_in_period"]</option>
+                }
+                @foreach (var (value, text) in s.Options)
+                {
+                    <option value="@value" selected="@(value == (s.Selected ?? ""))">@text</option>
+                }
+            </select>
+        }
+        @foreach (var h in Model.Hidden.Where(h => !string.IsNullOrEmpty(h.Value)))
+        {
+            <input type="hidden" name="@h.Key" value="@h.Value" />
+        }
+        @if (Model.SearchPlaceholder is not null)
+        {
+            <label class="hrms-search pr-search">
+                @Html.Icon("search", 16)
+                <input type="search" name="q" value="@Model.Search" data-fin-search autocomplete="off" placeholder="@Model.SearchPlaceholder" aria-label="@Model.SearchPlaceholder" />
+            </label>
+        }
+        <button type="submit" class="hrms-sr-only">@L["prv.search"]</button>
+    </div>
+    @if (count is not null)
+    {
+        <div class="hrms-card__count" aria-live="polite">
+            @if (match is { Success: true })
+            {
+                <span>@(count[..match.Index])<strong>@match.Value</strong>@(count[(match.Index + match.Length)..])</span>
+            }
+            else
+            {
+                <span>@count</span>
+            }
+        </div>
+    }
+</form>

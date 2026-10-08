@@ -17,6 +17,9 @@ public static class PayrollNav
     /// <param name="SubNav">The sidebar opens the section into its pages (sub-sections) instead of a tab rail.</param>
     public sealed record Section(string Key, string Title, string Icon, IReadOnlyList<Tab> Tabs, bool SubNav = false);
 
+    /// <summary>Payroll Settings - shown under Setup in the sidebar, not under Payroll.</summary>
+    public const string SettingsKey = "settings";
+
     public static readonly IReadOnlyList<Section> Sections =
     [
         new("dashboard", "Payroll Dashboard", "grid", [new("payroll-dashboard", "Dashboard")]),
@@ -32,13 +35,16 @@ public static class PayrollNav
             [new("slip-generate", "Generate Payslips", true), new("slip-employee", "Employee Payslips", true), new("slip-email", "Email Payslips", true)],
             SubNav: true),
         new("bank", "Bank Processing", "bank",
-            [new("bk-file", "Bank File"), new("bk-register", "Payment Register"), new("bk-history", "Payment History")]),
+            [new("bk-file", "Bank File", true), new("bk-register", "Payment Register", true), new("bk-history", "Payment History", true)],
+            SubNav: true),
         new("accounting", "Accounting", "book",
-            [new("ac-journal", "Payroll Journal"), new("ac-posting", "GL Posting"), new("ac-allocation", "Cost Center Allocation")]),
+            [new("ac-journal", "Payroll Journal", true), new("ac-posting", "GL Posting", true), new("ac-allocation", "Cost Center Allocation", true)],
+            SubNav: true),
+        // Payroll Reports keeps its tab rail (one page per report family)
         new("reports", "Payroll Reports", "chart",
         [
-            new("rp-payroll", "Payroll Reports"), new("rp-salary", "Salary Reports"), new("rp-deduction", "Deduction Reports"),
-            new("rp-overtime", "Overtime Reports"), new("rp-compliance", "Compliance Reports")
+            new("rp-payroll", "Payroll Reports", true), new("rp-salary", "Salary Reports", true), new("rp-deduction", "Deduction Reports", true),
+            new("rp-overtime", "Overtime Reports", true), new("rp-compliance", "Compliance Reports", true)
         ]),
         new("settings", "Payroll Settings", "sliders",
         [
@@ -69,6 +75,7 @@ public static class PayrollNav
     public static string? SubSection(string? slug) => slug switch
     {
         "slip-generate" or "slip-employee" or "slip-email" => slug,
+        "bk-file" or "bk-register" or "bk-history" or "ac-journal" or "ac-posting" or "ac-allocation" => slug,
         _ when slug?.StartsWith("st-", StringComparison.Ordinal) == true => slug,
         "slip-view" => "slip-employee",
         "payrolls" or "create" or "register" or "validation" or "approval" => "payrolls",
@@ -101,6 +108,13 @@ public static class PayrollNav
         "st-banks" => "/payroll/settings/banks",
         "st-bank-formats" => "/payroll/settings/bank-formats",
         "st-gl-mapping" => "/payroll/settings/gl-mapping",
+        "bk-file" => "/payroll/bank/file",
+        "bk-register" => "/payroll/bank/register",
+        "bk-history" => "/payroll/bank/history",
+        "ac-journal" => "/payroll/accounting/journal",
+        "ac-posting" => "/payroll/accounting/posting",
+        "ac-allocation" => "/payroll/accounting/allocation",
+        _ when slug.StartsWith("rp-", StringComparison.Ordinal) => $"/payroll/reports/{slug[3..]}",
         _ => $"/payroll/preview/{slug}"
     };
 
@@ -111,7 +125,9 @@ public static class PayrollNav
     /// <summary>The Final Settlement and Payslips preview pages that were replaced by the live screens (old links still work).</summary>
     public static string? ReplacedPreview(string slug) => slug switch
     {
-        _ when Sections.SelectMany(s => s.Tabs).Any(t => t.Slug == slug && t.IsLive) && slug.StartsWith("st-", StringComparison.Ordinal) => Url(slug),
+        _ when Sections.SelectMany(s => s.Tabs).Any(t => t.Slug == slug && t.IsLive)
+               && (slug.StartsWith("st-", StringComparison.Ordinal) || slug.StartsWith("bk-", StringComparison.Ordinal)
+                   || slug.StartsWith("ac-", StringComparison.Ordinal) || slug.StartsWith("rp-", StringComparison.Ordinal)) => Url(slug),
         "slip-generate" or "slip-employee" or "slip-email" or "slip-my" => Url(slug),
         "slip-view" => "/payroll/payslips/employees",
         "fs-history" => "/payroll/settlement",

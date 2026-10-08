@@ -1,0 +1,118 @@
+@using HRMS.Web.Models.Organization
+@model PostingPageModel
+@{
+    // Payroll > Accounting > GL Posting (db/49-50): no ERP link yet - export the journal to
+    // Excel, enter it in the books, then record the posting reference here.
+    ViewData["Title"] = "GL Posting";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "accounting";
+    ViewData["PayrollPage"] = "ac-posting";
+    ViewData["Subtitle"] = L["fin.posting_subtitle"];
+    var pg = Model.Page;
+    var act = Model.Rights.CanAct;
+}
+<div class="pr-stack fin-page" data-fin-page>
+    <div class="pr-banner pr-banner--info" role="note">
+        @Html.Icon("info", 18)
+        <div><strong>@L["fin.posting_title"]</strong> @L["fin.posting_steps"]</div>
+    </div>
+
+    <section class="hrms-card">
+        @await Html.PartialAsync("~/Views/PayrollFinance/_Filters.cshtml", Model.Filters)
+        @if (pg.TotalCount == 0)
+        {
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "book", 26)</span>
+                <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["fin.no_journals"])</p>
+                <p class="hrms-empty__text">@L["fin.no_journals_text"]</p>
+                <a class="btn btn-outline-secondary btn-sm mt-2" href="@Url.Action("Journal", "Accounting")">@Html.Icon("book", 15)<span>@L["fin.open_journal"]</span></a>
+            </div>
+        }
+        else
+        {
+            <div class="hrms-table-wrap">
+                <table class="hrms-table fin-table">
+                    <caption class="hrms-sr-only">@L["fin.journals"]</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["prv.journal"]</th>
+                            <th scope="col">@L["fin.payroll"]</th>
+                            <th scope="col" class="text-end">@L["pr.amount_kwd"]</th>
+                            <th scope="col" class="col-p2">@L["prv.exported"]</th>
+                            <th scope="col">@L["prv.posted_ref"]</th>
+                            <th scope="col">@L["common.status"]</th>
+                            <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var j in pg.Items)
+                        {
+                            <tr class="@(j.Status == "REVERSED" ? "is-ended" : null)">
+                                <td data-label="@L["prv.journal"]">
+                                    <span class="hrms-code-chip">@j.JournalNo</span>
+                                    <span class="pr-emp-sub">@L.Date(j.JournalDate) · @L["fin.n_lines", j.LineCount]@(j.UnmappedCount > 0 ? " · " + L["fin.n_unmapped", j.UnmappedCount] : "")</span>
+                                </td>
+                                <td data-label="@L["fin.payroll"]">@j.RunCode<span class="pr-emp-sub">@L.MonthYear(j.RunMonth)@(Model.ManyCompanies ? " · " + j.CompanyName : "")</span></td>
+                                <td data-label="@L["pr.amount_kwd"]" class="text-end pr-money">@PayrollFormat.Money(j.TotalDebit)</td>
+                                <td data-label="@L["prv.exported"]" class="col-p2 hrms-text-sm">
+                                    @if (j.ExportedDate is { } ex)
+                                    {
+                                        <span>@L.Date(ex)</span><span class="pr-emp-sub">@j.ExportedByName@(j.ExportCount > 1 ? " · ×" + j.ExportCount : "")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>—</span>
+                                    }
+                                </td>
+                                <td data-label="@L["prv.posted_ref"]" class="hrms-text-sm">
+                                    @if (j.PostedReference is not null)
+                                    {
+                                        <span class="font-monospace">@j.PostedReference</span><span class="pr-emp-sub">@L.Date(j.PostedDate) · @j.PostedByName</span>
+                                    }
+                                    else if (j.ReverseReason is not null)
+                                    {
+                                        <span class="text-danger">@j.ReverseReason</span>
+                                    }
+                                    else
+                                    {
+                                        <span>—</span>
+                                    }
+                                </td>
+                                <td data-label="@L["common.status"]"><span class="hrms-badge hrms-badge--@FinanceFormat.JournalStatusBadge(j.Status)"><span class="hrms-badge__dot"></span>@L[FinanceFormat.JournalStatusKey(j.Status)]</span></td>
+                                <td class="hrms-table__actions">
+                                    <a class="btn-icon" href="@Url.Action("Journal", "Accounting", new { month = FinancePeriod.Key(j.RunMonth), year = j.RunMonth.Year, run = j.PayrollRunId })" title="@L["fin.view_journal"]" aria-label="@L["fin.view_journal"]">@Html.Icon("eye", 15)</a>
+                                    <a class="btn-icon" href="@Url.Action("Export", "Accounting", new { id = j.JournalId })" title="@L["prv.export_excel"]" aria-label="@L["prv.export_excel"]">@Html.Icon("download", 15)</a>
+                                    @if (act && j.Status is "READY" or "EXPORTED")
+                                    {
+                                        <button type="button" class="btn-icon btn-icon--success" title="@L["fin.mark_posted"]" aria-label="@L["fin.mark_posted"]"
+                                                data-fin-action="@Url.Action("Posted", "Accounting", new { id = j.JournalId })"
+                                                data-fin-title="@L["fin.mark_posted"] · @j.JournalNo" data-fin-text="@L["fin.mark_posted_text"]"
+                                                data-fin-field="reference" data-fin-label="@L["prv.posted_ref"]" data-fin-ok="@L["fin.mark_posted"]">@Html.Icon("check", 15)</button>
+                                    }
+                                    @if (act && j.Status != "REVERSED")
+                                    {
+                                        <button type="button" class="btn-icon btn-icon--danger" title="@L["fin.reverse"]" aria-label="@L["fin.reverse"]"
+                                                data-fin-action="@Url.Action("Reverse", "Accounting", new { id = j.JournalId })"
+                                                data-fin-title="@L["fin.reverse"] · @j.JournalNo" data-fin-text="@L["fin.reverse_text"]"
+                                                data-fin-field="reason" data-fin-label="@L["pr.reason"]" data-fin-ok="@L["fin.reverse"]">@Html.Icon("undo", 15)</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div data-fin-pager>
+                @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+                {
+                    PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount, FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+                })
+            </div>
+        }
+    </section>
+</div>
+@await Html.PartialAsync("~/Views/PayrollFinance/_Dialog.cshtml")
+
+@section Scripts {
+    <script src="~/js/payroll-finance.js" asp-append-version="true"></script>
+}

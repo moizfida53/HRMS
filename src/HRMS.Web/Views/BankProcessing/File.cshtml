@@ -1,0 +1,276 @@
+@model BankFilePageModel
+@{
+    // Payroll > Bank Processing > Bank File (db/49-50): the salary (WPS) file of a closed
+    // payroll - reviewed per bank, built from the bank format, kept as generated.
+    ViewData["Title"] = "Bank File";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "bank";
+    ViewData["PayrollPage"] = "bk-file";
+    ViewData["Subtitle"] = L["fin.bank_file_subtitle"];
+    var run = Model.Run;
+    var bank = Model.Review.Where(r => r.Method == "BANK").ToList();
+    var cash = Model.Review.FirstOrDefault(r => r.Method == "CASH");
+    var missingWps = bank.Count(r => string.IsNullOrEmpty(r.WpsBankCode));
+    var unknownBank = bank.FirstOrDefault(r => r.BankId is null);
+    var defaultAccount = Model.Accounts.FirstOrDefault(a => a.IsDefault) ?? Model.Accounts.FirstOrDefault();
+    var valueDate = (run?.PaymentDate ?? DateTime.Today).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    var downloadUrl = Url.Action("Download", "BankProcessing", new { id = 0 })!.Replace("/0/", "/__id__/");
+}
+<div class="pr-stack fin-page" data-fin-page data-fin-download="@downloadUrl">
+    <section class="hrms-card">
+        @await Html.PartialAsync("~/Views/PayrollFinance/_Filters.cshtml", Model.Filters)
+        @if (run is null)
+        {
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("bank", 26)</span>
+                <p class="hrms-empty__title">@L["fin.no_closed_payrolls"]</p>
+                <p class="hrms-empty__text">@L["fin.no_closed_payrolls_text"]</p>
+                <a class="btn btn-outline-secondary btn-sm mt-2" href="@Url.Content("~/payroll/payrolls")">@Html.Icon("calculator", 15)<span>@L["pr.open_payroll_processing"]</span></a>
+            </div>
+        }
+        else
+        {
+            <dl class="fin-facts">
+                <div><dt>@L["fin.payroll"]</dt><dd><span class="hrms-code-chip">@run.RunCode</span>@(run.RunType == "OFFCYCLE" ? " · " + L["fin.off_cycle"] : "")</dd></div>
+                <div><dt>@L["pr.period"]</dt><dd>@L.Date(run.StartDate) – @L.Date(run.EndDate)</dd></div>
+                <div><dt>@L["pr.pay_date"]</dt><dd>@L.Date(run.PaymentDate)</dd></div>
+                <div><dt>@L["common.employees"]</dt><dd class="hrms-numeric">@PayrollFormat.Count(run.EmployeeCount)</dd></div>
+                <div><dt>@L["pr.net_kwd"]</dt><dd class="hrms-numeric fw-semibold">@PayrollFormat.Money(run.TotalNet)</dd></div>
+                <div>
+                    <dt>@L["fin.bank_file"]</dt>
+                    <dd>
+                        @if (run.FileCount > 0)
+                        {
+                            <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@run.LastFileNo</span>
+                        }
+                        else
+                        {
+                            <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["fin.not_generated"]</span>
+                        }
+                    </dd>
+                </div>
+            </dl>
+        }
+    </section>
+
+    @if (run is not null)
+    {
+        <section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
+            <div class="hrms-card hrms-kpi">
+                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_by_bank"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("bank", 16)</span></div>
+                <div class="hrms-kpi__value">@PayrollFormat.Count(bank.Sum(b => b.EmployeeCount))</div>
+                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kwd_0", PayrollFormat.Money(bank.Sum(b => b.Amount))]</span></div>
+            </div>
+            <div class="hrms-card hrms-kpi @(cash is not null ? "fin-kpi--warn" : null)">
+                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_cash"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("wallet", 16)</span></div>
+                <div class="hrms-kpi__value">@PayrollFormat.Count(cash?.EmployeeCount ?? 0)</div>
+                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kpi_cash_note"]</span></div>
+            </div>
+            <div class="hrms-card hrms-kpi">
+                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_paid"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("check", 16)</span></div>
+                <div class="hrms-kpi__value">@PayrollFormat.Count(run.PaidCount)</div>
+                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kpi_in_file_note", PayrollFormat.Count(run.InFileCount)]</span></div>
+            </div>
+            <div class="hrms-card hrms-kpi @(run.FailedCount + run.RetryCount > 0 ? "fin-kpi--danger" : null)">
+                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_failed"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("alert", 16)</span></div>
+                <div class="hrms-kpi__value">@PayrollFormat.Count(run.FailedCount)</div>
+                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kpi_retry_note", PayrollFormat.Count(run.RetryCount)]</span></div>
+            </div>
+        </section>
+
+        <div class="row g-3 align-items-start">
+            @* ------------------------------------------------ review by bank *@
+            <div class="col-12 col-xxl-7">
+                <section class="hrms-card hrms-panel hrms-panel--flush">
+                    <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["fin.review_by_bank"]</h2></header>
+                    @if (Model.Review.Count == 0)
+                    {
+                        <div class="hrms-empty"><p class="hrms-empty__title">@L["fin.nobody_to_pay"]</p></div>
+                    }
+                    else
+                    {
+                        <div class="hrms-table-wrap">
+                            <table class="hrms-table">
+                                <caption class="hrms-sr-only">@L["fin.review_by_bank"]</caption>
+                                <thead>
+                                    <tr>
+                                        <th scope="col">@L["prv.bank"]</th>
+                                        <th scope="col">@L["prv.wps_code"]</th>
+                                        <th scope="col" class="col-p2">@L["prv.format"]</th>
+                                        <th scope="col" class="text-end">@L["common.employees"]</th>
+                                        <th scope="col" class="text-end">@L["pr.amount_kwd"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var r in bank)
+                                    {
+                                        <tr>
+                                            <td data-label="@L["prv.bank"]"><span class="hrms-table__primary">@(r.BankName ?? (string)L["fin.unknown_bank"])</span></td>
+                                            <td data-label="@L["prv.wps_code"]">
+                                                @if (string.IsNullOrEmpty(r.WpsBankCode))
+                                                {
+                                                    <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["prv.missing"]</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@r.WpsBankCode</span>
+                                                }
+                                            </td>
+                                            <td data-label="@L["prv.format"]" class="col-p2 hrms-text-sm">@(r.HasOwnFormat ? L["prv.bank_specific"] : L["fin.default_format"])</td>
+                                            <td data-label="@L["common.employees"]" class="text-end hrms-numeric">@PayrollFormat.Count(r.EmployeeCount)</td>
+                                            <td data-label="@L["pr.amount_kwd"]" class="text-end pr-money">@PayrollFormat.Money(r.Amount)</td>
+                                        </tr>
+                                    }
+                                    @if (cash is not null)
+                                    {
+                                        <tr class="fin-row--muted">
+                                            <td data-label="@L["prv.bank"]" colspan="3"><span class="hrms-table__primary">@L["fin.cash_cheque"]</span><span class="pr-emp-sub">@L["fin.cash_cheque_hint"]</span></td>
+                                            <td data-label="@L["common.employees"]" class="text-end hrms-numeric">@PayrollFormat.Count(cash.EmployeeCount)</td>
+                                            <td data-label="@L["pr.amount_kwd"]" class="text-end pr-money">@PayrollFormat.Money(cash.Amount)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th scope="row" colspan="3">@L["fin.in_the_file"]</th>
+                                        <td class="text-end hrms-numeric fw-semibold">@PayrollFormat.Count(bank.Sum(b => b.EmployeeCount))</td>
+                                        <td class="text-end pr-money fw-semibold">@PayrollFormat.Money(bank.Sum(b => b.Amount))</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                    @if (missingWps > 0 || unknownBank is not null)
+                    {
+                        <div class="fin-notes">
+                            @if (missingWps > 0)
+                            {
+                                <p>@Html.Icon("alert", 14)<span>@L["fin.missing_wps_note", missingWps]</span> <a href="@Url.Content("~/payroll/settings/banks")">@L["fin.open_banks"]</a></p>
+                            }
+                            @if (unknownBank is not null)
+                            {
+                                <p>@Html.Icon("info", 14)<span>@L["fin.unknown_bank_note", unknownBank.EmployeeCount]</span></p>
+                            }
+                        </div>
+                    }
+                </section>
+            </div>
+
+            @* ------------------------------------------------ generate *@
+            <div class="col-12 col-xxl-5">
+                <section class="hrms-card hrms-panel">
+                    <header class="hrms-panel__head"><h2 class="hrms-panel__title">@(Model.HasLiveFile ? L["fin.regenerate_file"] : L["prv.generate_bank_file"])</h2></header>
+                    <div class="pr-card-body">
+                        @if (!Model.Rights.CanAct)
+                        {
+                            <p class="hrms-muted mb-0">@L["fin.view_only"]</p>
+                        }
+                        else if (Model.Accounts.Count == 0 || Model.Formats.Count == 0)
+                        {
+                            <div class="pr-banner pr-banner--lock" role="note">
+                                @Html.Icon("alert", 18)
+                                <div>
+                                    <strong>@L["fin.setup_needed"]</strong>
+                                    @(Model.Accounts.Count == 0 ? L["fin.no_accounts_note"] : L["fin.no_formats_note"])
+                                    <a href="@Url.Content(Model.Accounts.Count == 0 ? "~/payroll/settings/banks" : "~/payroll/settings/bank-formats")">@L["fin.open_settings"]</a>
+                                </div>
+                            </div>
+                        }
+                        else if (bank.Count == 0)
+                        {
+                            <p class="hrms-muted mb-0">@L["fin.nobody_by_bank"]</p>
+                        }
+                        else
+                        {
+                            <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
+                                <input type="hidden" name="run" value="@run.PayrollRunId" />
+                                <input type="hidden" name="kind" value="FULL" />
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="bf-bank">@L["fin.banks_in_file"]</label>
+                                    <select class="form-select" id="bf-bank" name="bank" data-searchable>
+                                        <option value="">@L["fin.all_banks"]</option>
+                                        @foreach (var b in bank.Where(b => b.BankId is not null))
+                                        {
+                                            <option value="@b.BankId">@b.BankName</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="bf-date">@L["prv.value_date"] <span class="req" aria-hidden="true">*</span></label>
+                                    <input class="form-control" type="date" id="bf-date" name="valueDate" value="@valueDate" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="bf-account">@L["prv.debit_account"] <span class="req" aria-hidden="true">*</span></label>
+                                    <select class="form-select" id="bf-account" name="account" data-searchable>
+                                        @foreach (var a in Model.Accounts)
+                                        {
+                                            <option value="@a.CompanyBankAccountId" selected="@(a.CompanyBankAccountId == defaultAccount?.CompanyBankAccountId)">@a.AccountTitle · @a.BankName · @FinanceFormat.Iban(a.Iban)</option>
+                                        }
+                                    </select>
+                                    @if (defaultAccount is not null && string.IsNullOrEmpty(defaultAccount.WpsEmployerCode))
+                                    {
+                                        <span class="form-text text-warning">@L["fin.no_employer_code"]</span>
+                                    }
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="bf-format">@L["prv.format"] <span class="req" aria-hidden="true">*</span></label>
+                                    <select class="form-select" id="bf-format" name="format" data-searchable>
+                                        @foreach (var f in Model.Formats)
+                                        {
+                                            <option value="@f.BankFileFormatId" selected="@(f.BankFileFormatId == Model.DefaultFormatId)">@f.FormatName@(f.BankName is not null ? " · " + f.BankName : "")@(f.IsDefault ? " · " + L["st.default"] : "")</option>
+                                        }
+                                    </select>
+                                </div>
+                                @if (Model.HasLiveFile)
+                                {
+                                    <div class="col-12">
+                                        <label class="form-label" for="bf-reason">@L["fin.regenerate_reason"] <span class="req" aria-hidden="true">*</span></label>
+                                        <textarea class="form-control" id="bf-reason" name="reason" rows="2" maxlength="500" placeholder="@L["prv.regenerating_a_file_asks_for_a_reason"]"></textarea>
+                                    </div>
+                                }
+                                <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                                    <button type="submit" class="btn btn-primary">@Html.Icon("download", 15)<span>@(Model.HasLiveFile ? L["fin.regenerate_download"] : L["fin.generate_download"])</span></button>
+                                    <span class="form-text m-0">@L["fin.generate_hint"]</span>
+                                </div>
+                            </form>
+                        }
+                    </div>
+                </section>
+
+                @if (Model.RetryReview.Count > 0 && Model.Rights.CanAct && Model.Accounts.Count > 0 && Model.Formats.Count > 0)
+                {
+                    <section class="hrms-card hrms-panel mt-3 fin-retry">
+                        <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["fin.reissue_file"]</h2></header>
+                        <div class="pr-card-body">
+                            <p class="hrms-text-sm">@L["fin.reissue_file_text", PayrollFormat.Count(Model.RetryReview.Sum(r => r.EmployeeCount)), PayrollFormat.Money(Model.RetryReview.Sum(r => r.Amount))]</p>
+                            <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
+                                <input type="hidden" name="run" value="@run.PayrollRunId" />
+                                <input type="hidden" name="kind" value="RETRY" />
+                                <input type="hidden" name="account" value="@defaultAccount?.CompanyBankAccountId" />
+                                <input type="hidden" name="format" value="@Model.DefaultFormatId" />
+                                <div class="col-sm-6">
+                                    <label class="form-label" for="rf-date">@L["prv.value_date"]</label>
+                                    <input class="form-control" type="date" id="rf-date" name="valueDate" value="@DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)" />
+                                </div>
+                                <div class="col-sm-6 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-primary w-100">@Html.Icon("refresh", 15)<span>@L["fin.generate_reissue"]</span></button>
+                                </div>
+                            </form>
+                        </div>
+                    </section>
+                }
+            </div>
+        </div>
+
+        @* ------------------------------------------------ files of this payroll *@
+        <section class="hrms-card hrms-panel hrms-panel--flush">
+            <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["fin.files_of_payroll"]</h2></header>
+            @await Html.PartialAsync("~/Views/BankProcessing/_FilesTable.cshtml", (Model.Files, Model.Rights, false))
+        </section>
+    }
+</div>
+@await Html.PartialAsync("~/Views/PayrollFinance/_Dialog.cshtml")
+
+@section Scripts {
+    <script src="~/js/payroll-finance.js" asp-append-version="true"></script>
+}

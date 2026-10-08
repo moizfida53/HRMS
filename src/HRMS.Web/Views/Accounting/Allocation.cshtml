@@ -1,0 +1,45 @@
+@model SettingsPageModel
+@{
+    // Payroll > Accounting > Cost Center Allocation (db/49-50): an employee's cost split
+    // across cost centers from a date; the payroll journal splits the employee's earnings
+    // by the split in force at the month end (else the employee's own cost center).
+    ViewData["Title"] = "Cost Center Allocation";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "accounting";
+    ViewData["PayrollPage"] = "ac-allocation";
+    ViewData["Subtitle"] = L["prv.split_an_employee_s_cost_across_cost_centers"];
+    var thisYear = DateTime.Today.Year;
+    var years = new List<(string, string)> { ("", L["pr.all_years"]) };
+    years.AddRange(Enumerable.Range(thisYear - 3, 5).Reverse().Select(y => (y.ToString(), y.ToString())));
+    var months = new List<(string, string)> { ("", L["pr.all_periods"]) };
+    months.AddRange(Enumerable.Range(1, 12).Select(m => (m.ToString(), System.Globalization.CultureInfo.CurrentUICulture.DateTimeFormat.GetMonthName(m))));
+}
+<div class="pr-stack st-page" data-st-page>
+    <div class="pr-banner pr-banner--info" role="note">
+        @Html.Icon("info", 18)
+        <div>@L["fin.allocation_banner"]</div>
+    </div>
+    <section class="hrms-card" id="ac-allocations" data-st-master
+             data-grid="@Url.Action("AllocationGrid", "Accounting")" data-form="@Url.Action("AllocationForm", "Accounting")"
+             data-save="@Url.Action("AllocationSave", "Accounting")" data-delete="@Url.Action("AllocationDelete", "Accounting")"
+             data-title-new="@L["prv.add_split"]" data-title-edit="@L["prv.cost_center_split"]"
+             data-delete-title="@L["common.delete"]" data-delete-text="@L["fin.delete_split_text"]">
+        @await Html.PartialAsync("~/Views/PayrollSettings/_Toolbar.cshtml", new SettingsToolbarModel
+        {
+            SearchPlaceholder = L["fin.search_employee"],
+            Filters =
+            [
+                new SettingsFilter("year", L["pr.year"], years),
+                new SettingsFilter("month", L["pr.period"], months)
+            ],
+            AddMaster = Model.Rights.CanCreate ? "ac-allocations" : null,
+            AddLabel = L["prv.add_split"]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("~/Views/PayrollSettings/_Dialogs.cshtml")
+
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

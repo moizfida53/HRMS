@@ -1,0 +1,316 @@
+// ============================================================================
+// Bank Processing, Accounting and Payroll Reports (db/49-51)
+// ----------------------------------------------------------------------------
+// The filter row (Year / Month / selects / search / count in one row), the
+// payroll facts strip, KPI states, the bulk-action bar of the payment register,
+// the journal panel, and the reports layout (report list | result). Layouts
+// follow the CONTENT width (container "content"), so they stack on tablets,
+// phones and at high zoom whatever the window size.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+.fin-page { gap: 1rem; }
+
+// --------------------------------------------------------- filter row ----
+.fin-filters {
+  .hrms-card__filters { gap: space("2"); }
+
+  &__icon {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 34px;
+    block-size: 34px;
+    flex: 0 0 auto;
+    border-radius: $radius;
+    background: $blue-050;
+    color: $blue-700;
+  }
+
+  .fin-filters__year,
+  .hrms-combo:has(> .fin-filters__year) { min-width: 120px; max-width: 150px; }
+
+  @include cq-down("sm") {
+    &__icon { display: none; }
+    .fin-filters__year,
+    .hrms-combo:has(> .fin-filters__year) { max-width: none; }
+  }
+}
+
+// ---------------------------------------------- the chosen payroll ----
+.fin-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: space("3") space("4");
+  margin: 0;
+  padding: space("4") space("5");
+  background: linear-gradient(180deg, $white 0%, $surface-2 100%);
+
+  > div { min-width: 0; }
+
+  dt {
+    margin-block-end: 2px;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    color: $ink-500;
+    @include label-caps;
+  }
+
+  dd {
+    margin: 0;
+    font-size: $fs-base;
+    color: $ink-900;
+    @include truncate;
+  }
+
+  @include down("md") { padding: space("3") space("4"); }
+}
+
+// KPI states
+.fin-kpi--warn {
+  border-color: color.mix($amber-600, $line-200, 35%);
+  .hrms-kpi__icon { background: $amber-050; color: $amber-700; }
+}
+
+.fin-kpi--danger {
+  border-color: color.mix($red-600, $line-200, 35%);
+  .hrms-kpi__icon { background: $red-050; color: $red-700; }
+  .hrms-kpi__value { color: $red-700; }
+}
+
+// ------------------------------------------------------------- tables ----
+.fin-table {
+  tfoot th, tfoot td {
+    border-block-start: 2px solid $line-200;
+    background: $surface-2;
+  }
+
+  tr.is-ended td { color: $ink-400; }
+}
+
+.fin-row--muted td { background: $surface-2; }
+
+.fin-row--warn td {
+  background: color.mix($amber-050, $white, 60%);
+  &:first-child { box-shadow: inset 3px 0 0 $amber-600; }
+}
+
+.fin-notes {
+  display: grid;
+  gap: space("1");
+  padding: space("3") space("5");
+  border-block-start: 1px solid $line-100;
+  font-size: $fs-sm;
+  color: $ink-600;
+
+  p {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: space("2");
+    margin: 0;
+  }
+
+  svg { color: $amber-600; flex: 0 0 auto; }
+}
+
+.fin-footnote {
+  display: flex;
+  align-items: center;
+  gap: space("2");
+  margin: 0;
+  padding: space("3") space("5");
+  border-block-start: 1px solid $line-100;
+  font-size: $fs-xs;
+  color: $ink-500;
+
+  &--top { border-block-start: 0; border-block-end: 1px solid $line-100; background: $blue-050; color: $blue-700; }
+}
+
+.fin-retry {
+  border-inline-start: 3px solid $amber-600;
+}
+
+// the panel title with its buttons on the right (journal)
+.fin-panel-head {
+  align-items: center;
+
+  .hrms-panel__title { display: inline-flex; align-items: center; flex-wrap: wrap; gap: space("2"); }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: space("2");
+
+    .btn { display: inline-flex; align-items: center; gap: .35rem; }
+  }
+
+  @include cq-down("sm") {
+    &__actions { width: 100%; .btn { flex: 1 1 auto; justify-content: center; } }
+  }
+}
+
+.fin-journal td.font-monospace { white-space: nowrap; }
+
+// ------------------------------------------- payment register: bulk ----
+.fin-check {
+  inline-size: 44px;
+  text-align: center;
+
+  .form-check-input { margin: 0; cursor: pointer; }
+}
+
+.fin-bulk {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space("2");
+  padding: space("2") space("5");
+  border-block-end: 1px solid $blue-200;
+  background: $blue-050;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+
+  &__count {
+    margin-inline-end: auto;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $blue-700;
+  }
+
+  .btn { display: inline-flex; align-items: center; gap: .35rem; }
+
+  @include cq-down("sm") {
+    padding: space("2") space("3");
+    &__count { width: 100%; }
+    .btn { flex: 1 1 calc(50% - #{space("2")}); justify-content: center; }
+  }
+}
+
+// cost allocation: the split as chips
+.fin-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    padding: 1px 8px;
+    border: 1px solid $line-200;
+    border-radius: $radius-pill;
+    background: $white;
+    font-size: $fs-xs;
+    color: $ink-700;
+    white-space: nowrap;
+  }
+}
+
+// ------------------------------------------------------------ reports ----
+.fin-reports {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+
+  &__list {
+    display: grid;
+    gap: space("2");
+    position: sticky;
+    inset-block-start: space("3");
+  }
+
+  &__result { min-width: 0; }
+
+  @include cq-down("lg") {
+    grid-template-columns: minmax(0, 1fr);
+
+    &__list {
+      position: static;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+    }
+  }
+}
+
+.fin-report-card {
+  display: flex;
+  align-items: flex-start;
+  gap: space("3");
+  padding: space("3");
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+  background: $white;
+  color: inherit;
+  text-decoration: none;
+  box-shadow: $shadow-xs;
+  @include motion(border-color, box-shadow, background-color, transform);
+
+  &__icon {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    inline-size: 32px;
+    block-size: 32px;
+    border-radius: $radius;
+    background: $surface;
+    color: $ink-600;
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong { font-size: $fs-sm; color: $ink-900; }
+    span { font-size: $fs-xs; color: $ink-500; line-height: 1.35; }
+  }
+
+  &:hover { border-color: $blue-200; box-shadow: $shadow-sm; transform: translateY(-1px); }
+  &:focus-visible { @include focus-ring; }
+
+  &.is-active {
+    border-color: $blue-600;
+    background: linear-gradient(180deg, $white 0%, $blue-050 100%);
+    box-shadow: inset 3px 0 0 $blue-600, $shadow-sm;
+
+    .fin-report-card__icon { background: $blue-600; color: $white; }
+  }
+}
+
+.fin-report-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: space("3");
+  padding: space("4") space("5") space("2");
+
+  &__title { margin: 0; font-size: $fs-lg; font-weight: $fw-semibold; color: $ink-900; }
+  &__sub { margin: 2px 0 0; font-size: $fs-sm; color: $ink-500; }
+
+  &__actions {
+    display: flex;
+    gap: space("2");
+
+    .btn { display: inline-flex; align-items: center; gap: .35rem; }
+  }
+
+  @include down("md") { padding: space("3") space("4") space("2"); }
+}
+
+.fin-report-table td { white-space: nowrap; }
+
+// print: the report only, with its title
+@media print {
+  .fin-reports { display: block; }
+  .fin-reports__list,
+  .fin-report-head__actions,
+  .fin-filters { display: none !important; }
+  .fin-report-head { padding: 0 0 8px; }
+  .fin-report-table td { white-space: normal; }
+}
