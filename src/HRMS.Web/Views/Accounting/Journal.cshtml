@@ -1,185 +1,98 @@
 @model JournalPageModel
 @{
-    // Payroll > Accounting > Payroll Journal (db/49-50): the journal of a closed payroll from
-    // the GL mapping (Payroll Settings), grouped by account and cost center.
+    // Payroll > Accounting > Payroll Journal (db/49-50): the closed payrolls of the period with
+    // their journal; View opens the journal (or its preview) in a popup.
     ViewData["Title"] = "Payroll Journal";
     ViewData["ActiveArea"] = "payroll";
     ViewData["PayrollSection"] = "accounting";
     ViewData["PayrollPage"] = "ac-journal";
     ViewData["Subtitle"] = L["fin.journal_subtitle"];
-    var run = Model.Run;
-    var j = Model.Journal;
     var act = Model.Rights.CanAct;
-    var balanced = Model.TotalDebit == Model.TotalCredit;
 }
 <div class="pr-stack fin-page" data-fin-page>
     <section class="hrms-card">
         @await Html.PartialAsync("~/Views/PayrollFinance/_Filters.cshtml", Model.Filters)
-        @if (run is null)
+        @if (Model.Runs.Count == 0)
         {
             <div class="hrms-empty">
-                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("book", 26)</span>
-                <p class="hrms-empty__title">@L["fin.no_closed_payrolls"]</p>
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "book", 26)</span>
+                <p class="hrms-empty__title">@(Model.IsFiltered ? L["st.no_rates_match"] : L["fin.no_closed_payrolls"])</p>
                 <p class="hrms-empty__text">@L["fin.no_closed_payrolls_text"]</p>
             </div>
         }
         else
         {
-            <dl class="fin-facts">
-                <div><dt>@L["fin.payroll"]</dt><dd><span class="hrms-code-chip">@run.RunCode</span></dd></div>
-                <div><dt>@L["pr.period"]</dt><dd>@L.MonthYear(run.RunMonth)</dd></div>
-                <div><dt>@L["prv.gross_kwd"]</dt><dd class="hrms-numeric">@PayrollFormat.Money(run.TotalGross)</dd></div>
-                <div><dt>@L["pr.deductions"]</dt><dd class="hrms-numeric">@PayrollFormat.Money(run.TotalDeductions)</dd></div>
-                <div><dt>@L["pr.net_kwd"]</dt><dd class="hrms-numeric fw-semibold">@PayrollFormat.Money(run.TotalNet)</dd></div>
-                <div>
-                    <dt>@L["prv.journal"]</dt>
-                    <dd>
-                        @if (j is not null)
+            <div class="hrms-table-wrap">
+                <table class="hrms-table fin-table">
+                    <caption class="hrms-sr-only">@L["fin.journals"]</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["fin.payroll"]</th>
+                            <th scope="col" class="text-end col-p2">@L["prv.gross_kwd"]</th>
+                            <th scope="col" class="text-end col-p3">@L["pr.deductions"]</th>
+                            <th scope="col" class="text-end">@L["pr.net_kwd"]</th>
+                            <th scope="col">@L["prv.journal"]</th>
+                            <th scope="col">@L["common.status"]</th>
+                            <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.Runs)
                         {
-                            <span class="hrms-badge hrms-badge--@FinanceFormat.JournalStatusBadge(j.Status)"><span class="hrms-badge__dot"></span>@j.JournalNo · @L[FinanceFormat.JournalStatusKey(j.Status)]</span>
+                            var viewUrl = r.JournalId is { } jid
+                                ? Url.Action("JournalView", "Accounting", new { id = jid })
+                                : Url.Action("JournalView", "Accounting", new { run = r.PayrollRunId });
+                            <tr>
+                                <td data-label="@L["fin.payroll"]">
+                                    <span class="hrms-code-chip">@r.RunCode</span>
+                                    <span class="pr-emp-sub">@L.MonthYear(r.RunMonth)@(r.RunType == "OFFCYCLE" ? " · " + L["fin.off_cycle"] : "")@(Model.ManyCompanies ? " · " + r.CompanyName : "") · @L["fin.n_employees", r.EmployeeCount]</span>
+                                </td>
+                                <td data-label="@L["prv.gross_kwd"]" class="text-end pr-money col-p2">@PayrollFormat.Money(r.TotalGross)</td>
+                                <td data-label="@L["pr.deductions"]" class="text-end pr-money col-p3">@PayrollFormat.Money(r.TotalDeductions)</td>
+                                <td data-label="@L["pr.net_kwd"]" class="text-end pr-money fw-semibold">@PayrollFormat.Money(r.TotalNet)</td>
+                                <td data-label="@L["prv.journal"]">
+                                    @if (r.JournalNo is not null)
+                                    {
+                                        <span class="hrms-code-chip">@r.JournalNo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="hrms-muted">—</span>
+                                    }
+                                </td>
+                                <td data-label="@L["common.status"]">
+                                    @if (r.JournalStatus is not null)
+                                    {
+                                        <span class="hrms-badge hrms-badge--@FinanceFormat.JournalStatusBadge(r.JournalStatus)"><span class="hrms-badge__dot"></span>@L[FinanceFormat.JournalStatusKey(r.JournalStatus)]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["fin.not_created"]</span>
+                                    }
+                                </td>
+                                <td class="hrms-table__actions">
+                                    <button type="button" class="btn btn-sm btn-outline-primary fin-view-btn" data-fin-view="@viewUrl"
+                                            aria-label="@L["fin.view_journal"] · @r.RunCode">@Html.Icon("eye", 14)<span>@L["fin.view"]</span></button>
+                                    @if (r.JournalId is { } id)
+                                    {
+                                        <a class="btn-icon" href="@Url.Action("Export", "Accounting", new { id })" title="@L["prv.export_excel"]" aria-label="@L["prv.export_excel"]">@Html.Icon("download", 15)</a>
+                                    }
+                                    else if (act)
+                                    {
+                                        <button type="button" class="btn-icon btn-icon--success" title="@L["fin.create_journal"]" aria-label="@L["fin.create_journal"] · @r.RunCode"
+                                                data-fin-action="@Url.Action("CreateJournal", "Accounting")" data-fin-extra='{"run":"@r.PayrollRunId"}'
+                                                data-fin-title="@L["fin.create_journal"] · @r.RunCode" data-fin-text="@L["fin.create_journal_text"]" data-fin-ok="@L["fin.create_journal"]">@Html.Icon("plus", 15)</button>
+                                    }
+                                </td>
+                            </tr>
                         }
-                        else
-                        {
-                            <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["fin.not_created"]</span>
-                        }
-                    </dd>
-                </div>
-            </dl>
+                    </tbody>
+                </table>
+            </div>
         }
     </section>
-
-    @if (run is not null)
-    {
-        @if (Model.UnmappedCount > 0)
-        {
-            <div class="pr-banner pr-banner--lock" role="note">
-                @Html.Icon("alert", 18)
-                <div><strong>@L["fin.unmapped_title", Model.UnmappedCount]</strong> @L["fin.unmapped_text"] <a href="@Url.Content("~/payroll/settings/gl-mapping")">@L["fin.open_gl_mapping"]</a></div>
-            </div>
-        }
-
-        <div class="row g-3 align-items-start">
-            <div class="col-12 col-xxl-9">
-                <section class="hrms-card hrms-panel hrms-panel--flush">
-                    <header class="hrms-panel__head fin-panel-head">
-                        <h2 class="hrms-panel__title">
-                            @(j is null ? L["fin.journal_preview"] : L["fin.journal_0", j.JournalNo])
-                            <span class="hrms-badge hrms-badge--@(balanced ? "success" : "danger") ms-2"><span class="hrms-badge__dot"></span>@(balanced ? L["prv.balanced"] : L["fin.not_balanced"])</span>
-                        </h2>
-                        <div class="fin-panel-head__actions">
-                            @if (j is null && act && Model.Lines.Count > 0)
-                            {
-                                <button type="button" class="btn btn-sm btn-primary"
-                                        data-fin-action="@Url.Action("CreateJournal", "Accounting")" data-fin-extra='{"run":"@run.PayrollRunId"}'
-                                        data-fin-title="@L["fin.create_journal"]" data-fin-text="@L["fin.create_journal_text"]" data-fin-ok="@L["fin.create_journal"]">@Html.Icon("plus", 14)<span>@L["fin.create_journal"]</span></button>
-                            }
-                            @if (j is not null)
-                            {
-                                <a class="btn btn-sm btn-outline-primary" href="@Url.Action("Export", "Accounting", new { id = j.JournalId })">@Html.Icon("download", 14)<span>@L["prv.export_excel"]</span></a>
-                                @if (act && j.Status is "READY" or "EXPORTED")
-                                {
-                                    <button type="button" class="btn btn-sm btn-success"
-                                            data-fin-action="@Url.Action("Posted", "Accounting", new { id = j.JournalId })"
-                                            data-fin-title="@L["fin.mark_posted"] · @j.JournalNo" data-fin-text="@L["fin.mark_posted_text"]"
-                                            data-fin-field="reference" data-fin-label="@L["prv.posted_ref"]" data-fin-ok="@L["fin.mark_posted"]">@Html.Icon("check", 14)<span>@L["fin.mark_posted"]</span></button>
-                                }
-                                @if (act && j.Status != "REVERSED")
-                                {
-                                    <button type="button" class="btn btn-sm btn-outline-danger"
-                                            data-fin-action="@Url.Action("Reverse", "Accounting", new { id = j.JournalId })"
-                                            data-fin-title="@L["fin.reverse"] · @j.JournalNo" data-fin-text="@L["fin.reverse_text"]"
-                                            data-fin-field="reason" data-fin-label="@L["pr.reason"]" data-fin-ok="@L["fin.reverse"]">@Html.Icon("undo", 14)<span>@L["fin.reverse"]</span></button>
-                                }
-                            }
-                        </div>
-                    </header>
-                    @if (Model.Lines.Count == 0)
-                    {
-                        <div class="hrms-empty"><p class="hrms-empty__title">@L["fin.nothing_to_journal"]</p></div>
-                    }
-                    else
-                    {
-                        <div class="hrms-table-wrap">
-                            <table class="hrms-table fin-table fin-journal">
-                                <caption class="hrms-sr-only">@L["prv.journal"]</caption>
-                                <thead>
-                                    <tr>
-                                        <th scope="col">@L["prv.gl_account"]</th>
-                                        <th scope="col">@L["prv.account_name"]</th>
-                                        <th scope="col" class="col-p2">@L["prv.cost_center"]</th>
-                                        <th scope="col" class="text-end">@L["prv.debit_kwd"]</th>
-                                        <th scope="col" class="text-end">@L["prv.credit_kwd"]</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var l in Model.Lines)
-                                    {
-                                        <tr class="@(l.IsUnmapped ? "fin-row--warn" : null)">
-                                            <td data-label="@L["prv.gl_account"]" class="font-monospace">
-                                                @l.AccountCode
-                                                @if (l.IsUnmapped)
-                                                {
-                                                    <span class="st-inforce st-inforce--warn ms-1">@L["fin.unmapped"]</span>
-                                                }
-                                            </td>
-                                            <td data-label="@L["prv.account_name"]">@l.AccountName<span class="pr-emp-sub">@l.Description</span></td>
-                                            <td data-label="@L["prv.cost_center"]" class="col-p2">@(l.CostCenterName ?? "—")</td>
-                                            <td data-label="@L["prv.debit_kwd"]" class="text-end pr-money">@(l.Debit == 0 ? "" : PayrollFormat.Money(l.Debit))</td>
-                                            <td data-label="@L["prv.credit_kwd"]" class="text-end pr-money">@(l.Credit == 0 ? "" : PayrollFormat.Money(l.Credit))</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                                <tfoot>
-                                    <tr>
-                                        <th scope="row" colspan="3">@L["prv.total"]</th>
-                                        <td class="text-end pr-money fw-semibold">@PayrollFormat.Money(Model.TotalDebit)</td>
-                                        <td class="text-end pr-money fw-semibold">@PayrollFormat.Money(Model.TotalCredit)</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    }
-                    @if (j is null)
-                    {
-                        <p class="fin-footnote">@L["fin.preview_note"]</p>
-                    }
-                    else if (j.PostedReference is not null)
-                    {
-                        <p class="fin-footnote">@L["fin.posted_as_0", j.PostedReference]</p>
-                    }
-                </section>
-            </div>
-
-            <div class="col-12 col-xxl-3">
-                <section class="hrms-card hrms-panel">
-                    <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["fin.default_accounts"]</h2></header>
-                    <div class="pr-card-body">
-                        <p class="hrms-text-sm hrms-muted">@L["fin.default_accounts_text"]</p>
-                        @if (Model.Defaults is { } d)
-                        {
-                            <form data-fin-form action="@Url.Action("SaveDefaults", "Accounting")" class="row g-2" novalidate>
-                                <input type="hidden" name="companyId" value="@d.CompanyId" />
-                                <div class="col-12">
-                                    <label class="form-label" for="ad-code">@L["fin.salaries_payable"]</label>
-                                    <input class="form-control font-monospace" id="ad-code" name="accountCode" value="@d.NetPayAccountCode" maxlength="50" dir="ltr" disabled="@(!act)" />
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label" for="ad-name">@L["st.account_name"]</label>
-                                    <input class="form-control" id="ad-name" name="accountName" value="@d.NetPayAccountName" maxlength="150" disabled="@(!act)" />
-                                </div>
-                                @if (act)
-                                {
-                                    <div class="col-12"><button type="submit" class="btn btn-sm btn-outline-primary w-100">@Html.Icon("check", 14)<span>@L["emp.save"]</span></button></div>
-                                }
-                            </form>
-                        }
-                        <a class="btn btn-sm btn-link px-0 mt-2" href="@Url.Content("~/payroll/settings/gl-mapping")">@Html.Icon("sliders", 14)<span>@L["fin.open_gl_mapping"]</span></a>
-                    </div>
-                </section>
-            </div>
-        </div>
-    }
 </div>
+@await Html.PartialAsync("~/Views/PayrollFinance/_ViewModal.cshtml")
 @await Html.PartialAsync("~/Views/PayrollFinance/_Dialog.cshtml")
 
 @section Scripts {

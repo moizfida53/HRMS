@@ -80,7 +80,8 @@
                                 </td>
                                 <td data-label="@L["common.status"]"><span class="hrms-badge hrms-badge--@FinanceFormat.JournalStatusBadge(j.Status)"><span class="hrms-badge__dot"></span>@L[FinanceFormat.JournalStatusKey(j.Status)]</span></td>
                                 <td class="hrms-table__actions">
-                                    <a class="btn-icon" href="@Url.Action("Journal", "Accounting", new { month = FinancePeriod.Key(j.RunMonth), year = j.RunMonth.Year, run = j.PayrollRunId })" title="@L["fin.view_journal"]" aria-label="@L["fin.view_journal"]">@Html.Icon("eye", 15)</a>
+                                    <button type="button" class="btn btn-sm btn-outline-primary fin-view-btn" data-fin-view="@Url.Action("JournalView", "Accounting", new { id = j.JournalId })"
+                                            aria-label="@L["fin.view_journal"] · @j.JournalNo">@Html.Icon("eye", 14)<span>@L["fin.view"]</span></button>
                                     <a class="btn-icon" href="@Url.Action("Export", "Accounting", new { id = j.JournalId })" title="@L["prv.export_excel"]" aria-label="@L["prv.export_excel"]">@Html.Icon("download", 15)</a>
                                     @if (act && j.Status is "READY" or "EXPORTED")
                                     {
@@ -111,6 +112,7 @@
         }
     </section>
 </div>
+@await Html.PartialAsync("~/Views/PayrollFinance/_ViewModal.cshtml")
 @await Html.PartialAsync("~/Views/PayrollFinance/_Dialog.cshtml")
 
 @section Scripts {

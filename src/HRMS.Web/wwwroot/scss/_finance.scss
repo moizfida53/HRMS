@@ -314,3 +314,87 @@
   .fin-report-head { padding: 0 0 8px; }
   .fin-report-table td { white-space: normal; }
 }
+
+// ------------------------------------------------ the details popup ----
+.fin-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  white-space: nowrap;
+}
+
+.fin-view-modal {
+  .modal-body { padding: space("4") space("5"); }
+
+  @include down("md") {
+    .modal-body { padding: space("3"); }
+  }
+}
+
+.fin-facts--popup {
+  margin-block-end: space("3");
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+}
+
+.fin-view-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space("2");
+  margin-block-end: space("3");
+
+  .btn { display: inline-flex; align-items: center; gap: .35rem; }
+
+  &__note { font-size: $fs-xs; color: $ink-500; }
+
+  @include down("sm") {
+    .btn { flex: 1 1 auto; justify-content: center; }
+  }
+}
+
+.fin-view-table {
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+  max-block-size: 55vh;
+  overflow: auto;
+  @include thin-scrollbar;
+
+  thead th { position: sticky; inset-block-start: 0; z-index: 1; }
+  tfoot td, tfoot th { position: sticky; inset-block-end: 0; }
+}
+
+.fin-defaults {
+  margin-block-start: space("3");
+  padding: space("3") space("4");
+  border: 1px dashed $line-300;
+  border-radius: $radius-md;
+  background: $surface-2;
+
+  summary {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    cursor: pointer;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $ink-700;
+    list-style: none;
+
+    &::-webkit-details-marker { display: none; }
+    &:focus-visible { @include focus-ring; }
+  }
+
+  &__value {
+    margin-inline-start: auto;
+    padding: 1px 8px;
+    border-radius: $radius-pill;
+    background: $white;
+    border: 1px solid $line-200;
+    font-size: $fs-xs;
+  }
+
+  &[open] summary { margin-block-end: space("2"); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; }
+}

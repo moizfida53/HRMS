@@ -46,7 +46,7 @@ public sealed class AccountingController : PayrollFinanceControllerBase
     // =======================================================================
 
     [HttpGet("journal")]
-    public async Task<IActionResult> Journal(int? year, string? month, long? run)
+    public async Task<IActionResult> Journal(int? year, string? month, string? status, string? q)
     {
         var rights = Rights;
         if (!rights.CanView) return Forbid();
@@ -54,48 +54,77 @@ public sealed class AccountingController : PayrollFinanceControllerBase
         var all = await _finance.JournalRunsAsync(OwnCompany, CompanyCsv, null, null, Ct);
         var months = MonthsOf(all);
         var (y, m) = PickPeriod(months, year, month, defaultToLatest: true);
-        var runs = all.Where(r => (y is null || r.RunMonth.Year == y) && (m is null || r.RunMonth == m)).ToList();
-        var selected = runs.FirstOrDefault(r => r.PayrollRunId == run) ?? runs.FirstOrDefault(r => r.JournalId is null) ?? runs.FirstOrDefault();
-
-        PayrollJournal? journal = null;
-        IReadOnlyList<JournalLine> lines = [];
-        AccountingDefaults? defaults = null;
-        if (selected is not null)
-        {
-            if (selected.JournalId is { } jid)
-            {
-                journal = await _finance.JournalAsync(jid, OwnCompany, CompanyCsv, Ct);
-                lines = await _finance.JournalLinesAsync(jid, OwnCompany, CompanyCsv, Ct);
-            }
-            else
-            {
-                lines = await _finance.JournalPreviewAsync(selected.PayrollRunId, OwnCompany, CompanyCsv, Ct);
-            }
-            defaults = await _finance.DefaultsAsync(selected.CompanyId, OwnCompany, CompanyCsv, Ct);
-        }
+        status = status is "NONE" or "READY" or "EXPORTED" or "POSTED" ? status : null;
+        var runs = all.Where(r => (y is null || r.RunMonth.Year == y) && (m is null || r.RunMonth == m))
+                      .Where(r => status is null || (status == "NONE" ? r.JournalId is null : r.JournalStatus == status))
+                      .Where(r => string.IsNullOrWhiteSpace(q)
+                                  || r.RunCode.Contains(q.Trim(), StringComparison.OrdinalIgnoreCase)
+                                  || (r.JournalNo?.Contains(q.Trim(), StringComparison.OrdinalIgnoreCase) ?? false)
+                                  || (r.CompanyName?.Contains(q.Trim(), StringComparison.OrdinalIgnoreCase) ?? false))
+                      .ToList();
 
         return View("~/Views/Accounting/Journal.cshtml", new JournalPageModel
         {
             Filters = new FinanceFilterBar
             {
                 Action = Url.Action(nameof(Journal))!,
-                Years = YearsOf(months), Months = months, Year = y, Month = m,
+                Years = YearsOf(months), Months = months, Year = y, Month = m, AllYears = true,
                 Selects =
                 [
-                    new FinanceSelect("run", _l["fin.payroll"],
-                        runs.Select(r => (r.PayrollRunId.ToString(CultureInfo.InvariantCulture),
-                                          r.RunCode + " · " + _l.MonthYear(r.RunMonth) + (ManyCompanies ? " · " + r.CompanyName : "")
-                                          + (r.JournalNo is not null ? " · " + r.JournalNo : ""))).ToList(),
-                        selected?.PayrollRunId.ToString(CultureInfo.InvariantCulture))
+                    new FinanceSelect("status", _l["common.status"],
+                        [("", _l["common.all_statuses"]), ("NONE", _l["fin.not_created"]), ("READY", _l["fin.jv_ready"]),
+                         ("EXPORTED", _l["fin.jv_exported"]), ("POSTED", _l["fin.jv_posted"])], status)
                 ],
+                Search = q,
+                SearchPlaceholder = _l["fin.search_journals"],
                 CountText = runs.Count == 1 ? _l["fin.1_payroll"] : _l["fin.0_payrolls", PayrollFormat.Count(runs.Count)]
             },
             Rights = rights,
             Runs = runs,
-            Run = selected,
+            ManyCompanies = ManyCompanies,
+            IsFiltered = status is not null || !string.IsNullOrWhiteSpace(q)
+        });
+    }
+
+    /// <summary>
+    /// The journal popup: a saved journal (?id=, from Payroll Journal or GL Posting) or,
+    /// for a payroll with no journal yet (?run=), the preview of the one it would get.
+    /// </summary>
+    [HttpGet("journal/view")]
+    public async Task<IActionResult> JournalView(long? id, long? run)
+    {
+        var rights = Rights;
+        if (!rights.CanView) return Forbid();
+
+        PayrollJournal? journal = null;
+        if (id is > 0)
+        {
+            journal = await _finance.JournalAsync(id.Value, OwnCompany, CompanyCsv, Ct);
+            if (journal is null) return NotFound();
+            run = journal.PayrollRunId;
+        }
+        if (run is not > 0) return NotFound();
+
+        var runs = await _finance.JournalRunsAsync(OwnCompany, CompanyCsv, null, null, Ct);
+        var payroll = runs.FirstOrDefault(r => r.PayrollRunId == run);
+        if (journal is null && payroll?.JournalId is { } live)
+        {
+            journal = await _finance.JournalAsync(live, OwnCompany, CompanyCsv, Ct);
+        }
+        if (journal is null && payroll is null) return NotFound();
+
+        var lines = journal is not null
+            ? await _finance.JournalLinesAsync(journal.JournalId, OwnCompany, CompanyCsv, Ct)
+            : await _finance.JournalPreviewAsync(run.Value, OwnCompany, CompanyCsv, Ct);
+        var companyId = journal?.CompanyId ?? payroll!.CompanyId;
+
+        return PartialView("~/Views/Accounting/_JournalDetails.cshtml", new JournalDetailsModel
+        {
+            Rights = rights,
+            Run = payroll,
             Journal = journal,
             Lines = lines,
-            Defaults = defaults
+            Defaults = await _finance.DefaultsAsync(companyId, OwnCompany, CompanyCsv, Ct)
         });
     }
 

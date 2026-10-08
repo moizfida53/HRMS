@@ -96,11 +96,20 @@ public sealed class PaymentHistoryModel
 
 // ------------------------------------------------------------ accounting
 
+/// <summary>Payroll Journal: the closed payrolls of the period with their journal (details open in a popup).</summary>
 public sealed class JournalPageModel
 {
     public required FinanceFilterBar Filters { get; init; }
     public required FinanceRights Rights { get; init; }
     public IReadOnlyList<FinanceRun> Runs { get; init; } = Array.Empty<FinanceRun>();
+    public bool ManyCompanies { get; init; }
+    public bool IsFiltered { get; init; }
+}
+
+/// <summary>The journal popup (Payroll Journal and GL Posting): a saved journal, or the preview of a payroll's.</summary>
+public sealed class JournalDetailsModel
+{
+    public required FinanceRights Rights { get; init; }
     public FinanceRun? Run { get; init; }
     public PayrollJournal? Journal { get; init; }
     public IReadOnlyList<JournalLine> Lines { get; init; } = Array.Empty<JournalLine>();

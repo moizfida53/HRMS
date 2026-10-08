@@ -1,0 +1,159 @@
+@model JournalDetailsModel
+@{
+    // The journal popup (Payroll Journal and GL Posting): a saved journal with its actions, or
+    // the preview of a payroll with no journal yet (Create journal). Loaded into #fin-view.
+    var run = Model.Run;
+    var j = Model.Journal;
+    var act = Model.Rights.CanAct;
+    var balanced = Model.TotalDebit == Model.TotalCredit;
+    var title = j is null ? L["fin.journal_preview"] + " · " + run?.RunCode : L["fin.journal_0", j.JournalNo];
+}
+<div data-fin-view-title hidden>@title</div>
+
+<dl class="fin-facts fin-facts--popup">
+    <div><dt>@L["fin.payroll"]</dt><dd><span class="hrms-code-chip">@(j?.RunCode ?? run?.RunCode)</span></dd></div>
+    <div><dt>@L["pr.period"]</dt><dd>@L.MonthYear(j?.RunMonth ?? run!.RunMonth)</dd></div>
+    @if (run is not null)
+    {
+        <div><dt>@L["prv.gross_kwd"]</dt><dd class="hrms-numeric">@PayrollFormat.Money(run.TotalGross)</dd></div>
+        <div><dt>@L["pr.net_kwd"]</dt><dd class="hrms-numeric fw-semibold">@PayrollFormat.Money(run.TotalNet)</dd></div>
+    }
+    <div>
+        <dt>@L["prv.journal"]</dt>
+        <dd>
+            @if (j is not null)
+            {
+                <span class="hrms-badge hrms-badge--@FinanceFormat.JournalStatusBadge(j.Status)"><span class="hrms-badge__dot"></span>@L[FinanceFormat.JournalStatusKey(j.Status)]</span>
+            }
+            else
+            {
+                <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["fin.not_created"]</span>
+            }
+        </dd>
+    </div>
+    <div>
+        <dt>@L["fin.balance_check"]</dt>
+        <dd><span class="hrms-badge hrms-badge--@(balanced ? "success" : "danger")"><span class="hrms-badge__dot"></span>@(balanced ? L["prv.balanced"] : L["fin.not_balanced"])</span></dd>
+    </div>
+</dl>
+
+@if (Model.UnmappedCount > 0)
+{
+    <div class="pr-banner pr-banner--lock mb-3" role="note">
+        @Html.Icon("alert", 18)
+        <div><strong>@L["fin.unmapped_title", Model.UnmappedCount]</strong> @L["fin.unmapped_text"] <a href="@Url.Content("~/payroll/settings/gl-mapping")">@L["fin.open_gl_mapping"]</a></div>
+    </div>
+}
+@if (j?.Status == "REVERSED" && j.ReverseReason is not null)
+{
+    <div class="pr-banner pr-banner--info mb-3" role="note">@Html.Icon("undo", 18)<div><strong>@L["fin.jv_reversed"].</strong> @j.ReverseReason</div></div>
+}
+
+<div class="fin-view-actions">
+    @if (j is null && act && run is not null && Model.Lines.Count > 0)
+    {
+        <button type="button" class="btn btn-sm btn-primary"
+                data-fin-action="@Url.Action("CreateJournal", "Accounting")" data-fin-extra='{"run":"@run.PayrollRunId"}'
+                data-fin-title="@L["fin.create_journal"]" data-fin-text="@L["fin.create_journal_text"]" data-fin-ok="@L["fin.create_journal"]">@Html.Icon("plus", 14)<span>@L["fin.create_journal"]</span></button>
+    }
+    @if (j is not null)
+    {
+        <a class="btn btn-sm btn-outline-primary" href="@Url.Action("Export", "Accounting", new { id = j.JournalId })">@Html.Icon("download", 14)<span>@L["prv.export_excel"]</span></a>
+        @if (act && j.Status is "READY" or "EXPORTED")
+        {
+            <button type="button" class="btn btn-sm btn-success"
+                    data-fin-action="@Url.Action("Posted", "Accounting", new { id = j.JournalId })"
+                    data-fin-title="@L["fin.mark_posted"] · @j.JournalNo" data-fin-text="@L["fin.mark_posted_text"]"
+                    data-fin-field="reference" data-fin-label="@L["prv.posted_ref"]" data-fin-ok="@L["fin.mark_posted"]">@Html.Icon("check", 14)<span>@L["fin.mark_posted"]</span></button>
+        }
+        @if (act && j.Status != "REVERSED")
+        {
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    data-fin-action="@Url.Action("Reverse", "Accounting", new { id = j.JournalId })"
+                    data-fin-title="@L["fin.reverse"] · @j.JournalNo" data-fin-text="@L["fin.reverse_text"]"
+                    data-fin-field="reason" data-fin-label="@L["pr.reason"]" data-fin-ok="@L["fin.reverse"]">@Html.Icon("undo", 14)<span>@L["fin.reverse"]</span></button>
+        }
+        @if (j.PostedReference is not null)
+        {
+            <span class="fin-view-actions__note">@L["fin.posted_as_0", j.PostedReference]</span>
+        }
+    }
+    else
+    {
+        <span class="fin-view-actions__note">@L["fin.preview_note"]</span>
+    }
+</div>
+
+@if (Model.Lines.Count == 0)
+{
+    <div class="hrms-empty"><p class="hrms-empty__title">@L["fin.nothing_to_journal"]</p></div>
+}
+else
+{
+    <div class="hrms-table-wrap fin-view-table">
+        <table class="hrms-table fin-table fin-journal">
+            <caption class="hrms-sr-only">@title</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["prv.gl_account"]</th>
+                    <th scope="col">@L["prv.account_name"]</th>
+                    <th scope="col" class="col-p2">@L["prv.cost_center"]</th>
+                    <th scope="col" class="text-end">@L["prv.debit_kwd"]</th>
+                    <th scope="col" class="text-end">@L["prv.credit_kwd"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model.Lines)
+                {
+                    <tr class="@(l.IsUnmapped ? "fin-row--warn" : null)">
+                        <td data-label="@L["prv.gl_account"]" class="font-monospace">
+                            @l.AccountCode
+                            @if (l.IsUnmapped)
+                            {
+                                <span class="st-inforce st-inforce--warn ms-1">@L["fin.unmapped"]</span>
+                            }
+                        </td>
+                        <td data-label="@L["prv.account_name"]">@l.AccountName<span class="pr-emp-sub">@l.Description</span></td>
+                        <td data-label="@L["prv.cost_center"]" class="col-p2">@(l.CostCenterName ?? "—")</td>
+                        <td data-label="@L["prv.debit_kwd"]" class="text-end pr-money">@(l.Debit == 0 ? "" : PayrollFormat.Money(l.Debit))</td>
+                        <td data-label="@L["prv.credit_kwd"]" class="text-end pr-money">@(l.Credit == 0 ? "" : PayrollFormat.Money(l.Credit))</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th scope="row" colspan="3">@L["prv.total"]</th>
+                    <td class="text-end pr-money fw-semibold">@PayrollFormat.Money(Model.TotalDebit)</td>
+                    <td class="text-end pr-money fw-semibold">@PayrollFormat.Money(Model.TotalCredit)</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+}
+
+@if (Model.Defaults is { } d)
+{
+    <details class="fin-defaults" @(j is null && Model.UnmappedCount > 0 ? "open" : null)>
+        <summary>@Html.Icon("sliders", 14)<span>@L["fin.default_accounts"]</span><span class="fin-defaults__value font-monospace">@d.NetPayAccountCode</span></summary>
+        <p class="hrms-text-sm hrms-muted mb-2">@L["fin.default_accounts_text"]</p>
+        <form data-fin-form action="@Url.Action("SaveDefaults", "Accounting")" class="row g-2 align-items-end" novalidate>
+            <input type="hidden" name="companyId" value="@d.CompanyId" />
+            <div class="col-sm-4">
+                <label class="form-label" for="ad-code">@L["fin.salaries_payable"]</label>
+                <input class="form-control font-monospace" id="ad-code" name="accountCode" value="@d.NetPayAccountCode" maxlength="50" dir="ltr" disabled="@(!act)" />
+            </div>
+            <div class="col-sm-5">
+                <label class="form-label" for="ad-name">@L["st.account_name"]</label>
+                <input class="form-control" id="ad-name" name="accountName" value="@d.NetPayAccountName" maxlength="150" disabled="@(!act)" />
+            </div>
+            @if (act)
+            {
+                <div class="col-sm-3"><button type="submit" class="btn btn-outline-primary w-100">@Html.Icon("check", 14)<span>@L["emp.save"]</span></button></div>
+            }
+        </form>
+        @if (j is not null)
+        {
+            <p class="form-text mb-0 mt-2">@L["fin.defaults_saved_note"]</p>
+        }
+    </details>
+}

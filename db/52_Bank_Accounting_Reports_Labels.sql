@@ -309,7 +309,11 @@ INSERT INTO #Seed (LabelKey, Module, EnglishText, ArabicText, SourceText) VALUES
     ('msg.fin_048', 'msg', N'There is nobody to pay in this file.', N'لا يوجد من يُدفع له في هذا الملف.', N'There is nobody to pay in this file.'),
     ('msg.fin_049', 'msg', N'This journal is already reversed.', N'هذا القيد معكوس مسبقاً.', N'This journal is already reversed.'),
     ('msg.fin_050', 'msg', N'This payroll already has a file for a different bank choice. Generate it again with the same bank choice.', N'لهذا الراتب ملف لاختيار بنوك مختلف. أعد إنشاءه بنفس اختيار البنوك.', N'This payroll already has a file for a different bank choice. Generate it again with the same bank choice.'),
-    ('msg.fin_051', 'msg', N'This payroll already has a journal. Reverse it first to make a new one.', N'لهذا الراتب قيد مسبقاً. اعكسه أولاً لإنشاء قيد جديد.', N'This payroll already has a journal. Reverse it first to make a new one.');
+    ('msg.fin_051', 'msg', N'This payroll already has a journal. Reverse it first to make a new one.', N'لهذا الراتب قيد مسبقاً. اعكسه أولاً لإنشاء قيد جديد.', N'This payroll already has a journal. Reverse it first to make a new one.'),
+    ('fin.view', 'fin', N'View', N'عرض', NULL),
+    ('fin.balance_check', 'fin', N'Debits = credits', N'المدين = الدائن', NULL),
+    ('fin.n_employees', 'fin', N'{0} employees', N'{0} موظف', NULL),
+    ('fin.defaults_saved_note', 'fin', N'A saved journal keeps its accounts - the default applies to journals created from now on.', N'يحتفظ القيد المحفوظ بحساباته - يُطبّق الحساب الافتراضي على القيود المنشأة من الآن.', NULL);
 INSERT INTO [Core].[UiLabels] (LabelKey, Module, EnglishText, ArabicText, SourceText)
 SELECT s.LabelKey, s.Module, s.EnglishText, s.ArabicText, s.SourceText
 FROM   #Seed AS s

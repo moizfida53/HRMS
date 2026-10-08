@@ -14,6 +14,9 @@
  *                            and reloads the page with the result message
  *   form[data-fin-form]      posts the form; data-fin-download opens the new
  *                            file (bank file) before reloading
+ *   [data-fin-view="url"]    loads the url (a partial) into the popup #fin-view
+ *                            (journal details); actions and forms inside it work
+ *                            as on the page - an action closes the popup first
  *   [data-fin-check]         row tick boxes + [data-fin-check-all] + the bulk bar
  *   [data-fin-pager]         the pagination buttons change ?page=
  * ========================================================================== */
@@ -186,38 +189,73 @@
         });
     }
 
-    page.addEventListener("click", function (ev) {
+    /* ------------------------------------------------------- the details popup */
+    var viewModal = $("#fin-view");
+
+    function openView(url, title) {
+        if (!viewModal || !window.bootstrap) { return; }
+        var body = $("[data-fin-view-body]", viewModal);
+        $("[data-fin-view-heading]", viewModal).textContent = title || "";
+        body.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
+        window.bootstrap.Modal.getOrCreateInstance(viewModal).show();
+        HRMS.getHtml(url).then(function (html) {
+            body.innerHTML = html;
+            var t = $("[data-fin-view-title]", body);
+            if (t) { $("[data-fin-view-heading]", viewModal).textContent = t.textContent.trim(); }
+        }, function (error) {
+            body.innerHTML = "";
+            HRMS.toast((error && error.message) || failed(), "error");
+        });
+    }
+
+    // actions live on the page and in the popup (outside the page element)
+    document.addEventListener("click", function (ev) {
+        var view = ev.target.closest("[data-fin-view]");
+        if (view) {
+            ev.preventDefault();
+            openView(view.getAttribute("data-fin-view"), view.getAttribute("aria-label"));
+            return;
+        }
         var b = ev.target.closest("[data-fin-action]");
-        if (!b || b.disabled) { return; }
+        if (!b || b.disabled || !(page.contains(b) || (viewModal && viewModal.contains(b)))) { return; }
         ev.preventDefault();
         if (b.hasAttribute("data-fin-selected") && ticked().length === 0) { return; }
+        if (viewModal && viewModal.contains(b) && viewModal.classList.contains("show")) {
+            // one dialog at a time: close the popup, then ask
+            viewModal.addEventListener("hidden.bs.modal", function once() {
+                viewModal.removeEventListener("hidden.bs.modal", once);
+                openDialog(b);
+            });
+            window.bootstrap.Modal.getOrCreateInstance(viewModal).hide();
+            return;
+        }
         openDialog(b);
     });
 
     /* ------------------------------------------------------- forms */
-    $all("form[data-fin-form], form[data-fin-generate]", page).forEach(function (form) {
-        form.addEventListener("submit", function (ev) {
-            ev.preventDefault();
-            var button = form.querySelector('button[type="submit"]');
-            var data = {};
-            new FormData(form).forEach(function (v, k) { data[k] = v; });
-            send(form.getAttribute("action"), data, button).then(function (res) {
-                if (!res) { return; }
-                var download = page.getAttribute("data-fin-download");
-                if (form.hasAttribute("data-fin-generate") && download && res.id) {
-                    // the browser downloads the new file, then the page shows it in the list
-                    var a = document.createElement("a");
-                    a.href = download.replace("__id__", String(res.id));
-                    a.setAttribute("download", "");
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    try { window.sessionStorage.setItem(TOAST_KEY, res.message || ""); } catch (e) { /* storage off */ }
-                    window.setTimeout(function () { window.location.reload(); }, 900);
-                    return;
-                }
-                reloadWith(res.message);
-            });
+    document.addEventListener("submit", function (ev) {
+        var form = ev.target.closest("form[data-fin-form], form[data-fin-generate]");
+        if (!form || !(page.contains(form) || (viewModal && viewModal.contains(form)))) { return; }
+        ev.preventDefault();
+        var button = form.querySelector('button[type="submit"]');
+        var data = {};
+        new FormData(form).forEach(function (v, k) { data[k] = v; });
+        send(form.getAttribute("action"), data, button).then(function (res) {
+            if (!res) { return; }
+            var download = page.getAttribute("data-fin-download");
+            if (form.hasAttribute("data-fin-generate") && download && res.id) {
+                // the browser downloads the new file, then the page shows it in the list
+                var a = document.createElement("a");
+                a.href = download.replace("__id__", String(res.id));
+                a.setAttribute("download", "");
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                try { window.sessionStorage.setItem(TOAST_KEY, res.message || ""); } catch (e) { /* storage off */ }
+                window.setTimeout(function () { window.location.reload(); }, 900);
+                return;
+            }
+            reloadWith(res.message);
         });
     });
 })();
