@@ -855,7 +855,7 @@ The Data Protection keys sign these references (and the sign-in cookie). With mo
 one web server, or to keep references valid across restarts, persist the key ring
 (`services.AddDataProtection().PersistKeysToFileSystem(...)` or to the database).
 
-### Security: Create Roles and Assign Roles
+### Security: Create Roles and Manage Users
 
 A **Security** group in the sidebar (for users with the rights below) with two pages.
 
@@ -874,9 +874,36 @@ A **Security** group in the sidebar (for users with the rights below) with two p
   their own submissions; before, only System Administrator could).
 * **System Administrator** is a system role: always every right, never edited or deleted.
 
-**Assign Roles** (`/security/assign`): every user with their roles (search, filter by
-role or *No role*). **Assign roles** opens a popup with the roles to tick. A user gets
-global roles and their own company's roles only.
+**Manage Users** (`/security/users`; the old `/security/assign` address redirects here):
+the accounts that sign in, with their company, roles, last sign-in and status (search,
+filter by role or *No role*). **Add user** and **Edit** open one popup; role assignment
+is part of it:
+
+* **Account:** user name (letters, digits and `. _ - @`, unique), email (unique),
+  company (*All companies* for a System Administrator only; a user pinned to a company
+  adds users to it only), an optional **linked employee** of that company (one account
+  per employee - My Payslips uses it), and **Active**.
+* **Password:** a new user gets a first password (with confirmation) and, by default,
+  must choose their own at the first sign-in. For an existing user, **Reset the password**
+  sets a new one, unlocks the account and signs them out of every session. The rules are
+  Change Password's (8+ characters with upper, lower case and a number; simple-password
+  mode: at most 50 characters, also stored as plain text).
+* **Roles:** the roles to tick - shared roles and the chosen company's roles. Roles that
+  hold rights you lack are locked.
+* **Deactivate / Activate** in the grid (or the Active switch). A deactivated user cannot
+  sign in, and open sessions end within a minute. You cannot deactivate yourself or the
+  last active System Administrator.
+
+The account and its roles are saved in one transaction (`USER_SAVE`). A changed security
+stamp (password reset, deactivation) or a deactivated account ends the session at the
+next check (`Security/PermissionRefresh.cs`, at most a minute).
+
+Rights: **Read** `SECURITY_USER_VIEW`; **Write** `SECURITY_USER_EDIT` (add / edit / reset
+password) and `SECURITY_USER_ASSIGN` (roles); **Full** adds `SECURITY_USER_DISABLE`
+(deactivate). Without the edit right, the popup changes roles only; without the assign
+right, the roles stay as they are. A non-administrator can change only accounts whose
+roles hold no right they lack; a System Administrator's account only a System
+Administrator.
 
 **How it is enforced.** `Security/AccessCatalog.cs` lists the pages, functions and
 approvals and the permission codes each level grants - the same codes the controllers
@@ -893,7 +920,7 @@ hides pages a user cannot read, and the pages refuse them on the server.
 | Organization Setup | `ORGANIZATION_VIEW / CREATE / EDIT / DELETE`, plus Companies (`ORGANIZATION_COMPANY_EDIT / DELETE`) |
 | Payroll | dashboard (`PAYROLL_DASHBOARD_VIEW`), calendar & pay periods (`PAYROLL_CALENDAR_*`, was payroll setup), exclude / include employees (`PAYROLL_RUN_EXCLUDE`) |
 | Approvals | pay items `PAYROLL_ITEM_APPROVE_L1/L2/SELF`, settlements `PAYROLL_FS_APPROVE_L1/L2/SELF` (both used the payroll run codes), payroll run `PAYROLL_RUN_APPROVE_SELF` |
-| Security | `SECURITY_ROLE_VIEW / EDIT / DELETE`, `SECURITY_USER_VIEW / ASSIGN` |
+| Security | `SECURITY_ROLE_VIEW / EDIT / DELETE`, `SECURITY_USER_VIEW / EDIT / ASSIGN / DISABLE` |
 
 **Safeguards.** Nobody without System Administrator can give or take away a right they do
 not hold themselves, or assign a role that holds more than they do. Only a System
@@ -909,12 +936,14 @@ assigns only their company's users. Roles and users are named by opaque referenc
   codes go to the roles that held the shared code. System Administrator gets everything.
   **Review your roles on Create Roles afterwards** - e.g. take Employees delete or
   Organization rights away from roles that should not have them.
-* re-issues `Security.usp_Auth_Manage` so sign-in ignores soft-deleted role links. db/28
-  turns every DELETE into `Deleted = 1`, so before this a removed right kept working.
-* creates `Security.usp_SecurityAdmin_Manage`.
+* re-issues `Security.usp_Auth_Manage` so sign-in ignores soft-deleted role links and
+  removed accounts. db/28 turns every DELETE into `Deleted = 1`, so before this a removed
+  right kept working.
+* creates `Security.usp_SecurityAdmin_Manage`. `SECURITY_USER_EDIT / DISABLE` are given,
+  the first time, to the roles that held `SECURITY_USER_ASSIGN`.
 
 Users with **no role at all** lose the pages that had no check (Employees, Organization).
-Give them a role on Assign Roles (filter *No role*).
+Give them a role on Manage Users (filter *No role*).
 
 ### Sidebar: auto-minimize and auto-collapse
 

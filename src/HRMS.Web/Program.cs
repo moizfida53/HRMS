@@ -110,7 +110,7 @@ builder.Services
             options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         }
 
-        // Security > Create Roles / Assign Roles apply to signed-in users within a minute.
+        // Security > Create Roles / Manage Users apply to signed-in users within a minute (deactivated or reset accounts are signed out).
         options.Events.OnValidatePrincipal = HRMS.Web.Security.PermissionRefresh.ValidateAsync;
 
         // An expired session should land on the login page with an explanation

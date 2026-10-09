@@ -65,13 +65,32 @@ else
                             }
                         </td>
                         <td data-label="@L["sec.last_sign_in"]" class="col-p3 hrms-nowrap">@(u.LastLoginDate is { } ll ? L.Date(ll) : "—")</td>
-                        <td data-label="@L["common.status"]" class="col-p2">
+                        <td data-label="@L["common.status"]" class="col-p2 sec-status-cell">
                             <span class="hrms-badge hrms-badge--@(u.IsActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(u.IsActive ? L["sec.active"] : L["sec.inactive"])</span>
+                            @if (u.IsLockedOut)
+                            {
+                                <span class="hrms-badge hrms-badge--danger" title="@L["sec.locked_hint"]"><span class="hrms-badge__dot"></span>@L["sec.locked"]</span>
+                            }
+                            else if (u.MustChangePassword && u.IsActive)
+                            {
+                                <span class="hrms-badge hrms-badge--warning" title="@L["sec.must_change_hint"]"><span class="hrms-badge__dot"></span>@L["sec.first_sign_in"]</span>
+                            }
                         </td>
                         <td class="hrms-table__actions">
-                            <button type="button" class="btn btn-sm @(Model.CanAssign ? "btn-primary" : "btn-outline-secondary") sec-assign-btn" data-sec-user="@uref" data-sec-user-name="@name">
-                                @Html.Icon(Model.CanAssign ? "key" : "eye", 14)<span>@(Model.CanAssign ? L["sec.assign_roles"] : L["sec.view_roles"])</span>
-                            </button>
+                            <span class="sec-row-actions">
+                                <button type="button" class="btn btn-sm @(Model.CanEdit ? "btn-primary" : "btn-outline-secondary") sec-assign-btn"
+                                        data-sec-user="@uref" data-sec-user-name="@name">
+                                    @Html.Icon(Model.CanEdit ? "edit" : "eye", 14)<span>@(Model.CanEdit ? L["common.edit"] : L["common.view"])</span>
+                                </button>
+                                @if (Model.CanDisable && u.UserId != Model.CurrentUserId)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-@(u.IsActive ? "danger" : "success") sec-assign-btn"
+                                            data-sec-user-toggle="@uref" data-active="@(u.IsActive ? "false" : "true")" data-sec-user-name="@name"
+                                            title="@(u.IsActive ? L["common.deactivate"] : L["common.activate"])">
+                                        @Html.Icon("power", 14)<span class="sec-row-actions__text">@(u.IsActive ? L["common.deactivate"] : L["common.activate"])</span>
+                                    </button>
+                                }
+                            </span>
                         </td>
                     </tr>
                 }

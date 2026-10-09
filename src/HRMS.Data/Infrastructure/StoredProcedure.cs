@@ -127,7 +127,7 @@ public static class StoredProcedure
     /// <summary>Payslips: payrolls, list, payslip header, generate, email queue and delivery results.</summary>
     public const string PayslipManage = "Payroll.usp_Payslip_Manage";
 
-    /// <summary>Security > Create Roles / Assign Roles (db/57).</summary>
+    /// <summary>Security > Create Roles / Manage Users (db/57).</summary>
     public const string SecurityAdminManage = "Security.usp_SecurityAdmin_Manage";
 }
 

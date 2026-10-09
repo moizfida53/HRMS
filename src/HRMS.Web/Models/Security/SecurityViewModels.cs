@@ -34,30 +34,49 @@ public sealed class RoleEditorModel
     public bool Approves(string code, string column) => Approvals.TryGetValue(code, out var c) && c.Contains(column);
 }
 
-/// <summary>Security > Assign Roles.</summary>
-public sealed class AssignPageModel
+/// <summary>Security > Manage Users.</summary>
+public sealed class UsersPageModel
 {
     /// <summary>The role filter: reference -> name.</summary>
     public IReadOnlyList<(string Ref, string Name)> Roles { get; init; } = Array.Empty<(string, string)>();
-    public bool CanAssign { get; init; }
+    public bool CanCreate { get; init; }
 }
 
 public sealed class UsersGridModel
 {
     public required PagedResult<UserRoleRow> Page { get; init; }
     public IReadOnlyDictionary<long, string> Refs { get; init; } = new Dictionary<long, string>();
-    public bool CanAssign { get; init; }
+    /// <summary>May change accounts or their roles (else the popup is read-only).</summary>
+    public bool CanEdit { get; init; }
+    public bool CanDisable { get; init; }
+    public long? CurrentUserId { get; init; }
     public bool IsFiltered { get; init; }
     public bool ManyCompanies { get; init; }
 }
 
-/// <summary>The roles of one user (popup).</summary>
-public sealed class UserRolesPanelModel
+/// <summary>The user popup: the account, its password and its roles.</summary>
+public sealed class UserFormModel
 {
-    public required UserRoleRow User { get; init; }
-    public required string Ref { get; init; }
+    /// <summary>Null = a new user.</summary>
+    public UserRoleRow? User { get; init; }
+    public string? Ref { get; init; }
+    public bool IsNew => User is null;
     public IReadOnlyList<RoleOption> Roles { get; init; } = Array.Empty<RoleOption>();
+    /// <summary>Not pinned to a company: may choose the user's company.</summary>
+    public bool ChooseCompany { get; init; }
+    /// <summary>System Administrator: may also give a user every company.</summary>
+    public bool AllowAllCompanies { get; init; }
+    public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
+    public int? CompanyId { get; init; }
+    /// <summary>The employees of the user's company: reference, text, linked now.</summary>
+    public IReadOnlyList<(string Ref, string Text, bool Selected)> Employees { get; init; } = Array.Empty<(string, string, bool)>();
+    public bool CanEditAccount { get; init; }
     public bool CanAssign { get; init; }
+    public bool CanDisable { get; init; }
+    public bool SimplePassword { get; init; }
+    public bool IsSelf { get; init; }
+    /// <summary>The account has rights the signed-in user lacks: it cannot be changed by them.</summary>
+    public bool Locked { get; init; }
 }
 
 public sealed record RoleOption(string Ref, RoleSummary Role, bool Selected, bool Allowed);

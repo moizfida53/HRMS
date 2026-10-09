@@ -8,7 +8,7 @@ using HRMS.Domain.Security;
 namespace HRMS.Data.Repositories;
 
 // ===========================================================================
-// Security > Create Roles / Assign Roles (db/57, Security.usp_SecurityAdmin_Manage)
+// Security > Create Roles / Manage Users (db/57, Security.usp_SecurityAdmin_Manage)
 // companyId = the signed-in user's company when pinned (the procedure scopes to it).
 // ===========================================================================
 
@@ -23,6 +23,9 @@ public interface ISecurityAdminRepository
     Task<PagedResult<UserRoleRow>> UsersAsync(int? companyId, string? search, int? roleFilter, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<SaveResult> SetUserRolesAsync(int? companyId, long targetUserId, IReadOnlyCollection<int> roleIds, bool callerIsSysAdmin, long? userId,
                                        CancellationToken cancellationToken = default);
+    Task<SaveResult> SaveUserAsync(int? companyId, UserSaveRequest user, bool callerIsSysAdmin, long? userId, CancellationToken cancellationToken = default);
+    Task<SaveResult> SetUserActiveAsync(int? companyId, long targetUserId, bool isActive, bool callerIsSysAdmin, long? userId,
+                                        CancellationToken cancellationToken = default);
 }
 
 public sealed class SecurityAdminRepository : ISecurityAdminRepository
@@ -108,6 +111,38 @@ public sealed class SecurityAdminRepository : ISecurityAdminRepository
         var p = Env("USER_ROLES_SET", companyId);
         p.Add("@UserId", targetUserId, DbType.Int64);
         p.Add("@RoleIds", string.Join(',', roleIds), DbType.String, size: -1);
+        p.Add("@CallerIsSysAdmin", callerIsSysAdmin, DbType.Boolean);
+        p.Add("@ActionBy", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.SecurityAdminManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, targetUserId);
+    }
+
+    public async Task<SaveResult> SaveUserAsync(int? companyId, UserSaveRequest user, bool callerIsSysAdmin, long? userId,
+                                                CancellationToken cancellationToken = default)
+    {
+        var p = Env("USER_SAVE", companyId);
+        p.Add("@UserId", user.UserId, DbType.Int64);
+        p.Add("@Username", Trim(user.Username, 100), DbType.String, size: 100);
+        p.Add("@Email", Trim(user.Email, 200), DbType.String, size: 200);
+        p.Add("@UserCompanyId", user.UserCompanyId, DbType.Int32);
+        p.Add("@EmployeeId", user.EmployeeId, DbType.Int64);
+        p.Add("@IsActive", user.IsActive, DbType.Boolean);
+        p.Add("@PasswordHash", user.PasswordHash, DbType.String, size: 400);
+        p.Add("@PlainPassword", user.PlainPassword, DbType.String, size: 50);
+        p.Add("@MustChangePassword", user.MustChangePassword, DbType.Boolean);
+        p.Add("@RoleIds", string.Join(',', user.RoleIds), DbType.String, size: -1);
+        p.Add("@CallerIsSysAdmin", callerIsSysAdmin, DbType.Boolean);
+        p.Add("@ActionBy", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.SecurityAdminManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, user.UserId);
+    }
+
+    public async Task<SaveResult> SetUserActiveAsync(int? companyId, long targetUserId, bool isActive, bool callerIsSysAdmin, long? userId,
+                                                     CancellationToken cancellationToken = default)
+    {
+        var p = Env("USER_TOGGLE", companyId);
+        p.Add("@UserId", targetUserId, DbType.Int64);
+        p.Add("@IsActive", isActive, DbType.Boolean);
         p.Add("@CallerIsSysAdmin", callerIsSysAdmin, DbType.Boolean);
         p.Add("@ActionBy", userId, DbType.Int64);
         await _sql.ExecuteAsync(StoredProcedure.SecurityAdminManage, p, cancellationToken).ConfigureAwait(false);

@@ -1,0 +1,211 @@
+@using HRMS.Web.Models.Security
+@model UserFormModel
+@{
+    // Security > Manage Users popup: the account (left: details, password) and its roles (right).
+    // A user and an employee are named by references; the server re-checks the company scope.
+    var u = Model.User;
+    var name = u is null ? null : string.IsNullOrWhiteSpace(u.DisplayName) ? u.Username : u.DisplayName;
+    var ro = !Model.CanEditAccount;
+    var canSave = Model.CanEditAccount || (Model.CanAssign && !Model.IsNew);
+}
+<form class="sec-user-form" data-sec-user-form data-ref="@Model.Ref" data-can-save="@(canSave ? "true" : "false")"
+      data-simple="@(Model.SimplePassword ? "true" : "false")" data-new="@(Model.IsNew ? "true" : "false")" novalidate autocomplete="off">
+    <span hidden data-sec-panel-title>@(Model.IsNew ? L["sec.add_user"] : L["sec.user_0", name!])</span>
+
+    @if (Model.Locked)
+    {
+        <div class="pr-banner pr-banner--lock" role="note">
+            @Html.Icon("lock", 18)
+            <div><strong>@L["sec.user_locked_title"]</strong> @L["sec.user_locked_text"]</div>
+        </div>
+    }
+
+    <div class="row g-3">
+        @* ---------------------------------------------------- account *@
+        <div class="col-12 col-lg-6 d-grid gap-3 align-content-start">
+            <div class="sec-user-card"><fieldset class="sec-user-card__body hrms-ro-fieldset" disabled="@ro">
+                <legend class="sec-user-card__head">
+                    <span class="sec-user-card__icon" aria-hidden="true">@Html.Icon("user", 18)</span>
+                    <span>
+                        <span class="sec-card-title d-block">@L["sec.account"]</span>
+                        <span class="sec-card-sub d-block">@L["sec.account_hint"]</span>
+                    </span>
+                </legend>
+
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="su-username">@L["sec.username"] <span class="req" aria-hidden="true">*</span></label>
+                        <input class="form-control" id="su-username" name="username" value="@u?.Username" maxlength="100" required
+                               autocomplete="off" autocapitalize="off" spellcheck="false" />
+                        <span class="field-validation-error" data-valmsg-for="username"></span>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="su-email">@L["sec.email"]</label>
+                        <input class="form-control" id="su-email" name="email" type="email" value="@u?.Email" maxlength="200" autocomplete="off" />
+                        <span class="field-validation-error" data-valmsg-for="email"></span>
+                    </div>
+
+                    @if (Model.ChooseCompany)
+                    {
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label" for="su-company">@L["common.company"] @if (!Model.AllowAllCompanies) {<span class="req" aria-hidden="true">*</span>}</label>
+                            <select class="form-select" id="su-company" name="companyId" data-searchable data-sec-user-company>
+                                @if (Model.AllowAllCompanies)
+                                {
+                                    <option value="" selected="@(Model.CompanyId is null)">@L["sec.all_companies"]</option>
+                                }
+                                else
+                                {
+                                    <option value="" selected="@(Model.CompanyId is null)">@L["common.select"]</option>
+                                }
+                                @foreach (var c in Model.Companies)
+                                {
+                                    <option value="@c.Id" selected="@(Model.CompanyId == c.Id)">@c.Text</option>
+                                }
+                            </select>
+                            <span class="field-validation-error" data-valmsg-for="companyId"></span>
+                        </div>
+                    }
+                    <div class="col-12 @(Model.ChooseCompany ? "col-sm-6" : null)">
+                        <label class="form-label" for="su-employee">@L["sec.linked_employee"]</label>
+                        <select class="form-select" id="su-employee" name="employee" data-searchable data-sec-user-employee
+                                disabled="@(Model.CompanyId is null)">
+                            <option value="">@L["sec.no_employee"]</option>
+                            @foreach (var e in Model.Employees)
+                            {
+                                <option value="@e.Ref" selected="@e.Selected">@e.Text</option>
+                            }
+                        </select>
+                        <span class="sec-field-hint" data-sec-employee-hint>@(Model.CompanyId is null ? L["sec.employee_company_first"] : L["sec.linked_employee_hint"])</span>
+                        <span class="field-validation-error" data-valmsg-for="employee"></span>
+                    </div>
+                </div>
+
+                <div class="sec-user-switch">
+                    <div class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="su-active" name="isActive" value="true"
+                               checked="@(u?.IsActive ?? true)" disabled="@(ro || (!Model.IsNew && !Model.CanDisable) || Model.IsSelf)" />
+                        <label class="form-check-label" for="su-active">@L["sec.active_account"]</label>
+                    </div>
+                    <span class="sec-field-hint">@(Model.IsSelf ? L["sec.cannot_deactivate_self"] : L["sec.active_account_hint"])</span>
+                </div>
+
+                @if (u is not null)
+                {
+                    <dl class="sec-user-facts">
+                        <div><dt>@L["sec.last_sign_in"]</dt><dd>@(u.LastLoginDate is { } ll ? L.Date(ll) : L["sec.never"])</dd></div>
+                        <div><dt>@L["common.status"]</dt><dd>@(u.IsLockedOut ? L["sec.locked"] : u.MustChangePassword ? L["sec.first_sign_in"] : u.IsActive ? L["sec.active"] : L["sec.inactive"])</dd></div>
+                    </dl>
+                }
+            </fieldset></div>
+
+            @* ------------------------------------------------ password *@
+            <div class="sec-user-card"><fieldset class="sec-user-card__body hrms-ro-fieldset" disabled="@ro" data-sec-pw>
+                <legend class="sec-user-card__head">
+                    <span class="sec-user-card__icon sec-user-card__icon--key" aria-hidden="true">@Html.Icon("key", 18)</span>
+                    <span>
+                        <span class="sec-card-title d-block">@L["sec.password"]</span>
+                        <span class="sec-card-sub d-block">@(Model.IsNew ? L["sec.password_new_hint"] : L["sec.password_reset_hint"])</span>
+                    </span>
+                </legend>
+
+                @if (!Model.IsNew)
+                {
+                    <div class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="su-reset" name="resetPassword" value="true" data-sec-pw-reset />
+                        <label class="form-check-label" for="su-reset">@L["sec.reset_password"]</label>
+                    </div>
+                }
+                <div class="row g-3" data-sec-pw-fields hidden="@(!Model.IsNew)">
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="su-password">@L["sec.new_password"] <span class="req" aria-hidden="true">*</span></label>
+                        <div class="hrms-pw">
+                            <input class="form-control" id="su-password" name="password" type="password" autocomplete="new-password"
+                                   maxlength="@(Model.SimplePassword ? 50 : 128)" aria-describedby="@(Model.SimplePassword ? null : "su-rules")" />
+                            <button type="button" class="hrms-pw__toggle" data-sec-pw-toggle aria-label="@L["common.show_password"]">@Html.Icon("eye", 16)</button>
+                        </div>
+                        <span class="field-validation-error" data-valmsg-for="password"></span>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="su-confirm">@L["sec.confirm_password"] <span class="req" aria-hidden="true">*</span></label>
+                        <div class="hrms-pw">
+                            <input class="form-control" id="su-confirm" name="confirmPassword" type="password" autocomplete="new-password"
+                                   maxlength="@(Model.SimplePassword ? 50 : 128)" />
+                            <button type="button" class="hrms-pw__toggle" data-sec-pw-toggle aria-label="@L["common.show_password"]">@Html.Icon("eye", 16)</button>
+                        </div>
+                        <span class="field-validation-error" data-valmsg-for="confirmPassword"></span>
+                    </div>
+                    @if (!Model.SimplePassword)
+                    {
+                        <div class="col-12">
+                            <ul class="hrms-pw-rules m-0" id="su-rules" aria-live="polite">
+                                <li data-rule="length">@L["layout.at_least_8_characters"]</li>
+                                <li data-rule="case">@L["layout.upper_and_lower_case_letters"]</li>
+                                <li data-rule="digit">@L["layout.at_least_one_number"]</li>
+                            </ul>
+                        </div>
+                    }
+                    <div class="col-12">
+                        <div class="form-check m-0">
+                            <input class="form-check-input" type="checkbox" id="su-must" name="mustChangePassword" value="true" checked />
+                            <label class="form-check-label" for="su-must">@L["sec.must_change"]</label>
+                        </div>
+                        @if (!Model.IsNew)
+                        {
+                            <span class="sec-field-hint">@L["sec.reset_signs_out"]</span>
+                        }
+                    </div>
+                </div>
+            </fieldset></div>
+        </div>
+
+        @* ---------------------------------------------------- roles *@
+        <div class="col-12 col-lg-6">
+            <div class="sec-user-card sec-user-card--roles"><fieldset class="sec-user-card__body hrms-ro-fieldset" disabled="@(!Model.CanAssign || Model.Locked)">
+                <legend class="sec-user-card__head">
+                    <span class="sec-user-card__icon sec-user-card__icon--roles" aria-hidden="true">@Html.Icon("shield", 18)</span>
+                    <span>
+                        <span class="sec-card-title d-block">@L["sec.roles"] <span class="sec-role-count" data-sec-role-count></span></span>
+                        <span class="sec-card-sub d-block">@L["sec.user_roles_hint"]</span>
+                    </span>
+                </legend>
+                <ul class="sec-role-picks">
+                    @foreach (var o in Model.Roles)
+                    {
+                        var disabled = !Model.CanAssign || !o.Allowed || (!o.Role.IsActive && !o.Selected);
+                        <li data-role-company="@o.Role.CompanyId">
+                            <label class="sec-role-pick @(o.Selected ? "is-selected" : null) @(disabled ? "is-disabled" : null)">
+                                <input class="form-check-input" type="checkbox" name="roles" value="@o.Ref" checked="@o.Selected" disabled="@disabled" />
+                                <span class="sec-role-pick__text">
+                                    <strong>@o.Role.RoleName <span class="hrms-code-chip">@o.Role.RoleCode</span></strong>
+                                    @if (!string.IsNullOrWhiteSpace(o.Role.Description))
+                                    {
+                                        <span>@o.Role.Description</span>
+                                    }
+                                    <span class="sec-role-pick__meta">
+                                        @L["sec.n_users", o.Role.UserCount] · @L["sec.n_rights", o.Role.PermissionCount]
+                                        @if (o.Role.CompanyName is not null) { <text> · @o.Role.CompanyName</text> }
+                                    </span>
+                                </span>
+                                @if (o.Role.IsSystem)
+                                {
+                                    <span class="hrms-badge hrms-badge--purple"><span class="hrms-badge__dot"></span>@L["sec.system"]</span>
+                                }
+                                else if (!o.Role.IsActive)
+                                {
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["sec.inactive"]</span>
+                                }
+                                @if (!o.Allowed && Model.CanAssign)
+                                {
+                                    <span class="sec-role-pick__lock" title="@L["sec.cannot_assign"]">@Html.Icon("lock", 14)</span>
+                                }
+                            </label>
+                        </li>
+                    }
+                </ul>
+                <p class="hrms-muted m-0" data-sec-no-roles hidden="@(Model.Roles.Count > 0)">@L["sec.no_roles"]</p>
+                <p class="sec-field-hint m-0" data-sec-roles-company hidden>@L["sec.roles_company_hint"]</p>
+            </fieldset></div>
+        </div>
+    </div>
+</form>

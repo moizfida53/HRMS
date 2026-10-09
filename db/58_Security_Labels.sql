@@ -1,6 +1,6 @@
 /* =====================================================================
    58_Security_Labels.sql  -  HRMS: English + Arabic labels of Security >
-   Create Roles / Assign Roles, and of their messages
+   Create Roles / Manage Users, and of their messages
    ---------------------------------------------------------------------
    Run after db/57. Idempotent: new keys are inserted, existing keys only
    completed (text already edited in Core.UiLabels is never overwritten).
@@ -23,7 +23,7 @@ CREATE TABLE #Seed (
 INSERT INTO #Seed (LabelKey, Module, EnglishText, ArabicText, SourceText) VALUES
     ('layout.security', 'layout', N'Security', N'الأمان', NULL),
     ('layout.create_roles', 'layout', N'Create Roles', N'إنشاء الأدوار', NULL),
-    ('layout.assign_roles', 'layout', N'Assign Roles', N'تعيين الأدوار', NULL),
+    ('layout.assign_roles', 'layout', N'Assign Roles', N'تعيين الأدوار', NULL),          -- kept: replaced by Manage Users
     ('js.sec_failed', 'js', N'The request could not be completed.', N'تعذّر إتمام الطلب.', NULL),
     ('js.sec_discard_changes', 'js', N'Discard the changes to this role?', N'هل تريد تجاهل التغييرات على هذا الدور؟', NULL),
     ('js.sec_summary', 'js', N'{0} pages · {1} functions · {2} approval rights', N'{0} صفحات · {1} وظائف · {2} صلاحيات اعتماد', NULL),
@@ -182,7 +182,70 @@ INSERT INTO #Seed (LabelKey, Module, EnglishText, ArabicText, SourceText) VALUES
     ('msg.sec_no_escalation', 'msg', N'You can only give or remove roles whose rights you hold yourself.', N'يمكنك منح أو إزالة الأدوار التي تملك صلاحياتها فقط.', N'You can only give or remove roles whose rights you hold yourself.'),
     ('msg.sec_record_gone', 'msg', N'That record was not found. Refresh and try again.', N'لم يُعثر على السجل. حدّث الصفحة وحاول مجدداً.', N'That record was not found. Refresh and try again.'),
     ('msg.sec_record_missing', 'msg', N'That record was not found.', N'لم يُعثر على السجل.', N'That record was not found.'),
-    ('msg.sec_no_right', 'msg', N'You do not have permission to do this.', N'ليست لديك صلاحية للقيام بذلك.', N'You do not have permission to do this.');
+    ('msg.sec_no_right', 'msg', N'You do not have permission to do this.', N'ليست لديك صلاحية للقيام بذلك.', N'You do not have permission to do this.'),
+    ('layout.manage_users', 'layout', N'Manage Users', N'إدارة المستخدمين', NULL),
+    ('common.view', 'common', N'View', N'عرض', NULL),
+    ('js.sec_add_user', 'js', N'Add user', N'إضافة مستخدم', NULL),
+    ('js.sec_confirm_activate', 'js', N'Activate {0}? They can sign in again.', N'هل تريد تفعيل {0}؟ سيتمكن من تسجيل الدخول مجدداً.', NULL),
+    ('js.sec_confirm_deactivate', 'js', N'Deactivate {0}? They are signed out and can no longer sign in.', N'هل تريد إيقاف {0}؟ سيتم تسجيل خروجه ولن يتمكن من تسجيل الدخول.', NULL),
+    ('js.sec_employee_company_first', 'js', N'Choose the company first to link an employee.', N'اختر الشركة أولاً لربط موظف.', NULL),
+    ('js.sec_linked_employee_hint', 'js', N'Optional - the employee this person is (for My Payslips and their own records).', N'اختياري - الموظف الذي يمثله هذا الشخص (لكشوف رواتبي وسجلاته الخاصة).', NULL),
+    ('js.sec_enter_password', 'js', N'Enter a password.', N'أدخل كلمة المرور.', NULL),
+    ('js.sec_enter_username', 'js', N'Enter the user name.', N'أدخل اسم المستخدم.', NULL),
+    ('sec.users_subtitle', 'sec', N'Add the people who sign in, reset their passwords and choose their roles', N'أضف الأشخاص الذين يسجلون الدخول، وأعد تعيين كلمات مرورهم، واختر أدوارهم', NULL),
+    ('sec.pg_users', 'sec', N'Manage users', N'إدارة المستخدمين', NULL),
+    ('sec.pg_users_hint', 'sec', N'Write = add and edit users, reset passwords, give roles · Full = also deactivate', N'الكتابة = إضافة المستخدمين وتعديلهم وإعادة تعيين كلمات المرور ومنح الأدوار · الكامل = والإيقاف أيضاً', NULL),
+    ('sec.add_user', 'sec', N'Add user', N'إضافة مستخدم', NULL),
+    ('sec.save_user', 'sec', N'Save user', N'حفظ المستخدم', NULL),
+    ('sec.user_0', 'sec', N'User: {0}', N'المستخدم: {0}', NULL),
+    ('sec.account', 'sec', N'Account', N'الحساب', NULL),
+    ('sec.account_hint', 'sec', N'How the person signs in and which company they work in', N'طريقة تسجيل دخول الشخص والشركة التي يعمل بها', NULL),
+    ('sec.username', 'sec', N'User name', N'اسم المستخدم', NULL),
+    ('sec.email', 'sec', N'Email', N'البريد الإلكتروني', NULL),
+    ('sec.linked_employee', 'sec', N'Linked employee', N'الموظف المرتبط', NULL),
+    ('sec.linked_employee_hint', 'sec', N'Optional - the employee this person is (for My Payslips and their own records).', N'اختياري - الموظف الذي يمثله هذا الشخص (لكشوف رواتبي وسجلاته الخاصة).', NULL),
+    ('sec.employee_company_first', 'sec', N'Choose the company first to link an employee.', N'اختر الشركة أولاً لربط موظف.', NULL),
+    ('sec.no_employee', 'sec', N'No employee', N'بدون موظف', NULL),
+    ('sec.active_account', 'sec', N'Active - may sign in', N'نشط - يمكنه تسجيل الدخول', NULL),
+    ('sec.active_account_hint', 'sec', N'An inactive user cannot sign in; open sessions end within a minute.', N'لا يمكن للمستخدم غير النشط تسجيل الدخول، وتنتهي جلساته المفتوحة خلال دقيقة.', NULL),
+    ('sec.cannot_deactivate_self', 'sec', N'You cannot deactivate your own account.', N'لا يمكنك إيقاف حسابك.', NULL),
+    ('sec.never', 'sec', N'Never', N'أبداً', NULL),
+    ('sec.locked', 'sec', N'Locked', N'مقفل', NULL),
+    ('sec.locked_hint', 'sec', N'Too many wrong passwords - resetting the password unlocks the account', N'محاولات خاطئة كثيرة - إعادة تعيين كلمة المرور تفتح الحساب', NULL),
+    ('sec.first_sign_in', 'sec', N'Must change password', N'يجب تغيير كلمة المرور', NULL),
+    ('sec.must_change_hint', 'sec', N'Chooses a new password at the next sign-in', N'سيختار كلمة مرور جديدة عند تسجيل الدخول التالي', NULL),
+    ('sec.password', 'sec', N'Password', N'كلمة المرور', NULL),
+    ('sec.password_new_hint', 'sec', N'The first password - give it to the user in person', N'كلمة المرور الأولى - سلّمها للمستخدم شخصياً', NULL),
+    ('sec.password_reset_hint', 'sec', N'Set a new password when the user has forgotten theirs', N'عيّن كلمة مرور جديدة إذا نسي المستخدم كلمة مروره', NULL),
+    ('sec.reset_password', 'sec', N'Reset the password', N'إعادة تعيين كلمة المرور', NULL),
+    ('sec.new_password', 'sec', N'New password', N'كلمة المرور الجديدة', NULL),
+    ('sec.confirm_password', 'sec', N'Confirm password', N'تأكيد كلمة المرور', NULL),
+    ('sec.must_change', 'sec', N'Ask for a new password at the first sign-in', N'طلب كلمة مرور جديدة عند أول تسجيل دخول', NULL),
+    ('sec.reset_signs_out', 'sec', N'Resetting signs the user out of every session and unlocks the account.', N'تؤدي إعادة التعيين إلى تسجيل خروج المستخدم من كل الجلسات وفتح الحساب.', NULL),
+    ('sec.user_roles_hint', 'sec', N'Tick the roles this user has. Their access is everything their roles allow.', N'حدّد أدوار هذا المستخدم. صلاحياته هي كل ما تسمح به أدواره.', NULL),
+    ('sec.roles_company_hint', 'sec', N'Roles of other companies are not shown - a user gets shared roles and their own company''s roles.', N'لا تظهر أدوار الشركات الأخرى - يحصل المستخدم على الأدوار المشتركة وأدوار شركته.', NULL),
+    ('sec.user_locked_title', 'sec', N'Read only.', N'للقراءة فقط.', NULL),
+    ('sec.user_locked_text', 'sec', N'This account has rights you do not hold yourself, so only a System Administrator can change it.', N'لهذا الحساب صلاحيات لا تملكها، لذا لا يغيّره إلا مدير النظام.', NULL),
+    ('msg.sec_role_in_use_users', 'msg', N'Users still have this role. Remove it from them on Manage Users first.', N'ما زال هذا الدور مُسنداً لمستخدمين. أزله منهم في إدارة المستخدمين أولاً.', N'Users still have this role. Remove it from them on Manage Users first.'),
+    ('msg.sec_self_deactivate', 'msg', N'You cannot deactivate your own account.', N'لا يمكنك إيقاف حسابك.', N'You cannot deactivate your own account.'),
+    ('msg.sec_admin_account', 'msg', N'Only a System Administrator can change a System Administrator''s account.', N'لا يغيّر حساب مدير النظام إلا مدير النظام.', N'Only a System Administrator can change a System Administrator''s account.'),
+    ('msg.sec_user_activated', 'msg', N'User activated.', N'تم تفعيل المستخدم.', N'User activated.'),
+    ('msg.sec_user_deactivated', 'msg', N'User deactivated. They are signed out within a minute.', N'تم إيقاف المستخدم. سيتم تسجيل خروجه خلال دقيقة.', N'User deactivated. They are signed out within a minute.'),
+    ('msg.sec_enter_username', 'msg', N'Enter the user name.', N'أدخل اسم المستخدم.', N'Enter the user name.'),
+    ('msg.sec_username_rule', 'msg', N'The user name needs at least 3 characters: letters, digits and . _ - @ only.', N'يحتاج اسم المستخدم إلى 3 أحرف على الأقل: حروف وأرقام و . _ - @ فقط.', N'The user name needs at least 3 characters: letters, digits and . _ - @ only.'),
+    ('msg.sec_username_taken', 'msg', N'Another user already has this user name.', N'اسم المستخدم مستخدم لدى مستخدم آخر.', N'Another user already has this user name.'),
+    ('msg.sec_email_taken', 'msg', N'Another user already has this email address.', N'البريد الإلكتروني مستخدم لدى مستخدم آخر.', N'Another user already has this email address.'),
+    ('msg.sec_choose_company', 'msg', N'Choose the user''s company.', N'اختر شركة المستخدم.', N'Choose the user''s company.'),
+    ('msg.sec_company_before_employee', 'msg', N'Choose the user''s company before linking an employee.', N'اختر شركة المستخدم قبل ربط موظف.', N'Choose the user''s company before linking an employee.'),
+    ('msg.sec_employee_company', 'msg', N'The linked employee must belong to the user''s company.', N'يجب أن يتبع الموظف المرتبط شركة المستخدم.', N'The linked employee must belong to the user''s company.'),
+    ('msg.sec_employee_has_user', 'msg', N'This employee already has a user account.', N'لهذا الموظف حساب مستخدم بالفعل.', N'This employee already has a user account.'),
+    ('msg.sec_password_new_user', 'msg', N'Enter a password for the new user.', N'أدخل كلمة مرور للمستخدم الجديد.', N'Enter a password for the new user.'),
+    ('msg.sec_user_created', 'msg', N'User created.', N'تم إنشاء المستخدم.', N'User created.'),
+    ('msg.sec_user_saved', 'msg', N'User saved. Changes apply to them within a minute.', N'تم حفظ المستخدم. تسري التغييرات خلال دقيقة.', N'User saved. Changes apply to them within a minute.'),
+    ('msg.sec_manage_own_rights', 'msg', N'You can only change accounts whose rights you hold yourself.', N'يمكنك تغيير الحسابات التي تملك صلاحياتها فقط.', N'You can only change accounts whose rights you hold yourself.'),
+    ('msg.sec_choose_employee_again', 'msg', N'Choose the employee again.', N'اختر الموظف مرة أخرى.', N'Choose the employee again.'),
+    ('msg.sec_enter_password', 'msg', N'Enter a password.', N'أدخل كلمة المرور.', N'Enter a password.'),
+    ('msg.sec_passwords_differ', 'msg', N'The two passwords don''t match.', N'كلمتا المرور غير متطابقتين.', N'The two passwords don''t match.');
 INSERT INTO [Core].[UiLabels] (LabelKey, Module, EnglishText, ArabicText, SourceText)
 SELECT s.LabelKey, s.Module, s.EnglishText, s.ArabicText, s.SourceText
 FROM   #Seed AS s

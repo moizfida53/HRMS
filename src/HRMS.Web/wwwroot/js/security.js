@@ -1,5 +1,5 @@
 /* ==========================================================================
- * HRMS Kuwait - Security: Create Roles and Assign Roles (db/57)
+ * HRMS Kuwait - Security: Create Roles and Manage Users (db/57)
  * The pages are rendered by the server; this script wires them up.
  *
  *   Create Roles   [data-sec-role="ref"]   opens a role's editor (POST, its
@@ -11,7 +11,9 @@
  *                                          pages; a function needs its page
  *                  save                    posts access=ITEM:R|W|F and
  *                                          approval=APR:L1|L2|SELF
- *   Assign Roles   [data-sec-user="ref"]   opens the user's roles (popup)
+ *   Manage Users   [data-sec-user-add]     a new user (popup)
+ *                  [data-sec-user="ref"]   a user: account, password, roles
+ *                  [data-sec-user-toggle]  activate / deactivate
  *
  * No database id is put in an address or a posted field - only references.
  * ========================================================================== */
@@ -326,19 +328,20 @@
         };
     }
 
-    /* ====================================================== Assign Roles */
-    var assignPage = $("[data-sec-assign]");
-    if (assignPage) {
-        var slot = $("[data-sec-users-slot]", assignPage);
-        var search = $("[data-sec-user-search]", assignPage);
-        var roleSel = $("[data-sec-user-role]", assignPage);
-        var countEl = $("[data-sec-user-count]", assignPage);
+    /* ====================================================== Manage Users */
+    var usersPage = $("[data-sec-users-page]");
+    if (usersPage) {
+        var url = function (k) { return usersPage.getAttribute("data-urls-" + k); };
+        var slot = $("[data-sec-users-slot]", usersPage);
+        var search = $("[data-sec-user-search]", usersPage);
+        var roleSel = $("[data-sec-user-role]", usersPage);
+        var countEl = $("[data-sec-user-count]", usersPage);
         var pageNo = 1, seq = 0;
 
         var loadUsers = function () {
             var mine = ++seq;
             slot.setAttribute("aria-busy", "true");
-            HRMS.postHtml(assignPage.getAttribute("data-urls-grid"), fd({
+            HRMS.postHtml(url("grid"), fd({
                 search: search && search.value.trim() ? search.value.trim() : null,
                 role: roleSel && roleSel.value ? roleSel.value : null,
                 page: String(pageNo)
@@ -358,49 +361,224 @@
         if (roleSel) { roleSel.addEventListener("change", function () { pageNo = 1; loadUsers(); }); }
 
         var modalEl = document.getElementById("sec-user-modal");
+        var body = modalEl && $("[data-sec-modal-body]", modalEl);
         var saveBtn = modalEl && $("[data-sec-user-save]", modalEl);
-        var openRef = null;
+        var userForm = null;
 
-        assignPage.addEventListener("click", function (e) {
-            var pg = e.target.closest("[data-page]");
-            if (pg && !pg.disabled) { pageNo = parseInt(pg.getAttribute("data-page"), 10) || 1; loadUsers(); return; }
-            var u = e.target.closest("[data-sec-user]");
-            if (!u || !modalEl || !window.bootstrap) { return; }
-            openRef = u.getAttribute("data-sec-user");
-            var body = $("[data-sec-modal-body]", modalEl);
-            $("[data-sec-modal-title]", modalEl).textContent = u.getAttribute("data-sec-user-name") || "";
+        var PW_RULES = {
+            length: function (v) { return v.length >= 8; },
+            "case": function (v) { return /[a-z]/.test(v) && /[A-Z]/.test(v); },
+            digit: function (v) { return /\d/.test(v); }
+        };
+
+        var clearErrors = function () {
+            $all("[data-valmsg-for]", userForm).forEach(function (m) { m.textContent = ""; });
+            $all(".is-invalid", userForm).forEach(function (i) { i.classList.remove("is-invalid"); });
+        };
+        var showError = function (name, message) {
+            var input = $('[name="' + name + '"]', userForm);
+            var target = $('[data-valmsg-for="' + name + '"]', userForm);
+            if (input) {
+                input.classList.add("is-invalid");
+                var combo = input.closest(".hrms-combo");
+                if (combo) { combo.classList.add("is-invalid"); }
+            }
+            if (target) { target.textContent = message; }
+        };
+
+        // roles of another company than the user's are not offered (global roles always are)
+        var filterRoles = function () {
+            var company = $("[data-sec-user-company]", userForm);
+            var value = company ? company.value : null;
+            var shown = 0, hiddenAny = false;
+            $all("li[data-role-company]", userForm).forEach(function (li) {
+                var rc = li.getAttribute("data-role-company");
+                var show = !company || !value || !rc || rc === value;
+                li.hidden = !show;
+                if (!show) {
+                    hiddenAny = true;
+                    var box = $('input[name="roles"]', li);
+                    if (box && box.checked && !box.disabled) { box.checked = false; li.querySelector(".sec-role-pick").classList.remove("is-selected"); }
+                } else { shown++; }
+            });
+            var none = $("[data-sec-no-roles]", userForm);
+            if (none) { none.hidden = shown > 0; }
+            var hint = $("[data-sec-roles-company]", userForm);
+            if (hint) { hint.hidden = !hiddenAny; }
+            countRoles();
+        };
+        var countRoles = function () {
+            var el = $("[data-sec-role-count]", userForm);
+            if (!el) { return; }
+            var n = $all('input[name="roles"]:checked', userForm).length;
+            el.textContent = n > 0 ? "(" + n + ")" : "";
+        };
+
+        var loadEmployees = function () {
+            var company = $("[data-sec-user-company]", userForm);
+            var emp = $("[data-sec-user-employee]", userForm);
+            var hint = $("[data-sec-employee-hint]", userForm);
+            if (!company || !emp) { return; }
+            var keepFirst = emp.options[0];
+            emp.innerHTML = "";
+            emp.appendChild(keepFirst);
+            emp.value = "";
+            if (!company.value) {
+                emp.disabled = true;
+                if (hint) { hint.textContent = HRMS.t("js.sec_employee_company_first", "Choose the company first to link an employee."); }
+                emp.dispatchEvent(new Event("hrms:refresh"));
+                return;
+            }
+            HRMS.post(url("employees"), fd({ companyId: company.value })).then(function (list) {
+                (list || []).forEach(function (e) {
+                    var o = document.createElement("option");
+                    o.value = e.value; o.textContent = e.text;
+                    emp.appendChild(o);
+                });
+                emp.disabled = false;
+                if (hint) { hint.textContent = HRMS.t("js.sec_linked_employee_hint", "Optional - the employee this person is (for My Payslips and their own records)."); }
+                emp.dispatchEvent(new Event("hrms:refresh"));
+            }, function (err) { HRMS.toast((err && err.message) || failed(), "error"); });
+        };
+
+        var wireForm = function () {
+            userForm = $("[data-sec-user-form]", body);
+            if (!userForm) { return; }
+            var canSave = userForm.getAttribute("data-can-save") === "true";
+            if (saveBtn) { saveBtn.hidden = !canSave; saveBtn.disabled = false; }
+            var t = $("[data-sec-panel-title]", userForm);
+            if (t) { $("[data-sec-modal-title]", modalEl).textContent = t.textContent.trim(); }
+            if (HRMS.searchable) { $all("select[data-searchable]", userForm).forEach(HRMS.searchable); }
+            filterRoles();
+
+            var company = $("[data-sec-user-company]", userForm);
+            if (company) { company.addEventListener("change", function () { loadEmployees(); filterRoles(); }); }
+
+            var reset = $("[data-sec-pw-reset]", userForm);
+            var fields = $("[data-sec-pw-fields]", userForm);
+            if (reset && fields) {
+                reset.addEventListener("change", function () {
+                    fields.hidden = !reset.checked;
+                    if (reset.checked) { $("#su-password", userForm).focus(); }
+                });
+            }
+            var pw = $("#su-password", userForm);
+            if (pw) {
+                pw.addEventListener("input", function () {
+                    $all("[data-rule]", userForm).forEach(function (li) { li.classList.toggle("is-met", PW_RULES[li.getAttribute("data-rule")](pw.value)); });
+                });
+            }
+
+            userForm.addEventListener("change", function (e) {
+                if (e.target.matches('input[name="roles"]')) {
+                    e.target.closest(".sec-role-pick").classList.toggle("is-selected", e.target.checked);
+                    countRoles();
+                }
+            });
+            userForm.addEventListener("click", function (e) {
+                var toggle = e.target.closest("[data-sec-pw-toggle]");
+                if (!toggle) { return; }
+                var input = toggle.parentNode.querySelector("input");
+                var show = input.type === "password";
+                input.type = show ? "text" : "password";
+                toggle.setAttribute("aria-label", show ? HRMS.t("js.hide_password", "Hide password") : HRMS.t("js.show_password", "Show password"));
+                toggle.classList.toggle("is-on", show);
+            });
+            userForm.addEventListener("submit", function (e) { e.preventDefault(); if (saveBtn && !saveBtn.hidden) { saveBtn.click(); } });
+            var first = $("#su-username:not([disabled])", userForm);
+            if (first && userForm.getAttribute("data-new") === "true") { window.setTimeout(function () { first.focus(); }, 250); }
+        };
+
+        var openUser = function (ref, name) {
+            if (!modalEl || !window.bootstrap) { return; }
             body.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
-            if (saveBtn) { saveBtn.disabled = true; }
+            userForm = null;
+            $("[data-sec-modal-title]", modalEl).textContent = name || HRMS.t("js.sec_add_user", "Add user");
+            if (saveBtn) { saveBtn.hidden = true; }
             window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            HRMS.postHtml(assignPage.getAttribute("data-urls-panel"), fd({ ref: openRef })).then(function (html) {
+            HRMS.postHtml(url("panel"), fd({ ref: ref || null })).then(function (html) {
                 body.innerHTML = html;
-                var t = $("[data-sec-panel-title]", body);
-                if (t) { $("[data-sec-modal-title]", modalEl).textContent = t.textContent.trim(); }
+                wireForm();
             }, function (error) {
                 body.innerHTML = "";
                 HRMS.toast((error && error.message) || failed(), "error");
             });
+        };
+
+        var addBtn = $("[data-sec-user-add]");
+        if (addBtn) { addBtn.addEventListener("click", function () { openUser(null, null); }); }
+
+        usersPage.addEventListener("click", function (e) {
+            var pg = e.target.closest("[data-page]");
+            if (pg && !pg.disabled) { pageNo = parseInt(pg.getAttribute("data-page"), 10) || 1; loadUsers(); return; }
+
+            var tg = e.target.closest("[data-sec-user-toggle]");
+            if (tg) {
+                var activate = tg.getAttribute("data-active") === "true";
+                var who = tg.getAttribute("data-sec-user-name") || "";
+                var question = activate
+                    ? HRMS.t("js.sec_confirm_activate", "Activate {0}? They can sign in again.")
+                    : HRMS.t("js.sec_confirm_deactivate", "Deactivate {0}? They are signed out and can no longer sign in.");
+                if (!window.confirm(question.replace("{0}", who))) { return; }
+                busy(tg, true);
+                HRMS.post(url("toggle"), fd({ ref: tg.getAttribute("data-sec-user-toggle"), active: activate ? "true" : "false" })).then(function (res) {
+                    busy(tg, false);
+                    if (res && res.success) { HRMS.toast(res.message, "success"); loadUsers(); }
+                    else { HRMS.toast((res && res.message) || failed(), "error"); }
+                }, function (err) { busy(tg, false); HRMS.toast((err && err.message) || failed(), "error"); });
+                return;
+            }
+
+            var u = e.target.closest("[data-sec-user]");
+            if (u) { openUser(u.getAttribute("data-sec-user"), u.getAttribute("data-sec-user-name")); }
         });
 
-        if (modalEl) {
-            modalEl.addEventListener("change", function (e) {
-                if (!e.target.matches('input[name="roles"]')) { return; }
-                e.target.closest(".sec-role-pick").classList.toggle("is-selected", e.target.checked);
-                if (saveBtn) { saveBtn.disabled = false; }
-            });
-        }
         if (saveBtn) {
             saveBtn.addEventListener("click", function () {
-                var body = new FormData();
-                body.append("ref", openRef);
-                $all('input[name="roles"]:checked', modalEl).forEach(function (c) { body.append("roles", c.value); });
+                if (!userForm) { return; }
+                clearErrors();
+                var isNew = userForm.getAttribute("data-new") === "true";
+                var simple = userForm.getAttribute("data-simple") === "true";
+                var reset = $("[data-sec-pw-reset]", userForm);
+                var setPw = isNew || (reset && reset.checked);
+                var accountEditable = !$("#su-username", userForm).closest("fieldset").disabled;
+
+                // quick checks so the common mistakes need no round trip
+                var bad = false;
+                if (accountEditable) {
+                    if (!$("#su-username", userForm).value.trim()) { showError("username", HRMS.t("js.sec_enter_username", "Enter the user name.")); bad = true; }
+                    if (setPw) {
+                        var p1 = $("#su-password", userForm).value, p2 = $("#su-confirm", userForm).value;
+                        if (!p1) { showError("password", HRMS.t("js.sec_enter_password", "Enter a password.")); bad = true; }
+                        else if (simple ? p1.length > 50 : !(PW_RULES.length(p1) && PW_RULES["case"](p1) && PW_RULES.digit(p1))) {
+                            showError("password", HRMS.t("js.password_rules_not_met", "The new password doesn't meet the rules below.")); bad = true;
+                        } else if (p1 !== p2) { showError("confirmPassword", HRMS.t("js.passwords_dont_match", "The two new passwords don't match.")); bad = true; }
+                    }
+                }
+                if (bad) { var f1 = $(".is-invalid", userForm); if (f1) { f1.focus(); } return; }
+
+                var data = new FormData(userForm);
+                data.delete("roles");
+                // every ticked role, also the ones you cannot change (so they stay)
+                $all('input[name="roles"]:checked', userForm).forEach(function (c) { data.append("roles", c.value); });
+                var active = $("#su-active", userForm);
+                data.set("isActive", active && active.checked ? "true" : "false");
+                if (!setPw) { data.delete("password"); data.delete("confirmPassword"); data.set("resetPassword", "false"); }
+                var mc = $("#su-must", userForm);
+                data.set("mustChangePassword", mc && mc.checked ? "true" : "false");
+                var ref = userForm.getAttribute("data-ref");
+                if (ref) { data.set("ref", ref); }
+
                 busy(saveBtn, true);
-                HRMS.post(assignPage.getAttribute("data-urls-save"), body).then(function (res) {
+                HRMS.post(url("save"), data).then(function (res) {
                     busy(saveBtn, false);
                     if (res && res.success) {
                         HRMS.toast(res.message, "success");
                         window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
                         loadUsers();
+                    } else if (res && res.errors) {
+                        Object.keys(res.errors).forEach(function (k) { showError(k, res.errors[k][0]); });
+                        var f2 = $(".is-invalid", userForm); if (f2) { f2.focus(); }
                     } else {
                         HRMS.toast((res && res.message) || failed(), "error");
                     }

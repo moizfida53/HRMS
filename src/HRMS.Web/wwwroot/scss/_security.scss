@@ -1,5 +1,5 @@
 // ============================================================================
-// Security > Create Roles / Assign Roles (db/57)
+// Security > Create Roles / Manage Users (db/57)
 // ----------------------------------------------------------------------------
 // Create Roles: the role list (left) and the editor (right) - details, the access
 // matrix (module > page > function x Read / Write / Full) and the approval rights.
@@ -318,7 +318,7 @@ $sec-full: $purple-700;
   }
 }
 
-// ---------------------------------------------------------- assign roles ----
+// ---------------------------------------------------------- manage users ----
 .sec-toolbar-icon {
   display: inline-grid; place-items: center; inline-size: 34px; block-size: 34px; flex: 0 0 auto;
   border-radius: $radius; background: $blue-050; color: $blue-700;
@@ -339,6 +339,56 @@ $sec-full: $purple-700;
   font-size: $fs-xs; font-weight: $fw-semibold; color: $blue-700; white-space: nowrap;
 }
 .sec-assign-btn { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
+
+.sec-row-actions {
+  display: inline-flex; align-items: center; justify-content: flex-end; gap: space("2"); flex-wrap: wrap;
+  // narrow screens: the deactivate / activate button keeps only its icon
+  @include cq-down("sm") { &__text { @include visually-hidden; } }
+}
+.sec-status-cell { .hrms-badge + .hrms-badge { margin-inline-start: 4px; } }
+
+// the user popup: account + password (left), roles (right) - stacks below lg
+.sec-user-form { display: grid; gap: space("3"); .pr-banner { margin: 0; } }
+
+.sec-user-card {
+  min-width: 0; padding: space("4"); border: 1px solid $line-200; border-radius: $radius-lg; background: $white;
+  box-shadow: 0 1px 2px rgba($ink-900, .04);
+
+  // the fieldset carries no border (its legend would cut it): the card around it does
+  &__body { display: grid; gap: space("3"); }
+
+  &__head {
+    display: flex; align-items: center; gap: space("3"); float: none; inline-size: 100%;
+    margin: 0 0 space("1"); padding: 0 0 space("3"); border-bottom: 1px dashed $line-200; font-size: inherit;
+  }
+  &__icon {
+    display: inline-grid; place-items: center; inline-size: 38px; block-size: 38px; flex: 0 0 auto;
+    border-radius: $radius-md; color: $white;
+    background: linear-gradient(135deg, $blue-500, $blue-700);
+    box-shadow: 0 6px 14px -6px rgba($blue-700, .55);
+    &--key { background: linear-gradient(135deg, $amber-600, $amber-700); box-shadow: 0 6px 14px -6px rgba($amber-700, .55); }
+    &--roles { background: linear-gradient(135deg, color.adjust($purple-700, $lightness: 12%), $purple-700); box-shadow: 0 6px 14px -6px rgba($purple-700, .55); }
+  }
+  &--roles .sec-role-picks { max-block-size: min(56vh, 520px); overflow-y: auto; padding-inline-end: 2px; }
+
+  @media (max-width: 575.98px) { padding: space("3"); }
+}
+
+.sec-role-count { font-weight: $fw-semibold; color: $blue-700; }
+.sec-field-hint { display: block; margin-top: 4px; font-size: $fs-xs; color: $ink-500; }
+
+.sec-user-switch {
+  padding: space("3"); border-radius: $radius-md; background: $surface-2;
+  .form-check-label { font-weight: $fw-semibold; color: $ink-900; }
+}
+.sec-user-form .form-switch .form-check-label { padding-inline-start: space("2"); }
+
+.sec-user-facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: space("2"); margin: 0;
+  > div { padding: space("2") space("3"); border: 1px solid $line-200; border-radius: $radius; }
+  dt { font-size: $fs-xs; font-weight: $fw-medium; color: $ink-500; }
+  dd { margin: 0; font-size: $fs-sm; font-weight: $fw-semibold; color: $ink-900; }
+}
 
 .sec-user-panel {
   display: grid; gap: space("3");

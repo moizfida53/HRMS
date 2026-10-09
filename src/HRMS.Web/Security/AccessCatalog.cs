@@ -144,7 +144,7 @@ public static class AccessCatalog
         new("SEC", "sec.mod_security", "shield",
         [
             new("SEC.ROLES", "sec.pg_roles", "sec.pg_roles_hint", C("SECURITY_ROLE_VIEW"), C("SECURITY_ROLE_EDIT"), C("SECURITY_ROLE_DELETE")),
-            new("SEC.ASSIGN", "sec.pg_assign", "sec.pg_assign_hint", C("SECURITY_USER_VIEW"), C("SECURITY_USER_ASSIGN"), No)
+            new("SEC.USERS", "sec.pg_users", "sec.pg_users_hint", C("SECURITY_USER_VIEW"), C("SECURITY_USER_EDIT", "SECURITY_USER_ASSIGN"), C("SECURITY_USER_DISABLE"))
         ])
     ];
 
@@ -222,7 +222,7 @@ public static class AccessCatalog
         ["tab:calendars"] = ["PAYROLL_CALENDAR_VIEW"],
         ["tab:pay-periods"] = ["PAYROLL_CALENDAR_VIEW"],
         ["security:roles"] = ["SECURITY_ROLE_VIEW"],
-        ["security:assign"] = ["SECURITY_USER_VIEW"]
+        ["security:users"] = ["SECURITY_USER_VIEW"]
     };
 
     /// <summary>The user may open a sidebar entry (unknown entries stay visible).</summary>

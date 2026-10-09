@@ -92,7 +92,7 @@
             var canOrganization = CurrentUser.CanOpen("organization");
             var canSettings = CurrentUser.CanOpen("payroll:settings");
             var canRoles = CurrentUser.CanOpen("security:roles");
-            var canAssign = CurrentUser.CanOpen("security:assign");
+            var canUsers = CurrentUser.CanOpen("security:users");
             var payrollSections = HRMS.Web.Models.Payroll.PayrollNav.Sections
                 .Where(s => s.Key != HRMS.Web.Models.Payroll.PayrollNav.SettingsKey && CurrentUser.CanOpen("payroll:" + s.Key))
                 .ToList();
@@ -229,8 +229,8 @@
             </div>
             }
 
-            @* Security: roles and their access (db/57) *@
-            @if (canRoles || canAssign)
+            @* Security: roles and their access, the users and their roles (db/57) *@
+            @if (canRoles || canUsers)
             {
                 <div class="hrms-nav-group">
                     <button type="button" class="hrms-nav-group__toggle @(openSecurity ? null : "collapsed")" data-bs-toggle="collapse"
@@ -245,11 +245,11 @@
                                 @Html.Icon("key")<span>@L["layout.create_roles"]</span>
                             </a>
                         }
-                        @if (canAssign)
+                        @if (canUsers)
                         {
-                            <a class="hrms-nav-link @(openSecurity && (ViewData["SecurityPage"] as string) == "assign" ? "is-active" : null)"
-                               asp-controller="Security" asp-action="Assign">
-                                @Html.Icon("user-check")<span>@L["layout.assign_roles"]</span>
+                            <a class="hrms-nav-link @(openSecurity && (ViewData["SecurityPage"] as string) == "users" ? "is-active" : null)"
+                               asp-controller="Security" asp-action="Users">
+                                @Html.Icon("users")<span>@L["layout.manage_users"]</span>
                             </a>
                         }
                     </div>

@@ -1,20 +1,23 @@
 @using HRMS.Web.Models.Security
-@model AssignPageModel
+@model UsersPageModel
 @{
-    // Security > Assign Roles (db/57): every user with their roles; Assign roles opens a popup.
-    ViewData["Title"] = "Assign Roles";
+    // Security > Manage Users (db/57): the accounts that sign in. Add user / Edit open a popup with
+    // the account, its password and its roles - role assignment is part of the user.
+    ViewData["Title"] = "Manage Users";
     ViewData["ActiveArea"] = "security";
-    ViewData["SecurityPage"] = "assign";
-    ViewData["Subtitle"] = L["sec.assign_subtitle"];
+    ViewData["SecurityPage"] = "users";
+    ViewData["Subtitle"] = L["sec.users_subtitle"];
 }
-<div class="sec-page" data-sec-assign
+<div class="sec-page" data-sec-users-page
      data-urls-grid="@Url.Action("UsersGrid", "Security")"
      data-urls-panel="@Url.Action("UserPanel", "Security")"
-     data-urls-save="@Url.Action("SaveUserRoles", "Security")">
+     data-urls-employees="@Url.Action("UserEmployees", "Security")"
+     data-urls-save="@Url.Action("SaveUser", "Security")"
+     data-urls-toggle="@Url.Action("ToggleUser", "Security")">
     <section class="hrms-card" data-sec-users>
         <div class="hrms-card__toolbar">
             <div class="hrms-card__filters">
-                <span class="sec-toolbar-icon" aria-hidden="true">@Html.Icon("user-check", 18)</span>
+                <span class="sec-toolbar-icon" aria-hidden="true">@Html.Icon("users", 18)</span>
                 <label class="hrms-search sec-users__search">
                     @Html.Icon("search", 16)
                     <input type="search" data-sec-user-search autocomplete="off" placeholder="@L["sec.search_users"]" aria-label="@L["sec.search_users"]" />
@@ -35,25 +38,28 @@
 </div>
 @Html.AntiForgeryToken()
 
-<div class="modal fade sec-modal" id="sec-user-modal" tabindex="-1" aria-hidden="true" aria-labelledby="sec-user-modal-title">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+<div class="modal fade sec-modal" id="sec-user-modal" tabindex="-1" aria-hidden="true" aria-labelledby="sec-user-modal-title" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title h5" id="sec-user-modal-title" data-sec-modal-title>@L["sec.assign_roles"]</h2>
+                <h2 class="modal-title h5" id="sec-user-modal-title" data-sec-modal-title>@L["sec.add_user"]</h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
             </div>
             <div class="modal-body" data-sec-modal-body></div>
-            <div class="modal-footer" data-sec-modal-footer>
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
-                @if (Model.CanAssign)
-                {
-                    <button type="button" class="btn btn-primary" data-sec-user-save disabled>@Html.Icon("check", 15)<span>@L["sec.save_roles"]</span></button>
-                }
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="button" class="btn btn-primary" data-sec-user-save hidden>@Html.Icon("check", 15)<span>@L["sec.save_user"]</span></button>
             </div>
         </div>
     </div>
 </div>
 
+@section PageActions {
+    @if (Model.CanCreate)
+    {
+        <button type="button" class="btn btn-primary" data-sec-user-add>@Html.Icon("plus", 15)<span>@L["sec.add_user"]</span></button>
+    }
+}
 @section Scripts {
     <script src="~/js/security.js" asp-append-version="true"></script>
 }

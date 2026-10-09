@@ -1,14 +1,17 @@
 using System.Security.Claims;
 using HRMS.Data.Repositories;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace HRMS.Web.Security;
 
 /// <summary>
-/// Keeps the permissions in the sign-in cookie in step with Security > Create Roles /
-/// Assign Roles. At most once a minute per user, the permission codes and roles are read
-/// again; when they differ from the cookie's, the cookie is re-issued with the new ones -
-/// so a right given or removed applies within a minute, without signing in again.
+/// Keeps the sign-in cookie in step with Security > Create Roles / Manage Users. At most
+/// once a minute per user, the account, its permission codes and roles are read again:
+/// a deactivated account, or one whose security stamp changed (an administrator reset its
+/// password, deactivated it or renamed it) is signed out; otherwise, when the rights differ
+/// from the cookie's, the cookie is re-issued with the new ones - so a right given or
+/// removed applies within a minute, without signing in again.
 /// A database hiccup leaves the session as it is.
 /// </summary>
 public static class PermissionRefresh
@@ -30,14 +33,25 @@ public static class PermissionRefresh
 
         IReadOnlyList<string> permissions;
         IReadOnlyList<HRMS.Domain.Security.RoleInfo> roles;
+        HRMS.Domain.Security.AuthUser? account;
         try
         {
             var auth = context.HttpContext.RequestServices.GetRequiredService<IAuthRepository>();
+            account = await auth.FindForLoginAsync(identity.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty, context.HttpContext.RequestAborted);
             permissions = await auth.GetPermissionsAsync(userId, context.HttpContext.RequestAborted);
             roles = await auth.GetRolesAsync(userId, context.HttpContext.RequestAborted);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            return;
+        }
+
+        var stamp = identity.FindFirst(HrmsClaims.SecurityStamp)?.Value;
+        if (account is null || account.UserId != userId || !account.IsActive
+            || (stamp is not null && !string.Equals(stamp, account.SecurityStamp.ToString(), StringComparison.OrdinalIgnoreCase)))
+        {
+            context.RejectPrincipal();
+            await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return;
         }
 

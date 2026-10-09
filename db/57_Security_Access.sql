@@ -1,5 +1,5 @@
 /* =====================================================================
-   57_Security_Access.sql  -  HRMS: Security > Create Roles / Assign Roles
+   57_Security_Access.sql  -  HRMS: Security > Create Roles / Manage Users
    ---------------------------------------------------------------------
    Run after 01-56. Safe to re-run.
 
@@ -20,7 +20,7 @@
           - System Administrator (SYSADMIN) holds every permission
      4. Security.usp_Auth_Manage re-issued: GET_PERMISSIONS / GET_ROLES skip
         soft-deleted links (db/28 turns DELETE into Deleted = 1, so a revoked
-        right used to keep working)
+        right used to keep working); LOGIN_LOOKUP skips removed accounts
      5. Security.usp_SecurityAdmin_Manage
           ROLES            roles in scope (+ users, rights counts)
           ROLE_GET         one role
@@ -31,6 +31,11 @@
           USERS            users in scope with their roles (paged, search,
                            role filter; @UserId = that one user)
           USER_ROLES_SET   replace a user's roles (within the roles in scope)
+          USER_SAVE        Security > Manage Users: add / edit a user (name,
+                           email, company, linked employee, active, a new
+                           password) and replace their roles - one transaction
+          USER_TOGGLE      activate / deactivate a user (not yourself, not
+                           the last active System Administrator)
 
    Rules: a user gets global roles and their own company's roles only.
    SYSADMIN is a system role - its rights cannot be edited and only a
@@ -115,7 +120,9 @@ INSERT INTO #Codes (PermissionCode, Module, Action) VALUES
     ('SECURITY_ROLE_EDIT', 'Security', 'RoleEdit'),
     ('SECURITY_ROLE_DELETE', 'Security', 'RoleDelete'),
     ('SECURITY_USER_VIEW', 'Security', 'UserView'),
-    ('SECURITY_USER_ASSIGN', 'Security', 'UserAssign');
+    ('SECURITY_USER_ASSIGN', 'Security', 'UserAssign'),
+    ('SECURITY_USER_EDIT', 'Security', 'UserEdit'),
+    ('SECURITY_USER_DISABLE', 'Security', 'UserDisable');
 
 UPDATE c SET IsNew = 1 FROM #Codes c
 WHERE NOT EXISTS (SELECT 1 FROM [Security].[Permissions] p WHERE p.PermissionCode = c.PermissionCode AND p.Deleted = 0);
@@ -138,7 +145,8 @@ INSERT INTO #Grant (PermissionCode, FromCode) VALUES
     ('PAYROLL_CALENDAR_VIEW', 'PAYROLL_SETUP_VIEW'), ('PAYROLL_CALENDAR_EDIT', 'PAYROLL_SETUP_EDIT'), ('PAYROLL_CALENDAR_EDIT', 'PAYROLL_SETUP_CREATE'),
     ('PAYROLL_CALENDAR_DELETE', 'PAYROLL_SETUP_DELETE'),
     ('PAYROLL_ITEM_APPROVE_L1', 'PAYROLL_RUN_APPROVE_HR'), ('PAYROLL_ITEM_APPROVE_L2', 'PAYROLL_RUN_APPROVE_FINANCE'),
-    ('PAYROLL_FS_APPROVE_L1', 'PAYROLL_RUN_APPROVE_HR'), ('PAYROLL_FS_APPROVE_L2', 'PAYROLL_RUN_APPROVE_FINANCE');
+    ('PAYROLL_FS_APPROVE_L1', 'PAYROLL_RUN_APPROVE_HR'), ('PAYROLL_FS_APPROVE_L2', 'PAYROLL_RUN_APPROVE_FINANCE'),
+    ('SECURITY_USER_EDIT', 'SECURITY_USER_ASSIGN'), ('SECURITY_USER_DISABLE', 'SECURITY_USER_ASSIGN');
 
 /* Organization Setup had no check either: its old codes go to every role, the first time only */
 IF EXISTS (SELECT 1 FROM #Codes WHERE PermissionCode = 'ORGANIZATION_COMPANY_EDIT' AND IsNew = 1)
@@ -246,8 +254,9 @@ BEGIN
         FROM        [Security].[Users]    AS u
         LEFT JOIN   [Core].[Companies]    AS c ON c.CompanyId  = u.CompanyId
         LEFT JOIN   [Employee].[Employees] AS e ON e.EmployeeId = u.EmployeeId
-        WHERE       u.Username = @Username
-                OR (u.Email IS NOT NULL AND u.Email = @Username)
+        WHERE       u.Deleted = 0      -- a removed account never signs in (Manage Users may reuse its name)
+            AND     (u.Username = @Username
+                     OR (u.Email IS NOT NULL AND u.Email = @Username))
         ORDER BY    CASE WHEN u.Username = @Username THEN 0 ELSE 1 END;
 
         RETURN;
@@ -421,6 +430,13 @@ CREATE OR ALTER PROCEDURE [Security].[usp_SecurityAdmin_Manage]
     @PageNumber      INT             = 1,
     @PageSize        INT             = 25,
     @CallerIsSysAdmin BIT            = 0,
+    @Username        NVARCHAR(100)   = NULL,     -- USER_SAVE
+    @Email           NVARCHAR(200)   = NULL,
+    @UserCompanyId   INT             = NULL,     -- USER_SAVE: NULL = every company (System Administrator only)
+    @EmployeeId      BIGINT          = NULL,     -- USER_SAVE: the linked employee (optional)
+    @PasswordHash    NVARCHAR(400)   = NULL,     -- USER_SAVE: a new password (hash); NULL = keep it
+    @PlainPassword   NVARCHAR(50)    = NULL,     -- simple-password mode only (db/27)
+    @MustChangePassword BIT          = NULL,
     @ActionBy        BIGINT          = NULL,
 
     @TotalCount      INT             = NULL OUTPUT,
@@ -443,7 +459,7 @@ BEGIN
         ELSE N'%' + REPLACE(REPLACE(REPLACE(@Search, N'\', N'\\'), N'%', N'\%'), N'_', N'\_') + N'%' END;
     DECLARE @Now DATETIME2(0) = SYSUTCDATETIME();
 
-    IF @Action NOT IN ('ROLES', 'ROLE_GET', 'ROLE_CODES', 'ROLE_SAVE', 'ROLE_DELETE', 'USERS', 'USER_ROLES_SET')
+    IF @Action NOT IN ('ROLES', 'ROLE_GET', 'ROLE_CODES', 'ROLE_SAVE', 'ROLE_DELETE', 'USERS', 'USER_ROLES_SET', 'USER_SAVE', 'USER_TOGGLE')
     BEGIN
         SELECT @ResultCode = 'INVALID_ACTION', @ResultMessage = N'Unsupported action.';
         RETURN;
@@ -606,7 +622,7 @@ BEGIN
         IF EXISTS (SELECT 1 FROM [Security].[UserRoles] ur JOIN [Security].[Users] u ON u.UserId = ur.UserId
                    WHERE ur.RoleId = @RoleId AND ur.Deleted = 0 AND u.Deleted = 0)
         BEGIN
-            SELECT @ResultCode = 'IN_USE', @ResultMessage = N'Users still have this role. Remove it from them on Assign Roles first.';
+            SELECT @ResultCode = 'IN_USE', @ResultMessage = N'Users still have this role. Remove it from them on Manage Users first.';
             RETURN;
         END;
         BEGIN TRANSACTION;
@@ -627,9 +643,9 @@ BEGIN
         LEFT JOIN [Employee].[Employees] e ON e.EmployeeId = u.EmployeeId
         WHERE  u.Deleted = 0
           AND  (@CompanyId IS NULL OR u.CompanyId = @CompanyId)
-          AND  (@UserId IS NULL OR u.UserId = @UserId)         -- one user (Assign Roles popup)
+          AND  (@UserId IS NULL OR u.UserId = @UserId)         -- one user (Manage Users popup)
           AND  (@Pattern IS NULL OR u.Username LIKE @Pattern ESCAPE '\' OR u.Email LIKE @Pattern ESCAPE '\'
-                OR e.FirstName LIKE @Pattern ESCAPE '\' OR e.LastName LIKE @Pattern ESCAPE '\')
+                OR e.FirstName LIKE @Pattern ESCAPE '\' OR e.LastName LIKE @Pattern ESCAPE '\' OR e.EmployeeCode LIKE @Pattern ESCAPE '\')
           AND  (@RoleFilter IS NULL OR EXISTS (SELECT 1 FROM [Security].[UserRoles] ur WHERE ur.UserId = u.UserId AND ur.RoleId = @RoleFilter AND ur.Deleted = 0)
                 OR (@RoleFilter = 0 AND NOT EXISTS (SELECT 1 FROM [Security].[UserRoles] ur JOIN [Security].[Roles] r ON r.RoleId = ur.RoleId
                                                      WHERE ur.UserId = u.UserId AND ur.Deleted = 0 AND r.Deleted = 0)));
@@ -637,7 +653,8 @@ BEGIN
         SET @TotalCount = (SELECT COUNT(1) FROM @U);
 
         SELECT  u.UserId, u.Username, u.Email, x.SortName AS DisplayName, u.CompanyId, co.CompanyName, u.IsActive, u.LastLoginDate,
-                e.EmployeeCode,
+                e.EmployeeCode, u.EmployeeId, u.MustChangePassword,
+                CAST(CASE WHEN u.LockoutEndUtc > SYSUTCDATETIME() THEN 1 ELSE 0 END AS BIT) AS IsLockedOut,
                 (SELECT STRING_AGG(CAST(r.RoleId AS VARCHAR(12)), ',') FROM [Security].[UserRoles] ur
                    JOIN [Security].[Roles] r ON r.RoleId = ur.RoleId AND r.Deleted = 0
                   WHERE ur.UserId = u.UserId AND ur.Deleted = 0) AS RoleIds,
@@ -653,18 +670,143 @@ BEGIN
         RETURN;
     END;
 
-    /* ======================= USER_ROLES_SET ====================== */
-    IF @Action = 'USER_ROLES_SET'
+    /* ======================= USER_TOGGLE ========================= */
+    IF @Action = 'USER_TOGGLE'
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM [Security].[Users] WHERE UserId = @UserId AND Deleted = 0
-                         AND (@CompanyId IS NULL OR CompanyId = @CompanyId))
+        DECLARE @tActive BIT;
+        SELECT @tActive = IsActive FROM [Security].[Users]
+        WHERE  UserId = @UserId AND Deleted = 0 AND (@CompanyId IS NULL OR CompanyId = @CompanyId);
+        IF @tActive IS NULL
         BEGIN
             SELECT @ResultCode = 'NOT_FOUND', @ResultMessage = N'That user was not found.';
             RETURN;
         END;
+        SET @IsActive = ISNULL(@IsActive, 1);
+        IF @IsActive = 0 AND @UserId = @ActionBy
+        BEGIN
+            SELECT @ResultCode = 'SELF', @ResultMessage = N'You cannot deactivate your own account.';
+            RETURN;
+        END;
+        IF @IsActive = 0
+           AND EXISTS (SELECT 1 FROM [Security].[UserRoles] ur JOIN [Security].[Roles] r ON r.RoleId = ur.RoleId AND r.Deleted = 0
+                       WHERE ur.UserId = @UserId AND ur.Deleted = 0 AND r.RoleCode = N'SYSADMIN')
+        BEGIN
+            IF ISNULL(@CallerIsSysAdmin, 0) = 0
+            BEGIN
+                SELECT @ResultCode = 'FORBIDDEN', @ResultMessage = N'Only a System Administrator can change a System Administrator''s account.';
+                RETURN;
+            END;
+            IF NOT EXISTS (SELECT 1 FROM [Security].[UserRoles] ur JOIN [Security].[Roles] r ON r.RoleId = ur.RoleId AND r.Deleted = 0
+                           JOIN [Security].[Users] u ON u.UserId = ur.UserId
+                           WHERE ur.Deleted = 0 AND r.RoleCode = N'SYSADMIN' AND u.Deleted = 0 AND u.IsActive = 1 AND u.UserId <> @UserId)
+            BEGIN
+                SELECT @ResultCode = 'LAST_ADMIN', @ResultMessage = N'This is the last active System Administrator - give the role to another user first.';
+                RETURN;
+            END;
+        END;
+        BEGIN TRANSACTION;
+            /* a new security stamp signs the user out of every session (PermissionRefresh) */
+            UPDATE [Security].[Users]
+               SET IsActive = @IsActive, SecurityStamp = CASE WHEN @IsActive = 0 THEN NEWID() ELSE SecurityStamp END,
+                   FailedLoginAttempts = CASE WHEN @IsActive = 1 THEN 0 ELSE FailedLoginAttempts END,
+                   LockoutEndUtc = CASE WHEN @IsActive = 1 THEN NULL ELSE LockoutEndUtc END,
+                   ModifiedBy = @ActionBy, ModifiedDate = @Now
+            WHERE  UserId = @UserId;
+            INSERT INTO [Security].[RoleAccessLog] (UserId, ActionCode, Detail, ActionBy)
+            VALUES (@UserId, CASE WHEN @IsActive = 1 THEN 'USER_ACTIVATED' ELSE 'USER_DEACTIVATED' END, NULL, @ActionBy);
+        COMMIT TRANSACTION;
+        SET @ResultMessage = CASE WHEN @IsActive = 1 THEN N'User activated.' ELSE N'User deactivated. They are signed out within a minute.' END;
+        RETURN;
+    END;
+
+    /* ======================= USER_SAVE / USER_ROLES_SET ========== */
+    IF @Action IN ('USER_SAVE', 'USER_ROLES_SET')
+    BEGIN
+        DECLARE @IsNewUser BIT = CASE WHEN @Action = 'USER_SAVE' AND ISNULL(@UserId, 0) = 0 THEN 1 ELSE 0 END;
+        DECLARE @UserCompany INT, @OldEmployee BIGINT, @OldActive BIT;
+
+        IF @IsNewUser = 0
+        BEGIN
+            SELECT @UserCompany = CompanyId, @OldEmployee = EmployeeId, @OldActive = IsActive
+            FROM   [Security].[Users]
+            WHERE  UserId = @UserId AND Deleted = 0 AND (@CompanyId IS NULL OR CompanyId = @CompanyId);
+            IF @@ROWCOUNT = 0
+            BEGIN
+                SELECT @ResultCode = 'NOT_FOUND', @ResultMessage = N'That user was not found.';
+                RETURN;
+            END;
+        END;
+
+        IF @Action = 'USER_SAVE'
+        BEGIN
+            SET @Username = LOWER(NULLIF(LTRIM(RTRIM(@Username)), N''));
+            SET @Email    = NULLIF(LTRIM(RTRIM(@Email)), N'');
+            /* a pinned caller's users always belong to their company */
+            IF @CompanyId IS NOT NULL SET @UserCompanyId = @CompanyId;
+
+            IF @Username IS NULL
+            BEGIN
+                SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'Enter the user name.';
+                RETURN;
+            END;
+            IF LEN(@Username) < 3 OR @Username LIKE N'%[^a-z0-9._@-]%'
+            BEGIN
+                SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'The user name needs at least 3 characters: letters, digits and . _ - @ only.';
+                RETURN;
+            END;
+            IF @Email IS NOT NULL AND (@Email NOT LIKE N'_%@_%._%' OR @Email LIKE N'% %')
+            BEGIN
+                SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'Enter a valid email address.';
+                RETURN;
+            END;
+            IF EXISTS (SELECT 1 FROM [Security].[Users] WHERE Deleted = 0 AND Username = @Username AND UserId <> ISNULL(@UserId, 0))
+            BEGIN
+                SELECT @ResultCode = 'DUPLICATE', @ResultMessage = N'Another user already has this user name.';
+                RETURN;
+            END;
+            IF @Email IS NOT NULL AND EXISTS (SELECT 1 FROM [Security].[Users] WHERE Deleted = 0 AND Email = @Email AND UserId <> ISNULL(@UserId, 0))
+            BEGIN
+                SELECT @ResultCode = 'DUPLICATE', @ResultMessage = N'Another user already has this email address.';
+                RETURN;
+            END;
+            IF @UserCompanyId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM [Core].[Companies] WHERE CompanyId = @UserCompanyId AND Deleted = 0)
+            BEGIN
+                SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'Choose the user''s company.';
+                RETURN;
+            END;
+            IF @EmployeeId IS NOT NULL
+            BEGIN
+                IF @UserCompanyId IS NULL
+                BEGIN
+                    SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'Choose the user''s company before linking an employee.';
+                    RETURN;
+                END;
+                IF NOT EXISTS (SELECT 1 FROM [Employee].[Employees] WHERE EmployeeId = @EmployeeId AND Deleted = 0 AND CompanyId = @UserCompanyId)
+                BEGIN
+                    SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'The linked employee must belong to the user''s company.';
+                    RETURN;
+                END;
+                IF EXISTS (SELECT 1 FROM [Security].[Users] WHERE Deleted = 0 AND EmployeeId = @EmployeeId AND UserId <> ISNULL(@UserId, 0))
+                BEGIN
+                    SELECT @ResultCode = 'DUPLICATE', @ResultMessage = N'This employee already has a user account.';
+                    RETURN;
+                END;
+            END;
+            IF @IsNewUser = 1 AND @PasswordHash IS NULL
+            BEGIN
+                SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'Enter a password for the new user.';
+                RETURN;
+            END;
+            SET @IsActive = ISNULL(@IsActive, 1);
+            IF @IsNewUser = 0 AND @IsActive = 0 AND @UserId = @ActionBy
+            BEGIN
+                SELECT @ResultCode = 'SELF', @ResultMessage = N'You cannot deactivate your own account.';
+                RETURN;
+            END;
+            SET @UserCompany = @UserCompanyId;
+        END;
 
         /* a user gets global roles and their own company's roles only */
-        DECLARE @UserCompany INT = (SELECT CompanyId FROM [Security].[Users] WHERE UserId = @UserId);
         DECLARE @Want TABLE (RoleId INT PRIMARY KEY);
         INSERT INTO @Want
         SELECT DISTINCT v.RoleId FROM @Visible v
@@ -673,15 +815,17 @@ BEGIN
           AND (r.CompanyId IS NULL OR @UserCompany IS NULL OR r.CompanyId = @UserCompany);
 
         DECLARE @SysRole INT = (SELECT TOP 1 RoleId FROM [Security].[Roles] WHERE RoleCode = N'SYSADMIN' AND Deleted = 0 ORDER BY CASE WHEN CompanyId IS NULL THEN 0 ELSE 1 END);
-        DECLARE @HasSys BIT = CASE WHEN EXISTS (SELECT 1 FROM [Security].[UserRoles] WHERE UserId = @UserId AND RoleId = @SysRole AND Deleted = 0) THEN 1 ELSE 0 END;
+        DECLARE @HasSys BIT = CASE WHEN EXISTS (SELECT 1 FROM [Security].[UserRoles] WHERE UserId = ISNULL(@UserId, 0) AND RoleId = @SysRole AND Deleted = 0) THEN 1 ELSE 0 END;
         DECLARE @WantsSys BIT = CASE WHEN EXISTS (SELECT 1 FROM @Want WHERE RoleId = @SysRole) THEN 1 ELSE 0 END;
 
-        IF @HasSys <> @WantsSys AND ISNULL(@CallerIsSysAdmin, 0) = 0
+        IF (@HasSys <> @WantsSys OR (@HasSys = 1 AND @Action = 'USER_SAVE')) AND ISNULL(@CallerIsSysAdmin, 0) = 0
         BEGIN
-            SELECT @ResultCode = 'FORBIDDEN', @ResultMessage = N'Only a System Administrator can give or remove the System Administrator role.';
+            SELECT @ResultCode = 'FORBIDDEN', @ResultMessage = CASE WHEN @HasSys = @WantsSys
+                THEN N'Only a System Administrator can change a System Administrator''s account.'
+                ELSE N'Only a System Administrator can give or remove the System Administrator role.' END;
             RETURN;
         END;
-        IF @HasSys = 1 AND @WantsSys = 0
+        IF @HasSys = 1 AND (@WantsSys = 0 OR (@Action = 'USER_SAVE' AND @IsActive = 0))
            AND NOT EXISTS (SELECT 1 FROM [Security].[UserRoles] ur JOIN [Security].[Users] u ON u.UserId = ur.UserId
                            WHERE ur.RoleId = @SysRole AND ur.Deleted = 0 AND u.Deleted = 0 AND u.IsActive = 1 AND u.UserId <> @UserId)
         BEGIN
@@ -690,6 +834,30 @@ BEGIN
         END;
 
         BEGIN TRANSACTION;
+            IF @IsNewUser = 1
+            BEGIN
+                INSERT INTO [Security].[Users] (CompanyId, EmployeeId, Username, Email, PasswordHash, [Password], IsActive,
+                                                MustChangePassword, PasswordChangedDateUtc, ModifiedBy, ModifiedDate)
+                VALUES (@UserCompanyId, @EmployeeId, @Username, @Email, @PasswordHash, @PlainPassword, @IsActive,
+                        ISNULL(@MustChangePassword, 1), @Now, @ActionBy, @Now);
+                SET @UserId = SCOPE_IDENTITY();
+            END
+            ELSE IF @Action = 'USER_SAVE'
+            BEGIN
+                /* a password reset or a deactivation rotates the security stamp: open sessions end */
+                UPDATE [Security].[Users]
+                   SET Username = @Username, Email = @Email, CompanyId = @UserCompanyId, EmployeeId = @EmployeeId, IsActive = @IsActive,
+                       PasswordHash = ISNULL(@PasswordHash, PasswordHash),
+                       [Password] = CASE WHEN @PasswordHash IS NULL THEN [Password] ELSE @PlainPassword END,
+                       PasswordChangedDateUtc = CASE WHEN @PasswordHash IS NULL THEN PasswordChangedDateUtc ELSE @Now END,
+                       MustChangePassword = CASE WHEN @PasswordHash IS NULL THEN MustChangePassword ELSE ISNULL(@MustChangePassword, 1) END,
+                       FailedLoginAttempts = CASE WHEN @PasswordHash IS NULL AND @IsActive = @OldActive THEN FailedLoginAttempts ELSE 0 END,
+                       LockoutEndUtc = CASE WHEN @PasswordHash IS NULL AND @IsActive = @OldActive THEN LockoutEndUtc ELSE NULL END,
+                       SecurityStamp = CASE WHEN @PasswordHash IS NOT NULL OR (@IsActive = 0 AND @OldActive = 1) THEN NEWID() ELSE SecurityStamp END,
+                       ModifiedBy = @ActionBy, ModifiedDate = @Now
+                WHERE  UserId = @UserId;
+            END;
+
             /* only the roles the caller can see change; others the user holds stay */
             UPDATE ur SET Deleted = 1, DeletedBy = @ActionBy, DeletedDate = @Now
             FROM   [Security].[UserRoles] ur
@@ -704,11 +872,23 @@ BEGIN
             SELECT @UserId, w.RoleId FROM @Want w
             WHERE NOT EXISTS (SELECT 1 FROM [Security].[UserRoles] ur WHERE ur.UserId = @UserId AND ur.RoleId = w.RoleId);
 
+            /* roles of another company than the user's (after a company change) go */
+            UPDATE ur SET Deleted = 1, DeletedBy = @ActionBy, DeletedDate = @Now
+            FROM   [Security].[UserRoles] ur JOIN [Security].[Roles] r ON r.RoleId = ur.RoleId
+            WHERE  ur.UserId = @UserId AND ur.Deleted = 0 AND @UserCompany IS NOT NULL
+              AND  r.CompanyId IS NOT NULL AND r.CompanyId <> @UserCompany;
+
             INSERT INTO [Security].[RoleAccessLog] (UserId, ActionCode, Detail, ActionBy)
-            VALUES (@UserId, 'USER_ROLES', LEFT(ISNULL(@RoleIds, N''), 2000), @ActionBy);
+            VALUES (@UserId, CASE WHEN @IsNewUser = 1 THEN 'USER_CREATED' WHEN @Action = 'USER_SAVE' THEN 'USER_CHANGED' ELSE 'USER_ROLES' END,
+                    LEFT(CONCAT(@Username, CASE WHEN @Username IS NULL THEN N'' ELSE N' ' END, N'roles: ', ISNULL(@RoleIds, N''),
+                                CASE WHEN @Action = 'USER_SAVE' AND @IsNewUser = 0 AND @PasswordHash IS NOT NULL THEN N'; password reset' ELSE N'' END), 2000),
+                    @ActionBy);
         COMMIT TRANSACTION;
 
-        SET @ResultMessage = N'Roles saved. They apply to the user within a minute.';
+        SET @NewId = @UserId;
+        SET @ResultMessage = CASE WHEN @IsNewUser = 1 THEN N'User created.'
+                                  WHEN @Action = 'USER_SAVE' THEN N'User saved. Changes apply to them within a minute.'
+                                  ELSE N'Roles saved. They apply to the user within a minute.' END;
         RETURN;
     END;
 END;
