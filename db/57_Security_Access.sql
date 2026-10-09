@@ -3,7 +3,8 @@
    ---------------------------------------------------------------------
    Run after 01-56. Safe to re-run.
 
-     1. Security.Roles.Description, Security.RoleAccessLog (who changed a
+     1. Security.Roles.Description, Security.Users.ModifiedBy,
+        Security.RoleAccessLog (who changed a
         role's rights or a user's roles, and when)
      2. the permission codes the role screen manages (pages, functions and
         approvals - the catalog is Security/AccessCatalog.cs)
@@ -60,6 +61,13 @@ IF COL_LENGTH('Security.Roles', 'ModifiedBy') IS NULL
 GO
 IF COL_LENGTH('Security.Roles', 'ModifiedDate') IS NULL
     ALTER TABLE [Security].[Roles] ADD [ModifiedDate] DATETIME2(0) NULL;
+GO
+/* Manage Users records who last changed an account */
+IF COL_LENGTH('Security.Users', 'ModifiedBy') IS NULL
+    ALTER TABLE [Security].[Users] ADD [ModifiedBy] BIGINT NULL;
+GO
+IF COL_LENGTH('Security.Users', 'ModifiedDate') IS NULL
+    ALTER TABLE [Security].[Users] ADD [ModifiedDate] DATETIME2(0) NULL;
 GO
 
 IF OBJECT_ID(N'[Security].[RoleAccessLog]', N'U') IS NULL
