@@ -1,0 +1,280 @@
+@model PayrollComparison
+@{
+    // Runs[0] is the baseline: every difference is "payroll minus baseline".
+    var runs = Model.Runs;
+    var n = runs.Count;
+    string[] slots = ["A", "B", "C"];
+    var others = Enumerable.Range(1, n - 1).ToList();
+    var open = Model.OpenRuns;
+    string Diff(int i) => $"{slots[i]} − {slots[0]}";
+
+    (string Label, Func<CompareTotals, decimal> Pick, bool Count)[] metrics =
+    [
+        (L["common.employees"], t => t.Employees, true),
+        (L["pr.cmp_joiners"], t => t.Joiners, true),
+        (L["pr.cmp_leavers"], t => t.Leavers, true),
+        (L["pr.salary"], t => t.Salary, false),
+        (L["pr.earnings"], t => t.Earnings, false),
+        (L["pr.deductions"], t => t.Deductions, false),
+        (L["pr.gross"], t => t.Gross, false),
+        (L["pr.net_kwd"], t => t.Net, false)
+    ];
+    string Value(decimal? v, bool count) => v is null ? "—" : count ? PayrollFormat.Count((int)v.Value) : PayrollFormat.Money(v.Value);
+    string DiffText(decimal? v, bool count) => v is null ? "—" : count ? (v > 0 ? "+" : "") + PayrollFormat.Count((int)v.Value) : PayrollFormat.Signed(v.Value);
+
+    var counts = new Dictionary<string, int>
+    {
+        ["changed"] = Model.Employees.Count(e => e.Kind == "changed"),
+        ["new"] = Model.Employees.Count(e => e.Kind == "new"),
+        ["missing"] = Model.Employees.Count(e => e.Kind == "missing"),
+        ["same"] = Model.Employees.Count(e => e.Kind == "same")
+    };
+}
+<div class="pr-stack" data-cmp-result data-runs="@string.Join(",", runs.Select(r => r.PayrollRunId))">
+
+    @* ---- one card per payroll: what it is and where it stands ---- *@
+    <div class="row g-3 pr-cmp__cards">
+        @for (var i = 0; i < n; i++)
+        {
+            var r = runs[i];
+            var t = Model.Totals[i];
+            var netValues = Model.Totals.Select(x => (decimal?)x.Net).ToList();
+            <div class="col-12 col-md-6 @(n == 3 ? "col-xxl-4" : "col-xl-6")">
+                <article class="hrms-card pr-cmp__card pr-cmp__card--@slots[i].ToLowerInvariant() @(r.IsClosed ? null : "is-open")">
+                    <header class="pr-cmp__card-head">
+                        <span class="pr-cmp__slot pr-cmp__slot--@slots[i].ToLowerInvariant()" aria-hidden="true">@slots[i]</span>
+                        <div class="pr-cmp__card-title">
+                            <a class="pr-run-link" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })"><span class="hrms-code-chip">@r.RunCode</span></a>
+                            <span class="pr-emp-sub">@PayrollFormat.Period(L, r) · @L.Tr(RunType.Label(r.RunType))</span>
+                        </div>
+                        @if (i == 0)
+                        {
+                            <span class="pr-cmp__baseline">@L["pr.cmp_baseline"]</span>
+                        }
+                    </header>
+                    <div class="pr-cmp__card-status">
+                        <span class="hrms-badge hrms-badge--@RunStage.Badge(r.Stage)"><span class="hrms-badge__dot"></span>@L.Tr(RunStage.Label(r.Stage))@(r.Stage == RunStage.AwaitingApproval ? " " + L["pr.level_0_of_2", r.ApprovalLevel + 1] : "")</span>
+                        @if (r.IsClosed)
+                        {
+                            <span class="pr-cmp__final">@Html.Icon("lock", 13)@L["pr.cmp_final"]@(r.ClosedDate is { } cd ? " · " + L.Date(cd) : "")</span>
+                        }
+                        else
+                        {
+                            <span class="pr-cmp__flag">@Html.Icon("alert", 13)@L["pr.cmp_not_closed_may_change"]</span>
+                        }
+                    </div>
+                    <dl class="pr-cmp__figures">
+                        <div><dt>@L["pr.net_kwd"]</dt><dd>@PayrollFormat.Money(t.Net)</dd></div>
+                        <div><dt>@L["common.employees"]</dt><dd>@PayrollFormat.Count(t.Employees)</dd></div>
+                        @if (i > 0)
+                        {
+                            var d = PayrollComparison.Diff(netValues, i);
+                            <div><dt>@L["pr.cmp_vs_baseline"]</dt><dd class="@PayrollFormat.DiffClass(d)">@PayrollFormat.Signed(d) <small>(@PayrollFormat.Percent(PayrollComparison.Percent(netValues, i)))</small></dd></div>
+                        }
+                    </dl>
+                </article>
+            </div>
+        }
+    </div>
+
+    @if (open.Count > 0)
+    {
+        <div class="pr-banner pr-banner--lock" role="status">
+            @Html.Icon("alert", 18)
+            <div>
+                <strong>@(open.Count == 1 ? L["pr.cmp_one_not_closed"] : L["pr.cmp_n_not_closed", open.Count])</strong>
+                @(string.Join(", ", open.Select(r => $"{r.RunCode} ({L.Tr(RunStage.Label(r.Stage))})")) + ".")
+                @L["pr.cmp_not_closed_explain"]
+            </div>
+        </div>
+    }
+
+    <section class="hrms-card pr-cmp__result">
+        <nav class="hrms-tabs pr-cmp__nav" aria-label="@L["pr.payroll_comparison"]">
+            <div class="hrms-tabs__rail" role="tablist">
+                <button type="button" class="hrms-tab active" id="cmp-tab-summary" data-bs-toggle="tab" data-bs-target="#cmp-summary" role="tab" aria-controls="cmp-summary" aria-selected="true">@L["pr.cmp_sheet_summary"]</button>
+                <button type="button" class="hrms-tab" id="cmp-tab-items" data-bs-toggle="tab" data-bs-target="#cmp-items" role="tab" aria-controls="cmp-items" aria-selected="false">
+                    @L["pr.cmp_sheet_items"] <span class="hrms-tab__count">@PayrollFormat.Count(Model.Items.Count)</span>
+                </button>
+                <button type="button" class="hrms-tab" id="cmp-tab-employees" data-bs-toggle="tab" data-bs-target="#cmp-employees" role="tab" aria-controls="cmp-employees" aria-selected="false">
+                    @L["pr.cmp_sheet_employees"] <span class="hrms-tab__count">@PayrollFormat.Count(Model.Employees.Count)</span>
+                </button>
+            </div>
+        </nav>
+
+        <div class="tab-content">
+            @* ---------------------------------------------------- summary --- *@
+            <div class="tab-pane fade show active" id="cmp-summary" role="tabpanel" aria-labelledby="cmp-tab-summary" tabindex="0">
+                <div class="hrms-table-wrap">
+                    <table class="hrms-table pr-cmp__table">
+                        <caption class="hrms-sr-only">@L["pr.cmp_sheet_summary"]</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["pr.cmp_measure"]</th>
+                                @for (var i = 0; i < n; i++)
+                                {
+                                    <th scope="col" class="pr-money"><span class="pr-cmp__th-slot">@slots[i]</span> @runs[i].RunCode</th>
+                                }
+                                @foreach (var i in others)
+                                {
+                                    <th scope="col" class="pr-money pr-cmp__diff">@Diff(i)</th>
+                                    <th scope="col" class="pr-money pr-cmp__diff col-p2">%</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var m in metrics)
+                            {
+                                var values = Model.Totals.Select(t => (decimal?)m.Pick(t)).ToList();
+                                <tr class="@(m.Label == L["pr.net_kwd"] ? "pr-total-row" : null)">
+                                    <th scope="row" class="pr-cmp__measure">@m.Label</th>
+                                    @for (var i = 0; i < n; i++)
+                                    {
+                                        <td data-label="@slots[i] · @runs[i].RunCode" class="pr-money">@Value(values[i], m.Count)</td>
+                                    }
+                                    @foreach (var i in others)
+                                    {
+                                        var d = PayrollComparison.Diff(values, i);
+                                        <td data-label="@Diff(i)" class="pr-money pr-cmp__diff @PayrollFormat.DiffClass(d)">@DiffText(d, m.Count)</td>
+                                        <td data-label="@Diff(i) %" class="pr-money pr-cmp__diff col-p2 @PayrollFormat.DiffClass(d)">@PayrollFormat.Percent(PayrollComparison.Percent(values, i))</td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            @* -------------------------------------------------- pay items --- *@
+            <div class="tab-pane fade" id="cmp-items" role="tabpanel" aria-labelledby="cmp-tab-items" tabindex="0">
+                @if (Model.Items.Count == 0)
+                {
+                    <div class="hrms-empty"><p class="hrms-empty__title">@L["pr.cmp_no_items"]</p></div>
+                }
+                else
+                {
+                    <div class="hrms-table-wrap">
+                        <table class="hrms-table pr-cmp__table">
+                            <caption class="hrms-sr-only">@L["pr.cmp_sheet_items"]</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">@L["pr.cmp_pay_item"]</th>
+                                    <th scope="col" class="col-p2">@L["pr.class"]</th>
+                                    @for (var i = 0; i < n; i++)
+                                    {
+                                        <th scope="col" class="pr-money"><span class="pr-cmp__th-slot">@slots[i]</span> @runs[i].RunCode</th>
+                                    }
+                                    @foreach (var i in others)
+                                    {
+                                        <th scope="col" class="pr-money pr-cmp__diff">@Diff(i)</th>
+                                        <th scope="col" class="pr-money pr-cmp__diff col-p3">%</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Items)
+                                {
+                                    <tr>
+                                        <td data-label="@L["pr.cmp_pay_item"]" class="hrms-nowrap">
+                                            @PayrollFormat.EmployeeName(L, item.Name, item.ArabicName)
+                                            <span class="pr-emp-sub">@string.Join(" / ", item.Employees.Select(PayrollFormat.Count)) @L["pr.cmp_employees_short"]</span>
+                                        </td>
+                                        <td data-label="@L["pr.class"]" class="col-p2"><span class="hrms-badge hrms-badge--@PayrollFormat.ItemClassBadge(item.ItemClass)"><span class="hrms-badge__dot"></span>@PayrollFormat.ItemClass(L, item.ItemClass)</span></td>
+                                        @for (var i = 0; i < n; i++)
+                                        {
+                                            <td data-label="@slots[i] · @runs[i].RunCode" class="pr-money @(item.Amounts[i] < 0 ? "pr-neg" : null)">@PayrollFormat.Money(item.Amounts[i])</td>
+                                        }
+                                        @foreach (var i in others)
+                                        {
+                                            var d = PayrollComparison.Diff(item.Amounts, i);
+                                            <td data-label="@Diff(i)" class="pr-money pr-cmp__diff @PayrollFormat.DiffClass(d)">@PayrollFormat.Signed(d)</td>
+                                            <td data-label="@Diff(i) %" class="pr-money pr-cmp__diff col-p3 @PayrollFormat.DiffClass(d)">@PayrollFormat.Percent(PayrollComparison.Percent(item.Amounts, i))</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            @* -------------------------------------------------- employees --- *@
+            <div class="tab-pane fade" id="cmp-employees" role="tabpanel" aria-labelledby="cmp-tab-employees" tabindex="0" data-cmp-emps>
+                <div class="hrms-card__toolbar">
+                    <div class="hrms-card__filters">
+                        <label class="hrms-search" style="max-width:280px;flex:1 1 200px">
+                            @Html.Icon("search", 16)
+                            <input type="search" data-cmp-search autocomplete="off" placeholder="@L["pr.cmp_search_employee"]" aria-label="@L["pr.cmp_search_employee"]" />
+                        </label>
+                        <select class="form-select" style="width:auto" data-cmp-kind aria-label="@L["pr.cmp_change"]">
+                            <option value="">@L["pr.cmp_all_employees"] (@PayrollFormat.Count(Model.Employees.Count))</option>
+                            <option value="diff" selected>@L["pr.cmp_with_difference"] (@PayrollFormat.Count(counts["changed"] + counts["new"] + counts["missing"]))</option>
+                            <option value="changed">@L["pr.cmp_kind_changed"] (@PayrollFormat.Count(counts["changed"]))</option>
+                            <option value="new">@L["pr.cmp_kind_new"] (@PayrollFormat.Count(counts["new"]))</option>
+                            <option value="missing">@L["pr.cmp_kind_missing"] (@PayrollFormat.Count(counts["missing"]))</option>
+                            <option value="same">@L["pr.cmp_kind_same"] (@PayrollFormat.Count(counts["same"]))</option>
+                        </select>
+                    </div>
+                    <div class="hrms-card__count" data-cmp-count data-count-text="@L["pr.cmp_0_of_1_employees"]"></div>
+                </div>
+                <div class="hrms-table-wrap pr-cmp__scroll">
+                    <table class="hrms-table pr-cmp__table">
+                        <caption class="hrms-sr-only">@L["pr.cmp_sheet_employees"]</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">@L["pr.employee"]</th>
+                                <th scope="col" class="col-p3">@L["common.department"]</th>
+                                @for (var i = 0; i < n; i++)
+                                {
+                                    <th scope="col" class="pr-money"><span class="pr-cmp__th-slot">@slots[i]</span> @runs[i].RunCode</th>
+                                }
+                                @foreach (var i in others)
+                                {
+                                    <th scope="col" class="pr-money pr-cmp__diff">@Diff(i)</th>
+                                }
+                                <th scope="col" class="col-p2">@L["pr.cmp_change"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var e in Model.Employees)
+                            {
+                                var name = PayrollFormat.EmployeeName(L, e.EmployeeName, e.ArabicName);
+                                <tr data-kind="@e.Kind" data-search="@($"{e.EmployeeNo} {e.EmployeeName} {e.ArabicName} {e.DepartmentName}".ToLowerInvariant())" hidden="@(e.Kind == "same")">
+                                    <td data-label="@L["pr.employee"]" class="hrms-nowrap">@name<span class="pr-emp-sub">@e.EmployeeNo</span></td>
+                                    <td data-label="@L["common.department"]" class="col-p3">@(e.DepartmentName ?? "—")</td>
+                                    @for (var i = 0; i < n; i++)
+                                    {
+                                        <td data-label="@slots[i] · @runs[i].RunCode" class="pr-money">@PayrollFormat.Money(e.Net[i], L["pr.cmp_not_in_payroll"])</td>
+                                    }
+                                    @foreach (var i in others)
+                                    {
+                                        var d = PayrollComparison.Diff(e.Net, i);
+                                        <td data-label="@Diff(i)" class="pr-money pr-cmp__diff @PayrollFormat.DiffClass(d)">@PayrollFormat.Signed(d)</td>
+                                    }
+                                    <td data-label="@L["pr.cmp_change"]" class="col-p2">
+                                        @switch (e.Kind)
+                                        {
+                                            case "new":
+                                                <span class="hrms-badge hrms-badge--info"><span class="hrms-badge__dot"></span>@L["pr.cmp_kind_new"]</span>
+                                                break;
+                                            case "missing":
+                                                <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["pr.cmp_kind_missing"]</span>
+                                                break;
+                                            case "changed":
+                                                <span class="hrms-badge hrms-badge--purple"><span class="hrms-badge__dot"></span>@L["pr.cmp_kind_changed"]</span>
+                                                break;
+                                            default:
+                                                <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["pr.cmp_kind_same"]</span>
+                                                break;
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="hrms-empty" data-cmp-none hidden><p class="hrms-empty__title">@L["pr.cmp_no_employee_matches"]</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

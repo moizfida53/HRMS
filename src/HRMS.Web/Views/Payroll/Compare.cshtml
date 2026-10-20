@@ -1,0 +1,119 @@
+@model ComparePageModel
+@{
+    ViewData["Title"] = "Payroll Comparison";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "processing";
+    ViewData["Subtitle"] = L["pr.cmp_subtitle"];
+
+    string[] slots = ["A", "B", "C"];
+    string[] slotLabels = [L["pr.cmp_payroll_baseline"], L["pr.cmp_payroll_2"], L["pr.cmp_payroll_3_optional"]];
+    var canCompare = Model.Runs.Count >= 2;
+}
+@{
+    // Payroll Processing sub-section in the sidebar (no tab rail).
+    ViewData["PayrollPage"] = "compare";
+}
+
+<div class="pr-stack pr-cmp" data-pr-page="compare">
+    <section class="hrms-card pr-cmp__picker" data-cmp
+             data-grid-url="@Url.Action("CompareGrid", "Payroll")"
+             data-export-url="@Url.Action("CompareExport", "Payroll")"
+             data-page-url="@Url.Action("Compare", "Payroll")"
+             data-company="@Model.CompanyId"
+             data-selected="@string.Join(",", Model.Selected)">
+        <div class="pr-card-body">
+            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+                <div>
+                    <h2 class="pr-card-title mb-1">@L["pr.payroll_comparison"]</h2>
+                    <p class="hrms-muted small mb-0">@L["pr.cmp_pick_hint"]</p>
+                </div>
+            </div>
+
+            @if (Model.Companies.Count == 0)
+            {
+                <div class="pr-banner pr-banner--err">@Html.Icon("x-circle", 18)<div>@L["pr.no_company_is_available_for_your_account"]</div></div>
+            }
+            else
+            {
+                <form method="get" action="@Url.Action("Compare", "Payroll")" class="row g-3 align-items-end" data-cmp-form novalidate>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <label class="form-label" for="cmp-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="cmp-company" name="company" data-cmp-company data-searchable disabled="@(Model.Companies.Count == 1)">
+                            @foreach (var c in Model.Companies)
+                            {
+                                <option value="@c.Id" selected="@(c.Id == Model.CompanyId)">@c.Text</option>
+                            }
+                        </select>
+                        <span class="form-text">@L["pr.cmp_same_company_only"]</span>
+                    </div>
+
+                    @for (var i = 0; i < ComparePageModel.MaxRuns; i++)
+                    {
+                        var current = i < Model.Selected.Count ? Model.Selected[i] : (long?)null;
+                        var currentRun = Model.Runs.FirstOrDefault(r => r.PayrollRunId == current);
+                        <div class="col-12 col-sm-6 col-md-6 col-xl-3">
+                            <label class="form-label" for="cmp-run-@i">@slotLabels[i]</label>
+                            <div class="pr-cmp__pick">
+                                <span class="pr-cmp__slot pr-cmp__slot--@slots[i].ToLowerInvariant()" aria-hidden="true">@slots[i]</span>
+                                <select class="form-select" id="cmp-run-@i" data-cmp-run="@i" data-searchable disabled="@(!canCompare)" aria-describedby="cmp-status-@i">
+                                    <option value="">@(i == 2 ? L["pr.cmp_none"] : L["pr.cmp_choose_payroll"])</option>
+                                    @foreach (var r in Model.Runs)
+                                    {
+                                        <option value="@r.PayrollRunId" selected="@(r.PayrollRunId == current)"
+                                                data-stage="@L.Tr(RunStage.Label(r.Stage))" data-badge="@RunStage.Badge(r.Stage)" data-closed="@(r.IsClosed ? "1" : "0")">
+                                            @r.RunCode · @PayrollFormat.Period(L, r) · @L.Tr(RunStage.Label(r.Stage))
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="pr-cmp__status" id="cmp-status-@i" data-cmp-status="@i" aria-live="polite">
+                                @if (currentRun is not null)
+                                {
+                                    <span class="hrms-badge hrms-badge--@RunStage.Badge(currentRun.Stage)"><span class="hrms-badge__dot"></span>@L.Tr(RunStage.Label(currentRun.Stage))</span>
+                                    @if (!currentRun.IsClosed)
+                                    {
+                                        <span class="pr-cmp__flag">@Html.Icon("alert", 13)@L["pr.cmp_not_closed"]</span>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <div class="col-12">
+                        <div class="pr-cmp__actions">
+                            <span class="field-validation-error me-auto" data-cmp-error hidden></span>
+                            <button type="button" class="btn btn-outline-secondary" data-cmp-swap disabled="@(!canCompare)" title="@L["pr.cmp_swap_hint"]">
+                                @Html.Icon("refresh", 15)<span>@L["pr.cmp_swap"]</span>
+                            </button>
+                            <a class="btn btn-outline-primary disabled" href="#" data-cmp-export aria-disabled="true" role="button">
+                                @Html.Icon("download", 15)<span>@L["pr.cmp_export_excel"]</span>
+                            </a>
+                            <button type="button" class="btn btn-primary" data-cmp-go disabled="@(!canCompare)">
+                                @Html.Icon("chart", 15)<span>@L["pr.compare"]</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                @if (!canCompare)
+                {
+                    <div class="pr-banner pr-banner--info mt-3">@Html.Icon("info", 18)<div>@L["pr.cmp_needs_two_payrolls"]</div></div>
+                }
+            }
+        </div>
+    </section>
+
+    <div data-cmp-slot>
+        <div class="hrms-card">
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("chart", 26)</span>
+                <p class="hrms-empty__title">@L["pr.cmp_empty_title"]</p>
+                <p class="hrms-empty__text">@L["pr.cmp_empty_text"]</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/payroll.js" asp-append-version="true"></script>
+}

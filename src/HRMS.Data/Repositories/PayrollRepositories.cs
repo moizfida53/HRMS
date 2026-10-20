@@ -172,7 +172,6 @@ public interface IPayrollRunRepository
     Task<IReadOnlyList<PayrollRunLine>> LinesAsync(long runId, long? employeeId, CancellationToken cancellationToken = default);
     Task<PayrollRunSummary> SummaryAsync(long runId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PayComponentOption>> ComponentsAsync(long runId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<RunCompareRow>> CompareAsync(long runA, long runB, CancellationToken cancellationToken = default);
 
     Task<SaveResult> AddLineAsync(long runId, IReadOnlyCollection<long> employeeIds, int componentId, decimal amount, string? comment,
                                   long? userId, CancellationToken cancellationToken = default);
@@ -336,14 +335,6 @@ public sealed class PayrollRunRepository : IPayrollRunRepository
         var p = Envelope("COMPONENTS");
         p.Add("@Id", runId, DbType.Int64);
         return _sql.QueryAsync<PayComponentOption>(StoredProcedure.PayrollRunEmployeeManage, p, cancellationToken);
-    }
-
-    public Task<IReadOnlyList<RunCompareRow>> CompareAsync(long runA, long runB, CancellationToken cancellationToken = default)
-    {
-        var p = Envelope("COMPARE");
-        p.Add("@Id", runA, DbType.Int64);
-        p.Add("@OtherId", runB, DbType.Int64);
-        return _sql.QueryAsync<RunCompareRow>(StoredProcedure.PayrollRunEmployeeManage, p, cancellationToken);
     }
 
     public async Task<SaveResult> AddLineAsync(long runId, IReadOnlyCollection<long> employeeIds, int componentId, decimal amount, string? comment,

@@ -6,9 +6,13 @@ using System.Xml.Linq;
 
 namespace HRMS.Web.Helpers;
 
+/// <summary>One sheet of a workbook written by <see cref="XlsxFile.Write(IReadOnlyList{XlsxSheet}, bool)"/>.</summary>
+public sealed record XlsxSheet(string Name, IReadOnlyList<string> Headers, IEnumerable<IReadOnlyList<object?>> Rows,
+                               IReadOnlyList<double>? Widths = null);
+
 /// <summary>
 /// A minimal Excel (.xlsx) writer and reader for exports, templates and
-/// imports - one sheet, text and numbers only - so no third-party package is
+/// imports - one or more sheets, text and numbers only - so no third-party package is
 /// needed. CSV files can be read as well (<see cref="ReadCsv"/>).
 /// </summary>
 public static class XlsxFile
@@ -24,41 +28,51 @@ public static class XlsxFile
     /// (decimals with 3 places), everything else as text. The first row is bold.
     /// </summary>
     public static byte[] Write(string sheetName, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<object?>> rows,
-                               IReadOnlyList<double>? widths = null, bool rightToLeft = false)
+                               IReadOnlyList<double>? widths = null, bool rightToLeft = false) =>
+        Write([new XlsxSheet(sheetName, headers, rows, widths)], rightToLeft);
+
+    /// <summary>Writes a workbook with one sheet per <see cref="XlsxSheet"/> (same cell rules as above).</summary>
+    public static byte[] Write(IReadOnlyList<XlsxSheet> sheets, bool rightToLeft = false)
     {
-        var sheet = new StringBuilder();
-        sheet.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
-        sheet.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
-        sheet.Append("<sheetViews><sheetView workbookViewId=\"0\"").Append(rightToLeft ? " rightToLeft=\"1\"" : "")
-             .Append("><pane ySplit=\"1\" topLeftCell=\"A2\" activePane=\"bottomLeft\" state=\"frozen\"/></sheetView></sheetViews>");
-        if (widths is { Count: > 0 })
+        if (sheets.Count == 0) throw new ArgumentException("A workbook needs at least one sheet.", nameof(sheets));
+
+        var names = new List<string>();
+        foreach (var s in sheets)
         {
-            sheet.Append("<cols>");
-            for (var i = 0; i < widths.Count; i++)
+            // sheet names must be unique (case-insensitive) within a workbook
+            var baseName = SheetName(s.Name);
+            var name = baseName;
+            for (var n = 2; names.Contains(name, StringComparer.OrdinalIgnoreCase); n++)
             {
-                sheet.Append(CultureInfo.InvariantCulture, $"<col min=\"{i + 1}\" max=\"{i + 1}\" width=\"{widths[i]}\" customWidth=\"1\"/>");
+                var suffix = string.Create(CultureInfo.InvariantCulture, $" ({n})");
+                name = baseName[..Math.Min(baseName.Length, 31 - suffix.Length)] + suffix;
             }
-            sheet.Append("</cols>");
+            names.Add(name);
         }
-        sheet.Append("<sheetData>");
-        var r = 1;
-        AppendRow(sheet, r++, headers.Cast<object?>().ToList(), header: true);
-        foreach (var row in rows)
-        {
-            AppendRow(sheet, r++, row, header: false);
-        }
-        sheet.Append("</sheetData></worksheet>");
 
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
         {
+            var overrides = new StringBuilder();
+            var sheetList = new StringBuilder();
+            var sheetRels = new StringBuilder();
+            for (var i = 1; i <= sheets.Count; i++)
+            {
+                overrides.Append(CultureInfo.InvariantCulture,
+                    $"<Override PartName=\"/xl/worksheets/sheet{i}.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
+                sheetList.Append(CultureInfo.InvariantCulture, $"<sheet name=\"{Escape(names[i - 1])}\" sheetId=\"{i}\" r:id=\"rId{i}\"/>");
+                sheetRels.Append(CultureInfo.InvariantCulture,
+                    $"<Relationship Id=\"rId{i}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet{i}.xml\"/>");
+            }
+            var stylesId = "rId" + (sheets.Count + 1).ToString(CultureInfo.InvariantCulture);
+
             Add(zip, "[Content_Types].xml",
                 "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
                 "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
                 "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
                 "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
                 "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>" +
-                "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>" +
+                overrides +
                 "<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>" +
                 "</Types>");
             Add(zip, "_rels/.rels",
@@ -69,12 +83,12 @@ public static class XlsxFile
             Add(zip, "xl/workbook.xml",
                 "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
                 "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
-                $"<sheets><sheet name=\"{Escape(SheetName(sheetName))}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
+                $"<sheets>{sheetList}</sheets></workbook>");
             Add(zip, "xl/_rels/workbook.xml.rels",
                 "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
                 "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>" +
-                "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>" +
+                sheetRels +
+                $"<Relationship Id=\"{stylesId}\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>" +
                 "</Relationships>");
             Add(zip, "xl/styles.xml",
                 "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
@@ -88,9 +102,39 @@ public static class XlsxFile
                 "<xf numFmtId=\"0\" fontId=\"1\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyFont=\"1\"/>" +
                 "<xf numFmtId=\"164\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyNumberFormat=\"1\"/></cellXfs>" +
                 "</styleSheet>");
-            Add(zip, "xl/worksheets/sheet1.xml", sheet.ToString());
+            for (var i = 0; i < sheets.Count; i++)
+            {
+                Add(zip, $"xl/worksheets/sheet{i + 1}.xml", SheetXml(sheets[i], rightToLeft, selected: i == 0));
+            }
         }
         return ms.ToArray();
+    }
+
+    private static string SheetXml(XlsxSheet s, bool rightToLeft, bool selected)
+    {
+        var sheet = new StringBuilder();
+        sheet.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+        sheet.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
+        sheet.Append("<sheetViews><sheetView workbookViewId=\"0\"").Append(rightToLeft ? " rightToLeft=\"1\"" : "").Append(selected ? " tabSelected=\"1\"" : "")
+             .Append("><pane ySplit=\"1\" topLeftCell=\"A2\" activePane=\"bottomLeft\" state=\"frozen\"/></sheetView></sheetViews>");
+        if (s.Widths is { Count: > 0 } widths)
+        {
+            sheet.Append("<cols>");
+            for (var i = 0; i < widths.Count; i++)
+            {
+                sheet.Append(CultureInfo.InvariantCulture, $"<col min=\"{i + 1}\" max=\"{i + 1}\" width=\"{widths[i]}\" customWidth=\"1\"/>");
+            }
+            sheet.Append("</cols>");
+        }
+        sheet.Append("<sheetData>");
+        var r = 1;
+        AppendRow(sheet, r++, s.Headers.Cast<object?>().ToList(), header: true);
+        foreach (var row in s.Rows)
+        {
+            AppendRow(sheet, r++, row, header: false);
+        }
+        sheet.Append("</sheetData></worksheet>");
+        return sheet.ToString();
     }
 
     /// <summary>

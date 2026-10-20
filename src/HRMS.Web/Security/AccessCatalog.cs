@@ -219,6 +219,7 @@ public static class AccessCatalog
         ["payroll:settings"] = ["PAYROLL_SETUP_VIEW"],
         ["tab:payrolls"] = ["PAYROLL_RUN_VIEW"],
         ["tab:history"] = ["PAYROLL_RUN_VIEW"],
+        ["tab:compare"] = ["PAYROLL_RUN_VIEW"],
         ["tab:calendars"] = ["PAYROLL_CALENDAR_VIEW"],
         ["tab:pay-periods"] = ["PAYROLL_CALENDAR_VIEW"],
         ["security:roles"] = ["SECURITY_ROLE_VIEW"],
