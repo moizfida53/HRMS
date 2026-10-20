@@ -9774,7 +9774,8 @@ tr.pr-row-cancelled .hrms-code-chip {
   align-items: center;
   gap: 0.5rem;
 }
-.pr-cmp__pick .form-select {
+.pr-cmp__pick > .form-select,
+.pr-cmp__pick > .hrms-combo {
   min-width: 0;
   flex: 1 1 auto;
 }

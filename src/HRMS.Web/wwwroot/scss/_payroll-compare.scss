@@ -51,7 +51,9 @@ $cmp-slots: (
     align-items: center;
     gap: space("2");
 
-    .form-select { min-width: 0; flex: 1 1 auto; }
+    // the plain <select>, or the searchable dropdown that replaces it, fills the rest of the row
+    > .form-select,
+    > .hrms-combo { min-width: 0; flex: 1 1 auto; }
   }
 
   &__status {
