@@ -322,14 +322,3 @@ public sealed class PayrollRunHistoryEntry
     public DateTime ActionDate { get; init; }
     public string ActionByName { get; init; } = string.Empty;
 }
-
-public sealed class RunCompareRow
-{
-    public long EmployeeId { get; init; }
-    public string? EmployeeNo { get; init; }
-    public string? EmployeeName { get; init; }
-    public string? ArabicName { get; init; }
-    public decimal? NetA { get; init; }
-    public decimal? NetB { get; init; }
-    public decimal Difference { get; init; }
-}

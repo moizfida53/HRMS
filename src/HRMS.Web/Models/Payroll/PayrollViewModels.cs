@@ -22,7 +22,8 @@ public static class PayrollNav
         new("processing", "Payroll Processing", "calculator",
         [
             new("calendar", "Payroll Calendar", true), new("create", "Create Payroll", true), new("register", "Payroll Register", true),
-            new("validation", "Payroll Validation", true), new("approval", "Payroll Approval", true), new("history", "Payroll History", true)
+            new("validation", "Payroll Validation", true), new("approval", "Payroll Approval", true), new("history", "Payroll History", true),
+            new("compare", "Payroll Comparison", true)
         ]),
         new("payitems", "Pay Items", "card", [new("pay-items", "Pay Items", true)]),
         new("settlement", "Final Settlement", "exit",
@@ -59,7 +60,7 @@ public static class PayrollNav
 
     public static string Url(string slug) => slug switch
     {
-        "calendar" or "create" or "register" or "validation" or "approval" or "history" or "pay-items" => $"/payroll/{slug}",
+        "calendar" or "create" or "register" or "validation" or "approval" or "history" or "compare" or "pay-items" => $"/payroll/{slug}",
         "fs-list" => "/payroll/settlement",
         "fs-new" => "/payroll/settlement/new",
         "fs-encashment" => "/payroll/settlement/encashment",
@@ -123,11 +124,32 @@ public static class PayrollFormat
     public static string Period(IUiText L, PayrollPeriodRow p) =>
         Period(L, p.PayFrequency, p.PeriodNumber, p.StartDate, p.EndDate, p.RunMonth);
 
+    /// <summary>Pay item class name (SALARY / EARNING / DEDUCTION / LOAN / statutory).</summary>
+    public static string ItemClass(IUiText L, string itemClass) => itemClass switch
+    {
+        "SALARY" => L["pr.salary"], "EARNING" => L["pr.earning"], "DEDUCTION" => L["pr.deduction"],
+        "LOAN" => L["pr.loan_advance"], _ => L["pr.statutory"]
+    };
+
+    public static string ItemClassBadge(string itemClass) => itemClass switch
+    {
+        "SALARY" => "info", "EARNING" => "success", "DEDUCTION" => "warning", "LOAN" => "purple", _ => "muted"
+    };
+
     public static string Calendar(IUiText L, string name, string? arabic) =>
         L.IsArabic && !string.IsNullOrWhiteSpace(arabic) ? arabic : name;
 
     public static string EmployeeName(IUiText L, string? english, string? arabic) =>
         L.IsArabic && !string.IsNullOrWhiteSpace(arabic) ? arabic! : english ?? string.Empty;
+
+    /// <summary>"+3.4%", "-1.0%", "0.0%" or "—" when there is no percentage.</summary>
+    public static string Percent(decimal? pct) =>
+        pct is not { } p ? "—" : (p > 0 ? "+" : string.Empty) + p.ToString("0.0", Inv) + "%";
+
+    public static string Signed(decimal? value, string empty = "—") => value is { } v ? Signed(v) : empty;
+
+    /// <summary>pr-pos / pr-neg for a difference.</summary>
+    public static string? DiffClass(decimal? value) => value > 0 ? "pr-pos" : value < 0 ? "pr-neg" : null;
 
     public static string ChangePercent(decimal net, decimal? previous)
     {
@@ -201,8 +223,20 @@ public sealed class CreatePageModel
 
 public sealed class HistoryPageModel
 {
-    public IReadOnlyList<PayrollRun> FinishedRuns { get; init; } = Array.Empty<PayrollRun>();
     public IReadOnlyList<int> Years { get; init; } = Array.Empty<int>();
+}
+
+/// <summary>Payroll Comparison: up to three payrolls of one company, closed or still in progress.</summary>
+public sealed class ComparePageModel
+{
+    public const int MaxRuns = 3;
+
+    public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
+    public int? CompanyId { get; init; }
+    /// <summary>The company's payrolls that can be compared (every stage but draft and cancelled), newest first.</summary>
+    public IReadOnlyList<PayrollRun> Runs { get; init; } = Array.Empty<PayrollRun>();
+    /// <summary>The payrolls picked (first = baseline); compared on load when there are two or more.</summary>
+    public IReadOnlyList<long> Selected { get; init; } = Array.Empty<long>();
 }
 
 public sealed class PreviewPageModel
@@ -284,9 +318,69 @@ public sealed class PeriodFormModel
     public required PayrollPeriodEdit Period { get; init; }
 }
 
-public sealed class RunCompareModel
+/// <summary>
+/// The comparison of 2-3 payrolls of one company. Runs[0] is the baseline:
+/// every difference is "this payroll minus the baseline". Arrays are indexed like Runs.
+/// </summary>
+public sealed class PayrollComparison
 {
-    public required PayrollRun RunA { get; init; }
-    public required PayrollRun RunB { get; init; }
-    public required IReadOnlyList<RunCompareRow> Rows { get; init; }
+    public required IReadOnlyList<PayrollRun> Runs { get; init; }
+    public required IReadOnlyList<CompareTotals> Totals { get; init; }
+    public required IReadOnlyList<CompareItemRow> Items { get; init; }
+    public required IReadOnlyList<CompareEmployeeRow> Employees { get; init; }
+
+    public PayrollRun Baseline => Runs[0];
+    public IReadOnlyList<PayrollRun> OpenRuns => Runs.Where(r => !r.IsClosed).ToList();
+
+    /// <summary>value - baseline; null when the payroll has no value (employee or item not in it).</summary>
+    public static decimal? Diff(IReadOnlyList<decimal?> values, int index) =>
+        values[index] is null && values[0] is null ? null : (values[index] ?? 0) - (values[0] ?? 0);
+
+    /// <summary>Change against the baseline in percent; null when the baseline is zero or missing.</summary>
+    public static decimal? Percent(IReadOnlyList<decimal?> values, int index) =>
+        values[0] is { } b && b != 0 ? Math.Round(((values[index] ?? 0) - b) / Math.Abs(b) * 100m, 1) : null;
+}
+
+/// <summary>Totals of one payroll over its included employees.</summary>
+public sealed class CompareTotals
+{
+    public int Employees { get; init; }
+    public int Joiners { get; init; }
+    public int Leavers { get; init; }
+    public decimal Salary { get; init; }
+    public decimal Earnings { get; init; }
+    public decimal Deductions { get; init; }
+    public decimal Gross { get; init; }
+    public decimal Net { get; init; }
+}
+
+/// <summary>One pay item type, its total in each payroll.</summary>
+public sealed class CompareItemRow
+{
+    public int PayComponentId { get; init; }
+    public required string ItemClass { get; init; }
+    public required string Name { get; init; }
+    public string? ArabicName { get; init; }
+    public required decimal?[] Amounts { get; init; }
+    public required int[] Employees { get; init; }
+}
+
+/// <summary>One employee, the net pay in each payroll (null = not in that payroll).</summary>
+public sealed class CompareEmployeeRow
+{
+    public long EmployeeId { get; init; }
+    public string? EmployeeNo { get; init; }
+    public string? EmployeeName { get; init; }
+    public string? ArabicName { get; init; }
+    public string? DepartmentName { get; init; }
+    public required decimal?[] Net { get; init; }
+    public required decimal?[] Gross { get; init; }
+
+    /// <summary>Not in the baseline but in a later payroll.</summary>
+    public bool IsNew => Net[0] is null;
+    /// <summary>In the baseline but missing from at least one other payroll.</summary>
+    public bool IsMissing => Net[0] is not null && Net.Skip(1).Any(n => n is null);
+    public bool IsChanged => Net.Skip(1).Any(n => n != Net[0]);
+    /// <summary>"new", "missing", "changed" or "same" - the client-side filter.</summary>
+    public string Kind => IsNew ? "new" : IsMissing ? "missing" : IsChanged ? "changed" : "same";
 }

@@ -3,6 +3,7 @@ using System.Text;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Common;
 using HRMS.Domain.Payroll;
+using HRMS.Web.Helpers;
 using HRMS.Web.Localization;
 using HRMS.Web.Models.Organization;
 using HRMS.Web.Models.Payroll;
@@ -102,15 +103,7 @@ public sealed class PayrollController : Controller
     {
         if (!Can(PermProcess)) return Forbid();
 
-        var companies = await _lookups.GetAsync(LookupType.Company, cancellationToken: Ct);
-        if (OwnCompany is { } own)
-        {
-            companies = companies.Where(c => c.Id == own).ToList();
-        }
-        else if (_companyFilter.SelectedIds.Count > 0)
-        {
-            companies = companies.Where(c => _companyFilter.SelectedIds.Contains(c.Id)).ToList();
-        }
+        var companies = await VisibleCompaniesAsync();
 
         PayrollRun? resume = null;
         if (draft is > 0)
@@ -185,7 +178,47 @@ public sealed class PayrollController : Controller
         }, Ct);
         var years = finished.Items.Select(r => r.RunMonth.Year).Distinct().OrderByDescending(y => y).ToList();
         ViewData["ActiveRun"] = await RememberedRunAsync();
-        return View(new HistoryPageModel { FinishedRuns = finished.Items.Where(r => r.IsClosed).ToList(), Years = years });
+        return View(new HistoryPageModel { Years = years });
+    }
+
+    /// <summary>
+    /// Payroll Comparison: 2-3 payrolls of ONE company side by side - totals,
+    /// pay items and employees. Payrolls still in progress can be picked (to
+    /// check the current month against a closed one); their stage is shown.
+    /// </summary>
+    [HttpGet("compare")]
+    public async Task<IActionResult> Compare(int? company, string? runs)
+    {
+        if (!Can(PermView)) return Forbid();
+
+        var companies = await VisibleCompaniesAsync();
+        var picked = ParseRunIds(runs);
+
+        // a link with payrolls but no company opens the company of the first payroll
+        if (company is null && picked.Count > 0 && await LoadRunAsync(picked[0]) is { } first)
+        {
+            company = first.CompanyId;
+        }
+        var companyId = company is { } c && companies.Any(x => x.Id == c)
+            ? c
+            : OwnCompany ?? _companyFilter.SingleCompanyId ?? companies.FirstOrDefault()?.Id;
+
+        var list = companyId is { } cid
+            ? (await _runs.ListAsync(new RunListFilter { CompanyId = cid, CompanyIds = CompanyCsv, PageSize = 200 }, Ct)).Items
+                .Where(IsComparable).ToList()
+            : new List<PayrollRun>();
+
+        var selected = picked.Where(id => list.Any(r => r.PayrollRunId == id)).Take(ComparePageModel.MaxRuns).ToList();
+        if (selected.Count == 0)
+        {
+            // first visit: the latest regular payroll against the one before it
+            var regular = list.Where(r => r.RunType == RunType.Regular).Take(2).ToList();
+            if (regular.Count < 2) regular = list.Take(2).ToList();
+            selected = regular.Select(r => r.PayrollRunId).Reverse().ToList();
+        }
+
+        ViewData["ActiveRun"] = await RememberedRunAsync();
+        return View(new ComparePageModel { Companies = companies, CompanyId = companyId, Runs = list, Selected = selected });
     }
 
     private async Task<IActionResult> RunPage(long? runId, int pageStage)
@@ -400,13 +433,97 @@ public sealed class PayrollController : Controller
         });
     }
 
-    [HttpGet("compare")]
-    public async Task<IActionResult> Compare(long a, long b)
+    [HttpGet("compare-grid")]
+    public async Task<IActionResult> CompareGrid(string? runs)
     {
-        var ra = await LoadRunAsync(a);
-        var rb = await LoadRunAsync(b);
-        if (ra is null || rb is null) return NotFound();
-        return PartialView("_Compare", new RunCompareModel { RunA = ra, RunB = rb, Rows = await _runs.CompareAsync(a, b, Ct) });
+        if (!Can(PermView)) return Forbid();
+        var (comparison, error) = await BuildComparisonAsync(runs);
+        return comparison is null ? PartialView("_CompareError", error) : PartialView("_CompareGrid", comparison);
+    }
+
+    /// <summary>The comparison as an Excel workbook: Summary, Pay items and Employees sheets.</summary>
+    [HttpGet("compare-export")]
+    public async Task<IActionResult> CompareExport(string? runs)
+    {
+        if (!Can(PermView)) return Forbid();
+        var (cmp, error) = await BuildComparisonAsync(runs);
+        if (cmp is null) return BadRequest(_text.Tr(error));
+
+        var L = _text;
+        var n = cmp.Runs.Count;
+        var codes = cmp.Runs.Select(r => r.RunCode ?? r.PayrollRunId.ToString(CultureInfo.InvariantCulture)).ToList();
+        var diffHeaders = Enumerable.Range(1, n - 1).Select(i => $"{codes[i]} − {codes[0]}").ToList();
+        var pctHeaders = Enumerable.Range(1, n - 1).Select(i => $"{codes[i]} − {codes[0]} (%)").ToList();
+        string Name(string? en, string? ar) => L.IsArabic && !string.IsNullOrWhiteSpace(ar) ? ar : en ?? string.Empty;
+        object? Pct(decimal? v) => v is { } p ? (double)p : null;
+
+        // ---- Summary: one column per payroll, then the differences against the baseline
+        var summary = new List<IReadOnlyList<object?>>
+        {
+            Info(L["common.company"], r => r.CompanyName),
+            Info(L["pr.period"], r => PayrollFormat.Period(L, r)),
+            Info(L["pr.calendar"], r => PayrollFormat.Calendar(L, r.CalendarName, r.CalendarArabicName)),
+            Info(L["org.type"], r => L.Tr(RunType.Label(r.RunType))),
+            Info(L["pr.stage"], r => L.Tr(RunStage.Label(r.Stage))),
+            Info(L["pr.cmp_figures"], r => r.IsClosed ? L["pr.cmp_final"] : L["pr.cmp_not_closed_may_change"])
+        };
+        void Metric(string label, Func<CompareTotals, decimal> pick, bool count = false)
+        {
+            var values = cmp.Totals.Select(t => (decimal?)pick(t)).ToList();
+            object? Cell(decimal? v) => count && v is { } d ? (int)d : v;
+            var row = new List<object?> { label };
+            row.AddRange(values.Select(Cell));
+            row.AddRange(Enumerable.Range(1, n - 1).Select(i => Cell(PayrollComparison.Diff(values, i))));
+            row.AddRange(Enumerable.Range(1, n - 1).Select(i => Pct(PayrollComparison.Percent(values, i))));
+            summary.Add(row);
+        }
+        Metric(L["common.employees"], t => t.Employees, count: true);
+        Metric(L["pr.cmp_joiners"], t => t.Joiners, count: true);
+        Metric(L["pr.cmp_leavers"], t => t.Leavers, count: true);
+        Metric(L["pr.salary"], t => t.Salary);
+        Metric(L["pr.earnings"], t => t.Earnings);
+        Metric(L["pr.deductions"], t => t.Deductions);
+        Metric(L["pr.gross"], t => t.Gross);
+        Metric(L["pr.net_kwd"], t => t.Net);
+
+        List<object?> Info(string label, Func<PayrollRun, string> pick)
+        {
+            var row = new List<object?> { label };
+            row.AddRange(cmp.Runs.Select(r => (object?)pick(r)));
+            return row;
+        }
+
+        // ---- Pay items
+        var items = cmp.Items.Select(i =>
+        {
+            var row = new List<object?> { PayrollFormat.ItemClass(L, i.ItemClass), Name(i.Name, i.ArabicName) };
+            row.AddRange(i.Amounts.Cast<object?>());
+            row.AddRange(Enumerable.Range(1, n - 1).Select(x => (object?)PayrollComparison.Diff(i.Amounts, x)));
+            row.AddRange(Enumerable.Range(1, n - 1).Select(x => Pct(PayrollComparison.Percent(i.Amounts, x))));
+            return (IReadOnlyList<object?>)row;
+        });
+
+        // ---- Employees
+        var employees = cmp.Employees.Select(e =>
+        {
+            var row = new List<object?> { e.EmployeeNo, Name(e.EmployeeName, e.ArabicName), e.DepartmentName };
+            row.AddRange(e.Net.Cast<object?>());
+            row.AddRange(Enumerable.Range(1, n - 1).Select(x => (object?)PayrollComparison.Diff(e.Net, x)));
+            row.Add(L[e.Kind switch { "new" => "pr.cmp_kind_new", "missing" => "pr.cmp_kind_missing", "changed" => "pr.cmp_kind_changed", _ => "pr.cmp_kind_same" }]);
+            return (IReadOnlyList<object?>)row;
+        });
+
+        var money = Enumerable.Repeat(16d, n + 2 * (n - 1)).ToList();
+        var bytes = XlsxFile.Write(
+        [
+            new XlsxSheet(L["pr.cmp_sheet_summary"], [L["pr.cmp_measure"], .. codes, .. diffHeaders, .. pctHeaders], summary, [26, .. money]),
+            new XlsxSheet(L["pr.cmp_sheet_items"], [L["pr.class"], L["pr.cmp_pay_item"], .. codes, .. diffHeaders, .. pctHeaders], items, [14, 30, .. money]),
+            new XlsxSheet(L["pr.cmp_sheet_employees"], [L["emp.employee_no"], L["pr.employee"], L["common.department"], .. codes, .. diffHeaders, L["pr.cmp_change"]],
+                          employees, [14, 30, 22, .. Enumerable.Repeat(16d, n + n - 1), 14])
+        ], rightToLeft: L.IsArabic);
+
+        var file = $"payroll-comparison-{string.Join("-vs-", codes.Select(SafeFilePart))}.xlsx";
+        return File(bytes, XlsxFile.ContentType, file);
     }
 
     [HttpGet("export")]
@@ -785,6 +902,140 @@ public sealed class PayrollController : Controller
     }
 
     /// <summary>The run, if the user may see it (company scope).</summary>
+    /// <summary>The companies this user works with (own company, or the company filter's selection).</summary>
+    private async Task<IReadOnlyList<LookupItem>> VisibleCompaniesAsync()
+    {
+        var companies = await _lookups.GetAsync(LookupType.Company, cancellationToken: Ct);
+        if (OwnCompany is { } own)
+        {
+            return companies.Where(c => c.Id == own).ToList();
+        }
+        if (_companyFilter.SelectedIds.Count > 0)
+        {
+            return companies.Where(c => _companyFilter.SelectedIds.Contains(c.Id)).ToList();
+        }
+        return companies;
+    }
+
+    /// <summary>A payroll that has figures to compare: any stage from Registered to Closed.</summary>
+    private static bool IsComparable(PayrollRun run) => run.Stage is not (RunStage.Draft or RunStage.Cancelled);
+
+    /// <summary>"12,15,9" -> distinct positive ids, in the order given (the first one is the baseline).</summary>
+    private static List<long> ParseRunIds(string? csv) =>
+        (csv ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => long.TryParse(x, NumberStyles.None, CultureInfo.InvariantCulture, out var v) ? v : 0)
+            .Where(v => v > 0).Distinct().Take(10).ToList();
+
+    /// <summary>
+    /// Loads 2-3 payrolls of the same company and lines them up by pay item and
+    /// by employee (included employees only). Returns an English error otherwise.
+    /// </summary>
+    private async Task<(PayrollComparison? Comparison, string Error)> BuildComparisonAsync(string? runs)
+    {
+        var ids = ParseRunIds(runs);
+        if (ids.Count < 2) return (null, "Choose at least two different payrolls to compare.");
+        if (ids.Count > ComparePageModel.MaxRuns) return (null, "Up to three payrolls can be compared at a time.");
+
+        var list = new List<PayrollRun>();
+        foreach (var id in ids)
+        {
+            var run = await LoadRunAsync(id);
+            if (run is null || !IsComparable(run)) return (null, "A selected payroll was not found, or it is cancelled.");
+            list.Add(run);
+        }
+        if (list.Select(r => r.CompanyId).Distinct().Count() > 1)
+        {
+            return (null, "Only payrolls of the same company can be compared.");
+        }
+
+        var employees = new List<IReadOnlyList<PayrollRunEmployee>>();
+        var lines = new List<IReadOnlyList<PayrollRunLine>>();
+        foreach (var run in list)
+        {
+            var emps = (await _runs.EmployeesAsync(run.PayrollRunId, new RunEmployeeFilter { Filter = "included", PageSize = 5000 }, Ct)).Items;
+            var included = emps.Select(e => e.EmployeeId).ToHashSet();
+            employees.Add(emps);
+            lines.Add((await _runs.LinesAsync(run.PayrollRunId, null, Ct)).Where(l => included.Contains(l.EmployeeId)).ToList());
+        }
+
+        var n = list.Count;
+        var totals = list.Select((run, i) => new CompareTotals
+        {
+            Employees = employees[i].Count,
+            Joiners = employees[i].Count(e => e.IsJoiner),
+            Leavers = employees[i].Count(e => e.IsLeaver),
+            Salary = employees[i].Sum(e => e.SalaryTotal),
+            Earnings = employees[i].Sum(e => e.EarningsTotal),
+            Deductions = employees[i].Sum(e => e.DeductionsTotal),
+            Gross = employees[i].Sum(e => e.GrossPay),
+            Net = employees[i].Sum(e => e.NetPay)
+        }).ToList();
+
+        var items = lines.SelectMany((ls, i) => ls.Select(l => (Index: i, Line: l)))
+            .GroupBy(x => x.Line.PayComponentId)
+            .Select(g =>
+            {
+                var first = g.First().Line;
+                var amounts = new decimal?[n];
+                var counts = new int[n];
+                foreach (var byRun in g.GroupBy(x => x.Index))
+                {
+                    amounts[byRun.Key] = byRun.Sum(x => x.Line.Amount);
+                    counts[byRun.Key] = byRun.Select(x => x.Line.EmployeeId).Distinct().Count();
+                }
+                return new CompareItemRow
+                {
+                    PayComponentId = g.Key,
+                    ItemClass = first.ItemClass,
+                    Name = first.ComponentName,
+                    ArabicName = first.ComponentArabicName,
+                    Amounts = amounts,
+                    Employees = counts
+                };
+            })
+            .OrderBy(r => ItemClassOrder(r.ItemClass)).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var people = employees.SelectMany((es, i) => es.Select(e => (Index: i, Emp: e)))
+            .GroupBy(x => x.Emp.EmployeeId)
+            .Select(g =>
+            {
+                var net = new decimal?[n];
+                var gross = new decimal?[n];
+                foreach (var x in g)
+                {
+                    net[x.Index] = x.Emp.NetPay;
+                    gross[x.Index] = x.Emp.GrossPay;
+                }
+                var latest = g.OrderByDescending(x => x.Index).First().Emp;
+                return new CompareEmployeeRow
+                {
+                    EmployeeId = g.Key,
+                    EmployeeNo = latest.EmployeeNo,
+                    EmployeeName = latest.EmployeeName,
+                    ArabicName = latest.ArabicName,
+                    DepartmentName = latest.DepartmentName,
+                    Net = net,
+                    Gross = gross
+                };
+            })
+            // biggest change first, then by name
+            .OrderByDescending(r => Enumerable.Range(1, n - 1).Max(i => Math.Abs(PayrollComparison.Diff(r.Net, i) ?? 0)))
+            .ThenBy(r => r.EmployeeName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return (new PayrollComparison { Runs = list, Totals = totals, Items = items, Employees = people }, string.Empty);
+    }
+
+    private static int ItemClassOrder(string itemClass) => itemClass switch
+    {
+        "SALARY" => 0, "EARNING" => 1, "DEDUCTION" => 2, "LOAN" => 3, _ => 4
+    };
+
+    private static string SafeFilePart(string text) =>
+        new(text.Select(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_' ? ch : '-').ToArray());
+
     private async Task<PayrollRun?> LoadRunAsync(long runId)
     {
         if (!Can(PermView) && !Can(PermProcess)) return null;

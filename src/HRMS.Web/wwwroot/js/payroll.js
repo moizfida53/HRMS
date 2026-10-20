@@ -1,7 +1,7 @@
 /* ==========================================================================
  * HRMS Kuwait - Payroll Processing (db/34-35)
  * Payroll Calendar, Create Payroll wizard, Register, Validation, Approval,
- * History. Panels are server-rendered partials (labels from Core.UiLabels);
+ * History and Payroll Comparison. Panels are server-rendered partials (labels from Core.UiLabels);
  * this file only wires them up. Every POST carries the anti-forgery token.
  * ========================================================================== */
 (function () {
@@ -522,12 +522,122 @@
         loadRuns();
     }
 
-    // Compare two payrolls (History)
-    var cmp = $("[data-compare]");
-    if (cmp && $("[data-compare-run]", cmp)) {
-        $("[data-compare-run]", cmp).addEventListener("click", function () {
-            loadInto($("[data-compare-slot]", cmp), withQs(cmp.getAttribute("data-url"), { a: $("[data-compare-a]", cmp).value, b: $("[data-compare-b]", cmp).value }));
-        });
+
+    /* ========================================================================
+     * Payroll Comparison: 2-3 payrolls of one company (first = baseline)
+     * ===================================================================== */
+    if (PAGE === "compare") {
+        var cmpCard = $("[data-cmp]"), cmpSlot = $("[data-cmp-slot]");
+        var cmpSelects = $all("[data-cmp-run]");
+        var cmpGo = $("[data-cmp-go]"), cmpExport = $("[data-cmp-export]"), cmpError = $("[data-cmp-error]");
+        var cmpCompany = $("[data-cmp-company]");
+
+        var picked = function () {
+            var ids = [];
+            cmpSelects.forEach(function (s) { if (s.value && ids.indexOf(s.value) < 0) { ids.push(s.value); } });
+            return ids;
+        };
+        var showError = function (text) {
+            if (!cmpError) { return; }
+            cmpError.textContent = text || "";
+            cmpError.hidden = !text;
+        };
+        // stage badge + "not closed" flag under each picker, and no payroll picked twice
+        var refreshPickers = function () {
+            cmpSelects.forEach(function (sel) {
+                var status = $('[data-cmp-status="' + sel.getAttribute("data-cmp-run") + '"]');
+                var opt = sel.options[sel.selectedIndex];
+                if (status) {
+                    status.innerHTML = !opt || !opt.value ? "" :
+                        '<span class="hrms-badge hrms-badge--' + HRMS.escape(opt.getAttribute("data-badge") || "muted") + '"><span class="hrms-badge__dot"></span>' +
+                        HRMS.escape(opt.getAttribute("data-stage") || "") + "</span>" +
+                        (opt.getAttribute("data-closed") === "1" ? "" :
+                            '<span class="pr-cmp__flag">' + HRMS.escape(HRMS.t("js.pr_cmp_not_closed", "Not closed - figures can still change")) + "</span>");
+                }
+                Array.prototype.forEach.call(sel.options, function (o) {
+                    if (!o.value) { return; }
+                    o.disabled = cmpSelects.some(function (other) { return other !== sel && other.value === o.value; });
+                });
+            });
+            var ids = picked();
+            var ok = ids.length >= 2;
+            if (cmpExport) {
+                cmpExport.classList.toggle("disabled", !ok);
+                cmpExport.setAttribute("aria-disabled", ok ? "false" : "true");
+                cmpExport.href = ok ? withQs(cmpCard.getAttribute("data-export-url"), { runs: ids.join(",") }) : "#";
+            }
+            if (ok) { showError(""); }
+        };
+        var wireResult = function () {
+            var emps = $("[data-cmp-emps]", cmpSlot);
+            if (!emps) { return; }
+            var search = $("[data-cmp-search]", emps), kind = $("[data-cmp-kind]", emps), counter = $("[data-cmp-count]", emps);
+            var rows = $all("tbody tr[data-kind]", emps), none = $("[data-cmp-none]", emps);
+            var apply = function () {
+                var q = search.value.trim().toLowerCase(), k = kind.value, shown = 0;
+                rows.forEach(function (tr) {
+                    var rk = tr.getAttribute("data-kind");
+                    var match = (!k || (k === "diff" ? rk !== "same" : rk === k)) &&
+                                (!q || (tr.getAttribute("data-search") || "").indexOf(q) >= 0);
+                    tr.hidden = !match;
+                    if (match) { shown++; }
+                });
+                if (none) { none.hidden = shown > 0; }
+                if (counter) { counter.textContent = (counter.getAttribute("data-count-text") || "{0} / {1}").replace("{0}", shown).replace("{1}", rows.length); }
+            };
+            search.addEventListener("input", debounce(apply, 150));
+            kind.addEventListener("change", apply);
+            apply();
+        };
+        var compare = function (scroll) {
+            var ids = picked();
+            if (ids.length < 2) {
+                showError(HRMS.t("js.pr_cmp_pick_two", "Choose at least two different payrolls to compare."));
+                return Promise.resolve();
+            }
+            busy(cmpGo, true);
+            return loadInto(cmpSlot, withQs(cmpCard.getAttribute("data-grid-url"), { runs: ids.join(",") })).then(function () {
+                busy(cmpGo, false);
+                wireResult();
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, "", withQs(cmpCard.getAttribute("data-page-url"), {
+                        company: cmpCard.getAttribute("data-company"), runs: ids.join(",")
+                    }));
+                }
+                if (scroll) { cmpSlot.scrollIntoView({ behavior: "smooth", block: "start" }); }
+            }, function () { busy(cmpGo, false); });
+        };
+
+        if (cmpCompany) {
+            // payrolls are per company: switching company reloads the page with that company's payrolls
+            cmpCompany.addEventListener("change", function () {
+                window.location.href = withQs(cmpCard.getAttribute("data-page-url"), { company: cmpCompany.value });
+            });
+        }
+        cmpSelects.forEach(function (s) { s.addEventListener("change", refreshPickers); });
+        if (cmpGo) { cmpGo.addEventListener("click", function () { compare(true); }); }
+        var swap = $("[data-cmp-swap]");
+        if (swap) {
+            // make the second payroll the baseline (A <-> B)
+            swap.addEventListener("click", function () {
+                if (cmpSelects.length < 2) { return; }
+                var a = cmpSelects[0].value;
+                cmpSelects[0].value = cmpSelects[1].value;
+                cmpSelects[1].value = a;
+                refreshPickers();
+                if (picked().length >= 2 && $("[data-cmp-result]", cmpSlot)) { compare(false); }
+            });
+        }
+        if (cmpExport) {
+            cmpExport.addEventListener("click", function (ev) {
+                if (cmpExport.classList.contains("disabled")) {
+                    ev.preventDefault();
+                    showError(HRMS.t("js.pr_cmp_pick_two", "Choose at least two different payrolls to compare."));
+                }
+            });
+        }
+        refreshPickers();
+        if (picked().length >= 2) { compare(false); }
     }
 
     /* ========================================================================

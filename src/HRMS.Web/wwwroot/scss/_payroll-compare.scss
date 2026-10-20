@@ -1,0 +1,249 @@
+// ============================================================================
+// Payroll Comparison (/payroll/compare)
+// ----------------------------------------------------------------------------
+// Up to three payrolls of one company side by side. Each payroll has a slot
+// colour (A = baseline, B, C) used on the picker, the cards and the table
+// headers so the columns can be told apart at a glance. Layout follows the
+// content width (container "content"), like the rest of the payroll module.
+// ============================================================================
+
+@use "sass:list";
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+// slot -> (ink, tint)
+$cmp-slots: (
+  "a": ($navy-900, $blue-100),
+  "b": ($purple-700, $purple-050),
+  "c": ($green-700, $green-050)
+);
+
+@mixin slot-colours($ink, $tint) {
+  color: $ink;
+  background: $tint;
+  border-color: color.mix($ink, $tint, 25%);
+}
+
+.pr-cmp {
+  // ---------------------------------------------------------- slot chip ----
+  &__slot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid;
+    border-radius: $radius;
+    font-family: Lexend, "Public Sans", sans-serif;
+    font-size: $fs-md;
+    font-weight: $fw-bold;
+
+    @each $name, $pair in $cmp-slots {
+      &--#{$name} { @include slot-colours(list.nth($pair, 1), list.nth($pair, 2)); }
+    }
+  }
+
+  // ------------------------------------------------------------- picker ----
+  &__pick {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+
+    .form-select { min-width: 0; flex: 1 1 auto; }
+  }
+
+  &__status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: space("1") space("2");
+    min-height: 1.75rem;
+    margin-top: space("2");
+    padding-inline-start: calc(2rem + #{space("2")});   // under the select, past the slot chip
+  }
+
+  &__flag,
+  &__final {
+    display: inline-flex;
+    align-items: center;
+    gap: space("1");
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    white-space: nowrap;
+  }
+
+  &__flag  { color: $amber-700; }
+  &__final { color: $green-700; }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: space("2");
+    padding-top: space("3");
+    border-top: 1px solid $line-100;
+
+    .btn { display: inline-flex; align-items: center; gap: space("2"); }
+  }
+
+  // -------------------------------------------------------------- cards ----
+  &__card {
+    height: 100%;
+    padding: space("4") space("5");
+    border-top: 4px solid transparent;
+    @include motion(box-shadow);
+
+    &:hover { box-shadow: $shadow-md; }
+
+    @each $name, $pair in $cmp-slots {
+      &--#{$name} { border-top-color: list.nth($pair, 1); }
+    }
+
+    // a payroll that is not closed yet: amber dashed edge, so it is never mistaken for final figures
+    &.is-open {
+      background-image: repeating-linear-gradient(-45deg, rgba($amber-600, .55) 0 8px, transparent 8px 16px);
+      background-size: 100% 6px;
+      background-repeat: no-repeat;
+      background-position: bottom;
+    }
+  }
+
+  &__card-head {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    margin-bottom: space("3");
+  }
+
+  &__card-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1 1 auto;
+
+    .pr-emp-sub { @include truncate; }
+  }
+
+  &__baseline {
+    flex: 0 0 auto;
+    padding: 2px space("2");
+    border-radius: $radius-pill;
+    background: $blue-050;
+    color: $blue-700;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  &__card-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: space("2");
+    margin-bottom: space("3");
+  }
+
+  &__figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: space("3");
+    margin: 0;
+
+    dt {
+      margin-bottom: 2px;
+      color: $ink-500;
+      font-size: $fs-xs;
+      font-weight: $fw-semibold;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+
+    dd {
+      margin: 0;
+      color: $ink-900;
+      font-family: Lexend, "Public Sans", sans-serif;
+      font-size: $fs-lg;
+      font-weight: $fw-semibold;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+
+      &.pr-pos { color: $green-700; }
+      &.pr-neg { color: $red-700; }
+
+      small { font-size: $fs-xs; font-weight: $fw-medium; }
+    }
+  }
+
+  // ------------------------------------------------------ result tabs ----
+  &__nav {
+    margin: 0;
+    padding-inline: space("3");
+
+    // Bootstrap's tab plugin marks the open tab with .active
+    .hrms-tab.active {
+      color: $blue-700;
+
+      &::after { background: $blue-600; }
+    }
+  }
+
+  // ------------------------------------------------------------- tables ----
+  &__table {
+    th.pr-cmp__measure {
+      color: $ink-700;
+      font-weight: $fw-semibold;
+      white-space: nowrap;
+    }
+
+    // difference columns sit on a faint tint, so they read as "derived"
+    .pr-cmp__diff { background: rgba($surface-2, .9); }
+    thead .pr-cmp__diff { color: $ink-700; }
+  }
+
+  &__th-slot {
+    display: inline-block;
+    min-width: 1.25rem;
+    margin-inline-end: 2px;
+    padding: 0 space("1");
+    border-radius: $radius-sm;
+    font-weight: $fw-bold;
+    text-align: center;
+    background: $line-100;
+  }
+
+  // a long employee list scrolls inside the card with the header kept in view
+  &__scroll {
+    max-height: min(70vh, 720px);
+    overflow: auto;
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: $surface-2;
+    }
+  }
+}
+
+// ---------------------------------------------------------- responsive ----
+@include cq-down("md") {
+  .pr-cmp__card { padding: space("3") space("4"); }
+  .pr-cmp__actions .btn { flex: 1 1 auto; justify-content: center; }
+  .pr-cmp__actions .field-validation-error { flex: 1 1 100%; }
+}
+
+@include cq-down("sm") {
+  .pr-cmp__status { padding-inline-start: 0; }
+  .pr-cmp__scroll { max-height: none; }
+}
+
+@media print {
+  .pr-cmp__picker,
+  .pr-cmp__nav { display: none !important; }
+  .pr-cmp .tab-pane { display: block !important; opacity: 1 !important; }
+  .pr-cmp__scroll { max-height: none; overflow: visible; }
+}
