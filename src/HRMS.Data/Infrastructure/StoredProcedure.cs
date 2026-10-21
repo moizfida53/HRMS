@@ -48,6 +48,12 @@ public static class StoredProcedure
     /// <summary>1:many child list of the employee record, scoped by @EmployeeId - no company-wide paging.</summary>
     public const string EmployeeDependentManage = "Employee.usp_EmployeeDependent_Manage";
 
+    /// <summary>Organization > Employee Documents: document types (db/63, master envelope).</summary>
+    public const string DocumentTypeManage = "Documents.usp_DocumentType_Manage";
+
+    /// <summary>Document sections: LIST / INSERT (db/63).</summary>
+    public const string DocumentSectionManage = "Documents.usp_DocumentSection_Manage";
+
     /// <summary>Documents tab: document types grouped by section + the employee's uploaded files.</summary>
     public const string EmployeeDocumentManage = "Documents.usp_EmployeeDocument_Manage";
 

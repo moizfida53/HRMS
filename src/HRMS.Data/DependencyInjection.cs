@@ -49,6 +49,8 @@ public static class DependencyInjection
         services.AddScoped<IJobPositionRepository, JobPositionRepository>();
         services.AddScoped<ILocationRepository, LocationRepository>();
         services.AddScoped<ICostCenterRepository, CostCenterRepository>();
+        services.AddScoped<IDocumentTypeRepository, DocumentTypeRepository>();
+        services.AddScoped<IDocumentSectionRepository, DocumentSectionRepository>();
 
         // ---- Module 4: Workforce - Employees & Kuwait Compliance ----
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();

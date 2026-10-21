@@ -1,0 +1,122 @@
+@using HRMS.Web.Controllers
+@model FormViewModel<DocumentType>
+@{
+    // Organization > Employee Documents (db/63). The "+" next to Section adds a section in
+    // place (organization.js, POST /organization/document-section) and selects it.
+    var sections = Model.Lookup(OrganizationController.DocumentSectionsKey);
+    string SectionText(LookupItem s) => L.IsArabic && !string.IsNullOrWhiteSpace(s.Code) ? s.Code : s.Text;
+}
+
+<form id="record-form" data-tab="@Model.Tab.Key" novalidate>
+    <div class="modal-header">
+        <h2 class="modal-title h5" id="record-modal-title">@(Model.IsNew ? L["common.add_named", L.Tr(Model.Tab.Singular)] : L["common.edit_named", L.Tr(Model.Tab.Singular)])</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+    </div>
+
+    <div class="modal-body">
+        <input type="hidden" name="DocumentTypeId" value="@Model.Model.DocumentTypeId" />
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.identity"]</legend>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="f-DocumentTypeName">@L["org.doc_type_name"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="f-DocumentTypeName" name="DocumentTypeName" type="text"
+                           value="@Model.Model.DocumentTypeName" maxlength="150" required placeholder="@L["org.doc_type_name_placeholder"]" />
+                    <span class="field-validation-error" data-valmsg-for="DocumentTypeName"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="f-ArabicName">@L["org.arabic_name"]</label>
+                    <input class="form-control hrms-arabic" id="f-ArabicName" name="ArabicName" type="text"
+                           value="@Model.Model.ArabicName" maxlength="150" dir="rtl" lang="ar" />
+                    <span class="field-validation-error" data-valmsg-for="ArabicName"></span>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["org.doc_where_and_rules"]</legend>
+            <div class="row g-3">
+                <div class="col-md-8" data-docsec>
+                    <label class="form-label" for="f-SectionId">@L["org.doc_section"]</label>
+                    <div class="org-docsec__pick">
+                        <select class="form-select" id="f-SectionId" name="SectionId" data-docsec-select>
+                            <option value="">@L["org.doc_no_section"]</option>
+                            @foreach (var s in sections)
+                            {
+                                <option value="@s.Id" selected="@(Model.Model.SectionId == s.Id)">@SectionText(s)</option>
+                            }
+                        </select>
+                        <button type="button" class="btn btn-outline-primary org-docsec__add" data-docsec-open
+                                title="@L["org.doc_new_section"]" aria-label="@L["org.doc_new_section"]" aria-expanded="false" aria-controls="docsec-new">
+                            @Html.Icon("plus", 16)
+                        </button>
+                    </div>
+                    <span class="form-text">@L["org.doc_section_hint"]</span>
+                    <span class="field-validation-error" data-valmsg-for="SectionId"></span>
+
+                    @* the new-section box: its fields have no name, so they never post with the document type *@
+                    <div class="org-docsec__new" id="docsec-new" data-docsec-panel hidden>
+                        <p class="org-docsec__title">@L["org.doc_new_section"]</p>
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <label class="form-label" for="docsec-eng">@L["org.doc_section_name"] <span class="req" aria-hidden="true">*</span></label>
+                                <input class="form-control form-control-sm" id="docsec-eng" type="text" maxlength="150" data-docsec-eng autocomplete="off" />
+                                <span class="field-validation-error" data-docsec-error></span>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label" for="docsec-arb">@L["org.arabic_name"]</label>
+                                <input class="form-control form-control-sm hrms-arabic" id="docsec-arb" type="text" maxlength="150" dir="rtl" lang="ar" data-docsec-arb autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="org-docsec__actions">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-docsec-cancel>@L["common.cancel"]</button>
+                            <button type="button" class="btn btn-sm btn-primary" data-docsec-save>@Html.Icon("check", 14)<span>@L["org.doc_add_section"]</span></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="f-SortOrder">@L["org.doc_sort_order"]</label>
+                    <input class="form-control" id="f-SortOrder" name="SortOrder" type="number" min="0" max="9999" step="1"
+                           value="@Model.Model.SortOrder" inputmode="numeric" />
+                    <span class="form-text">@L["org.doc_sort_order_hint"]</span>
+                    <span class="field-validation-error" data-valmsg-for="SortOrder"></span>
+                </div>
+                <div class="col-12">
+                    <div class="org-docsec__mandatory">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="f-IsMandatory" name="IsMandatory" value="true" checked="@Model.Model.IsMandatory" />
+                            <input type="hidden" name="IsMandatory" value="false" />
+                            <label class="form-check-label" for="f-IsMandatory"><strong>@L["org.doc_mandatory"]</strong></label>
+                        </div>
+                        <span class="form-text">@L["org.doc_mandatory_hint"]</span>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.status"]</legend>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       id="f-IsActive" name="IsActive" value="true" checked="@Model.Model.IsActive" />
+                <input type="hidden" name="IsActive" value="false" />
+                <label class="form-check-label" for="f-IsActive">@L["org.active"]</label>
+            </div>
+            <span class="form-text">@L["org.doc_inactive_hint"]</span>
+            @if (Model.Model.UsageCount > 0)
+            {
+                <div class="org-docsec__usage">@Html.Icon("info", 14)<span>@L["org.doc_in_use", Model.Model.UsageCount]</span></div>
+            }
+        </fieldset>
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+        <button type="submit" class="btn btn-primary" data-submit>
+            @Html.Icon("check", 15)
+            <span>@(Model.IsNew ? L["common.create"] : L["common.save_changes"])</span>
+        </button>
+    </div>
+</form>

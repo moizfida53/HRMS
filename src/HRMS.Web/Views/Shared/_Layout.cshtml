@@ -214,11 +214,12 @@
                     <span>@L["layout.setup"]</span>@Html.Icon("chevron-down", 14)
                 </button>
                 <div class="collapse hrms-nav-group__items @(openSetup ? "show" : null)" id="nav-setup">
-                    @foreach (var tab in OrganizationTabs.All.Where(_ => canOrganization))
+                    @* Organization: one entry - its masters (Companies, Branches, ... Employee Documents) are the page's tabs *@
+                    @if (canOrganization)
                     {
-                        <a class="hrms-nav-link @(activeArea == "organization" && tab.Key == (ViewData["ActiveTab"] as string) ? "is-active" : null)"
-                           asp-controller="Organization" asp-action="Index" asp-route-tab="@tab.Key">
-                            @Html.Icon(tab.Icon)<span>@L.Tr(tab.Title)</span>
+                        <a class="hrms-nav-link @(activeArea == "organization" ? "is-active" : null)"
+                           asp-controller="Organization" asp-action="Index">
+                            @Html.Icon("building")<span>@L["emp.organization"]</span>
                         </a>
                     }
                     @* Payroll Settings - the payroll masters, opening into their pages *@

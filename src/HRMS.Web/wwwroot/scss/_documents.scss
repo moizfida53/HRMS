@@ -292,6 +292,15 @@ $docs-red: $red-600;
   }
 }
 
+// Replace + Remove sit together at the end of the file box
+.hrms-file__actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+  margin-inline-start: auto;
+}
+
 .hrms-upload {
   display: flex;
   align-items: center;
@@ -444,5 +453,102 @@ $docs-red: $red-600;
     box-shadow: inset 3px 0 0 $docs-red;
 
     td:first-child { box-shadow: none; }
+  }
+}
+
+// ============================================================================
+// Organization > Employee Documents (db/63): document types + their sections
+// ============================================================================
+
+.org-doctypes {
+  &__alt {
+    display: block;
+    color: $ink-500;
+    font-size: $fs-sm;
+  }
+
+  &__section {
+    display: inline-flex;
+    align-items: center;
+    gap: space("2");
+  }
+
+  // the section's place on the Documents tab
+  &__seq {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    padding: 0 space("1");
+    border-radius: $radius-sm;
+    background: $blue-050;
+    color: $blue-700;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+  }
+}
+
+.org-docsec {
+  // section dropdown + the "+" that adds one
+  &__pick {
+    display: flex;
+    align-items: stretch;
+    gap: space("2");
+
+    .form-select { flex: 1 1 auto; min-width: 0; }
+  }
+
+  &__add {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    padding: 0;
+
+    svg { transition: transform 0.15s ease; }
+    &.active svg { transform: rotate(45deg); }
+  }
+
+  // the inline "new section" box
+  &__new {
+    margin-top: space("3");
+    padding: space("3");
+    border: 1px dashed $blue-200;
+    border-radius: $radius;
+    background: $blue-050;
+  }
+
+  &__title {
+    margin: 0 0 space("2");
+    color: $blue-700;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: space("2");
+    margin-top: space("3");
+
+    .btn { display: inline-flex; align-items: center; gap: space("1"); }
+  }
+
+  &__mandatory {
+    padding: space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $surface-2;
+  }
+
+  &__usage {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    margin-top: space("2");
+    color: $ink-600;
+    font-size: $fs-sm;
   }
 }

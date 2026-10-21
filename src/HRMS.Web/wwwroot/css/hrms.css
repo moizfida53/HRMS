@@ -2858,6 +2858,14 @@ a:hover {
   border-color: #1d5fbf;
 }
 
+.hrms-file__actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+  margin-inline-start: auto;
+}
+
 .hrms-upload {
   display: flex;
   align-items: center;
@@ -3038,6 +3046,92 @@ a:hover {
     box-shadow: none;
   }
 }
+.org-doctypes__alt {
+  display: block;
+  color: #667085;
+  font-size: 0.8rem;
+}
+.org-doctypes__section {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.org-doctypes__seq {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.25rem;
+  border-radius: 5px;
+  background: #f2f7fd;
+  color: #1b4f91;
+  font-size: 0.725rem;
+  font-weight: 700;
+}
+
+.org-docsec__pick {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.org-docsec__pick .form-select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.org-docsec__add {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  padding: 0;
+}
+.org-docsec__add svg {
+  transition: transform 0.15s ease;
+}
+.org-docsec__add.active svg {
+  transform: rotate(45deg);
+}
+.org-docsec__new {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px dashed #c7dbf7;
+  border-radius: 8px;
+  background: #f2f7fd;
+}
+.org-docsec__title {
+  margin: 0 0 0.5rem;
+  color: #1b4f91;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.org-docsec__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.org-docsec__actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.org-docsec__mandatory {
+  padding: 0.75rem;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #fafbfc;
+}
+.org-docsec__usage {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: #475467;
+  font-size: 0.8rem;
+}
+
 .hrms-dash {
   display: flex;
   flex-direction: column;

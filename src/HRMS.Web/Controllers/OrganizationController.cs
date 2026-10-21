@@ -27,6 +27,8 @@ public sealed class OrganizationController : Controller
     private readonly IJobPositionRepository _jobPositions;
     private readonly ILocationRepository _locations;
     private readonly ICostCenterRepository _costCenters;
+    private readonly IDocumentTypeRepository _documentTypes;
+    private readonly IDocumentSectionRepository _documentSections;
     private readonly ILookupRepository _lookups;
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
@@ -41,6 +43,8 @@ public sealed class OrganizationController : Controller
         IJobPositionRepository jobPositions,
         ILocationRepository locations,
         ICostCenterRepository costCenters,
+        IDocumentTypeRepository documentTypes,
+        IDocumentSectionRepository documentSections,
         ILookupRepository lookups,
         ICurrentUser currentUser,
         ICompanyFilter companyFilter,
@@ -54,6 +58,8 @@ public sealed class OrganizationController : Controller
         _jobPositions = jobPositions;
         _locations = locations;
         _costCenters = costCenters;
+        _documentTypes = documentTypes;
+        _documentSections = documentSections;
         _lookups = lookups;
         _currentUser = currentUser;
         _companyFilter = companyFilter;
@@ -123,6 +129,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.JobPositions => GridAsync(_jobPositions, descriptor, request),
             OrganizationTabs.Locations    => GridAsync(_locations,    descriptor, request),
             OrganizationTabs.CostCenters  => GridAsync(_costCenters,  descriptor, request),
+            OrganizationTabs.DocumentTypes => GridAsync(_documentTypes, descriptor, request),
             _ => GridAsync(_companies, OrganizationTabs.All[0], request)
         };
     }
@@ -181,6 +188,8 @@ public sealed class OrganizationController : Controller
                 () => new CostCenter { CompanyId = DefaultCompanyId },
                 [LookupType.Company, LookupType.CostCenter]),
 
+            OrganizationTabs.DocumentTypes => await DocumentTypeFormAsync(descriptor, id),
+
             _ => NotFound()
         };
     }
@@ -202,6 +211,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.JobPositions => SaveAsync<JobPosition>(_jobPositions),
             OrganizationTabs.Locations    => SaveAsync<Location>(_locations),
             OrganizationTabs.CostCenters  => SaveAsync<CostCenter>(_costCenters),
+            OrganizationTabs.DocumentTypes => SaveAsync<DocumentType>(_documentTypes),
             _ => Task.FromResult<IActionResult>(BadRequest())
         };
 
@@ -218,6 +228,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.JobPositions => GuardedAsync(_jobPositions, id, ct => _jobPositions.DeleteAsync(id, _currentUser.UserId, ct)),
             OrganizationTabs.Locations    => GuardedAsync(_locations, id, ct => _locations.DeleteAsync(id, _currentUser.UserId, ct)),
             OrganizationTabs.CostCenters  => GuardedAsync(_costCenters, id, ct => _costCenters.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.DocumentTypes => GuardedAsync(_documentTypes, id, ct => _documentTypes.DeleteAsync(id, _currentUser.UserId, ct)),
             _ => Task.FromResult<IActionResult>(BadRequest())
         };
 
@@ -234,6 +245,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.JobPositions => GuardedAsync(_jobPositions, id, ct => _jobPositions.ToggleActiveAsync(id, _currentUser.UserId, ct)),
             OrganizationTabs.Locations    => GuardedAsync(_locations, id, ct => _locations.ToggleActiveAsync(id, _currentUser.UserId, ct)),
             OrganizationTabs.CostCenters  => GuardedAsync(_costCenters, id, ct => _costCenters.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.DocumentTypes => GuardedAsync(_documentTypes, id, ct => _documentTypes.ToggleActiveAsync(id, _currentUser.UserId, ct)),
             _ => Task.FromResult<IActionResult>(BadRequest())
         };
 
@@ -274,6 +286,63 @@ public sealed class OrganizationController : Controller
 
         return Json(new { isDuplicate });
     }
+
+    // =======================================================================
+    // Employee Documents (db/63) - document types and their sections
+    // =======================================================================
+
+    /// <summary>
+    /// The "+" next to Section on the document type form: adds a section and returns it,
+    /// so the form selects it without reloading. Same right as adding a record.
+    /// </summary>
+    [HttpPost("document-section")]
+    public async Task<IActionResult> AddDocumentSection(string? nameEng, string? nameArb)
+    {
+        if (!CanWrite(OrganizationTabs.DocumentTypes, isNew: true)) return NoRight();
+        // document types and sections are group-wide: not for a user pinned to one company
+        if (_currentUser.ActiveCompanyId is not null) return NoRight();
+
+        nameEng = nameEng?.Trim();
+        nameArb = nameArb?.Trim();
+        if (string.IsNullOrEmpty(nameEng) || nameEng.Length > 150 || (nameArb?.Length ?? 0) > 150)
+        {
+            return Json(ActionResponse.Invalid(new Dictionary<string, string[]>
+            {
+                ["SectionNameEng"] = [string.IsNullOrEmpty(nameEng) ? "Enter the section name." : "Use 150 characters or fewer."]
+            }));
+        }
+
+        var result = await _documentSections.AddAsync(nameEng, nameArb, _currentUser.UserId, Ct);
+        return Json(result.Success
+            ? ActionResponse.Ok(result.Id, result.Message)
+            : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    /// <summary>The document type form: its sections come from Documents.DocumentSections, not a lookup.</summary>
+    private async Task<IActionResult> DocumentTypeFormAsync(OrgTab tab, long id)
+    {
+        var isNew = id <= 0;
+        var model = isNew ? new DocumentType() : await _documentTypes.GetByIdAsync(id, Ct);
+        if (model is null) return NotFound();
+
+        // active sections, plus the type's own section if it was deactivated since;
+        // the option shows the Arabic name in the Arabic UI (Code carries it)
+        var sections = (await _documentSections.ListAsync(Ct))
+            .Where(x => x.IsActive || x.SectionId == model.SectionId)
+            .Select(x => new LookupItem { Id = x.SectionId, Text = x.NameEng, Code = x.NameArb ?? string.Empty })
+            .ToList();
+
+        return PartialView(tab.FormPartial, new FormViewModel<DocumentType>
+        {
+            Tab = tab,
+            Model = model,
+            IsNew = isNew,
+            Lookups = new Dictionary<string, IReadOnlyList<LookupItem>>(StringComparer.OrdinalIgnoreCase) { [DocumentSectionsKey] = sections }
+        });
+    }
+
+    /// <summary>The key of the sections list in the document type form's lookups.</summary>
+    internal const string DocumentSectionsKey = "DOCUMENT_SECTION";
 
     // =======================================================================
     // Private generics - the actual work, written once
@@ -383,6 +452,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.JobPositions => "PositionId",
             OrganizationTabs.Locations => "LocationId",
             OrganizationTabs.CostCenters => "CostCenterId",
+            OrganizationTabs.DocumentTypes => "DocumentTypeId",
             _ => null
         };
         return key is not null && Request.HasFormContentType && long.TryParse(Request.Form[key], out var v) && v > 0;

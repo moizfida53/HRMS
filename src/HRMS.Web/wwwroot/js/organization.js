@@ -22,7 +22,8 @@
         remove: slot.dataset.deleteUrl,
         toggle: slot.dataset.toggleUrl,
         lookup: slot.dataset.lookupUrl,
-        duplicate: slot.dataset.duplicateUrl
+        duplicate: slot.dataset.duplicateUrl,
+        docSection: slot.dataset.docsecUrl
     };
 
     document.documentElement.setAttribute("data-org-tab", slot.dataset.tab || "");
@@ -553,6 +554,93 @@
 
         HRMS.toast(HRMS.t("js.exported_rows", "Exported {0} rows from this page.", rows.length - 1), "success");
     }
+
+    /* ======================= Employee Documents: add a section in place (db/63) === */
+    // The "+" next to Section opens a small box in the form; Add saves the section,
+    // puts it in the dropdown and selects it - the document type form stays open.
+    (function initDocumentSections() {
+        var modalEl = document.getElementById("record-modal");
+
+        function parts() {
+            var root = modalEl.querySelector("[data-docsec]");
+            if (!root) { return null; }
+            return {
+                root: root,
+                panel: root.querySelector("[data-docsec-panel]"),
+                open: root.querySelector("[data-docsec-open]"),
+                select: root.querySelector("[data-docsec-select]"),
+                eng: root.querySelector("[data-docsec-eng]"),
+                arb: root.querySelector("[data-docsec-arb]"),
+                error: root.querySelector("[data-docsec-error]"),
+                save: root.querySelector("[data-docsec-save]")
+            };
+        }
+
+        function show(p, on) {
+            p.panel.hidden = !on;
+            p.open.setAttribute("aria-expanded", on ? "true" : "false");
+            p.open.classList.toggle("active", on);
+            p.error.textContent = "";
+            p.eng.classList.remove("is-invalid");
+            if (on) { p.eng.value = ""; p.arb.value = ""; window.setTimeout(function () { p.eng.focus(); }, 30); }
+            else { p.open.focus(); }
+        }
+
+        function add(p) {
+            var name = p.eng.value.trim();
+            if (!name) {
+                p.eng.classList.add("is-invalid");
+                p.error.textContent = HRMS.t("js.org_section_name_required", "Enter the section name.");
+                p.eng.focus();
+                return;
+            }
+            var body = new FormData();
+            body.append("nameEng", name);
+            body.append("nameArb", p.arb.value.trim());
+            p.save.disabled = true;
+            HRMS.post(urls.docSection, body)
+                .then(function (result) {
+                    if (!result.success) {
+                        var message = (result.errors && result.errors.SectionNameEng && result.errors.SectionNameEng[0]) || result.message;
+                        p.eng.classList.add("is-invalid");
+                        p.error.textContent = message || "";
+                        return;
+                    }
+                    var option = document.createElement("option");
+                    option.value = String(result.id);
+                    option.textContent = (HRMS.isRtl && p.arb.value.trim()) ? p.arb.value.trim() : name;
+                    p.select.appendChild(option);
+                    p.select.value = option.value;
+                    p.select.dispatchEvent(new Event("change", { bubbles: true }));
+                    HRMS.toast(result.message, "success");
+                    show(p, false);
+                })
+                .catch(function (error) { HRMS.toast(error.message, "error"); })
+                .finally(function () { p.save.disabled = false; });
+        }
+
+        modalEl.addEventListener("click", function (event) {
+            var p = parts();
+            if (!p) { return; }
+            if (event.target.closest("[data-docsec-open]")) { show(p, p.panel.hidden); }
+            else if (event.target.closest("[data-docsec-cancel]")) { show(p, false); }
+            else if (event.target.closest("[data-docsec-save]")) { add(p); }
+        });
+
+        // typing a new name clears the last error
+        modalEl.addEventListener("input", function (event) {
+            var p = parts();
+            if (p && event.target === p.eng) { p.eng.classList.remove("is-invalid"); p.error.textContent = ""; }
+        });
+
+        // Enter in the box adds the section (it would otherwise submit the document type)
+        modalEl.addEventListener("keydown", function (event) {
+            var p = parts();
+            if (!p || !p.panel.contains(event.target)) { return; }
+            if (event.key === "Enter") { event.preventDefault(); add(p); }
+            else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); show(p, false); }
+        }, true);
+    })();
 
     /* ============================================================== init === */
 

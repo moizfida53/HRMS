@@ -25,6 +25,7 @@ public static class OrganizationTabs
     public const string JobPositions = "job-positions";
     public const string Locations    = "locations";
     public const string CostCenters  = "cost-centers";
+    public const string DocumentTypes = "employee-documents";
 
     public static readonly IReadOnlyList<OrgTab> All =
     [
@@ -58,7 +59,12 @@ public static class OrganizationTabs
 
         new(CostCenters, "Cost Centers", "Cost center",
             "Financial roll-up used by payroll reporting",
-            "wallet", "_CostCentersGrid", "_CostCenterForm", "COSTCENTER")
+            "wallet", "_CostCentersGrid", "_CostCenterForm", "COSTCENTER"),
+
+        // db/63: group-wide (no company); the "+" on the form adds a section in place
+        new(DocumentTypes, "Employee Documents", "Document type",
+            "Documents employees upload, their section and whether they are mandatory",
+            "folder", "_DocumentTypesGrid", "_DocumentTypeForm", "DOCUMENTTYPE")
     ];
 
     private static readonly Dictionary<string, OrgTab> Index =

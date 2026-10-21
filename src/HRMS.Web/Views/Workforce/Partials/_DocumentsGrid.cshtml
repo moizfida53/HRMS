@@ -215,9 +215,20 @@
                                                 <a class="hrms-file__name" href="@(fileUrl + row.AttachmentId)" target="_blank" rel="noopener" title="@row.OriginalFileName">@row.OriginalFileName</a>
                                                 <span class="hrms-file__size">@FileSize(row.FileSizeBytes)</span>
                                             </span>
-                                            @if (acc.DocumentUpload)
+                                            @if (acc.DocumentUpload || acc.DocumentDelete)
                                             {
-                                                <label class="btn btn-outline-primary btn-sm mb-0" for="@inputId">@L["emp.replace"]</label>
+                                                @* Replace and Remove side by side, next to the file they act on *@
+                                                <span class="hrms-file__actions">
+                                                    @if (acc.DocumentUpload)
+                                                    {
+                                                        <label class="btn btn-outline-primary btn-sm mb-0" for="@inputId">@L["emp.replace"]</label>
+                                                    }
+                                                    @if (acc.DocumentDelete)
+                                                    {
+                                                        <button type="button" class="btn-icon btn-icon--danger" data-docs-remove="@row.AttachmentId"
+                                                                title="@L["emp.remove"]" aria-label="@L["common.remove_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("trash", 15)</button>
+                                                    }
+                                                </span>
                                             }
                                         </div>
                                     }
@@ -270,11 +281,6 @@
                                                title="@L["emp.view"]" aria-label="@L["common.view_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("eye", 15)</a>
                                             <a class="btn-icon" href="@(fileUrl + row.AttachmentId)?download=true"
                                                title="@L["emp.download"]" aria-label="@L["common.download_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("download", 15)</a>
-                                            @if (acc.DocumentDelete)
-                                            {
-                                                <button type="button" class="btn-icon btn-icon--danger" data-docs-remove="@row.AttachmentId"
-                                                        title="@L["emp.remove"]" aria-label="@L["common.remove_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("trash", 15)</button>
-                                            }
                                         }
                                         else if (acc.DocumentUpload)
                                         {

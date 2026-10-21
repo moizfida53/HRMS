@@ -1,0 +1,88 @@
+@model GridViewModel<DocumentType>
+@{
+    // Organization > Employee Documents (db/63): the documents employees upload on their profile.
+    string Name(string? english, string? arabic) => L.IsArabic && !string.IsNullOrWhiteSpace(arabic) ? arabic! : english ?? string.Empty;
+}
+
+<div class="hrms-card">
+    @await Html.PartialAsync("Partials/_GridToolbar", (IGridView)Model)
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        @await Html.PartialAsync("Partials/_EmptyState", (IGridView)Model)
+    }
+    else
+    {
+        <div class="hrms-table-wrap">
+            <table class="hrms-table org-doctypes">
+                <caption class="hrms-sr-only">@L["common.records_page_of", Model.PageNumber, Model.TotalPages]</caption>
+                <thead>
+                    <tr>
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "DocumentTypeName", "Document Type"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "SectionName", "Section"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "IsMandatory", "Requirement"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "UsageCount", "Employee files", "col-p2"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "IsActive", "Status"))
+                        <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Page.Items)
+                    {
+                        <tr data-id="@row.DocumentTypeId" data-name="@row.DocumentTypeName" data-active="@row.IsActive.ToString().ToLowerInvariant()">
+                            <td data-label="@L.Tr("Document Type")">
+                                <span class="hrms-table__primary">@Name(row.DocumentTypeName, row.ArabicName)</span>
+                                @if (!string.IsNullOrWhiteSpace(row.ArabicName))
+                                {
+                                    <span class="org-doctypes__alt" dir="@(L.IsArabic ? "ltr" : "rtl")" lang="@(L.IsArabic ? "en" : "ar")">@(L.IsArabic ? row.DocumentTypeName : row.ArabicName)</span>
+                                }
+                            </td>
+                            <td data-label="@L.Tr("Section")">
+                                @if (row.SectionId is null)
+                                {
+                                    <span class="hrms-muted">@L["org.doc_no_section"]</span>
+                                }
+                                else
+                                {
+                                    <span class="org-doctypes__section"><span class="org-doctypes__seq">@row.SectionSeq</span>@Name(row.SectionName, row.SectionNameAr)</span>
+                                }
+                            </td>
+                            <td data-label="@L.Tr("Requirement")">
+                                @if (row.IsMandatory)
+                                {
+                                    <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["emp.mandatory"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["emp.optional"]</span>
+                                }
+                            </td>
+                            <td data-label="@L.Tr("Employee files")" class="col-p2 hrms-numeric">@row.UsageCount</td>
+                            <td data-label="@L.Tr("Status")">
+                                @if (row.IsActive)
+                                {
+                                    <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["org.active"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["org.inactive"]</span>
+                                }
+                            </td>
+                            <td class="hrms-table__actions">
+                                <button type="button" class="btn-icon" data-action="edit"
+                                        title="@L["common.edit"]" aria-label="@L["common.edit_named", row.DocumentTypeName]">@Html.Icon("edit", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--success" data-action="toggle"
+                                        title="@(row.IsActive ? L["common.deactivate"] : L["common.activate"])"
+                                        aria-label="@(row.IsActive ? L["common.deactivate_named", row.DocumentTypeName] : L["common.activate_named", row.DocumentTypeName])">@Html.Icon("power", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--danger" data-action="delete"
+                                        title="@L["common.delete"]" aria-label="@L["common.delete_named", row.DocumentTypeName]">@Html.Icon("trash", 15)</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @await Html.PartialAsync("Partials/_Pagination", PaginationModel.From(Model))
+    }
+</div>
