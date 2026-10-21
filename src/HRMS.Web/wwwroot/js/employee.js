@@ -442,8 +442,14 @@
                 });
             }
             chain.then(function (ok) {
-                if (ok && (doEmployee || doCompliance)) { HRMS.toast(HRMS.t("js.all_changes_saved", "All changes saved."), "success"); }
-                else if (ok) { HRMS.toast(HRMS.t("js.nothing_to_save", "There are no changes to save."), "info"); }
+                if (!ok) { return; }
+                if (!doEmployee && !doCompliance) { HRMS.toast(HRMS.t("js.nothing_to_save", "There are no changes to save."), "info"); return; }
+                // saved: say so, then back to the Employees page (the message shows there too)
+                var message = HRMS.t("js.changes_saved_successfully", "Changes saved successfully.");
+                HRMS.toast(message, "success");
+                HRMS.flash(message, "success");
+                saveAllButton.disabled = true;
+                window.setTimeout(function () { window.location.href = "/employees"; }, 900);
             });
         }
 
@@ -1180,8 +1186,9 @@
 
         // the rows as rules (one of each, earliest first); null when a row is not a valid number
         function collect() {
-            var rows = readRows();
-            var bad = rows.filter(function (r) { return r.raw === "" || isNaN(r.value) || r.value < 0 || r.value > 99 || String(r.value) !== r.raw.replace(/^0+(?=\d)/, ""); });
+            // a row whose number was cleared counts as deleted, like the bin
+            var rows = readRows().filter(function (r) { return r.raw !== ""; });
+            var bad = rows.filter(function (r) { return isNaN(r.value) || r.value < 0 || r.value > 99 || String(r.value) !== r.raw.replace(/^0+(?=\d)/, ""); });
             modalEl.querySelectorAll(".hrms-alerts__value").forEach(function (input) { input.classList.remove("is-invalid"); });
             if (bad.length) {
                 bad.forEach(function (r) { r.row.querySelector("[data-alert-value]").classList.add("is-invalid"); });
@@ -1217,6 +1224,13 @@
                     // the same field can have a bell in more than one place
                     document.querySelectorAll('[data-date-alert="' + current.dataset.dateAlert + '"]').forEach(function (bell) { setBell(bell, stored); });
                     opened = rulesCsv(stored);
+                    if (opened !== rulesCsv(rules)) {
+                        // the database kept something else than was sent: say so instead of "saved"
+                        list.innerHTML = "";
+                        stored.forEach(function (r) { addRow(r.unit, r.value); });
+                        error.textContent = HRMS.t("js.alert_not_stored", "The database did not store these alerts as entered - it holds the ones shown. Run db/65 again, then retry.");
+                        return false;
+                    }
                     HRMS.toast(result.message, "success");
                     return true;
                 })

@@ -306,6 +306,19 @@
         window.setTimeout(remove, timeout || (type === "error" ? 7000 : 4000));
     };
 
+    /* ------------------------------------------- message for the next page -- */
+    // HRMS.flash(message): shown as a toast on the next page this tab opens (e.g. after a save that moves on).
+    var FLASH_KEY = "hrms.flash";
+    HRMS.flash = function (message, type) {
+        try { window.sessionStorage.setItem(FLASH_KEY, JSON.stringify({ m: message, t: type || "success" })); } catch (e) { /* private mode */ }
+    };
+    document.addEventListener("DOMContentLoaded", function () {
+        var raw = null;
+        try { raw = window.sessionStorage.getItem(FLASH_KEY); window.sessionStorage.removeItem(FLASH_KEY); } catch (e) { return; }
+        if (!raw) { return; }
+        try { var f = JSON.parse(raw); if (f && f.m) { HRMS.toast(f.m, f.t); } } catch (e) { /* ignore */ }
+    });
+
     /* ------------------------------------------------- anti-forgery token -- */
 
     HRMS.antiForgeryToken = function () {
