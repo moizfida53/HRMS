@@ -1259,6 +1259,52 @@
     </div>
 </div>
 
+@* ------------------------------------------------------- Document viewer *@
+@* An uploaded image or PDF opens here instead of a new tab; maximize / restore like a window. *@
+<div class="modal fade doc-viewer" id="document-viewer-modal" tabindex="-1" aria-hidden="true" aria-labelledby="document-viewer-title">
+    <div class="modal-dialog modal-dialog-centered modal-xl" data-docview-dialog>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="doc-viewer__title">
+                    <h2 class="modal-title h5" id="document-viewer-title" data-docview-title></h2>
+                    <span class="doc-viewer__file" data-docview-file></span>
+                </div>
+                <div class="doc-viewer__tools">
+                    <a class="doc-viewer__tool" href="#" data-docview-download title="@L["emp.download"]" aria-label="@L["emp.download"]">@Html.Icon("download", 17)</a>
+                    <button type="button" class="doc-viewer__tool" data-docview-size
+                            data-title-max="@L["emp.docview_maximize"]" data-title-restore="@L["emp.docview_restore"]"
+                            title="@L["emp.docview_maximize"]" aria-label="@L["emp.docview_maximize"]" aria-pressed="false">
+                        <span data-docview-icon-max>@Html.Icon("maximize", 17)</span>
+                        <span data-docview-icon-restore hidden>@Html.Icon("restore", 17)</span>
+                    </button>
+                    <button type="button" class="doc-viewer__tool doc-viewer__tool--close" data-bs-dismiss="modal"
+                            title="@L["common.close"]" aria-label="@L["common.close"]">@Html.Icon("close", 18)</button>
+                </div>
+            </div>
+            <div class="modal-body" data-docview-body></div>
+        </div>
+    </div>
+</div>
+
+@* ------------------------------------------------------- Replace document *@
+<div class="modal fade" id="document-replace-modal" tabindex="-1" aria-hidden="true" aria-labelledby="document-replace-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="document-replace-title">@L["emp.replace_document"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">@L["emp.replace_the_file_for"] <strong data-document-replace-name></strong>@L["emp.replace_the_file_for_end"]</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="button" class="btn btn-primary" data-document-replace-accept>@L["emp.replace"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* ------------------------------------------------------- Remove document *@
 <div class="modal fade" id="document-confirm-modal" tabindex="-1" aria-hidden="true" aria-labelledby="document-confirm-modal-title">
     <div class="modal-dialog modal-dialog-centered">

@@ -611,6 +611,9 @@
         var confirmEl = document.getElementById("document-confirm-modal");
         var confirmModal = null;
         var pendingRemove = null;
+        var replaceEl = document.getElementById("document-replace-modal");
+        var pendingReplace = null;
+        var viewerEl = document.getElementById("document-viewer-modal");
 
         function root() { return slot.querySelector("[data-docs-root]"); }
 
@@ -740,10 +743,30 @@
             }
 
             if (target.matches("[data-docs-file]") && target.files && target.files[0]) {
-                upload(target.closest("tr"), target.files[0]);
+                var fileRow = target.closest("tr");
+                var chosen = target.files[0];
                 target.value = "";
+                // A file is already on record: replacing it is destructive, so ask first.
+                if (fileRow && fileRow.dataset.uploaded === "true" && replaceEl) {
+                    pendingReplace = { row: fileRow, file: chosen };
+                    replaceEl.querySelector("[data-document-replace-name]").textContent =
+                        fileRow.dataset.labelName || HRMS.t("js.this_document", "this document");
+                    bootstrap.Modal.getOrCreateInstance(replaceEl).show();
+                    return;
+                }
+                upload(fileRow, chosen);
             }
         });
+
+        if (replaceEl) {
+            replaceEl.querySelector("[data-document-replace-accept]").addEventListener("click", function () {
+                var job = pendingReplace;
+                pendingReplace = null;
+                bootstrap.Modal.getOrCreateInstance(replaceEl).hide();
+                if (job) { upload(job.row, job.file); }
+            });
+            replaceEl.addEventListener("hidden.bs.modal", function () { pendingReplace = null; });
+        }
 
         /* ------------------------------------------------------- upload --- */
 
@@ -850,6 +873,13 @@
                 return;
             }
 
+            var viewButton = event.target.closest("[data-docs-view]");
+            if (viewButton && viewerEl) {
+                event.preventDefault();
+                openViewer(viewButton);
+                return;
+            }
+
             var removeButton = event.target.closest("[data-docs-remove]");
             if (removeButton && confirmEl) {
                 var row = removeButton.closest("tr");
@@ -860,6 +890,66 @@
                 confirmModal.show();
             }
         });
+
+        /* ------------------------------------------------------- viewer --- */
+
+        // Images and PDFs open in a popup (not a new tab) that can be maximised
+        // to the full window and restored, like a normal window.
+        function setViewerMaximized(on) {
+            var dialog = viewerEl.querySelector("[data-docview-dialog]");
+            var sizeButton = viewerEl.querySelector("[data-docview-size]");
+            var label = on ? sizeButton.dataset.titleRestore : sizeButton.dataset.titleMax;
+            dialog.classList.toggle("modal-fullscreen", on);
+            dialog.classList.toggle("modal-dialog-centered", !on);
+            dialog.classList.toggle("modal-xl", !on);
+            viewerEl.classList.toggle("is-maximized", on);
+            sizeButton.setAttribute("aria-pressed", on ? "true" : "false");
+            sizeButton.title = label;
+            sizeButton.setAttribute("aria-label", label);
+            sizeButton.querySelector("[data-docview-icon-max]").hidden = on;
+            sizeButton.querySelector("[data-docview-icon-restore]").hidden = !on;
+        }
+
+        function openViewer(button) {
+            var url = button.dataset.docsView;
+            var type = (button.dataset.docsType || "").toLowerCase();
+            var name = button.dataset.docsName || "";
+            var body = viewerEl.querySelector("[data-docview-body]");
+
+            viewerEl.querySelector("[data-docview-title]").textContent = button.dataset.docsTitle || name;
+            viewerEl.querySelector("[data-docview-file]").textContent = name;
+            viewerEl.querySelector("[data-docview-download]").href = url + (url.indexOf("?") === -1 ? "?" : "&") + "download=true";
+            body.innerHTML = "";
+
+            if (type.indexOf("image/") === 0 || /\.(jpe?g|png)$/i.test(name)) {
+                var img = document.createElement("img");
+                img.className = "doc-viewer__img";
+                img.src = url;
+                img.alt = name;
+                img.title = HRMS.t("js.docview_zoom", "Click to toggle actual size");
+                img.addEventListener("click", function () { img.classList.toggle("is-actual"); });
+                body.appendChild(img);
+            } else {
+                var frame = document.createElement("iframe");
+                frame.className = "doc-viewer__frame";
+                frame.src = url;
+                frame.title = name;
+                body.appendChild(frame);
+            }
+
+            setViewerMaximized(false);
+            bootstrap.Modal.getOrCreateInstance(viewerEl).show();
+        }
+
+        if (viewerEl) {
+            viewerEl.querySelector("[data-docview-size]").addEventListener("click", function () {
+                setViewerMaximized(this.getAttribute("aria-pressed") !== "true");
+            });
+            viewerEl.addEventListener("hidden.bs.modal", function () {
+                viewerEl.querySelector("[data-docview-body]").innerHTML = "";
+                setViewerMaximized(false);
+            });
+        }
 
         if (confirmEl) {
             confirmEl.querySelector("[data-document-confirm-accept]").addEventListener("click", function () {

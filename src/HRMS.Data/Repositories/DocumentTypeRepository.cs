@@ -10,13 +10,15 @@ namespace HRMS.Data.Repositories;
 /// <summary>Organization > Employee Documents: the document types (db/63).</summary>
 public interface IDocumentTypeRepository : IMasterRepository<DocumentType>
 {
+    /// <summary>Numbers one section's document types 1..n in the given order (the drag on the grid).</summary>
+    Task<SaveResult> ReorderAsync(IReadOnlyList<int> orderedIds, long? userId, CancellationToken cancellationToken = default);
 }
 
 public sealed class DocumentTypeRepository : MasterRepositoryBase<DocumentType>, IDocumentTypeRepository
 {
-    public DocumentTypeRepository(ISqlExecutor sql) : base(sql)
-    {
-    }
+    private readonly ISqlExecutor _sql;
+
+    public DocumentTypeRepository(ISqlExecutor sql) : base(sql) => _sql = sql;
 
     protected override string ProcedureName => StoredProcedure.DocumentTypeManage;
 
@@ -37,7 +39,25 @@ public sealed class DocumentTypeRepository : MasterRepositoryBase<DocumentType>,
         parameters.Add("@SectionId", entity.SectionId, DbType.Int32);
         parameters.Add("@IsMandatory", entity.IsMandatory, DbType.Boolean);
         parameters.Add("@IsActive", entity.IsActive, DbType.Boolean);
+        // null on the form (the order is dragged, not typed): the procedure keeps the current one
         parameters.Add("@SortOrder", entity.SortOrder, DbType.Int32);
+    }
+
+    public async Task<SaveResult> ReorderAsync(IReadOnlyList<int> orderedIds, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = new DynamicParameters();
+        p.Add("@Ids", string.Join(",", orderedIds), DbType.String, size: -1);
+        p.Add("@UserId", userId, DbType.Int64);
+        p.Add("@NewId", dbType: DbType.Int64, direction: ParameterDirection.Output);
+        p.Add("@ResultCode", dbType: DbType.AnsiString, direction: ParameterDirection.Output, size: 40);
+        p.Add("@ResultMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 400);
+        await _sql.ExecuteAsync(StoredProcedure.DocumentTypeReorder, p, cancellationToken).ConfigureAwait(false);
+
+        var code = p.Get<string?>("@ResultCode") ?? ResultCode.Success;
+        var message = p.Get<string?>("@ResultMessage") ?? string.Empty;
+        return code == ResultCode.Success
+            ? SaveResult.Ok(p.Get<long?>("@NewId") ?? 0, message)
+            : SaveResult.Fail(string.IsNullOrWhiteSpace(message) ? "The operation could not be completed." : message, code);
     }
 }
 

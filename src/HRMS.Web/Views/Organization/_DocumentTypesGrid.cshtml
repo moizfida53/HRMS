@@ -2,6 +2,14 @@
 @{
     // Organization > Employee Documents (db/63): the documents employees upload on their profile.
     string Name(string? english, string? arabic) => L.IsArabic && !string.IsNullOrWhiteSpace(arabic) ? arabic! : english ?? string.Empty;
+
+    // The rows are dragged into order within their section (organization.js, db/64) - only
+    // while the whole list shows in its own order: no search, no status filter, no column sort.
+    var request = Model.Request;
+    var inOwnOrder = string.IsNullOrEmpty(request.SortColumn)
+                     || (Model.IsSortedBy("SectionName") && !Model.IsDescending);
+    var canDrag = inOwnOrder && !Model.IsFiltered && Model.TotalPages <= 1;
+    var position = new Dictionary<int, int>();
 }
 
 <div class="hrms-card">
@@ -14,10 +22,22 @@
     else
     {
         <div class="hrms-table-wrap">
-            <table class="hrms-table org-doctypes">
+            <p class="org-doctypes__hint">
+                @Html.Icon(canDrag ? "grip" : "info", 14)
+                <span>@(canDrag ? L["org.doc_drag_hint"] : L["org.doc_drag_off_hint"])</span>
+            </p>
+            <table class="hrms-table org-doctypes@(canDrag ? " is-sortable" : "")" @(canDrag ? "data-docorder" : "")>
                 <caption class="hrms-sr-only">@L["common.records_page_of", Model.PageNumber, Model.TotalPages]</caption>
                 <thead>
                     <tr>
+                        @{ var byOrder = string.IsNullOrEmpty(request.SortColumn); }
+                        <th scope="col" class="org-doctypes__order-col" aria-sort="@(byOrder ? "ascending" : "none")">
+                            @* back to the dragged order: no SortColumn *@
+                            <button type="button" class="hrms-table__sort @(byOrder ? "is-sorted" : null)" data-sort="" data-direction="ASC">
+                                @L["org.doc_order"]
+                                @Html.Icon("sort", 12)
+                            </button>
+                        </th>
                         @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "DocumentTypeName", "Document Type"))
                         @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "SectionName", "Section"))
                         @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "IsMandatory", "Requirement"))
@@ -29,7 +49,24 @@
                 <tbody>
                     @foreach (var row in Model.Page.Items)
                     {
-                        <tr data-id="@row.DocumentTypeId" data-name="@row.DocumentTypeName" data-active="@row.IsActive.ToString().ToLowerInvariant()">
+                        var sectionKey = row.SectionId ?? -1;
+                        position[sectionKey] = position.GetValueOrDefault(sectionKey) + 1;
+                        <tr data-id="@row.DocumentTypeId" data-name="@row.DocumentTypeName" data-active="@row.IsActive.ToString().ToLowerInvariant()"
+                            data-section="@sectionKey">
+                            <td data-label="@L["org.doc_order"]" class="org-doctypes__order">
+                                <span class="org-doctypes__order-in">
+                                    @if (canDrag)
+                                    {
+                                        <button type="button" class="org-doctypes__handle" data-docorder-handle
+                                                title="@L["org.doc_drag_handle", Name(row.DocumentTypeName, row.ArabicName)]"
+                                                aria-label="@L["org.doc_drag_handle", Name(row.DocumentTypeName, row.ArabicName)]"
+                                                aria-describedby="docorder-help">
+                                            @Html.Icon("grip", 16)
+                                        </button>
+                                    }
+                                    <span class="org-doctypes__pos" data-docorder-pos>@position[sectionKey]</span>
+                                </span>
+                            </td>
                             <td data-label="@L.Tr("Document Type")">
                                 <span class="hrms-table__primary">@Name(row.DocumentTypeName, row.ArabicName)</span>
                                 @if (!string.IsNullOrWhiteSpace(row.ArabicName))
@@ -81,6 +118,11 @@
                     }
                 </tbody>
             </table>
+            @if (canDrag)
+            {
+                <span id="docorder-help" class="hrms-sr-only">@L["org.doc_drag_hint"]</span>
+                <span class="hrms-sr-only" role="status" aria-live="polite" data-docorder-live></span>
+            }
         </div>
 
         @await Html.PartialAsync("Partials/_Pagination", PaginationModel.From(Model))

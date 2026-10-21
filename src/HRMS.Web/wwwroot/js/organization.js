@@ -23,7 +23,8 @@
         toggle: slot.dataset.toggleUrl,
         lookup: slot.dataset.lookupUrl,
         duplicate: slot.dataset.duplicateUrl,
-        docSection: slot.dataset.docsecUrl
+        docSection: slot.dataset.docsecUrl,
+        docOrder: slot.dataset.docorderUrl
     };
 
     document.documentElement.setAttribute("data-org-tab", slot.dataset.tab || "");
@@ -640,6 +641,147 @@
             if (event.key === "Enter") { event.preventDefault(); add(p); }
             else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); show(p, false); }
         }, true);
+    })();
+
+    /* ================== Employee Documents: drag rows into order (db/64) === */
+    // The grip at the start of a row drags it up or down within its own section
+    // (mouse, touch or pen); on a focused grip the arrow keys do the same. The
+    // section's new order is saved as soon as the row is dropped.
+    (function initDocumentOrder() {
+        var drag = null;
+        var keyMove = null;
+
+        function sectionRows(row) {
+            return Array.prototype.filter.call(row.parentNode.children, function (r) {
+                return r.dataset.section === row.dataset.section;
+            });
+        }
+
+        function orderOf(row) {
+            return sectionRows(row).map(function (r) { return r.dataset.id; });
+        }
+
+        function positionOf(row) { return sectionRows(row).indexOf(row) + 1; }
+
+        function renumber(row) {
+            sectionRows(row).forEach(function (r, i) {
+                var pos = r.querySelector("[data-docorder-pos]");
+                if (pos) { pos.textContent = i + 1; }
+            });
+        }
+
+        function announce(row) {
+            var live = slot.querySelector("[data-docorder-live]");
+            if (live) {
+                live.textContent = HRMS.t("js.doc_order_moved", "{0} moved to position {1}.", row.dataset.name, positionOf(row));
+            }
+        }
+
+        function save(row, before) {
+            var ids = orderOf(row);
+            if (ids.join(",") === before) { return; }
+
+            var body = new FormData();
+            ids.forEach(function (id) { body.append("ids", id); });
+            row.classList.add("is-saving");
+
+            HRMS.post(urls.docOrder, body)
+                .then(function (result) {
+                    if (!result.success) {
+                        HRMS.toast(result.message || HRMS.t("js.doc_order_failed", "The new order could not be saved."), "error");
+                        return loadGrid();
+                    }
+                    row.classList.remove("is-saving");
+                    row.classList.add("is-saved");
+                    window.setTimeout(function () { row.classList.remove("is-saved"); }, 1200);
+                    HRMS.toast(HRMS.t("js.doc_order_saved", "Order saved."), "success");
+                })
+                .catch(function (error) {
+                    HRMS.toast(error.message, "error");
+                    loadGrid();
+                });
+        }
+
+        /* ---- pointer: listen on the document, so moving the row in the DOM never drops the drag */
+        slot.addEventListener("pointerdown", function (event) {
+            var handle = event.target.closest("[data-docorder-handle]");
+            if (!handle || event.button !== 0 || drag) { return; }
+            var row = handle.closest("tr");
+            event.preventDefault();
+            drag = { row: row, pointer: event.pointerId, before: orderOf(row).join(",") };
+            row.classList.add("is-dragging");
+            row.closest("table").classList.add("is-dragging");
+            document.documentElement.classList.add("hrms-dragging");
+        });
+
+        document.addEventListener("pointermove", function (event) {
+            if (!drag || event.pointerId !== drag.pointer) { return; }
+            event.preventDefault();
+
+            var y = event.clientY;
+            var others = sectionRows(drag.row).filter(function (r) { return r !== drag.row; });
+            // the first row of the section whose middle is below the pointer: the dragged row goes before it
+            var target = null;
+            for (var i = 0; i < others.length; i++) {
+                var rect = others[i].getBoundingClientRect();
+                if (y < rect.top + rect.height / 2) { target = others[i]; break; }
+            }
+            var anchor = target || (others.length ? others[others.length - 1].nextElementSibling : null);
+            if (others.length && drag.row.nextElementSibling !== anchor && drag.row !== anchor) {
+                drag.row.parentNode.insertBefore(drag.row, anchor);
+                renumber(drag.row);
+            }
+
+            // keep the page scrolling while dragging near the top or bottom edge
+            if (y < 60) { window.scrollBy(0, -14); }
+            else if (y > window.innerHeight - 60) { window.scrollBy(0, 14); }
+        }, { passive: false });
+
+        function endDrag(event) {
+            if (!drag || event.pointerId !== drag.pointer) { return; }
+            var row = drag.row;
+            var before = drag.before;
+            drag = null;
+            row.classList.remove("is-dragging");
+            var table = row.closest("table");
+            if (table) { table.classList.remove("is-dragging"); }
+            document.documentElement.classList.remove("hrms-dragging");
+            announce(row);
+            save(row, before);
+        }
+        document.addEventListener("pointerup", endDrag);
+        document.addEventListener("pointercancel", endDrag);
+
+        /* ---- keyboard: arrows on a focused grip; a burst of presses saves once */
+        slot.addEventListener("keydown", function (event) {
+            var handle = event.target.closest("[data-docorder-handle]");
+            if (!handle) { return; }
+            var key = event.key;
+            if (["ArrowUp", "ArrowDown", "Home", "End"].indexOf(key) === -1) { return; }
+            event.preventDefault();
+
+            var row = handle.closest("tr");
+            var rows = sectionRows(row);
+            var index = rows.indexOf(row);
+            var to = key === "ArrowUp" ? index - 1 : key === "ArrowDown" ? index + 1 : key === "Home" ? 0 : rows.length - 1;
+            if (to < 0 || to >= rows.length || to === index) { return; }
+
+            if (!keyMove || keyMove.row !== row) {
+                if (keyMove) { window.clearTimeout(keyMove.timer); save(keyMove.row, keyMove.before); }
+                keyMove = { row: row, before: orderOf(row).join(",") };
+            }
+            row.parentNode.insertBefore(row, to > index ? rows[to].nextElementSibling : rows[to]);
+            renumber(row);
+            handle.focus();
+            announce(row);
+
+            window.clearTimeout(keyMove.timer);
+            keyMove.timer = window.setTimeout(function () {
+                var job = keyMove;
+                keyMove = null;
+                save(job.row, job.before);
+            }, 600);
+        });
     })();
 
     /* ============================================================== init === */

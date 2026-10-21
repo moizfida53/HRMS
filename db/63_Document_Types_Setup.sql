@@ -9,7 +9,8 @@
 
      1. Documents.DocumentTypes gets an IsActive column - ONLY when it has
         no active flag of its own (IsActive / Is_Active / IsDeleted /
-        Active) - so a type can be deactivated instead of deleted.
+        Active) - so a type can be deactivated instead of deleted - and a
+        SortOrder column, only when it has no sort column of its own.
      2. [Documents].[vw_DocumentTypes] regenerated (same rules as db/22)
         so it sees that column.
      3. Documents.usp_DocumentType_Manage - LIST / GET / INSERT / UPDATE /
@@ -47,6 +48,17 @@ BEGIN
     ALTER TABLE [Documents].[DocumentTypes] ADD [IsActive] BIT NOT NULL
         CONSTRAINT [DF_DocumentTypes_IsActive] DEFAULT (1) WITH VALUES;
     PRINT N'Added [Documents].[DocumentTypes].[IsActive].';
+END
+GO
+
+/* a sort column too (only when it has none), so the drag order on the
+   Organization tab can be saved (db/64) */
+IF NOT EXISTS (SELECT 1 FROM sys.columns
+               WHERE object_id = OBJECT_ID(N'[Documents].[DocumentTypes]')
+                 AND name IN (N'Seq_num', N'SeqNum', N'Seq_No', N'SeqNo', N'SortOrder', N'Sort_Order', N'DisplayOrder', N'Display_Order', N'OrderNo'))
+BEGIN
+    ALTER TABLE [Documents].[DocumentTypes] ADD [SortOrder] INT NULL;
+    PRINT N'Added [Documents].[DocumentTypes].[SortOrder].';
 END
 GO
 
@@ -368,7 +380,10 @@ BEGIN
             DECLARE @ValList NVARCHAR(MAX) = N'@Name, @Sec, ISNULL(@Mand, 0)';
             IF @ArCol IS NOT NULL     SELECT @ColList += N', ' + QUOTENAME(@ArCol),     @ValList += N', @Ar';
             IF @ActiveCol IS NOT NULL SELECT @ColList += N', ' + QUOTENAME(@ActiveCol), @ValList += N', @Act';
-            IF @SortCol IS NOT NULL   SELECT @ColList += N', ' + QUOTENAME(@SortCol),   @ValList += N', @Sort';
+            -- no order given: last in its section
+            IF @SortCol IS NOT NULL   SELECT @ColList += N', ' + QUOTENAME(@SortCol),
+                                             @ValList += N', ISNULL(@Sort, (SELECT ISNULL(MAX(' + QUOTENAME(@SortCol) + N'), 0) + 1 FROM [Documents].[DocumentTypes]'
+                                                       + N' WHERE ISNULL([SectionID], -1) = ISNULL(@Sec, -1)))';
             IF @IdIdentity = 0        SELECT @ColList += N', ' + QUOTENAME(@IdCol),
                                              @ValList += N', (SELECT ISNULL(MAX(' + QUOTENAME(@IdCol) + N'), 0) + 1 FROM [Documents].[DocumentTypes] WITH (UPDLOCK, HOLDLOCK))';
 
@@ -404,7 +419,13 @@ BEGIN
             DECLARE @SetList NVARCHAR(MAX) = QUOTENAME(@NameCol) + N' = @Name, [SectionID] = @Sec, [Attachment_Mandatory] = ISNULL(@Mand, 0)';
             IF @ArCol IS NOT NULL     SET @SetList += N', ' + QUOTENAME(@ArCol) + N' = @Ar';
             IF @ActiveCol IS NOT NULL SET @SetList += N', ' + QUOTENAME(@ActiveCol) + N' = @Act';
-            IF @SortCol IS NOT NULL   SET @SetList += N', ' + QUOTENAME(@SortCol) + N' = @Sort';
+            -- the order is set by dragging (db/64), not on the form: keep it, unless the
+            -- type moves to another section - then it goes last there
+            IF @SortCol IS NOT NULL   SET @SetList += N', ' + QUOTENAME(@SortCol) + N' = CASE'
+                                                    + N' WHEN @Sort IS NOT NULL THEN @Sort'
+                                                    + N' WHEN ISNULL([SectionID], -1) = ISNULL(@Sec, -1) THEN ' + QUOTENAME(@SortCol)
+                                                    + N' ELSE (SELECT ISNULL(MAX(o.' + QUOTENAME(@SortCol) + N'), 0) + 1 FROM [Documents].[DocumentTypes] AS o'
+                                                    + N' WHERE ISNULL(o.[SectionID], -1) = ISNULL(@Sec, -1)) END';
             SELECT @SetList += N', ' + QUOTENAME(name) + N' = '
                              + CASE WHEN name LIKE N'%By' OR name LIKE N'%[_]By' THEN N'@UserId' ELSE N'@Now' END
             FROM   @Cols

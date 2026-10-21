@@ -51,6 +51,9 @@ public static class StoredProcedure
     /// <summary>Organization > Employee Documents: document types (db/63, master envelope).</summary>
     public const string DocumentTypeManage = "Documents.usp_DocumentType_Manage";
 
+    /// <summary>Saves the drag order of one section's document types (db/64).</summary>
+    public const string DocumentTypeReorder = "Documents.usp_DocumentType_Reorder";
+
     /// <summary>Document sections: LIST / INSERT (db/63).</summary>
     public const string DocumentSectionManage = "Documents.usp_DocumentSection_Manage";
 

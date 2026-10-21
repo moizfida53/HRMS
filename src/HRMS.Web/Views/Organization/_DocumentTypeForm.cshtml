@@ -37,7 +37,7 @@
         <fieldset class="hrms-fieldset">
             <legend>@L["org.doc_where_and_rules"]</legend>
             <div class="row g-3">
-                <div class="col-md-8" data-docsec>
+                <div class="col-12" data-docsec>
                     <label class="form-label" for="f-SectionId">@L["org.doc_section"]</label>
                     <div class="org-docsec__pick">
                         <select class="form-select" id="f-SectionId" name="SectionId" data-docsec-select>
@@ -74,13 +74,6 @@
                             <button type="button" class="btn btn-sm btn-primary" data-docsec-save>@Html.Icon("check", 14)<span>@L["org.doc_add_section"]</span></button>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="f-SortOrder">@L["org.doc_sort_order"]</label>
-                    <input class="form-control" id="f-SortOrder" name="SortOrder" type="number" min="0" max="9999" step="1"
-                           value="@Model.Model.SortOrder" inputmode="numeric" />
-                    <span class="form-text">@L["org.doc_sort_order_hint"]</span>
-                    <span class="field-validation-error" data-valmsg-for="SortOrder"></span>
                 </div>
                 <div class="col-12">
                     <div class="org-docsec__mandatory">

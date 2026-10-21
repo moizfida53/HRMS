@@ -129,7 +129,8 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.JobPositions => GridAsync(_jobPositions, descriptor, request),
             OrganizationTabs.Locations    => GridAsync(_locations,    descriptor, request),
             OrganizationTabs.CostCenters  => GridAsync(_costCenters,  descriptor, request),
-            OrganizationTabs.DocumentTypes => GridAsync(_documentTypes, descriptor, request),
+            // every type on one page, so whole sections can be dragged into order
+            OrganizationTabs.DocumentTypes => GridAsync(_documentTypes, descriptor, WholeList(request)),
             _ => GridAsync(_companies, OrganizationTabs.All[0], request)
         };
     }
@@ -316,6 +317,36 @@ public sealed class OrganizationController : Controller
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)
             : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    /// <summary>
+    /// The drag on the Employee Documents grid: one section's document types in their new order.
+    /// Same right as editing a record.
+    /// </summary>
+    [HttpPost("document-type-order")]
+    public async Task<IActionResult> ReorderDocumentTypes([FromForm] int[]? ids)
+    {
+        if (!CanWrite(OrganizationTabs.DocumentTypes, isNew: false)) return NoRight();
+        // document types are group-wide: not for a user pinned to one company
+        if (_currentUser.ActiveCompanyId is not null) return NoRight();
+
+        var ordered = (ids ?? []).Where(id => id > 0).Distinct().ToList();
+        if (ordered.Count == 0 || ordered.Count > 500)
+        {
+            return Json(ActionResponse.Failed("The new order could not be read.", "VALIDATION"));
+        }
+
+        var result = await _documentTypes.ReorderAsync(ordered, _currentUser.UserId, Ct);
+        return Json(result.Success
+            ? ActionResponse.Ok(result.Id, result.Message)
+            : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    private static GridRequest WholeList(GridRequest request)
+    {
+        request.PageNumber = 1;
+        request.PageSize = int.MaxValue; // clamped to the grid maximum (200)
+        return request;
     }
 
     /// <summary>The document type form: its sections come from Documents.DocumentSections, not a lookup.</summary>

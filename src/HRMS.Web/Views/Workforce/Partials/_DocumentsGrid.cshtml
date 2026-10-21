@@ -212,7 +212,9 @@
                                         <div class="hrms-file">
                                             <span class="hrms-file__type @(badge == "PDF" ? "hrms-file__type--pdf" : "hrms-file__type--img")" aria-hidden="true">@badge</span>
                                             <span class="hrms-file__meta">
-                                                <a class="hrms-file__name" href="@(fileUrl + row.AttachmentId)" target="_blank" rel="noopener" title="@row.OriginalFileName">@row.OriginalFileName</a>
+                                                <button type="button" class="hrms-file__name" title="@row.OriginalFileName"
+                                                        data-docs-view="@(fileUrl + row.AttachmentId)" data-docs-type="@row.ContentType"
+                                                        data-docs-name="@row.OriginalFileName" data-docs-title="@DocName(row.DocumentTypeName, row.DocumentTypeNameAr)">@row.OriginalFileName</button>
                                                 <span class="hrms-file__size">@FileSize(row.FileSizeBytes)</span>
                                             </span>
                                             @if (acc.DocumentUpload || acc.DocumentDelete)
@@ -277,8 +279,10 @@
                                     <div class="hrms-table__actions">
                                         @if (row.HasFile)
                                         {
-                                            <a class="btn-icon" href="@(fileUrl + row.AttachmentId)" target="_blank" rel="noopener"
-                                               title="@L["emp.view"]" aria-label="@L["common.view_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("eye", 15)</a>
+                                            <button type="button" class="btn-icon"
+                                                    data-docs-view="@(fileUrl + row.AttachmentId)" data-docs-type="@row.ContentType"
+                                                    data-docs-name="@row.OriginalFileName" data-docs-title="@DocName(row.DocumentTypeName, row.DocumentTypeNameAr)"
+                                                    title="@L["emp.view"]" aria-label="@L["common.view_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("eye", 15)</button>
                                             <a class="btn-icon" href="@(fileUrl + row.AttachmentId)?download=true"
                                                title="@L["emp.download"]" aria-label="@L["common.download_named", DocName(row.DocumentTypeName, row.DocumentTypeNameAr)]">@Html.Icon("download", 15)</a>
                                         }

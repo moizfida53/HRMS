@@ -401,6 +401,13 @@ $docs-red: $red-600;
   &__name {
     @include truncate;
     display: block;
+    // a button (opens the viewer), drawn like a link
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: start;
+    cursor: pointer;
     font-size: $fs-sm;
     font-weight: $fw-semibold;
     color: $ink-900;
@@ -461,6 +468,82 @@ $docs-red: $red-600;
 // ============================================================================
 
 .org-doctypes {
+  // drag-to-order (db/64)
+  &__hint {
+    display: flex;
+    align-items: flex-start;
+    gap: space("2");
+    margin: 0;
+    padding: space("2") space("4");
+    border-block-end: 1px solid $line-100;
+    background: $surface-2;
+    color: $ink-600;
+    font-size: $fs-sm;
+
+    svg { flex: 0 0 auto; margin-block-start: 2px; color: $ink-400; }
+  }
+
+  &__order-col { width: 1%; white-space: nowrap; }
+
+  &__order-in {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+
+  &__handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-inline-end: space("1");
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: $ink-400;
+    cursor: grab;
+    touch-action: none;   // the finger drags the row instead of scrolling the page
+    user-select: none;
+    @include motion(background-color, color, border-color);
+
+    &:hover { background: $blue-050; border-color: $blue-200; color: $blue-700; }
+    &:focus-visible { @include focus-ring; color: $blue-700; }
+  }
+
+  &__pos {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    background: $line-100;
+    color: $ink-700;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.is-sortable tbody tr { @include motion(background-color, box-shadow); }
+
+  tr.is-dragging {
+    position: relative;
+    z-index: 2;
+    background: $white;
+    box-shadow: $shadow-lg, inset 3px 0 0 $blue-600;
+
+    .org-doctypes__handle { cursor: grabbing; background: $blue-100; color: $blue-700; }
+    .org-doctypes__pos { background: $blue-600; color: $white; }
+  }
+
+  // while dragging, the other rows step back slightly
+  &.is-dragging tbody tr:not(.is-dragging) { opacity: 0.92; }
+
+  tr.is-saving { opacity: 0.7; }
+  tr.is-saved { background: $green-050; }
+
   &__alt {
     display: block;
     color: $ink-500;
@@ -551,4 +634,105 @@ $docs-red: $red-600;
     color: $ink-600;
     font-size: $fs-sm;
   }
+}
+
+// ============================================================================
+// Document viewer popup (employee profile > Documents): image or PDF, with
+// maximize / restore like a window, download and close
+// ============================================================================
+.doc-viewer {
+  .modal-dialog { transition: max-width 0.2s ease, margin 0.2s ease; }
+
+  .modal-header {
+    gap: space("2");
+    padding: space("3") space("4");
+  }
+
+  &__title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    margin-inline-end: auto;
+
+    .modal-title { @include truncate; }
+  }
+
+  &__file {
+    color: $ink-500;
+    font-size: $fs-sm;
+    @include truncate;
+  }
+
+  &__tools {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: space("1");
+  }
+
+  // window-style buttons: download, maximize / restore, close
+  &__tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    border: 0;
+    border-radius: $radius;
+    background: transparent;
+    color: $ink-600;
+    text-decoration: none;
+    @include motion(background-color, color);
+    @include focus-ring;
+
+    &:hover { background: $line-100; color: $ink-900; }
+
+    &--close:hover { background: $red-050; color: $red-700; }
+  }
+
+  // flex + margin:auto centres the content but, unlike justify-content, keeps all
+  // of a zoomed (actual size) image reachable by scrolling
+  .modal-body {
+    display: flex;
+    min-height: 50vh;
+    max-height: none;   // the image / PDF is sized to the window itself
+    padding: space("3");
+    background: $surface;
+    overflow: auto;
+  }
+
+  &__img {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100vh - 15rem);
+    margin: auto;
+    border-radius: $radius-sm;
+    box-shadow: $shadow-sm;
+    object-fit: contain;
+    cursor: zoom-in;
+
+    &.is-actual { max-width: none; max-height: none; cursor: zoom-out; }
+  }
+
+  &__frame {
+    width: 100%;
+    height: calc(100vh - 15rem);
+    border: 0;
+    background: $white;
+  }
+
+  // maximized: the whole window, the content fills it
+  .modal-fullscreen {
+    .modal-body { min-height: 0; }
+    .doc-viewer__img:not(.is-actual) { max-height: calc(100vh - 7rem); }
+    .doc-viewer__frame { height: 100%; }
+  }
+}
+
+// the whole page while a document type row is dragged
+html.hrms-dragging,
+html.hrms-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
 }

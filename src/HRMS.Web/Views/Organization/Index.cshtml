@@ -18,6 +18,7 @@
     <style>
         @if (!canCreate) { <text>[data-action="add"] { display: none !important; }</text> }
         @if (!canCreate && !canEdit) { <text>#record-modal [data-submit] { display: none !important; }</text> }
+        @if (!canEdit) { <text>#grid-slot [data-docorder-handle] { display: none !important; }</text> }
         @if (!canDelete) { <text>#grid-slot [data-action="toggle"], #grid-slot [data-action="delete"] { display: none !important; }</text> }
         @if (!canCompanyEdit) { <text>html[data-org-tab="companies"] [data-action="add"], html[data-org-tab="companies"] #record-modal [data-submit] { display: none !important; }</text> }
         @if (!canCompanyDelete) { <text>html[data-org-tab="companies"] #grid-slot [data-action="toggle"], html[data-org-tab="companies"] #grid-slot [data-action="delete"] { display: none !important; }</text> }
@@ -59,7 +60,8 @@
      data-toggle-url="@Url.Action("Toggle", "Organization")"
      data-lookup-url="@Url.Action("Lookup", "Organization")"
      data-duplicate-url="@Url.Action("CheckDuplicate", "Organization")"
-     data-docsec-url="@Url.Action("AddDocumentSection", "Organization")">
+     data-docsec-url="@Url.Action("AddDocumentSection", "Organization")"
+     data-docorder-url="@Url.Action("ReorderDocumentTypes", "Organization")">
 
     <div class="hrms-spinner" aria-hidden="true"></div>
 

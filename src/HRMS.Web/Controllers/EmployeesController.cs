@@ -593,7 +593,11 @@ public sealed class EmployeesController : Controller
 
         // Uploaded content is not app markup: lock it down harder than a page,
         // and never let a browser or proxy keep a copy of an ID document.
-        Response.Headers["Content-Security-Policy"] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; object-src 'self'; frame-ancestors 'none'";
+        // Viewing inline: only this app may frame it (the document viewer popup shows a PDF in an
+        // iframe); a download is never framed. Uploads are PDF / JPG / PNG only (checked on upload).
+        Response.Headers["Content-Security-Policy"] =
+            "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; object-src 'self'; frame-ancestors " + (download ? "'none'" : "'self'");
+        Response.Headers["X-Frame-Options"] = download ? "DENY" : "SAMEORIGIN";
         Response.Headers.CacheControl = "private, no-store, max-age=0";
 
         return PhysicalFile(
