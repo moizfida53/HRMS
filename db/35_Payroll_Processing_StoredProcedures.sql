@@ -820,8 +820,17 @@ BEGIN
             SELECT @ResultCode = 'INVALID_STAGE', @ResultMessage = N'The checks can only be re-run while the payroll is in Validation.';
             RETURN;
         END;
+        /* first bring every employee's figures up to date - a salary, pay item or bank
+           account fixed since the payroll was calculated counts (Fix links on the issues);
+           who is in the payroll stays as it is (the employees already listed, excluded ones too) */
+        DECLARE @AllEmp NVARCHAR(MAX) =
+            (SELECT STRING_AGG(CAST(re.EmployeeId AS NVARCHAR(MAX)), N',')
+             FROM [Payroll].[PayrollRunEmployees] AS re WHERE re.PayrollRunId = @Id AND re.Deleted = 0);
+        IF @AllEmp IS NOT NULL
+            EXEC [Payroll].[usp_PayrollRun_Calculate] @RunId = @Id, @EmployeeIds = @AllEmp, @UserId = @UserId;
+
         EXEC [Payroll].[usp_PayrollRun_Validate] @RunId = @Id, @UserId = @UserId;
-        SET @ResultMessage = N'Validation re-run.';
+        SET @ResultMessage = N'Payroll recalculated and validation re-run.';
         RETURN;
     END;
 
