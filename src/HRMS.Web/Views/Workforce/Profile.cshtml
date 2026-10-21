@@ -71,9 +71,9 @@
     @if (!Model.IsNew && !wizard && CurrentUser.CanViewAudit())
     {
         @* every audited change of this employee (db/60) *@
-        <a class="btn btn-outline-secondary emp-audit-link" asp-controller="Audit" asp-action="Index" asp-route-employee="@e.EmployeeId">
+        <button type="button" class="btn btn-outline-secondary emp-audit-link" data-bs-toggle="modal" data-bs-target="#emp-audit-modal">
             @Html.Icon("history", 15)<span>@L["emp.audit_history"]</span>
-        </a>
+        </button>
     }
     <div class="hrms-emp-strip__actions" hidden="@(wizard || !canSave ? "hidden" : null)">
         <button type="submit" form="employee-form" class="btn btn-primary" data-submit="employee">
@@ -1400,6 +1400,33 @@
     </style>
 }
 
+@if (!Model.IsNew && !wizard && CurrentUser.CanViewAudit())
+{
+    @* this employee's audit trail in a popup (search + date range); the full report is Security > Audit Report *@
+    <div class="modal fade aud-modal" id="emp-audit-modal" tabindex="-1" aria-hidden="true" aria-labelledby="emp-audit-modal-title"
+         data-panel-url="@Url.Action("EmployeePanel", "Audit", new { employee = e.EmployeeId })">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="aud-modal__title">
+                        <h2 class="modal-title h5" id="emp-audit-modal-title">@L["emp.audit_history"]</h2>
+                        <span class="aud-modal__who">@L.Tr(Model.DisplayName)@(string.IsNullOrWhiteSpace(e.EmployeeCode) ? "" : " · " + e.EmployeeCode)</span>
+                    </div>
+                    <a class="btn btn-sm btn-link ms-auto aud-modal__full" asp-controller="Audit" asp-action="Index" asp-route-employee="@e.EmployeeId">
+                        @L["aud.open_full_report"]@Html.Icon("chevron-right", 13)
+                    </a>
+                    <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body" data-aud-modal-body><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+            </div>
+        </div>
+    </div>
+}
+
 @section Scripts {
     <script src="~/js/employee.js" asp-append-version="true"></script>
+    @if (!Model.IsNew && !wizard && CurrentUser.CanViewAudit())
+    {
+        <script src="~/js/audit.js" asp-append-version="true"></script>
+    }
 }

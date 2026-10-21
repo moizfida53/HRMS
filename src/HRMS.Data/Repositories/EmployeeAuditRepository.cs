@@ -46,6 +46,8 @@ public sealed class EmployeeAuditRepository : IEmployeeAuditRepository
         p.Add("@DateFrom", filter.DateFromUtc, DbType.DateTime2);
         p.Add("@DateTo", filter.DateToUtc, DbType.DateTime2);
         p.Add("@Search", Cut(filter.Search, 200), DbType.String, size: 200);
+        p.Add("@SortColumn", Cut(filter.Sort, 30), DbType.AnsiString, size: 30);
+        p.Add("@SortDirection", Cut(filter.Direction, 4), DbType.AnsiString, size: 4);
         p.Add("@PageNumber", Math.Max(1, filter.PageNumber), DbType.Int32);
         p.Add("@PageSize", pageSize, DbType.Int32);
 

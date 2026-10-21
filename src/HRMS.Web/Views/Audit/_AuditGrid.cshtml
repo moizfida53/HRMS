@@ -23,11 +23,14 @@ else
             <caption class="hrms-sr-only">@L["layout.audit_report"]</caption>
             <thead>
                 <tr>
-                    <th scope="col">@L["aud.date_time"]</th>
-                    <th scope="col">@L["pr.employee"]</th>
-                    <th scope="col">@L["aud.transaction_type"]</th>
-                    <th scope="col">@L["aud.change"]</th>
-                    <th scope="col" class="col-p2">@L["aud.changed_by"]</th>
+                    @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", Model.Header("Date", L["aud.date_time"]))
+                    @if (!Model.OneEmployee)
+                    {
+                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", Model.Header("Employee", L["pr.employee"]))
+                    }
+                    @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", Model.Header("Type", L["aud.transaction_type"]))
+                    @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", Model.Header("Field", L["aud.change"]))
+                    @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", Model.Header("ChangedBy", L["aud.changed_by"], "col-p2"))
                     @if (Model.ManyCompanies)
                     {
                         <th scope="col" class="col-p3">@L["common.company"]</th>
@@ -45,14 +48,17 @@ else
                                 <span class="pr-emp-sub">@local.ToString("HH:mm", inv)</span>
                             </div>
                         </td>
-                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">
-                            <div class="aud-cell">
-                            <span><a class="aud-emp" href="@Url.Action("Profile", "Employees", new { id = r.EmployeeId })">@Name(r)</a>
-                            <button type="button" class="aud-only" data-aud-only="@r.EmployeeId" data-aud-only-name="@Name(r)"
-                                    title="@L["aud.only_this_employee"]" aria-label="@L["aud.only_this_employee"]">@Html.Icon("filter", 12)</button></span>
-                            <span class="pr-emp-sub">@r.EmployeeNo</span>
-                            </div>
-                        </td>
+                        @if (!Model.OneEmployee)
+                        {
+                            <td data-label="@L["pr.employee"]" class="hrms-nowrap">
+                                <div class="aud-cell">
+                                <span><a class="aud-emp" href="@Url.Action("Profile", "Employees", new { id = r.EmployeeId })">@Name(r)</a>
+                                <button type="button" class="aud-only" data-aud-only="@r.EmployeeId" data-aud-only-name="@Name(r)"
+                                        title="@L["aud.only_this_employee"]" aria-label="@L["aud.only_this_employee"]">@Html.Icon("filter", 12)</button></span>
+                                <span class="pr-emp-sub">@r.EmployeeNo</span>
+                                </div>
+                            </td>
+                        }
                         <td data-label="@L["aud.transaction_type"]">
                             <div class="aud-cell">
                             <span class="hrms-badge hrms-badge--@AuditType.Badge(r.TransactionType)"><span class="hrms-badge__dot"></span>@L.Tr(AuditType.Label(r.TransactionType))</span>

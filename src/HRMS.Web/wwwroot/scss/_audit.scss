@@ -218,3 +218,71 @@
     justify-content: center;
   }
 }
+
+// ------------------------------------------- the employee's audit popup ----
+.aud-modal {
+  .modal-body { padding: 0; }
+
+  &__title { display: flex; flex-direction: column; min-width: 0; }
+
+  &__who {
+    color: $ink-500;
+    font-size: $fs-sm;
+    @include truncate;
+  }
+
+  &__full {
+    display: inline-flex;
+    align-items: center;
+    gap: space("1");
+    text-decoration: none;
+    white-space: nowrap;
+
+    [dir="rtl"] & svg { transform: scaleX(-1); }
+  }
+}
+
+.aud-panel {
+  &__filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: space("3") space("4");
+    padding: space("4") space("5") space("2");
+  }
+
+  &__search {
+    flex: 1 1 260px;
+    max-width: 420px;
+  }
+
+  &__dates {
+    flex: 0 1 380px;
+    min-width: 0;
+  }
+
+  &__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: space("2");
+    padding: 0 space("5") space("3");
+    border-bottom: 1px solid $line-100;
+  }
+
+  @include cq-down("sm") {
+    &__filters { padding-inline: space("4"); }
+    &__search, &__dates { flex: 1 1 100%; max-width: none; }
+    &__bar { padding-inline: space("4"); }
+  }
+}
+
+// the popup is not inside the content container: follow the viewport there
+@media (max-width: 575.98px) {
+  .aud-panel {
+    &__search, &__dates { flex: 1 1 100%; max-width: none; }
+  }
+}
+
+// sortable headers of the audit grid
+.aud-table .hrms-table__sort { white-space: nowrap; }

@@ -1,0 +1,39 @@
+@using HRMS.Web.Models.Audit
+@model EmployeeAuditPanelModel
+@{
+    // The audit popup of the employee profile: this employee only - a search bar and the
+    // date range instead of the report's company / employee / transaction-type pickers.
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+<div class="aud-panel" data-aud-panel
+     data-employee="@Model.EmployeeId"
+     data-urls-grid="@Url.Action("Grid", "Audit")"
+     data-urls-export="@Url.Action("Export", "Audit")">
+    <div class="aud-panel__filters">
+        <label class="hrms-search aud-panel__search">
+            @Html.Icon("search", 16)
+            <input type="search" data-aud-filter="search" autocomplete="off" placeholder="@L["aud.panel_search_placeholder"]" aria-label="@L["aud.panel_search_placeholder"]" />
+        </label>
+        <div class="aud-panel__dates">
+            <div class="aud-dates" role="group" aria-label="@L["aud.date_range"]">
+                <input type="date" class="form-control" data-aud-filter="from" value="@Model.From.ToString("yyyy-MM-dd", inv)"
+                       max="@Model.To.ToString("yyyy-MM-dd", inv)" aria-label="@L["aud.from"]" />
+                <span class="aud-dates__sep" aria-hidden="true">–</span>
+                <input type="date" class="form-control" data-aud-filter="to" value="@Model.To.ToString("yyyy-MM-dd", inv)" aria-label="@L["aud.to"]" />
+            </div>
+            <div class="aud-presets" role="group" aria-label="@L["aud.quick_ranges"]">
+                <button type="button" class="aud-preset" data-aud-preset="30">@L["aud.last_30_days"]</button>
+                <button type="button" class="aud-preset is-active" data-aud-preset="365" data-aud-preset-default>@L["aud.last_12_months"]</button>
+                <button type="button" class="aud-preset" data-aud-preset="all">@L["aud.all_time"]</button>
+            </div>
+        </div>
+    </div>
+    <div class="aud-panel__bar">
+        <button type="button" class="btn btn-sm btn-link aud-reset" data-aud-reset>@Html.Icon("undo", 14)<span>@L["aud.reset_filters"]</span></button>
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <div class="hrms-card__count" data-aud-count></div>
+            <a class="btn btn-sm btn-outline-primary" href="#" data-aud-export>@Html.Icon("download", 15)<span>@L["pr.cmp_export_excel"]</span></a>
+        </div>
+    </div>
+    <div class="aud-panel__grid" data-aud-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+</div>

@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    59_Payroll_Compare_Labels.sql  -  HRMS: English + Arabic labels of Payroll Comparison
    ---------------------------------------------------------------------
    Run after 33 (Core.UiLabels) and 36. Idempotent: new keys are

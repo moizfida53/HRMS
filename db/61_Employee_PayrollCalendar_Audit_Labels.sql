@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    61_Employee_PayrollCalendar_Audit_Labels.sql  -  HRMS: English + Arabic
    labels of the employee payroll calendar, Create Payroll by calendar and
    the Audit Report (db/60)

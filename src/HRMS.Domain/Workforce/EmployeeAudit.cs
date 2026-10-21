@@ -102,6 +102,10 @@ public sealed class EmployeeAuditFilter
     /// <summary>Instant after the last one shown (UTC, exclusive) - the end of the user's local "to" day.</summary>
     public DateTime? DateToUtc { get; set; }
     public string? Search { get; set; }
+    /// <summary>Date (default) / Employee / Type / Field / ChangedBy (db/62).</summary>
+    public string? Sort { get; set; }
+    /// <summary>ASC / DESC.</summary>
+    public string? Direction { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 50;
 }

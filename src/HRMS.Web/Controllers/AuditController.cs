@@ -97,11 +97,34 @@ public sealed class AuditController : Controller
         var filter = await BuildFilterAsync(query, PageSize);
         if (filter is null) return PartialView("_AuditGrid", NothingToShow());
 
+        var one = query.Mode == "employee" && query.Employee is not null;
         return PartialView("_AuditGrid", new AuditGridModel
         {
             Page = await _audit.ListAsync(filter, Ct),
-            IsFiltered = query.Employee is not null || !string.IsNullOrEmpty(query.Type) || !string.IsNullOrWhiteSpace(query.Search),
-            ManyCompanies = _currentUser.ActiveCompanyId is null && _companyFilter.SingleCompanyId is null && query.Company is null
+            IsFiltered = (!one && query.Employee is not null) || !string.IsNullOrEmpty(query.Type) || !string.IsNullOrWhiteSpace(query.Search),
+            ManyCompanies = !one && _currentUser.ActiveCompanyId is null && _companyFilter.SingleCompanyId is null && query.Company is null,
+            OneEmployee = one,
+            Sort = query.SortOrDefault,
+            Direction = query.DirOrDefault
+        });
+    }
+
+    /// <summary>
+    /// The audit popup of the employee profile: this employee only, with a search bar and the
+    /// date range (no company / employee / type pickers). The grid loads through <see cref="Grid"/>.
+    /// </summary>
+    [HttpGet("employee-panel")]
+    public async Task<IActionResult> EmployeePanel(long employee)
+    {
+        if (!_currentUser.CanViewAudit()) return Forbid();
+        if (await OwnsEmployeeAsync(employee) is not { } e) return NotFound();
+        var today = DateTime.Today;
+        return PartialView("_EmployeeAuditPanel", new EmployeeAuditPanelModel
+        {
+            EmployeeId = employee,
+            EmployeeName = _text.IsArabic && !string.IsNullOrWhiteSpace(e.ArabicName) ? e.ArabicName : $"{e.FirstName} {e.LastName}".Trim(),
+            From = today.AddYears(-1),
+            To = today
         });
     }
 
@@ -172,6 +195,8 @@ public sealed class AuditController : Controller
             DateFromUtc = from is { } f ? DateTime.SpecifyKind(f, DateTimeKind.Local).ToUniversalTime() : null,
             DateToUtc = to is { } t ? DateTime.SpecifyKind(t.AddDays(1), DateTimeKind.Local).ToUniversalTime() : null,
             Search = q.Search,
+            Sort = q.SortOrDefault,
+            Direction = q.DirOrDefault,
             PageNumber = Math.Max(1, q.Page),
             PageSize = pageSize
         };
