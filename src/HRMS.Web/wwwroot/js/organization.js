@@ -104,17 +104,21 @@
             });
     }
 
+    // The badges are filled on page load (every tab's total); a reload of the open tab
+    // refreshes its own badge - but not while a search or status filter narrows the list.
     function updateTabCount() {
         var counter = slot.querySelector(".hrms-card__count");
         var active = document.querySelector(".hrms-tab.is-active [data-tab-count]");
-        if (!active) { return; }
+        if (!active || state.search || state.status) { return; }
 
         if (counter) {
             var digits = counter.textContent.replace(/[^0-9,]/g, "").trim();
             active.textContent = digits;
             active.hidden = !digits;
         } else {
-            active.hidden = true;
+            // the empty state has no record counter: nothing on record
+            active.textContent = "0";
+            active.hidden = false;
         }
     }
 

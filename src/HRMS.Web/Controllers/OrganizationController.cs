@@ -90,15 +90,67 @@ public sealed class OrganizationController : Controller
     // landing page). This screen lives at /organization.
     [HttpGet("")]
     [HttpGet("index")]
-    public IActionResult Index(string? tab)
+    public async Task<IActionResult> Index(string? tab)
     {
         if (!CanView) return Forbid();
         var model = new OrganizationIndexViewModel
         {
-            ActiveTab = OrganizationTabs.Resolve(tab)
+            ActiveTab = OrganizationTabs.Resolve(tab),
+            TabCounts = await TabCountsAsync()
         };
 
         return View(model);
+    }
+
+    /// <summary>
+    /// Every tab's record count for the tab strip, so the badges show on page load - the same
+    /// scoping as its grid (active company, top-bar company filter), without search or status filter.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, int>> TabCountsAsync()
+    {
+        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        async Task Count<T>(string key, IMasterRepository<T> repository) where T : class
+        {
+            try
+            {
+                // a pinned user's companies are filtered after the list (see GridAsync), so read them all
+                var pinnedCompanies = typeof(T) == typeof(Company) && _currentUser.ActiveCompanyId is not null;
+                var page = await repository.ListAsync(ScopedRequest(new GridRequest { PageSize = pinnedCompanies ? int.MaxValue : 1 }), Ct);
+                counts[key] = pinnedCompanies
+                    ? page.Items.Count(x => _currentUser.Allows(CompanyScope.CompanyOf(x)))
+                    : page.TotalCount;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // a badge is not worth failing the page for (e.g. db/63 not run yet): the tab fills it in when opened
+                _logger.LogWarning(ex, "Record count for the {Tab} tab could not be read.", key);
+            }
+        }
+
+        // one after the other: each is a single one-row page query
+        await Count(OrganizationTabs.Companies, _companies);
+        await Count(OrganizationTabs.Branches, _branches);
+        await Count(OrganizationTabs.Departments, _departments);
+        await Count(OrganizationTabs.Sections, _sections);
+        await Count(OrganizationTabs.Designations, _designations);
+        await Count(OrganizationTabs.JobPositions, _jobPositions);
+        await Count(OrganizationTabs.Locations, _locations);
+        await Count(OrganizationTabs.CostCenters, _costCenters);
+        await Count(OrganizationTabs.DocumentTypes, _documentTypes);
+        return counts;
+    }
+
+    /// <summary>Scopes a grid request to the user's active company and the top-bar company filter.</summary>
+    private GridRequest ScopedRequest(GridRequest request)
+    {
+        // a pinned user's own company always wins over a CompanyId in the query string
+        request.CompanyId = _currentUser.ActiveCompanyId ?? request.CompanyId;
+
+        // Top-bar company filter (cookie). Companies tab ignores it (Core.usp_Company_Manage
+        // accepts but does not apply @CompanyIds) so every company stays listed there.
+        request.CompanyIds = _companyFilter.Csv;
+        return request;
     }
 
     // =======================================================================
@@ -112,12 +164,7 @@ public sealed class OrganizationController : Controller
         var descriptor = OrganizationTabs.Resolve(tab);
 
         // Scope every grid to the user's active company once they have one.
-        // a pinned user's own company always wins over a CompanyId in the query string
-        request.CompanyId = _currentUser.ActiveCompanyId ?? request.CompanyId;
-
-        // Top-bar company filter (cookie). Companies tab ignores it (Core.usp_Company_Manage
-        // accepts but does not apply @CompanyIds) so every company stays listed there.
-        request.CompanyIds = _companyFilter.Csv;
+        ScopedRequest(request);
 
         return descriptor.Key switch
         {

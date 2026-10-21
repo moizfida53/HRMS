@@ -41,7 +41,14 @@
                     aria-selected="@(isActive ? "true" : "false")"
                     aria-controls="grid-slot">
                 @L.Tr(tab.Title)
-                <span class="hrms-tab__count" data-tab-count hidden></span>
+                @if (Model.TabCounts.TryGetValue(tab.Key, out var count))
+                {
+                    <span class="hrms-tab__count" data-tab-count>@count.ToString("N0")</span>
+                }
+                else
+                {
+                    <span class="hrms-tab__count" data-tab-count hidden></span>
+                }
             </button>
         }
     </div>

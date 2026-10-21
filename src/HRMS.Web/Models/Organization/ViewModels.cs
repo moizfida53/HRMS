@@ -8,6 +8,9 @@ public sealed class OrganizationIndexViewModel
     public required OrgTab ActiveTab { get; init; }
 
     public IReadOnlyList<OrgTab> Tabs => OrganizationTabs.All;
+
+    /// <summary>Record count per tab key, for the badges on the tab strip (a tab missing here shows none).</summary>
+    public IReadOnlyDictionary<string, int> TabCounts { get; init; } = new Dictionary<string, int>();
 }
 
 /// <summary>
