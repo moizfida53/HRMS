@@ -322,7 +322,9 @@ JOIN   #Codes c ON c.PermissionCode = p.PermissionCode AND c.IsNew = 1
 WHERE  r.RoleCode = N'SYSADMIN' AND r.Deleted = 0
   AND  NOT EXISTS (SELECT 1 FROM [Security].[RolePermissions] rp WHERE rp.RoleId = r.RoleId AND rp.PermissionId = p.PermissionId);
 
-PRINT CONCAT(N'Permission codes created: ', (SELECT COUNT(1) FROM #Codes WHERE IsNew = 1));
+-- PRINT takes no subquery: count into a variable first
+DECLARE @CodesCreated INT = (SELECT COUNT(1) FROM #Codes WHERE IsNew = 1);
+PRINT CONCAT(N'Permission codes created: ', @CodesCreated);
 DROP TABLE #Codes;
 GO
 
