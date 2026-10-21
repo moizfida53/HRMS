@@ -68,6 +68,13 @@
         <span class="hrms-badge hrms-badge--muted ms-auto"><span class="hrms-badge__dot"></span>@L["sec.read_only"]</span>
     }
 
+    @if (!Model.IsNew && !wizard && CurrentUser.CanViewAudit())
+    {
+        @* every audited change of this employee (db/60) *@
+        <a class="btn btn-outline-secondary emp-audit-link" asp-controller="Audit" asp-action="Index" asp-route-employee="@e.EmployeeId">
+            @Html.Icon("history", 15)<span>@L["emp.audit_history"]</span>
+        </a>
+    }
     <div class="hrms-emp-strip__actions" hidden="@(wizard || !canSave ? "hidden" : null)">
         <button type="submit" form="employee-form" class="btn btn-primary" data-submit="employee">
             @Html.Icon("check", 15)
@@ -503,6 +510,50 @@
                         </select>
                         <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
                     </div>
+                    @* Payroll calendar (db/60): the employee is paid by this calendar's payrolls.
+                       Required; once assigned, only a user with "Change payroll calendar" may change it,
+                       with a reason - every assignment and change is in the Audit Report. *@
+                    @{
+                        var calLocked = Model.PayrollCalendarLocked;
+                        var calCurrent = Model.PayrollCalendar;
+                        var calOriginal = calCurrent?.PayrollCalendarId;
+                    }
+                    <div class="col-md-4 emp-paycal" data-paycal data-original="@calOriginal" data-locked="@(calLocked ? "1" : "0")">
+                        <label class="form-label" for="f-PayrollCalendarId">
+                            @L["emp.payroll_calendar"] <span class="req" aria-hidden="true">*</span>
+                            @if (calLocked)
+                            {
+                                <span class="emp-paycal__lock" title="@L["emp.paycal_locked_hint"]">@Html.Icon("lock", 12)</span>
+                            }
+                        </label>
+                        <select class="form-select" id="f-PayrollCalendarId" form="employee-form" name="PayrollCalendarId"
+                                required="@(!calLocked)" disabled="@calLocked" data-paycal-select aria-describedby="f-PayrollCalendarId-hint">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var pc in Model.PayrollCalendars)
+                            {
+                                <option value="@pc.PayrollCalendarId" data-company="@pc.CompanyId" data-frequency="@pc.PayFrequency"
+                                        selected="@(e.PayrollCalendarId == pc.PayrollCalendarId)">
+                                    @PayrollFormat.Calendar(L, pc.CalendarName, pc.ArabicName) · @PayrollFormat.Frequency(L, pc.PayFrequency)@(pc.IsDefault ? " · " + L["emp.paycal_default"] : "")
+                                </option>
+                            }
+                        </select>
+                        <span class="form-text" id="f-PayrollCalendarId-hint">
+                            @if (calLocked)
+                            {
+                                @L["emp.paycal_locked_hint"]
+                            }
+                            else if (calOriginal is not null)
+                            {
+                                @L["emp.paycal_change_hint"]
+                            }
+                            else
+                            {
+                                @L["emp.paycal_hint"]
+                            }
+                        </span>
+                        <span class="form-text text-warning-emphasis" data-paycal-none hidden>@L["emp.paycal_no_calendar_for_company"]</span>
+                        <span class="field-validation-error" data-valmsg-for="PayrollCalendarId"></span>
+                    </div>
                     <div class="col-md-4">
                         <label class="form-label" for="f-BranchId">@L["common.branch"]</label>
                         <select class="form-select" id="f-BranchId" form="employee-form" name="BranchId">
@@ -514,6 +565,16 @@
                         </select>
                         <span class="field-validation-error" data-valmsg-for="BranchId"></span>
                     </div>
+                    @if (!calLocked && calOriginal is not null)
+                    {
+                        <div class="col-12 emp-paycal__reason" data-paycal-reason hidden>
+                            <label class="form-label" for="f-PayrollCalendarReason">@L["emp.paycal_reason"] <span class="req" aria-hidden="true">*</span></label>
+                            <input class="form-control" id="f-PayrollCalendarReason" form="employee-form" name="PayrollCalendarReason" type="text"
+                                   maxlength="500" placeholder="@L["emp.paycal_reason_placeholder"]" />
+                            <span class="form-text">@L["emp.paycal_reason_hint"]</span>
+                            <span class="field-validation-error" data-valmsg-for="PayrollCalendarReason"></span>
+                        </div>
+                    }
                     <div class="col-md-4">
                         <label class="form-label" for="f-WorkLocationId">@L["emp.work_location"]</label>
                         <select class="form-select" id="f-WorkLocationId" form="employee-form" name="WorkLocationId">

@@ -1,0 +1,110 @@
+@using HRMS.Web.Models.Audit
+@using HRMS.Domain.Workforce
+@model AuditPageModel
+@{
+    // Audit Report (db/60): who changed what for each employee, and when.
+    ViewData["Title"] = "Audit Report";
+    ViewData["ActiveArea"] = "security";
+    ViewData["SecurityPage"] = "audit";
+    ViewData["Subtitle"] = L["aud.subtitle"];
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    (string Key, string Title)[] groups =
+    [
+        ("g:calendar", L["aud.group_calendar"]), ("g:employee", L["aud.group_employee"]),
+        ("g:salary", L["aud.group_salary"]), ("g:payroll", L["aud.group_payroll"])
+    ];
+    var groupOf = new Dictionary<string, string>
+    {
+        ["Payroll calendar"] = "g:calendar", ["Employee"] = "g:employee", ["Salary & bank"] = "g:salary", ["Payroll"] = "g:payroll"
+    };
+}
+<div class="pr-stack aud-page" data-aud-page
+     data-urls-grid="@Url.Action("Grid", "Audit")"
+     data-urls-export="@Url.Action("Export", "Audit")">
+
+    <section class="hrms-card aud-filters" data-aud-filters>
+        <div class="pr-card-body">
+            <div class="row g-3 align-items-start">
+                @if (Model.Companies.Count > 1)
+                {
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <label class="form-label" for="aud-company">@L["common.company"]</label>
+                        <select class="form-select" id="aud-company" data-aud-filter="company" data-searchable>
+                            <option value="">@L["aud.all_companies"]</option>
+                            @foreach (var c in Model.Companies)
+                            {
+                                <option value="@c.Id">@c.Text</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="col-12 col-md-6 @(Model.Companies.Count > 1 ? "col-xl-3" : "col-xl-4")">
+                    <label class="form-label" for="aud-employee">@L["pr.employee"]</label>
+                    <select class="form-select" id="aud-employee" data-aud-filter="employee" data-searchable>
+                        <option value="">@L["aud.all_employees"]</option>
+                        @if (Model.EmployeeId is { } sel && Model.Employees.All(x => x.Id != sel))
+                        {
+                            <option value="@sel" selected>@Model.EmployeeName</option>
+                        }
+                        @foreach (var x in Model.Employees)
+                        {
+                            <option value="@x.Id" selected="@(Model.EmployeeId == x.Id)">@x.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-6 @(Model.Companies.Count > 1 ? "col-xl-3" : "col-xl-4")">
+                    <label class="form-label" for="aud-type">@L["aud.transaction_type"]</label>
+                    <select class="form-select" id="aud-type" data-aud-filter="type">
+                        <option value="">@L["aud.all_transactions"]</option>
+                        @foreach (var g in groups)
+                        {
+                            <optgroup label="@g.Title">
+                                <option value="@g.Key" selected="@(Model.Type == g.Key)">@L["aud.all_in_group", g.Title]</option>
+                                @foreach (var t in AuditType.All.Where(t => groupOf[t.Group] == g.Key))
+                                {
+                                    <option value="@t.Code" selected="@(Model.Type == t.Code)">@L.Tr(AuditType.Label(t.Code))</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 col-md-6 @(Model.Companies.Count > 1 ? "col-xl-3" : "col-xl-4")">
+                    <span class="form-label d-block" id="aud-dates-label">@L["aud.date_range"]</span>
+                    <div class="aud-dates" role="group" aria-labelledby="aud-dates-label">
+                        <input type="date" class="form-control" data-aud-filter="from" value="@Model.From.ToString("yyyy-MM-dd", inv)"
+                               max="@Model.To.ToString("yyyy-MM-dd", inv)" aria-label="@L["aud.from"]" />
+                        <span class="aud-dates__sep" aria-hidden="true">–</span>
+                        <input type="date" class="form-control" data-aud-filter="to" value="@Model.To.ToString("yyyy-MM-dd", inv)" aria-label="@L["aud.to"]" />
+                    </div>
+                    <div class="aud-presets" role="group" aria-label="@L["aud.quick_ranges"]">
+                        <button type="button" class="aud-preset" data-aud-preset="0">@L["aud.today"]</button>
+                        <button type="button" class="aud-preset" data-aud-preset="7">@L["aud.last_7_days"]</button>
+                        <button type="button" class="aud-preset" data-aud-preset="30">@L["aud.last_30_days"]</button>
+                        <button type="button" class="aud-preset" data-aud-preset="365">@L["aud.last_12_months"]</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="hrms-card" data-aud-results>
+        <div class="hrms-card__toolbar">
+            <div class="hrms-card__filters">
+                <label class="hrms-search" style="max-width:320px;flex:1 1 220px">
+                    @Html.Icon("search", 16)
+                    <input type="search" data-aud-filter="search" autocomplete="off" placeholder="@L["aud.search_placeholder"]" aria-label="@L["aud.search_placeholder"]" />
+                </label>
+                <button type="button" class="btn btn-sm btn-link aud-reset" data-aud-reset>@Html.Icon("undo", 14)<span>@L["aud.reset_filters"]</span></button>
+            </div>
+            <div class="d-flex align-items-center gap-2 ms-auto">
+                <div class="hrms-card__count" data-aud-count></div>
+                <a class="btn btn-sm btn-outline-primary" href="#" data-aud-export>@Html.Icon("download", 15)<span>@L["pr.cmp_export_excel"]</span></a>
+            </div>
+        </div>
+        <div data-aud-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/audit.js" asp-append-version="true"></script>
+}

@@ -183,6 +183,12 @@ public static class PayrollFormat
     public static string Period(IUiText L, PayrollPeriodRow p) =>
         Period(L, p.PayFrequency, p.PeriodNumber, p.StartDate, p.EndDate, p.RunMonth);
 
+    /// <summary>Monthly / Weekly / Bi-weekly.</summary>
+    public static string Frequency(IUiText L, string? frequency) => frequency switch
+    {
+        "WEEKLY" => L["pr.weekly"], "BIWEEKLY" => L["pr.bi_weekly"], _ => L["pr.monthly"]
+    };
+
     /// <summary>Pay item class name (SALARY / EARNING / DEDUCTION / LOAN / statutory).</summary>
     public static string ItemClass(IUiText L, string itemClass) => itemClass switch
     {
@@ -278,14 +284,18 @@ public sealed class CreatePageModel
 {
     public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
     public int? CompanyId { get; init; }
-    public IReadOnlyList<PayrollCalendar> Calendars { get; init; } = Array.Empty<PayrollCalendar>();
     public IReadOnlyList<LookupItem> Departments { get; init; } = Array.Empty<LookupItem>();
     public IReadOnlyList<LookupItem> Locations { get; init; } = Array.Empty<LookupItem>();
-    public IReadOnlyList<PayrollDraft> Drafts { get; init; } = Array.Empty<PayrollDraft>();
-    /// <summary>A draft being resumed (?draft=id).</summary>
-    public PayrollRun? Draft { get; init; }
+    /// <summary>The user's unfinished drafts, grouped by company, month and type (offered to continue).</summary>
+    public IReadOnlyList<DraftGroup> DraftGroups { get; init; } = Array.Empty<DraftGroup>();
+    /// <summary>The drafts being resumed (?drafts=1,2) - one per payroll calendar, same company / month / type.</summary>
+    public IReadOnlyList<PayrollRun> Resume { get; init; } = Array.Empty<PayrollRun>();
     public bool CanProcess { get; init; }
 }
+
+/// <summary>Draft payrolls made together by Create Payroll (one per calendar).</summary>
+public sealed record DraftGroup(IReadOnlyList<long> Ids, int CompanyId, DateTime RunMonth, string RunType,
+                                DateTime LastSaved, IReadOnlyList<string> Calendars);
 
 public sealed class HistoryPageModel
 {

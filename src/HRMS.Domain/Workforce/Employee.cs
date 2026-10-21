@@ -270,6 +270,14 @@ public sealed class Employee
     [Display(Name = "IBAN / Account No.")]
     public string? Iban { get; set; }
 
+    /// <summary>
+    /// The payroll calendar the employee is paid by (db/60; Employee.Employees.PayrollCalendarId).
+    /// Not part of usp_Employee_Manage: read and written through usp_EmployeePayrollCalendar_Manage,
+    /// which logs every assignment and change. Null when posted from a locked (disabled) field.
+    /// </summary>
+    [Display(Name = "Payroll Calendar")]
+    public int? PayrollCalendarId { get; set; }
+
     /// <summary>Basic + allowances, for display only.</summary>
     public decimal? GrossSalary =>
         BasicSalary is null && Allowances is null ? null : (BasicSalary ?? 0) + (Allowances ?? 0);

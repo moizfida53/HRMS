@@ -187,6 +187,18 @@ public sealed class EmployeeProfileViewModel
     public IReadOnlyList<LookupItem> Lookup(string type) =>
         Lookups.TryGetValue(type, out var items) ? items : Array.Empty<LookupItem>();
 
+    /// <summary>The employee's payroll calendar as stored (db/60); null for a new employee.</summary>
+    public EmployeePayrollCalendar? PayrollCalendar { get; init; }
+
+    /// <summary>Calendars of the companies on the form - the page shows the selected company's only.</summary>
+    public IReadOnlyList<HRMS.Domain.Payroll.PayrollCalendar> PayrollCalendars { get; init; } = Array.Empty<HRMS.Domain.Payroll.PayrollCalendar>();
+
+    /// <summary>The user may change a calendar once assigned (EMPLOYEE_PAYROLL_CALENDAR_CHANGE).</summary>
+    public bool CanChangePayrollCalendar { get; init; }
+
+    /// <summary>The calendar field is read-only: one is assigned and the user may not change it.</summary>
+    public bool PayrollCalendarLocked => PayrollCalendar?.PayrollCalendarId is not null && !CanChangePayrollCalendar;
+
     public string DisplayName =>
         IsNew
             ? "New Employee"

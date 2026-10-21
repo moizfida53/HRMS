@@ -23,6 +23,8 @@
 @use "dashboard-payroll";
 @use "security";
 @use "payroll-compare";
+@use "audit";
+@use "payroll-create";
 @use "auth";
 @use "utilities";
 @use "responsive";

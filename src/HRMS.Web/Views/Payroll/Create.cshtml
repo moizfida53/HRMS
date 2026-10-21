@@ -4,9 +4,12 @@
     ViewData["ActiveArea"] = "payroll";
     ViewData["PayrollSection"] = "processing";
     ViewData["Subtitle"] = L["pr.create_a_payroll_in_four_steps"];
-    var draft = Model.Draft;
+    // Each employee is paid by their own payroll calendar (db/60): one draft per calendar in use.
+    var resume = Model.Resume;
+    var first = resume.FirstOrDefault();
     var inv = System.Globalization.CultureInfo.InvariantCulture;
     string[] steps = [L["pr.scope"], L["common.employees"], L["pr.check"], L["common.create"]];
+    var resumeJson = System.Text.Json.JsonSerializer.Serialize(resume.Select(r => new { runId = r.PayrollRunId, calendarId = r.PayrollCalendarId, periodId = r.PayrollPeriodId }));
 }
 @{
     // Payroll Processing sub-section in the sidebar; a payroll shows only the page of its own stage, so no tab rail.
@@ -16,7 +19,11 @@
 }
 
 <div class="pr-stack" data-pr-page="create"
-     data-run="@(draft?.PayrollRunId)"
+     data-resume="@resumeJson"
+     data-month="@(first?.RunMonth.ToString("yyyy-MM", inv))"
+     data-urls-plan="@Url.Action("CreatePlan", "Payroll")"
+     data-urls-payrolls="@Url.Action("Payrolls", "Payroll")"
+     data-urls-create="@Url.Action("Create", "Payroll")"
      data-urls-calendars="@Url.Action("CalendarsFor", "Payroll")"
      data-urls-periods="@Url.Action("Periods", "Payroll")"
      data-urls-next="@Url.Action("NextCode", "Payroll")"
@@ -35,18 +42,18 @@
      data-urls-include="@Url.Action("Include", "Payroll")"
      data-urls-open="@Url.Action("Open", "Payroll", new { id = 0 })">
 
-    @if (draft is null && Model.Drafts.Count > 0)
+    @if (Model.DraftGroups.Count > 0)
     {
-        var d = Model.Drafts[0];
+        var g = Model.DraftGroups[0];
         <div class="pr-banner pr-banner--info" data-draft-banner>
             @Html.Icon("info", 18)
             <div class="flex-grow-1">
-                <strong>@L["pr.you_have_an_unfinished_payroll"]</strong> -
-                @PayrollFormat.Calendar(L, d.CalendarName, null) · @PayrollFormat.Period(L, d.PayFrequency, d.PeriodNumber, d.StartDate, d.EndDate, new DateTime(d.EndDate.Year, d.EndDate.Month, 1)) ·
-                @L.Tr(RunType.Label(d.RunType)) · @L["pr.saved_0", L.Date(d.LastSaved)]
+                <strong>@(g.Ids.Count == 1 ? L["pr.you_have_an_unfinished_payroll"] : L["pr.cr_unfinished_n", g.Ids.Count])</strong> -
+                @L.MonthYear(g.RunMonth) · @string.Join(", ", g.Calendars) ·
+                @L.Tr(RunType.Label(g.RunType)) · @L["pr.saved_0", L.Date(g.LastSaved)]
                 <div class="mt-2 d-flex gap-2 flex-wrap">
-                    <a class="btn btn-sm btn-primary" href="@Url.Action("Create", "Payroll", new { draft = d.PayrollRunId })">@L["pr.continue"]</a>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-draft-discard="@d.PayrollRunId">@L["pr.discard_draft"]</button>
+                    <a class="btn btn-sm btn-primary" href="@Url.Action("Create", "Payroll", new { drafts = string.Join(",", g.Ids) })">@L["pr.continue"]</a>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-draft-discard="@string.Join(",", g.Ids)">@(g.Ids.Count == 1 ? L["pr.discard_draft"] : L["pr.cr_discard_drafts"])</button>
                 </div>
             </div>
         </div>
@@ -72,6 +79,8 @@
     </div>
 
     <div class="hrms-card">
+        @* steps 2-4 work on one draft at a time: pick it here (one per payroll calendar) *@
+        <div class="cr-switch" data-cr-switch role="tablist" aria-label="@L["pr.cr_payrolls"]" hidden></div>
         <div class="pr-wizard-body">
             @* ===================================================== 1. scope *@
             <div data-step-pane="0">
@@ -81,7 +90,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label" for="cr-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
-                            <select class="form-select" id="cr-company" data-cr-company>
+                            <select class="form-select" id="cr-company" data-cr-company disabled="@(resume.Count > 0)">
                                 @foreach (var c in Model.Companies)
                                 {
                                     <option value="@c.Id" selected="@(c.Id == Model.CompanyId)">@c.Text</option>
@@ -89,47 +98,21 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="cr-calendar">@L["pr.payroll_calendar"] <span class="req" aria-hidden="true">*</span></label>
-                            <select class="form-select" id="cr-calendar" data-cr-calendar>
-                                @foreach (var c in Model.Calendars)
-                                {
-                                    var sel = draft is not null ? c.PayrollCalendarId == draft.PayrollCalendarId : c.IsDefault;
-                                    <option value="@c.PayrollCalendarId" selected="@sel">@PayrollFormat.Calendar(L, c.CalendarName, c.ArabicName)</option>
-                                }
-                            </select>
-                            <span class="field-validation-error" data-cr-error="calendar" hidden>@L["pr.add_a_payroll_calendar_for_this_company_first_payroll_ca"]</span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="cr-period">@L["pr.period"] <span class="req" aria-hidden="true">*</span></label>
-                            <select class="form-select" id="cr-period" data-cr-period data-selected="@(draft?.PayrollPeriodId)"></select>
-                            <span class="form-text">@L["pr.open_periods_and_periods_whose_regular_payroll_is_closed"]</span>
-                            <span class="field-validation-error" data-cr-error="period" hidden>@L["pr.no_open_period_generate_periods_on_the_payroll_calendar"]</span>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="cr-name">@L["pr.payroll_name"]</label>
-                            <div class="input-group">
-                                <span class="input-group-text">@Html.Icon("lock", 14)</span>
-                                <input type="text" class="form-control pr-runname" id="cr-name" data-cr-name readonly aria-describedby="cr-name-hint" />
-                            </div>
-                            <span class="form-text" id="cr-name-hint" data-cr-name-hint>@L["pr.generated_company_code_year_month_running_number_for_thi"]</span>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label" for="cr-desc">@L["org.description"] <span class="req" aria-hidden="true" data-cr-desc-req hidden>*</span></label>
-                            <textarea class="form-control" id="cr-desc" rows="2" maxlength="500" data-cr-desc
-                                      placeholder="@L["pr.why_is_this_payroll_being_generated_e_g_q3_sales_commiss"]">@draft?.Description</textarea>
-                            <span class="form-text" data-cr-desc-hint></span>
-                            <span class="field-validation-error" data-cr-error="desc" hidden>@L["pr.enter_the_reason_for_this_payroll_it_is_not_the_first_pa"]</span>
+                            <label class="form-label" for="cr-month">@L["pr.cr_payroll_month"] <span class="req" aria-hidden="true">*</span></label>
+                            <select class="form-select" id="cr-month" data-cr-month></select>
+                            <span class="form-text">@L["pr.cr_month_hint"]</span>
+                            <span class="field-validation-error" data-cr-error="month" hidden>@L["pr.cr_no_month"]</span>
                         </div>
                     </div>
                 </fieldset>
                 <p class="pr-section-label mt-2">@L["pr.payroll_type"]</p>
                 <div class="pr-choice" data-cr-type>
-                    <label class="@(draft is null || draft.RunType == RunType.Regular ? "is-selected" : null)">
-                        <input type="radio" name="cr-type" value="@RunType.Regular" class="form-check-input" checked="@(draft is null || draft.RunType == RunType.Regular)" />
+                    <label class="@(first is null || first.RunType == RunType.Regular ? "is-selected" : null)">
+                        <input type="radio" name="cr-type" value="@RunType.Regular" class="form-check-input" checked="@(first is null || first.RunType == RunType.Regular)" />
                         <span><strong>@L["pr.regular"]</strong><span>@L["pr.the_payroll_of_the_period_salary_earnings_deductions_loa"]</span></span>
                     </label>
-                    <label class="@(draft?.RunType == RunType.OffCycle ? "is-selected" : null)">
-                        <input type="radio" name="cr-type" value="@RunType.OffCycle" class="form-check-input" checked="@(draft?.RunType == RunType.OffCycle)" />
+                    <label class="@(first?.RunType == RunType.OffCycle ? "is-selected" : null)">
+                        <input type="radio" name="cr-type" value="@RunType.OffCycle" class="form-check-input" checked="@(first?.RunType == RunType.OffCycle)" />
                         <span><strong>@L["pr.off_cycle"]</strong><span>@L["pr.bonus_correction_or_arrears_outside_the_regular_payroll"]</span></span>
                     </label>
                     <label class="is-disabled" title="@L["pr.final_settlements_are_created_from_the_final_settlement"]">
@@ -137,14 +120,35 @@
                         <span><strong>@L["pr.final_settlement"]</strong><span>@L["pr.created_from_the_final_settlement_screen"]</span></span>
                     </label>
                 </div>
-                <div class="mt-3" data-cr-regular-exists hidden>
-                    <div class="pr-banner pr-banner--lock">@Html.Icon("alert", 18)<div><strong>@L["pr.a_regular_payroll_already_exists_for_this_calendar_and_p"]</strong> (<span data-cr-regular-code></span>). @L["pr.choose_off_cycle_for_a_second_payroll_or_cancel_the_exis"]</div></div>
+
+                @* the payrolls this will create: one per payroll calendar the company's employees are on *@
+                <section class="cr-plan mt-3" data-cr-plan aria-labelledby="cr-plan-title">
+                    <div class="cr-plan__head">
+                        <h3 class="pr-section-label mb-0" id="cr-plan-title">@L["pr.cr_payrolls_to_create"]</h3>
+                        <span class="cr-plan__summary" data-cr-plan-summary></span>
+                    </div>
+                    <p class="hrms-muted small mb-2">@L["pr.cr_plan_hint"]</p>
+                    <div class="cr-plan__list" data-cr-plan-list role="list"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+                    <div class="pr-banner pr-banner--info mt-2" data-cr-plan-empty hidden>@Html.Icon("info", 18)<div>@L["pr.cr_no_calendar_in_month"]</div></div>
+                    <div class="pr-banner pr-banner--lock mt-2" data-cr-unassigned hidden>@Html.Icon("alert", 18)<div data-cr-unassigned-text></div></div>
+                    <span class="field-validation-error" data-cr-error="plan" hidden>@L["pr.cr_choose_one"]</span>
+                </section>
+
+                <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <label class="form-label" for="cr-desc">@L["org.description"] <span class="req" aria-hidden="true" data-cr-desc-req hidden>*</span></label>
+                            <textarea class="form-control" id="cr-desc" rows="2" maxlength="500" data-cr-desc
+                                      placeholder="@L["pr.why_is_this_payroll_being_generated_e_g_q3_sales_commiss"]">@first?.Description</textarea>
+                            <span class="form-text" data-cr-desc-hint></span>
+                            <span class="field-validation-error" data-cr-error="desc" hidden>@L["pr.cr_enter_reason"]</span>
+                        </div>
                 </div>
             </div>
 
             @* ================================================= 2. employees *@
             <div data-step-pane="1" hidden>
                 <h2 class="pr-card-title">2. @steps[1]</h2>
+                <p class="hrms-muted small mb-2" data-cr-scope-note>@L["pr.cr_scope_applies_to_all"]</p>
                 <fieldset class="hrms-fieldset">
                     <legend>@L["pr.who_is_included"]</legend>
                     <div class="row g-3">
@@ -154,7 +158,7 @@
                                 <option value="">@L["pr.all_locations"]</option>
                                 @foreach (var x in Model.Locations)
                                 {
-                                    <option value="@x.Id" selected="@(draft?.ScopeWorkLocationId == x.Id)">@x.Text</option>
+                                    <option value="@x.Id" selected="@(first?.ScopeWorkLocationId == x.Id)">@x.Text</option>
                                 }
                             </select>
                         </div>
@@ -164,7 +168,7 @@
                                 <option value="">@L["pr.all_departments"]</option>
                                 @foreach (var x in Model.Departments)
                                 {
-                                    <option value="@x.Id" selected="@(draft?.ScopeDepartmentId == x.Id)">@x.Text</option>
+                                    <option value="@x.Id" selected="@(first?.ScopeDepartmentId == x.Id)">@x.Text</option>
                                 }
                             </select>
                         </div>
@@ -174,7 +178,7 @@
                                 <option value="">@L["pr.all_types"]</option>
                                 @foreach (var x in new[] { "Full-Time", "Part-Time", "Temporary", "Contract" })
                                 {
-                                    <option value="@x" selected="@(draft?.ScopeEmploymentType == x)">@L.Tr(x)</option>
+                                    <option value="@x" selected="@(first?.ScopeEmploymentType == x)">@L.Tr(x)</option>
                                 }
                             </select>
                         </div>
@@ -182,8 +186,8 @@
                             <label class="form-label" for="cr-nat">@L["emp.nationality"]</label>
                             <select class="form-select" id="cr-nat" data-cr-scope="ScopeNationality">
                                 <option value="">@L["pr.all"]</option>
-                                <option value="KUWAITI" selected="@(draft?.ScopeNationality == "KUWAITI")">@L["pr.kuwaiti"]</option>
-                                <option value="NON_KUWAITI" selected="@(draft?.ScopeNationality == "NON_KUWAITI")">@L["pr.non_kuwaiti"]</option>
+                                <option value="KUWAITI" selected="@(first?.ScopeNationality == "KUWAITI")">@L["pr.kuwaiti"]</option>
+                                <option value="NON_KUWAITI" selected="@(first?.ScopeNationality == "NON_KUWAITI")">@L["pr.non_kuwaiti"]</option>
                             </select>
                         </div>
                     </div>
@@ -205,11 +209,10 @@
             @* ==================================================== 4. create *@
             <div data-step-pane="3" hidden>
                 <div class="text-center py-3">
-                    <h2 class="pr-card-title">@L["pr.ready_to_create_the_payroll"]</h2>
+                    <h2 class="pr-card-title" data-cr-final-title>@L["pr.ready_to_create_the_payroll"]</h2>
                     <p class="hrms-muted mb-1">@L["pr.the_payroll_is_created_as_registered_review_it_in_the_pa"]</p>
-                    <div class="pr-runname-big" data-cr-final-name></div>
                 </div>
-                <div data-final-kpis></div>
+                <div class="cr-final" data-cr-final-list></div>
             </div>
         </div>
     </div>
@@ -217,20 +220,39 @@
     <div class="pr-actionbar">
         <div class="pr-actionbar__status"><span data-cr-status>@L["pr.nothing_is_saved_until_you_press_next"]</span></div>
         <div class="pr-actionbar__spacer"></div>
-        <button type="button" class="btn btn-outline-danger" data-cr-discard hidden>@Html.Icon("trash", 15)<span>@L["pr.discard_draft"]</span></button>
+        <button type="button" class="btn btn-outline-danger" data-cr-discard hidden>@Html.Icon("trash", 15)<span>@L["pr.cr_discard_drafts"]</span></button>
         <button type="button" class="btn btn-outline-secondary" data-step-back disabled>@Html.Icon("chevron-left", 15)<span>@L["layout.back"]</span></button>
         <button type="button" class="btn btn-primary" data-step-next>@L["emp.next"]@Html.Icon("chevron-right", 15)</button>
-        <button type="button" class="btn btn-primary" data-cr-finalize hidden>@Html.Icon("calculator", 15)<span>@L["pr.create_payroll_2"]</span></button>
+        <button type="button" class="btn btn-primary" data-cr-finalize hidden>@Html.Icon("calculator", 15)<span data-cr-finalize-text>@L["pr.create_payroll_2"]</span></button>
     </div>
 </div>
 
 <div hidden data-cr-text
      data-saved="@L["pr.draft_saved_0"]"
      data-calculating="@L["pr.calculating"]"
-     data-desc-optional="@L["pr.optional_this_is_the_first_payroll_of_the_month"]"
-     data-desc-required="@L["pr.required_the_month_already_has_payrolls_or_this_is_not_a"]"
-     data-no-calendar="@L["pr.no_payroll_calendar"]"
-     data-no-period="@L["pr.no_open_period"]"></div>
+     data-desc-optional="@L["pr.cr_desc_optional"]"
+     data-desc-required="@L["pr.cr_desc_required_offcycle"]"
+     data-employees="@L["pr.cr_n_employees"]"
+     data-one-employee="@L["pr.cr_1_employee"]"
+     data-incl-unassigned="@L["pr.cr_incl_unassigned"]"
+     data-ready="@L["pr.cr_ready"]"
+     data-exists="@L["pr.cr_regular_exists"]"
+     data-no-period="@L["pr.cr_no_open_period"]"
+     data-no-employees="@L["pr.cr_no_employees"]"
+     data-default="@L["emp.paycal_default"]"
+     data-summary="@L["pr.cr_summary"]"
+     data-unassigned-default="@L["pr.cr_unassigned_default"]"
+     data-unassigned-none="@L["pr.cr_unassigned_none"]"
+     data-on-inactive="@L["pr.cr_on_inactive"]"
+     data-not-ready="@L["pr.cr_calendars_not_ready"]"
+     data-create-n="@L["pr.cr_create_n_payrolls"]"
+     data-create-one="@L["pr.create_payroll_2"]"
+     data-final-title-n="@L["pr.cr_ready_n"]"
+     data-period="@L["pr.period"]"
+     data-switch-hint="@L["pr.cr_switch_hint"]"
+     data-creating="@L["pr.cr_creating_0_of_1"]"
+     data-created="@L["pr.cr_created_n"]"
+     data-assign-link="@Url.Action("Index", "Employees")"></div>
 
 @await Html.PartialAsync("_LineDialogs")
 @await Html.PartialAsync("_Modals")

@@ -39,6 +39,12 @@ public static class StoredProcedure
     /// <summary>1:1 child of the employee record - GET/UPSERT only, no paging or delete of its own.</summary>
     public const string EmployeeComplianceManage = "Kuwait.usp_EmployeeCompliance_Manage";
 
+    /// <summary>Employee Audit Report (db/60): ADD one transaction, LIST with filters.</summary>
+    public const string EmployeeAuditManage = "Employee.usp_EmployeeAudit_Manage";
+
+    /// <summary>Each employee's payroll calendar (db/60): GET / SET (logged) / COUNTS per calendar.</summary>
+    public const string EmployeePayrollCalendarManage = "Employee.usp_EmployeePayrollCalendar_Manage";
+
     /// <summary>1:many child list of the employee record, scoped by @EmployeeId - no company-wide paging.</summary>
     public const string EmployeeDependentManage = "Employee.usp_EmployeeDependent_Manage";
 

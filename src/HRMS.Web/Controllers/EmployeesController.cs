@@ -1,6 +1,7 @@
 using HRMS.Data.Infrastructure;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Common;
+using HRMS.Domain.Payroll;
 using HRMS.Domain.Workforce;
 using HRMS.Web.Models.Organization;
 using HRMS.Web.Models.Workforce;
@@ -28,6 +29,9 @@ public sealed class EmployeesController : Controller
     private readonly ILookupRepository _lookups;
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
+    private readonly IPayrollCalendarRepository _calendars;
+    private readonly IEmployeePayrollCalendarRepository _payrollCalendar;
+    private readonly IEmployeeAuditor _auditor;
     private readonly ILogger<EmployeesController> _logger;
 
     /// <summary>Dropdowns the Personal Info and Employment tabs need on the profile screen.</summary>
@@ -47,6 +51,9 @@ public sealed class EmployeesController : Controller
         ILookupRepository lookups,
         ICurrentUser currentUser,
         ICompanyFilter companyFilter,
+        IPayrollCalendarRepository calendars,
+        IEmployeePayrollCalendarRepository payrollCalendar,
+        IEmployeeAuditor auditor,
         ILogger<EmployeesController> logger)
     {
         _employees = employees;
@@ -57,6 +64,9 @@ public sealed class EmployeesController : Controller
         _lookups = lookups;
         _currentUser = currentUser;
         _companyFilter = companyFilter;
+        _calendars = calendars;
+        _payrollCalendar = payrollCalendar;
+        _auditor = auditor;
         _logger = logger;
     }
 
@@ -145,7 +155,9 @@ public sealed class EmployeesController : Controller
             IsNew = true,
             Wizard = true,
             ActiveTab = "personal",
-            Lookups = lookups
+            Lookups = lookups,
+            PayrollCalendars = await LoadPayrollCalendarsAsync(lookups, null),
+            CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar()
         });
     }
 
@@ -179,6 +191,9 @@ public sealed class EmployeesController : Controller
         var compliance = await _compliance.GetAsync(id, Ct);
         var lookups = await LoadProfileLookupsAsync(includeInactive: true);
 
+        var payrollCalendar = await TryGetPayrollCalendarAsync(id);
+        employee.PayrollCalendarId = payrollCalendar?.PayrollCalendarId;
+
         return View(ViewsRoot + "Profile.cshtml", new EmployeeProfileViewModel
         {
             Employee = employee,
@@ -186,7 +201,10 @@ public sealed class EmployeesController : Controller
             IsNew = false,
             Wizard = wizard,
             ActiveTab = string.IsNullOrWhiteSpace(tab) ? "personal" : tab,
-            Lookups = lookups
+            Lookups = lookups,
+            PayrollCalendar = payrollCalendar,
+            PayrollCalendars = await LoadPayrollCalendarsAsync(lookups, payrollCalendar?.PayrollCalendarId),
+            CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar()
         });
     }
 
@@ -214,6 +232,48 @@ public sealed class EmployeesController : Controller
         return lookups;
     }
 
+    /// <summary>
+    /// The payroll calendars of the companies on the form (active ones, plus the employee's
+    /// own even when it has since been deactivated). The page shows the selected company's only.
+    /// </summary>
+    private async Task<IReadOnlyList<PayrollCalendar>> LoadPayrollCalendarsAsync(
+        IReadOnlyDictionary<string, IReadOnlyList<LookupItem>> lookups, int? currentCalendarId)
+    {
+        var companies = lookups.TryGetValue(LookupType.Company, out var list) ? list.Select(c => c.Id).ToHashSet() : new HashSet<int>();
+        try
+        {
+            var page = await _calendars.ListAsync(new GridRequest
+            {
+                CompanyId = _currentUser.ActiveCompanyId,
+                PageSize = 200,
+                SortColumn = "CalendarName"
+            }, Ct);
+            return page.Items
+                .Where(c => companies.Contains(c.CompanyId) && (c.IsActive || c.PayrollCalendarId == currentCalendarId))
+                .OrderByDescending(c => c.IsDefault).ThenBy(c => c.CalendarName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Payroll calendars could not be loaded for the employee form.");
+            return Array.Empty<PayrollCalendar>();
+        }
+    }
+
+    /// <summary>The employee's payroll calendar; null when db/60 has not been run yet.</summary>
+    private async Task<EmployeePayrollCalendar?> TryGetPayrollCalendarAsync(long employeeId)
+    {
+        try
+        {
+            return await _payrollCalendar.GetAsync(employeeId, Ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "The payroll calendar of employee {EmployeeId} could not be read (run db/60).", employeeId);
+            return null;
+        }
+    }
+
     // =======================================================================
     // Write actions
     // =======================================================================
@@ -238,17 +298,105 @@ public sealed class EmployeesController : Controller
             return NotYours();
         }
 
+        // ---- payroll calendar (db/60): required; once assigned only an administrator changes it
+        var isNew = model.EmployeeId <= 0;
+        var before = isNew ? null : await _employees.GetByIdAsync(model.EmployeeId, Ct);
+        var current = isNew ? null : await TryGetPayrollCalendarAsync(model.EmployeeId);
+        var reason = Request.HasFormContentType ? Request.Form["PayrollCalendarReason"].ToString().Trim() : string.Empty;
+        var (calendarId, calendarError, errorField) = await CheckPayrollCalendarAsync(model, current?.PayrollCalendarId, reason);
+        if (calendarError is not null)
+        {
+            return Json(ActionResponse.Invalid(new Dictionary<string, string[]> { [errorField] = [calendarError] }));
+        }
+
         var result = await _employees.SaveAsync(model, _currentUser.UserId, Ct);
 
         if (!result.Success)
         {
             _logger.LogInformation(
                 "Employee save rejected by the database with {Code}.", result.ErrorCode);
+            return Json(ActionResponse.Failed(result.Message, result.ErrorCode));
         }
 
-        return Json(result.Success
-            ? ActionResponse.Ok(result.Id, result.Message)
-            : ActionResponse.Failed(result.Message, result.ErrorCode));
+        var employeeId = isNew ? result.Id : model.EmployeeId;
+        var message = result.Message;
+
+        // a new employee: "created" is the first row of their audit trail
+        if (isNew && await _employees.GetByIdAsync(employeeId, Ct) is { } created)
+        {
+            await _auditor.CreatedAsync(created);
+        }
+
+        // the calendar is set after the employee row exists; the procedure logs the assignment / change
+        if (calendarId is { } cal && cal != current?.PayrollCalendarId)
+        {
+            SaveResult set;
+            try
+            {
+                set = await _payrollCalendar.SetAsync(employeeId, cal, string.IsNullOrEmpty(reason) ? null : reason, _currentUser.UserId, Ct);
+            }
+            catch (Exception ex)
+            {
+                // db/60 not run yet: the employee is saved, the calendar cannot be
+                _logger.LogWarning(ex, "Payroll calendar of employee {EmployeeId} could not be saved (run db/60).", employeeId);
+                set = SaveResult.Fail("The payroll calendar could not be saved.", "NOT_READY");
+            }
+            if (!set.Success)
+            {
+                _logger.LogWarning("Payroll calendar of employee {EmployeeId} not saved: {Code}.", employeeId, set.ErrorCode);
+                // the employee itself is saved (a new one must keep its id), so this is reported, not failed
+                message = $"{message} {set.Message}";
+            }
+        }
+
+        // audit: the record as the database now holds it, against the one before the save
+        if (before is not null && await _employees.GetByIdAsync(employeeId, Ct) is { } after)
+        {
+            await _auditor.UpdatedAsync(before, after);
+        }
+
+        return Json(ActionResponse.Ok(employeeId, message));
+    }
+
+    /// <summary>
+    /// The calendar to set (null = leave as is) or an error for the form field it belongs to.
+    /// A disabled (locked) field posts nothing, which keeps the assigned calendar.
+    /// </summary>
+    private async Task<(int? CalendarId, string? Error, string Field)> CheckPayrollCalendarAsync(Employee model, int? currentId, string reason)
+    {
+        const string field = nameof(Employee.PayrollCalendarId);
+        var target = model.PayrollCalendarId ?? currentId;
+        if (target is null)
+        {
+            // required once the company has a payroll calendar (a company not on payroll yet has none)
+            var any = await _calendars.ListAsync(new GridRequest { CompanyId = model.CompanyId, IsActive = true, PageSize = 1 }, Ct);
+            return any.TotalCount > 0 || any.Items.Count > 0
+                ? (null, "Choose the payroll calendar the employee is paid by.", field)
+                : (null, null, field);
+        }
+
+        var calendar = await _calendars.GetByIdAsync(target.Value, Ct);
+        var changing = currentId is not null && target != currentId;
+
+        if (calendar is null || calendar.CompanyId != model.CompanyId)
+        {
+            return (null, model.PayrollCalendarId is null && currentId is not null
+                ? "The employee's payroll calendar belongs to another company. Only an administrator can change it."
+                : "Choose a payroll calendar of the employee's company.", field);
+        }
+        if (changing && !_currentUser.CanChangePayrollCalendar())
+        {
+            return (null, "Only an administrator can change the payroll calendar once it is assigned.", field);
+        }
+        if (target != currentId && !calendar.IsActive)
+        {
+            return (null, "This payroll calendar is inactive.", field);
+        }
+        if (changing && string.IsNullOrWhiteSpace(reason))
+        {
+            return (null, "Enter the reason for changing the payroll calendar.", "PayrollCalendarReason");
+        }
+        return (target, null, field);
     }
 
     /// <summary>Saves the Kuwait Compliance tab - a separate record, saved independently.</summary>
@@ -475,7 +623,9 @@ public sealed class EmployeesController : Controller
         if (!Access.Delete) return NoRight();
         if (!await OwnsEmployeeAsync(id)) return NotYours();
 
+        var before = await _employees.GetByIdAsync(id, Ct);
         var result = await _employees.DeleteAsync(id, _currentUser.UserId, Ct);
+        if (result.Success && before is not null) await _auditor.DeletedAsync(before);
 
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)
@@ -489,6 +639,7 @@ public sealed class EmployeesController : Controller
         if (!await OwnsEmployeeAsync(id)) return NotYours();
 
         var result = await _employees.ToggleActiveAsync(id, _currentUser.UserId, Ct);
+        if (result.Success && await _employees.GetByIdAsync(id, Ct) is { } now) await _auditor.ActiveChangedAsync(id, now.IsActive);
 
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)

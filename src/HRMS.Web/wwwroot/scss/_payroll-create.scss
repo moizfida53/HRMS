@@ -1,0 +1,190 @@
+// ============================================================================
+// Create Payroll - one payroll per payroll calendar (db/60)
+// ----------------------------------------------------------------------------
+// Step 1 lists the calendars the company's employees are on ("payrolls to
+// create"): pick / period / payroll number / state, one row each. Steps 2-4
+// work on one draft at a time, chosen in the switcher above the steps.
+// Layout follows the content width (container "content").
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ------------------------------------------------------------- the plan ----
+.cr-plan {
+  padding: space("4");
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+  background: $surface-2;
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: space("2");
+    margin-bottom: space("1");
+  }
+
+  &__summary {
+    color: $blue-700;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: space("2");
+  }
+}
+
+// pick | calendar | period | payroll number | state
+.cr-cal {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1.6fr) auto minmax(7rem, auto);
+  align-items: center;
+  gap: space("2") space("4");
+  padding: space("3") space("4");
+  border: 1px solid $line-200;
+  border-inline-start: 4px solid $blue-600;
+  border-radius: $radius;
+  background: $white;
+  @include motion(opacity, border-color, box-shadow);
+
+  &:hover { box-shadow: $shadow-sm; }
+
+  &.is-off { border-inline-start-color: $line-300; }
+  &.is-off .cr-cal__info,
+  &.is-off .cr-cal__period { opacity: .65; }
+  &.is-blocked { background: $surface; }
+
+  &__pick .form-check-input { width: 1.15rem; height: 1.15rem; margin: 0; cursor: pointer; }
+
+  &__info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 space("2");
+    min-width: 0;
+
+    strong { color: $ink-900; @include truncate; max-width: 100%; }
+  }
+
+  &__default {
+    padding: 0 space("2");
+    border-radius: $radius-pill;
+    background: $blue-050;
+    color: $blue-700;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+  }
+
+  &__meta {
+    flex: 1 0 100%;
+    color: $ink-500;
+    font-size: $fs-sm;
+  }
+
+  &__period .form-select { min-width: 0; }
+
+  &__code:empty,
+  &__code .hrms-code-chip:empty { display: none; }
+
+  &__state { justify-self: end; }
+}
+
+// narrower content: the period and state move under the calendar
+@include cq-down("md") {
+  .cr-cal {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "pick info"
+      ".    code"
+      ".    period"
+      ".    state";
+
+    &__info strong { white-space: normal; }
+
+    &__pick   { grid-area: pick; }
+    &__info   { grid-area: info; }
+    &__code   { grid-area: code; justify-self: start; }
+    &__period { grid-area: period; }
+    &__state  { grid-area: state; justify-self: start; }
+  }
+}
+
+// ---------------------------------------------------------- the switch ----
+.cr-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: space("2");
+  padding: space("3") space("4") 0;
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 10rem;
+    padding: space("2") space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $white;
+    text-align: start;
+    cursor: pointer;
+    @include motion(border-color, background-color, box-shadow);
+    @include focus-ring;
+
+    &:hover { border-color: $blue-200; }
+
+    &.is-active {
+      border-color: $blue-600;
+      background: $blue-050;
+      box-shadow: inset 0 -3px 0 $blue-600;
+    }
+  }
+
+  &__name { color: $ink-900; font-weight: $fw-semibold; font-size: $fs-base; }
+  &__meta { color: $ink-500; font-size: $fs-xs; font-variant-numeric: tabular-nums; }
+
+  &__hint {
+    align-self: center;
+    color: $ink-500;
+    font-size: $fs-xs;
+  }
+
+  @include cq-down("sm") {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+
+    &__item { flex: 0 0 auto; }
+    &__hint { display: none; }
+  }
+}
+
+// ----------------------------------------------------------- step four ----
+.cr-final {
+  display: flex;
+  flex-direction: column;
+  gap: space("4");
+
+  &__item {
+    padding: space("4");
+    border: 1px solid $line-200;
+    border-radius: $radius-md;
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: space("2") space("3");
+    margin-bottom: space("3");
+
+    .pr-runname-big { margin: 0; }
+  }
+
+  &__meta { color: $ink-500; font-size: $fs-sm; }
+  &__state { margin-inline-start: auto; }
+}

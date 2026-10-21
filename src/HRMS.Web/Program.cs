@@ -200,6 +200,7 @@ builder.Services.AddHostedService<PayslipEmailSender>();
 // Figures next to Payroll Processing's sub-sections in the sidebar (cached a few seconds).
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPayrollNavCounts, PayrollNavCounts>();
+builder.Services.AddScoped<IEmployeeAuditor, EmployeeAuditor>();          // employee Audit Report (db/60)
 
 builder.Services.AddResponseCompression();
 

@@ -265,6 +265,56 @@
 
     /* ==================================================== profile forms === */
 
+    /* ============================================= payroll calendar (db/60) === */
+    // The list holds every company's calendars; only the selected company's are
+    // offered. Changing an assigned calendar asks for a reason (Audit Report).
+    (function initPayrollCalendar() {
+        var root = document.querySelector("[data-paycal]");
+        var select = root && root.querySelector("[data-paycal-select]");
+        var company = document.getElementById("f-CompanyId");
+        if (!select || !company) { return; }
+
+        var original = root.getAttribute("data-original") || "";
+        var locked = root.getAttribute("data-locked") === "1";
+        var none = root.querySelector("[data-paycal-none]");
+        var reasonBox = document.querySelector("[data-paycal-reason]");
+        var reasonInput = reasonBox && reasonBox.querySelector("input");
+
+        function filter(pickDefault) {
+            var co = company.value;
+            var firstOfCompany = null, selectedVisible = false;
+            Array.prototype.forEach.call(select.options, function (o) {
+                if (!o.value) { return; }
+                var mine = o.getAttribute("data-company") === co;
+                o.hidden = !mine;
+                o.disabled = !mine;
+                if (mine && !firstOfCompany) { firstOfCompany = o; }   // default calendar first (server order)
+                if (mine && o.selected) { selectedVisible = true; }
+            });
+            if (!locked && !selectedVisible) {
+                select.value = pickDefault && firstOfCompany ? firstOfCompany.value : "";
+            }
+            // required once the company has a calendar (a company not on payroll yet has none)
+            if (!locked) { select.required = !!firstOfCompany; }
+            if (none) { none.hidden = !co || !!firstOfCompany; }
+            syncReason();
+        }
+
+        function syncReason() {
+            if (!reasonBox) { return; }
+            var changed = !!original && select.value !== original;
+            reasonBox.hidden = !changed;
+            if (reasonInput) {
+                reasonInput.required = changed;
+                if (!changed) { reasonInput.value = ""; }
+            }
+        }
+
+        company.addEventListener("change", function () { filter(true); });
+        select.addEventListener("change", syncReason);
+        filter(!original);
+    })();
+
     (function initProfile() {
         var employeeForm = document.getElementById("employee-form");
         var complianceForm = document.getElementById("compliance-form");

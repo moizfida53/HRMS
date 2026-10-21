@@ -91,8 +91,11 @@ public static class AccessCatalog
                 new("WF.PERSONAL", "sec.fn_personal", "sec.fn_personal_hint", No, C("EMPLOYEE_EDIT"), No),
                 new("WF.COMPLIANCE", "sec.fn_compliance", null, C("EMPLOYEE_COMPLIANCE_VIEW"), C("EMPLOYEE_COMPLIANCE_EDIT"), No),
                 new("WF.DEPENDENTS", "sec.fn_dependents", null, C("EMPLOYEE_DEPENDENT_VIEW"), C("EMPLOYEE_DEPENDENT_EDIT"), C("EMPLOYEE_DEPENDENT_DELETE")),
-                new("WF.DOCUMENTS", "sec.fn_documents", "sec.fn_documents_hint", C("EMPLOYEE_DOCUMENT_VIEW"), C("EMPLOYEE_DOCUMENT_UPLOAD"), C("EMPLOYEE_DOCUMENT_DELETE"))
-            ])
+                new("WF.DOCUMENTS", "sec.fn_documents", "sec.fn_documents_hint", C("EMPLOYEE_DOCUMENT_VIEW"), C("EMPLOYEE_DOCUMENT_UPLOAD"), C("EMPLOYEE_DOCUMENT_DELETE")),
+                // db/60: the first assignment comes with Create / Edit; changing it afterwards is this right
+                new("WF.PAYROLL_CALENDAR", "sec.fn_payroll_calendar", "sec.fn_payroll_calendar_hint", No, C("EMPLOYEE_PAYROLL_CALENDAR_CHANGE"), No)
+            ]),
+            new("WF.AUDIT", "sec.pg_audit_report", "sec.pg_audit_report_hint", C("AUDIT_REPORT_VIEW"), No, No)
         ]),
         new("ORG", "sec.mod_organization", "building",
         [
@@ -207,6 +210,7 @@ public static class AccessCatalog
     public static readonly IReadOnlyDictionary<string, string[]> NavCodes = new Dictionary<string, string[]>(StringComparer.Ordinal)
     {
         ["employees"] = ["EMPLOYEE_VIEW"],
+        ["audit"] = ["AUDIT_REPORT_VIEW"],
         ["organization"] = ["ORGANIZATION_VIEW"],
         ["payroll:dashboard"] = ["PAYROLL_DASHBOARD_VIEW"],
         ["payroll:processing"] = ["PAYROLL_RUN_VIEW", "PAYROLL_CALENDAR_VIEW"],

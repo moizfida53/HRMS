@@ -18,7 +18,9 @@
      Payroll.usp_PayrollRunIssue_Manage    validation results: LIST / ACK
 
    Calculation rules (one payroll month at a time)
-     * Who: active employees of the company (Employee.IsDeleted = 0) hired
+     * Who: active employees of the company (Employee.IsDeleted = 0) paid by
+       the payroll's calendar (Employee.PayrollCalendarId, db/60; no calendar
+       = the company's default calendar), hired
        on or before the period end and not terminated before its start,
        narrowed by the run's scope (department, location, employment type,
        nationality). Excluded employees stay listed with a reason, unpaid.
@@ -46,6 +48,12 @@
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;
+GO
+
+/* each employee's payroll calendar (db/60) - added here as well, so this
+   script compiles on a database where db/60 has not run yet */
+IF COL_LENGTH('Employee.Employees', 'PayrollCalendarId') IS NULL
+    ALTER TABLE [Employee].[Employees] ADD [PayrollCalendarId] INT NULL;
 GO
 
 /* =====================================================================
@@ -84,12 +92,17 @@ BEGIN
     /* ---- 1. who is in the run (whole-run calculation only) ----------- */
     IF @EmployeeIds IS NULL
     BEGIN
+        /* a payroll pays the employees of ITS calendar (db/60); an employee with no
+           calendar yet is paid by the company's default calendar */
+        DECLARE @DefaultCal BIT = CASE WHEN EXISTS (SELECT 1 FROM [Payroll].[PayrollCalendars]
+                                                    WHERE PayrollCalendarId = @CalendarId AND IsDefault = 1) THEN 1 ELSE 0 END;
         DECLARE @Eligible TABLE (EmployeeId BIGINT PRIMARY KEY);
         INSERT INTO @Eligible (EmployeeId)
         SELECT e.EmployeeId
         FROM   [Employee].[Employees] AS e
         LEFT JOIN [Core].[Countries]  AS n ON n.CountryId = e.NationalityCountryId
         WHERE  e.CompanyId = @CompanyId AND e.Deleted = 0 AND e.IsDeleted = 0
+          AND  (e.PayrollCalendarId = @CalendarId OR (e.PayrollCalendarId IS NULL AND @DefaultCal = 1))
           AND  (e.HireDate IS NULL OR e.HireDate <= @End)
           AND  (e.TerminationDate IS NULL OR e.TerminationDate >= @Start)
           AND  NOT (e.EmploymentStatus IN (N'Terminated', N'Resigned') AND e.TerminationDate IS NULL)
@@ -863,11 +876,16 @@ BEGIN
                 RETURN;
             END;
 
-            IF @rDesc IS NULL AND (@rType <> 'REGULAR' OR @fSeq > 1)
+            /* each calendar has its own regular payroll (db/60): a reason is needed for an
+               off-cycle payroll, or when the period already has a live payroll */
+            IF @rDesc IS NULL AND (@rType <> 'REGULAR'
+                                   OR EXISTS (SELECT 1 FROM [Payroll].[PayrollRuns]
+                                              WHERE PayrollPeriodId = @rPeriod AND PayrollRunId <> @Id AND Deleted = 0
+                                                AND Stage NOT IN ('DRAFT', 'CANCELLED')))
             BEGIN
                 ROLLBACK TRANSACTION;
                 SELECT @ResultCode = 'DESCRIPTION_REQUIRED',
-                       @ResultMessage = N'Enter the reason for this payroll - it is not the first payroll for this company and month.';
+                       @ResultMessage = N'Enter the reason for this payroll - it is not the first payroll for this period.';
                 RETURN;
             END;
 

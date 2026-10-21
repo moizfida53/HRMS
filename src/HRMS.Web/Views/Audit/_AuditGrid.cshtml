@@ -1,0 +1,101 @@
+@using HRMS.Web.Models.Audit
+@using HRMS.Domain.Workforce
+@using HRMS.Web.Controllers
+@model AuditGridModel
+@{
+    var pg = Model.Page;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string Name(EmployeeAuditEntry r) => L.IsArabic && !string.IsNullOrWhiteSpace(r.ArabicName) ? r.ArabicName! : r.EmployeeName ?? string.Empty;
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["aud.1_transaction"] : L["aud.n_transactions", pg.TotalCount.ToString("N0", inv)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "history", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["aud.no_match"] : L["aud.no_transactions"])</p>
+        <p class="hrms-empty__text">@L["aud.empty_hint"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table aud-table">
+            <caption class="hrms-sr-only">@L["layout.audit_report"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["aud.date_time"]</th>
+                    <th scope="col">@L["pr.employee"]</th>
+                    <th scope="col">@L["aud.transaction_type"]</th>
+                    <th scope="col">@L["aud.change"]</th>
+                    <th scope="col" class="col-p2">@L["aud.changed_by"]</th>
+                    @if (Model.ManyCompanies)
+                    {
+                        <th scope="col" class="col-p3">@L["common.company"]</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in pg.Items)
+                {
+                    var local = AuditController.Local(r.ActionDate);
+                    <tr>
+                        <td data-label="@L["aud.date_time"]" class="hrms-nowrap aud-when">
+                            <div class="aud-cell">
+                                <span>@L.Date(local)</span>
+                                <span class="pr-emp-sub">@local.ToString("HH:mm", inv)</span>
+                            </div>
+                        </td>
+                        <td data-label="@L["pr.employee"]" class="hrms-nowrap">
+                            <div class="aud-cell">
+                            <span><a class="aud-emp" href="@Url.Action("Profile", "Employees", new { id = r.EmployeeId })">@Name(r)</a>
+                            <button type="button" class="aud-only" data-aud-only="@r.EmployeeId" data-aud-only-name="@Name(r)"
+                                    title="@L["aud.only_this_employee"]" aria-label="@L["aud.only_this_employee"]">@Html.Icon("filter", 12)</button></span>
+                            <span class="pr-emp-sub">@r.EmployeeNo</span>
+                            </div>
+                        </td>
+                        <td data-label="@L["aud.transaction_type"]">
+                            <div class="aud-cell">
+                            <span class="hrms-badge hrms-badge--@AuditType.Badge(r.TransactionType)"><span class="hrms-badge__dot"></span>@L.Tr(AuditType.Label(r.TransactionType))</span>
+                            @if (!string.IsNullOrWhiteSpace(r.Reference))
+                            {
+                                <span class="pr-emp-sub">@r.Reference</span>
+                            }
+                            </div>
+                        </td>
+                        <td data-label="@L["aud.change"]" class="aud-change">
+                            <div class="aud-cell">
+                            @if (!string.IsNullOrWhiteSpace(r.FieldName))
+                            {
+                                <span class="aud-change__field">@L.Tr(r.FieldName)</span>
+                            }
+                            @if (r.OldValue is not null || r.NewValue is not null)
+                            {
+                                <span class="aud-change__values">
+                                    <span class="aud-old">@(r.OldValue ?? "—")</span>
+                                    <span class="aud-arrow" aria-label="@L["aud.changed_to"]">@Html.Icon("chevron-right", 12)</span>
+                                    <span class="aud-new">@(r.NewValue ?? "—")</span>
+                                </span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(r.Remarks))
+                            {
+                                <span class="aud-change__remarks">@L.Tr(r.Remarks)</span>
+                            }
+                            </div>
+                        </td>
+                        <td data-label="@L["aud.changed_by"]" class="col-p2 hrms-nowrap">@L.Tr(r.ActionByName)</td>
+                        @if (Model.ManyCompanies)
+                        {
+                            <td data-label="@L["common.company"]" class="col-p3">@r.CompanyName</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

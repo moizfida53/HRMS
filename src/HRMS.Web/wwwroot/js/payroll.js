@@ -824,117 +824,278 @@
      * Create Payroll - four-step wizard over a server-side DRAFT
      * ===================================================================== */
     if (PAGE === "create") {
+        /* Create Payroll: company + month. Each employee is paid by their own payroll
+           calendar (db/60), so one draft payroll is made per calendar in use; steps 2-4
+           work on one draft at a time (the switcher above the steps). */
         var u = function (name) { return page.getAttribute("data-urls-" + name); };
         var txt = $("[data-cr-text]");
+        var T = function (name) { return txt.getAttribute("data-" + name) || ""; };
+        var fmt = function (s) { var a = arguments; return s.replace(/\{(\d+)\}/g, function (m, i) { return a[+i + 1] !== undefined ? a[+i + 1] : m; }); };
         var el = {
-            company: $("[data-cr-company]"), calendar: $("[data-cr-calendar]"), period: $("[data-cr-period]"),
-            name: $("[data-cr-name]"), nameHint: $("[data-cr-name-hint]"), desc: $("[data-cr-desc]"),
-            descReq: $("[data-cr-desc-req]"), descHint: $("[data-cr-desc-hint]"), regular: $("[data-cr-regular-exists]"),
-            regularCode: $("[data-cr-regular-code]"), status: $("[data-cr-status]"),
-            next: $("[data-step-next]"), back: $("[data-step-back]"), finalize: $("[data-cr-finalize]"), discard: $("[data-cr-discard]")
+            company: $("[data-cr-company]"), month: $("[data-cr-month]"), desc: $("[data-cr-desc]"),
+            descReq: $("[data-cr-desc-req]"), descHint: $("[data-cr-desc-hint]"), status: $("[data-cr-status]"),
+            list: $("[data-cr-plan-list]"), summary: $("[data-cr-plan-summary]"), empty: $("[data-cr-plan-empty]"),
+            unassigned: $("[data-cr-unassigned]"), unassignedText: $("[data-cr-unassigned-text]"), sw: $("[data-cr-switch]"),
+            next: $("[data-step-next]"), back: $("[data-step-back]"), finalize: $("[data-cr-finalize]"),
+            finalizeText: $("[data-cr-finalize-text]"), discard: $("[data-cr-discard]"), finalList: $("[data-cr-final-list]")
         };
-        var st = { step: 0, runId: page.getAttribute("data-run") || "", next: null };
-        var runId = function () { return st.runId; };
+        var resumeList = [];
+        try { resumeList = JSON.parse(page.getAttribute("data-resume") || "[]"); } catch (e) { resumeList = []; }
+        var st = {
+            step: 0, plan: null, current: 0,
+            // the drafts made so far: { calendarId, periodId, runId, name, period, employees, code }
+            drafts: resumeList.map(function (r) { return { calendarId: r.calendarId, periodId: r.periodId, runId: String(r.runId) }; })
+        };
+        var runId = function () { var d = st.drafts[st.current]; return d ? String(d.runId) : ""; };
 
         var type = function () { var r = $('[data-cr-type] input:checked'); return r ? r.value : "REGULAR"; };
         var showError = function (key, on) { var e = $('[data-cr-error="' + key + '"]'); if (e) { e.hidden = !on; } };
-
-        var setOptions = function (select, list, selected, empty) {
-            select.innerHTML = (empty ? '<option value="">' + HRMS.escape(empty) + "</option>" : "") + list.map(function (x) {
-                return '<option value="' + x.id + '"' + (String(x.id) === String(selected) ? " selected" : "") + ">" + HRMS.escape(x.text) + "</option>";
-            }).join("");
-        };
-
-        var loadPeriodsFor = function () {
-            var cal = el.calendar.value;
-            showError("calendar", !cal);
-            if (!cal) { el.period.innerHTML = ""; return refreshName(); }
-            return HRMS.getJson(withQs(u("periods"), { calendarId: cal })).then(function (list) {
-                var want = el.period.getAttribute("data-selected");
-                // default: the first open period
-                if (!want) {
-                    // the period of today, else the first one still open
-                    var current = list.filter(function (p) { return p.current; })[0];
-                    var firstOpen = list.filter(function (p) { return p.status !== "APPROVED"; })[0];
-                    want = current ? current.id : (firstOpen ? firstOpen.id : (list[0] ? list[0].id : ""));
-                }
-                el.period.innerHTML = list.map(function (p) {
-                    return '<option value="' + p.id + '"' + (String(p.id) === String(want) ? " selected" : "") + ">" +
-                        HRMS.escape(p.text + " · " + p.dates + " · " + p.statusText) + "</option>";
-                }).join("");
-                el.period.removeAttribute("data-selected");
-                showError("period", list.length === 0);
-                return refreshName();
-            });
-        };
-
-        var descRequired = function () { return type() !== "REGULAR" || (st.next && st.next.seq > 1); };
-        var refreshName = function () {
-            var period = el.period.value;
-            if (!period) { el.name.value = ""; st.next = null; syncDesc(); return Promise.resolve(); }
-            return HRMS.getJson(withQs(u("next"), { periodId: period })).then(function (n) {
-                st.next = n.ok ? n : null;
-                el.name.value = n.ok ? n.code : "";
-                el.nameHint.textContent = n.ok ? n.hint : "";
-                var exists = n.ok && n.regular && type() === "REGULAR";
-                el.regular.hidden = !exists;
-                if (exists) { el.regularCode.textContent = n.regular; }
-                syncDesc();
-            });
-        };
+        var descRequired = function () { return type() !== "REGULAR"; };
         var syncDesc = function () {
             var req = descRequired();
             el.descReq.hidden = !req;
-            el.descHint.textContent = txt.getAttribute(req ? "data-desc-required" : "data-desc-optional");
+            el.descHint.textContent = T(req ? "desc-required" : "desc-optional");
             if (!req) { showError("desc", false); el.desc.classList.remove("is-invalid"); }
         };
 
-        el.company.addEventListener("change", function () {
-            HRMS.getJson(withQs(u("calendars"), { companyId: el.company.value })).then(function (data) {
-                var def = data.calendars.filter(function (c) { return c.isDefault; })[0] || data.calendars[0];
-                setOptions(el.calendar, data.calendars, def ? def.id : "");
-                setOptions($('[data-cr-scope="ScopeDepartmentId"]'), data.departments, "", $('[data-cr-scope="ScopeDepartmentId"] option[value=""]').textContent);
-                setOptions($('[data-cr-scope="ScopeWorkLocationId"]'), data.locations, "", $('[data-cr-scope="ScopeWorkLocationId"] option[value=""]').textContent);
-                loadPeriodsFor();
+        /* ---------------------------------------------------------- the plan */
+        var rows = function () { return $all("[data-cr-cal]", el.list); };
+        var rowOf = function (calendarId) { return $('[data-cr-cal="' + calendarId + '"]', el.list); };
+        var calOf = function (id) { return (st.plan ? st.plan.calendars : []).filter(function (c) { return String(c.id) === String(id); })[0]; };
+
+        // which rows can be chosen, and the payroll numbers they will get (in order)
+        var syncPlan = function () {
+            var chosen = 0, employees = 0;
+            var seq = st.plan ? st.plan.nextSeq : 1;
+            var prefix = st.plan && st.plan.nextCode ? st.plan.nextCode.replace(/\d+$/, "") : "";
+            rows().forEach(function (row) {
+                var cal = calOf(row.getAttribute("data-cr-cal"));
+                var on = $("[data-cr-cal-on]", row);
+                var period = $("[data-cr-cal-period]", row);
+                var stateEl = $("[data-cr-cal-state]", row);
+                var codeEl = $("[data-cr-cal-code]", row);
+                var exists = row.getAttribute("data-regular") || "";
+                var blocked = !cal || cal.employees === 0 || !period.value || (exists && type() === "REGULAR");
+                on.disabled = blocked;
+                if (blocked) { on.checked = false; }
+                row.classList.toggle("is-off", !on.checked);
+                row.classList.toggle("is-blocked", blocked);
+                var badge = function (cls, text) { return '<span class="hrms-badge hrms-badge--' + cls + '"><span class="hrms-badge__dot"></span>' + HRMS.escape(text) + "</span>"; };
+                stateEl.innerHTML = !cal || cal.employees === 0 ? badge("muted", T("no-employees"))
+                    : !period.value ? badge("warning", T("no-period"))
+                    : exists && type() === "REGULAR" ? badge("info", fmt(T("exists"), exists))
+                    : on.checked ? badge("success", T("ready")) : "";
+                if (on.checked) {
+                    codeEl.textContent = prefix ? prefix + (seq < 10 ? "0" + seq : String(seq)) : "";
+                    seq++; chosen++; employees += cal.employees;
+                } else {
+                    codeEl.textContent = "";
+                }
             });
+            el.summary.textContent = chosen ? fmt(T("summary"), chosen, employees) : "";
+            showError("plan", false);
+            syncDesc();
+        };
+
+        var renderPlan = function (plan) {
+            st.plan = plan;
+            // months
+            var want = el.month.value || page.getAttribute("data-month") || plan.month;
+            el.month.innerHTML = plan.months.map(function (m) {
+                return '<option value="' + m.value + '"' + (m.value === (plan.month || want) ? " selected" : "") + ">" + HRMS.escape(m.text) + "</option>";
+            }).join("");
+            showError("month", plan.months.length === 0);
+
+            // one row per calendar: the ones that pay someone first
+            var resumed = {};
+            st.drafts.forEach(function (d) { resumed[String(d.calendarId)] = d; });
+            el.list.innerHTML = plan.calendars.map(function (c) {
+                var r = resumed[String(c.id)];
+                var periodId = r && r.periodId ? r.periodId : c.periodId;
+                var meta = [c.frequency, c.employees === 1 ? T("one-employee") : fmt(T("employees"), c.employees)];
+                if (c.unassigned > 0) { meta.push(fmt(T("incl-unassigned"), c.unassigned)); }
+                var checked = c.employees > 0 && c.periodId && (resumeList.length ? !!r : !(c.regular && type() === "REGULAR"));
+                return '<div class="cr-cal" role="listitem" data-cr-cal="' + c.id + '" data-regular="' + HRMS.escape(c.regular || "") + '">' +
+                    '<label class="cr-cal__pick"><input type="checkbox" class="form-check-input" data-cr-cal-on' + (checked ? " checked" : "") +
+                        ' aria-label="' + HRMS.escape(c.name) + '" /></label>' +
+                    '<div class="cr-cal__info"><strong>' + HRMS.escape(c.name) + "</strong>" +
+                        (c.isDefault ? ' <span class="cr-cal__default">' + HRMS.escape(T("default")) + "</span>" : "") +
+                        '<span class="cr-cal__meta">' + HRMS.escape(meta.join(" · ")) + "</span></div>" +
+                    '<div class="cr-cal__period"><select class="form-select form-select-sm" data-cr-cal-period aria-label="' + HRMS.escape(T("period")) + '"' +
+                        (c.periods.length ? "" : " disabled") + ">" +
+                        c.periods.map(function (p) {
+                            return '<option value="' + p.id + '"' + (String(p.id) === String(periodId) ? " selected" : "") + ">" +
+                                HRMS.escape(p.text + " · " + p.dates + " · " + p.statusText) + "</option>";
+                        }).join("") + "</select></div>" +
+                    '<div class="cr-cal__code"><span class="hrms-code-chip" data-cr-cal-code></span></div>' +
+                    '<div class="cr-cal__state" data-cr-cal-state></div>' +
+                "</div>";
+            }).join("");
+            el.empty.hidden = plan.calendars.some(function (c) { return c.employees > 0 && c.periodId; });
+
+            // employees with no payroll calendar
+            var link = ' <a href="' + HRMS.escape(T("assign-link")) + '">' + "&rarr;</a>";
+            if (!plan.calendarsReady) {
+                el.unassignedText.textContent = T("not-ready");
+                el.unassigned.hidden = false;
+            } else if ((plan.unassigned > 0 && !plan.hasDefault) || plan.onInactive > 0) {
+                var lines = [];
+                if (plan.unassigned > 0 && !plan.hasDefault) { lines.push(fmt(T("unassigned-none"), plan.unassigned)); }
+                if (plan.onInactive > 0) { lines.push(fmt(T("on-inactive"), plan.onInactive)); }
+                el.unassignedText.innerHTML = lines.map(HRMS.escape).join("<br>") + link;
+                el.unassigned.hidden = false;
+            } else if (plan.unassigned > 0) {
+                el.unassignedText.innerHTML = HRMS.escape(fmt(T("unassigned-default"), plan.unassigned)) + link;
+                el.unassigned.hidden = false;
+            } else {
+                el.unassigned.hidden = true;
+            }
+            syncPlan();
+        };
+
+        var loadPlan = function () {
+            el.list.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
+            return HRMS.getJson(withQs(u("plan"), { companyId: el.company.value, month: el.month.value || page.getAttribute("data-month") }))
+                .then(renderPlan, fail);
+        };
+
+        // a period changed: does it already have a regular payroll?
+        el.list.addEventListener("change", function (ev) {
+            var period = ev.target.closest("[data-cr-cal-period]");
+            if (period) {
+                var row = period.closest("[data-cr-cal]");
+                HRMS.getJson(withQs(u("next"), { periodId: period.value })).then(function (n) {
+                    row.setAttribute("data-regular", n && n.ok && n.regular ? n.regular : "");
+                    if (n && n.ok && !n.regular && type() === "REGULAR") { $("[data-cr-cal-on]", row).checked = true; }
+                    syncPlan();
+                });
+                return;
+            }
+            if (ev.target.closest("[data-cr-cal-on]")) { syncPlan(); }
         });
-        el.calendar.addEventListener("change", loadPeriodsFor);
-        el.period.addEventListener("change", refreshName);
+
+        el.company.addEventListener("change", function () {
+            el.month.value = "";
+            page.setAttribute("data-month", "");
+            HRMS.getJson(withQs(u("calendars"), { companyId: el.company.value })).then(function (data) {
+                var fill = function (select, list) {
+                    var first = select.querySelector('option[value=""]');
+                    select.innerHTML = (first ? first.outerHTML : "") + list.map(function (x) {
+                        return '<option value="' + x.id + '">' + HRMS.escape(x.text) + "</option>";
+                    }).join("");
+                };
+                fill($('[data-cr-scope="ScopeDepartmentId"]'), data.departments);
+                fill($('[data-cr-scope="ScopeWorkLocationId"]'), data.locations);
+            });
+            loadPlan();
+        });
+        el.month.addEventListener("change", loadPlan);
         $("[data-cr-type]").addEventListener("change", function () {
             $all("[data-cr-type] label").forEach(function (l) { l.classList.toggle("is-selected", !!$("input:checked", l)); });
-            refreshName();
+            // a regular payroll skips periods that already have one; an off-cycle one may take them
+            rows().forEach(function (row) {
+                var on = $("[data-cr-cal-on]", row);
+                if (type() !== "REGULAR" && row.getAttribute("data-regular") && !on.checked) { on.checked = true; }
+            });
+            syncPlan();
         });
         el.desc.addEventListener("input", function () { if (el.desc.value.trim()) { showError("desc", false); el.desc.classList.remove("is-invalid"); } });
 
-        var saveDraft = function () {
-            var p = {
-                PayrollRunId: runId(), CompanyId: el.company.value, PayrollCalendarId: el.calendar.value,
-                PayrollPeriodId: el.period.value, RunType: type(), Description: el.desc.value.trim()
-            };
-            $all("[data-cr-scope]").forEach(function (s) { p[s.getAttribute("data-cr-scope")] = s.value; });
-            el.status.textContent = txt.getAttribute("data-calculating");
-            return post(u("draft"), p, el.next).then(function (res) {
-                if (!res || !res.success) { el.status.textContent = ""; return false; }
-                st.runId = String(res.id);
-                page.setAttribute("data-run", st.runId);
-                if (window.history && window.history.replaceState) {
-                    window.history.replaceState(null, "", window.location.pathname + "?draft=" + st.runId);
-                }
-                var now = new Date();
-                el.status.textContent = txt.getAttribute("data-saved").replace("{0}",
-                    ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2));
-                el.discard.hidden = false;
-                return true;
-            });
+        /* -------------------------------------------------------- the drafts */
+        var stamp = function () {
+            var now = new Date();
+            el.status.textContent = fmt(T("saved"), ("0" + now.getHours()).slice(-2) + ":" + ("0" + now.getMinutes()).slice(-2));
         };
+        var remember = function () {
+            var ids = st.drafts.map(function (d) { return d.runId; }).join(",");
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, "", window.location.pathname + (ids ? "?drafts=" + ids : ""));
+            }
+            el.discard.hidden = !ids;
+        };
+
+        // one draft per chosen calendar (kept in sync: new ones made, unchosen ones discarded)
+        var saveDrafts = function () {
+            var chosen = rows().filter(function (row) { return $("[data-cr-cal-on]", row).checked; }).map(function (row) {
+                var cal = calOf(row.getAttribute("data-cr-cal"));
+                var period = $("[data-cr-cal-period]", row);
+                return {
+                    calendarId: cal.id, periodId: period.value, name: cal.name, employees: cal.employees,
+                    period: period.options[period.selectedIndex] ? period.options[period.selectedIndex].text.split(" · ")[0] : "",
+                    code: $("[data-cr-cal-code]", row).textContent
+                };
+            });
+            var scope = {};
+            $all("[data-cr-scope]").forEach(function (s) { scope[s.getAttribute("data-cr-scope")] = s.value; });
+            var old = st.drafts.slice();
+            var made = [];
+            el.status.textContent = T("calculating");
+            busy(el.next, true);
+
+            var chain = Promise.resolve(true);
+            chosen.forEach(function (c) {
+                chain = chain.then(function (ok) {
+                    if (!ok) { return false; }
+                    var prev = old.filter(function (d) { return String(d.calendarId) === String(c.calendarId); })[0];
+                    var p = Object.assign({
+                        PayrollRunId: prev ? prev.runId : "", CompanyId: el.company.value, PayrollCalendarId: c.calendarId,
+                        PayrollPeriodId: c.periodId, RunType: type(), Description: el.desc.value.trim()
+                    }, scope);
+                    return HRMS.post(u("draft"), form(p)).then(function (res) {
+                        if (!res || !res.success) {
+                            HRMS.toast((res && res.message) || HRMS.t("js.pr_failed", "The request could not be completed."), "error");
+                            // keep what is already saved, so nothing is left behind
+                            if (prev) { made.push(prev); }
+                            return false;
+                        }
+                        made.push(Object.assign({}, c, { runId: String(res.id) }));
+                        return true;
+                    });
+                });
+            });
+            return chain.then(function (ok) {
+                // drafts of calendars no longer chosen are discarded
+                var keep = made.map(function (d) { return d.runId; });
+                var drop = ok ? old.filter(function (d) { return keep.indexOf(String(d.runId)) < 0; }) : [];
+                return Promise.all(drop.map(function (d) { return HRMS.post(u("discard"), form({ run: d.runId })); })).then(function () {
+                    busy(el.next, false);
+                    st.drafts = made;
+                    if (st.current >= st.drafts.length) { st.current = 0; }
+                    remember();
+                    if (ok) { stamp(); } else { el.status.textContent = ""; }
+                    return ok;
+                });
+            }, function (error) { busy(el.next, false); el.status.textContent = ""; fail(error); return false; });
+        };
+
+        /* ------------------------------------------- one draft at a time (2-4) */
+        var renderSwitch = function () {
+            var show = st.step > 0 && st.drafts.length > 0;
+            el.sw.hidden = !show;
+            if (!show) { return; }
+            el.sw.innerHTML = st.drafts.map(function (d, i) {
+                return '<button type="button" class="cr-switch__item' + (i === st.current ? " is-active" : "") + '" role="tab" aria-selected="' +
+                    (i === st.current ? "true" : "false") + '" data-cr-switch-to="' + i + '">' +
+                    '<span class="cr-switch__name">' + HRMS.escape(d.name || "") + "</span>" +
+                    '<span class="cr-switch__meta">' + HRMS.escape([d.period, d.code].filter(Boolean).join(" · ")) + "</span></button>";
+            }).join("") + (st.drafts.length > 1 && st.step < 3 ? '<span class="cr-switch__hint">' + HRMS.escape(T("switch-hint")) + "</span>" : "");
+        };
+        el.sw.addEventListener("click", function (ev) {
+            var b = ev.target.closest("[data-cr-switch-to]");
+            if (!b) { return; }
+            st.current = parseInt(b.getAttribute("data-cr-switch-to"), 10) || 0;
+            empGrid.components = null; empGrid.state.page = 1;
+            goStep(st.step);
+        });
 
         var empRoot = $("[data-employees]");
         var empGrid = new EmployeeGrid(empRoot, { run: runId, onChange: function () { refreshSide(runId(), "create"); } });
         grid = empGrid;
 
+        // the scope (department, location, ...) applies to every payroll made here
         $all("[data-cr-scope]").forEach(function (s) {
             s.addEventListener("change", function () {
-                saveDraft().then(function (ok) {
+                saveDrafts().then(function (ok) {
                     if (ok) { empGrid.components = null; empGrid.state.page = 1; empGrid.reload(); refreshSide(runId(), "create"); }
                 });
             });
@@ -955,7 +1116,24 @@
             el.back.disabled = step === 0;
             el.next.hidden = step === 3;
             el.finalize.hidden = step !== 3;
+            el.finalizeText.textContent = st.drafts.length > 1 ? fmt(T("create-n"), st.drafts.length) : T("create-one");
+            renderSwitch();
             window.scrollTo({ top: 0, behavior: "smooth" });
+        };
+
+        // step 4: every payroll that will be created, with its totals
+        var renderFinal = function () {
+            $("[data-cr-final-title]").textContent = st.drafts.length > 1 ? fmt(T("final-title-n"), st.drafts.length) : $("[data-cr-final-title]").textContent;
+            el.finalList.innerHTML = st.drafts.map(function (d, i) {
+                return '<section class="cr-final__item" data-cr-final="' + i + '">' +
+                    '<header class="cr-final__head"><span class="pr-runname-big">' + HRMS.escape(d.code || "") + "</span>" +
+                    '<span class="cr-final__meta">' + HRMS.escape([d.name, d.period].filter(Boolean).join(" · ")) + "</span>" +
+                    '<span class="cr-final__state" data-cr-final-state></span></header>' +
+                    '<div data-cr-final-kpis></div></section>';
+            }).join("");
+            return Promise.all(st.drafts.map(function (d, i) {
+                return loadInto($('[data-cr-final="' + i + '"] [data-cr-final-kpis]', el.finalList), withQs(u("kpis"), { run: d.runId, mode: "final" }));
+            }));
         };
 
         var goStep = function (step) {
@@ -966,10 +1144,8 @@
                 return loadInto($("[data-check-slot]"), withQs(u("check"), { run: runId() })).then(function () { show(2); });
             }
             if (step === 3) {
-                return Promise.all([
-                    refreshName(),
-                    loadInto($("[data-final-kpis]"), withQs(u("kpis"), { run: runId(), mode: "final" }))
-                ]).then(function () { $("[data-cr-final-name]").textContent = el.name.value; show(3); });
+                show(3);
+                return renderFinal();
             }
             show(step);
             return Promise.resolve();
@@ -977,13 +1153,13 @@
 
         el.next.addEventListener("click", function () {
             if (st.step === 0) {
-                if (!el.calendar.value) { showError("calendar", true); return; }
-                if (!el.period.value) { showError("period", true); return; }
-                if (st.next && st.next.regular && type() === "REGULAR") { el.regular.scrollIntoView({ behavior: "smooth" }); return; }
+                if (!el.month.value) { showError("month", true); return; }
+                var any = rows().some(function (row) { return $("[data-cr-cal-on]", row).checked; });
+                if (!any) { showError("plan", true); el.list.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
                 if (descRequired() && !el.desc.value.trim()) {
                     showError("desc", true); el.desc.classList.add("is-invalid"); el.desc.focus(); return;
                 }
-                saveDraft().then(function (ok) { if (ok) { empGrid.components = null; goStep(1); } });
+                saveDrafts().then(function (ok) { if (ok) { st.current = 0; empGrid.components = null; goStep(1); } });
                 return;
             }
             goStep(st.step + 1);
@@ -1002,37 +1178,80 @@
             }
         });
 
+        // create every draft, one after the other; stop at the first that cannot be created
         el.finalize.addEventListener("click", function () {
-            post(u("finalize"), { run: runId() }, el.finalize).then(function (res) {
-                if (res && res.success) { openRun(runId()); return; }
-                if (res && res.errorCode === "DESCRIPTION_REQUIRED") {
-                    goStep(0).then(function () { showError("desc", true); el.desc.classList.add("is-invalid"); el.desc.focus(); });
-                } else if (res && (res.errorCode === "REGULAR_EXISTS" || res.errorCode === "PERIOD_CLOSED")) {
-                    goStep(0).then(refreshName);
-                } else if (res && res.errorCode === "NO_EMPLOYEES") {
-                    goStep(1);
-                }
-            });
-        });
-
-        var discard = function (id, button) {
-            return confirmDialog(button.textContent.trim(), HRMS.t("js.pr_discard_draft", "Discard this draft? The lines added in it are removed."), button.textContent.trim())
-                .then(function (ok) {
-                    if (!ok) { return; }
-                    post(u("discard"), { run: id }, button).then(function (res) {
-                        if (res && res.success) { window.location.href = window.location.pathname; }
+            var created = [];
+            busy(el.finalize, true);
+            var chain = Promise.resolve(true);
+            st.drafts.forEach(function (d, i) {
+                chain = chain.then(function (ok) {
+                    if (!ok) { return false; }
+                    el.status.textContent = fmt(T("creating"), i + 1, st.drafts.length);
+                    return HRMS.post(u("finalize"), form({ run: d.runId })).then(function (res) {
+                        var stateEl = $('[data-cr-final="' + i + '"] [data-cr-final-state]', el.finalList);
+                        if (res && res.success) {
+                            created.push(d.runId);
+                            if (stateEl) { stateEl.innerHTML = '<span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>' + HRMS.escape(res.message || "") + "</span>"; }
+                            return true;
+                        }
+                        HRMS.toast((res && res.message) || HRMS.t("js.pr_failed", "The request could not be completed."), "error");
+                        st.current = i;
+                        if (res && res.errorCode === "DESCRIPTION_REQUIRED") {
+                            goStep(0).then(function () { showError("desc", true); el.desc.classList.add("is-invalid"); el.desc.focus(); });
+                        } else if (res && (res.errorCode === "REGULAR_EXISTS" || res.errorCode === "PERIOD_CLOSED")) {
+                            goStep(0).then(loadPlan);
+                        } else if (res && res.errorCode === "NO_EMPLOYEES") {
+                            goStep(1);
+                        }
+                        return false;
                     });
                 });
-        };
-        el.discard.addEventListener("click", function () { if (runId()) { discard(runId(), el.discard); } });
-        $all("[data-draft-discard]").forEach(function (b) {
-            b.addEventListener("click", function () { discard(b.getAttribute("data-draft-discard"), b); });
+            });
+            chain.then(function (ok) {
+                busy(el.finalize, false);
+                // the created ones leave the draft list
+                st.drafts = st.drafts.filter(function (d) { return created.indexOf(d.runId) < 0; });
+                if (st.current >= st.drafts.length) { st.current = 0; }
+                remember();
+                if (!ok) { el.status.textContent = created.length ? fmt(T("created"), created.length) : ""; renderSwitch(); return; }
+                if (created.length === 1) { openRun(created[0]); return; }
+                window.location.href = u("payrolls");
+            }, function (error) { busy(el.finalize, false); fail(error); });
         });
 
-        // first paint
-        if (runId()) { el.discard.hidden = false; }
-        (el.calendar.value ? loadPeriodsFor() : Promise.resolve(showError("calendar", true))).then(function () {
-            if (runId()) { goStep(1); }
+        var discard = function (ids, button) {
+            return confirmDialog(button.textContent.trim(), HRMS.t("js.pr_discard_drafts", "Discard these drafts? The lines added in them are removed."), button.textContent.trim())
+                .then(function (ok) {
+                    if (!ok) { return; }
+                    busy(button, true);
+                    Promise.all(ids.map(function (id) { return HRMS.post(u("discard"), form({ run: id })); })).then(function () {
+                        window.location.href = u("create");
+                    }, function (error) { busy(button, false); fail(error); });
+                });
+        };
+        el.discard.addEventListener("click", function () {
+            var ids = st.drafts.map(function (d) { return d.runId; });
+            if (ids.length) { discard(ids, el.discard); }
+        });
+        $all("[data-draft-discard]").forEach(function (b) {
+            b.addEventListener("click", function () { discard(b.getAttribute("data-draft-discard").split(","), b); });
+        });
+
+        // first paint: the plan; a resumed set of drafts goes straight to step 2
+        if (st.drafts.length) { el.discard.hidden = false; }
+        syncDesc();
+        (el.company && el.company.value ? loadPlan() : Promise.resolve()).then(function () {
+            if (!st.drafts.length) { return; }
+            // names / periods / numbers of the resumed drafts come from the plan rows
+            st.drafts.forEach(function (d) {
+                var row = rowOf(d.calendarId), cal = calOf(d.calendarId);
+                if (!row || !cal) { return; }
+                var period = $("[data-cr-cal-period]", row);
+                d.name = cal.name; d.employees = cal.employees;
+                d.period = period.options[period.selectedIndex] ? period.options[period.selectedIndex].text.split(" · ")[0] : "";
+                d.code = $("[data-cr-cal-code]", row).textContent;
+            });
+            goStep(1);
         });
     }
     /* ========================================================================

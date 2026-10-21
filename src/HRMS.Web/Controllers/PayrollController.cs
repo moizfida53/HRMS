@@ -3,6 +3,7 @@ using System.Text;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Common;
 using HRMS.Domain.Payroll;
+using HRMS.Domain.Workforce;
 using HRMS.Web.Helpers;
 using HRMS.Web.Localization;
 using HRMS.Web.Models.Organization;
@@ -48,6 +49,8 @@ public sealed class PayrollController : Controller
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
     private readonly IUiText _text;
+    private readonly IEmployeePayrollCalendarRepository _employeeCalendars;
+    private readonly IEmployeeAuditor _auditor;
 
     public PayrollController(
         IPayrollRunRepository runs,
@@ -55,7 +58,9 @@ public sealed class PayrollController : Controller
         ILookupRepository lookups,
         ICurrentUser currentUser,
         ICompanyFilter companyFilter,
-        IUiText text)
+        IUiText text,
+        IEmployeePayrollCalendarRepository employeeCalendars,
+        IEmployeeAuditor auditor)
     {
         _runs = runs;
         _calendars = calendars;
@@ -63,6 +68,8 @@ public sealed class PayrollController : Controller
         _currentUser = currentUser;
         _companyFilter = companyFilter;
         _text = text;
+        _employeeCalendars = employeeCalendars;
+        _auditor = auditor;
     }
 
     private CancellationToken Ct => HttpContext.RequestAborted;
@@ -137,39 +144,164 @@ public sealed class PayrollController : Controller
         });
     }
 
+    /// <summary>
+    /// Create Payroll. Each employee is paid by their own payroll calendar (db/60), so the
+    /// user picks the company and the month; one draft payroll is made per calendar in use
+    /// (create-plan). ?drafts=1,2 (or the older ?draft=1) resumes a set of drafts.
+    /// </summary>
     [HttpGet("create")]
-    public async Task<IActionResult> Create(long? draft)
+    public async Task<IActionResult> Create(long? draft, string? drafts)
     {
         if (!Can(PermProcess)) return Forbid();
 
         var companies = await VisibleCompaniesAsync();
 
-        PayrollRun? resume = null;
-        if (draft is > 0)
+        // the drafts resumed: same company, month and type as the first one
+        var ids = ParseRunIds(drafts);
+        if (draft is > 0 && !ids.Contains(draft.Value)) ids.Insert(0, draft.Value);
+        var resume = new List<PayrollRun>();
+        foreach (var id in ids)
         {
-            resume = await _runs.GetAsync(draft.Value, Ct);
-            if (resume is null || resume.Stage != RunStage.Draft || !CanSee(resume))
-            {
-                return RedirectToAction(nameof(Create));
-            }
+            var r = await _runs.GetAsync(id, Ct);
+            if (r is null || r.Stage != RunStage.Draft || !CanSee(r)) continue;
+            if (resume.Count > 0 && (r.CompanyId != resume[0].CompanyId || r.RunMonth != resume[0].RunMonth || r.RunType != resume[0].RunType)) continue;
+            resume.Add(r);
+        }
+        if (ids.Count > 0 && resume.Count == 0)
+        {
+            return RedirectToAction(nameof(Create));
         }
 
-        var companyId = resume?.CompanyId ?? OwnCompany ?? _companyFilter.SingleCompanyId ?? companies.FirstOrDefault()?.Id;
-        var calendars = companyId is { } cid
-            ? (await _calendars.ListAsync(new GridRequest { CompanyId = cid, IsActive = true, PageSize = 200 }, Ct)).Items
-            : Array.Empty<PayrollCalendar>();
+        var companyId = resume.FirstOrDefault()?.CompanyId ?? OwnCompany ?? _companyFilter.SingleCompanyId ?? companies.FirstOrDefault()?.Id;
 
         ViewData["ActiveRun"] = await RememberedRunAsync();
         return View(new CreatePageModel
         {
             Companies = companies,
             CompanyId = companyId,
-            Calendars = calendars,
             Departments = companyId is { } d ? await _lookups.GetAsync(LookupType.Department, d, cancellationToken: Ct) : Array.Empty<LookupItem>(),
             Locations = companyId is { } l ? await _lookups.GetAsync(LookupType.Location, l, cancellationToken: Ct) : Array.Empty<LookupItem>(),
-            Drafts = await _runs.DraftsAsync(OwnCompany, CompanyCsv, UserId, Ct),
-            Draft = resume,
+            DraftGroups = resume.Count > 0 ? Array.Empty<DraftGroup>() : await DraftGroupsAsync(),
+            Resume = resume,
             CanProcess = true
+        });
+    }
+
+    /// <summary>The user's unfinished drafts, one group per company, month and type (made together).</summary>
+    private async Task<IReadOnlyList<DraftGroup>> DraftGroupsAsync()
+    {
+        var list = await _runs.DraftsAsync(OwnCompany, CompanyCsv, UserId, Ct);
+        var runs = new List<(PayrollDraft Draft, DateTime Month)>();
+        foreach (var d in list.Take(30))
+        {
+            if (await _runs.GetAsync(d.PayrollRunId, Ct) is { } r) runs.Add((d, r.RunMonth));
+        }
+        return runs
+            .GroupBy(x => (x.Draft.CompanyId, x.Month, x.Draft.RunType))
+            .Select(g => new DraftGroup(
+                g.Select(x => x.Draft.PayrollRunId).ToList(),
+                g.Key.CompanyId, g.Key.Month, g.Key.RunType,
+                g.Max(x => x.Draft.LastSaved),
+                g.Select(x => x.Draft.CalendarName).Distinct().ToList()))
+            .OrderByDescending(g => g.LastSaved)
+            .ToList();
+    }
+
+    /// <summary>
+    /// What Create Payroll will make for a company and month: the months that can be paid,
+    /// and per active calendar its employees (by Employee.PayrollCalendarId; employees with no
+    /// calendar count under the default calendar) and its open periods in the month.
+    /// </summary>
+    [HttpGet("create-plan")]
+    public async Task<IActionResult> CreatePlan(int companyId, string? month)
+    {
+        if (!Can(PermProcess)) return Forbid();
+        if (OwnCompany is { } own && own != companyId) return Forbid();
+        if (_companyFilter.SelectedIds.Count > 0 && !_companyFilter.SelectedIds.Contains(companyId)) return Forbid();
+
+        var calendars = (await _calendars.ListAsync(new GridRequest { CompanyId = companyId, IsActive = true, PageSize = 200 }, Ct)).Items;
+
+        IReadOnlyList<CalendarEmployeeCount> counts;
+        var calendarsReady = true;
+        try
+        {
+            counts = await _employeeCalendars.CountsAsync(companyId, Ct);
+        }
+        catch (Exception)
+        {
+            // db/60 not run yet: no employee has a calendar, the default calendar pays everyone
+            counts = Array.Empty<CalendarEmployeeCount>();
+            calendarsReady = false;
+        }
+
+        var unassigned = counts.Where(c => c.PayrollCalendarId is null).Sum(c => c.EmployeeCount);
+        // employees on a calendar that has since been deactivated are paid by no payroll: say so
+        var onInactive = counts.Where(c => c.PayrollCalendarId is { } id && calendars.All(x => x.PayrollCalendarId != id)).Sum(c => c.EmployeeCount);
+        var defaultCal = calendars.FirstOrDefault(c => c.IsDefault);
+        var periodsByCal = new Dictionary<int, IReadOnlyList<PayrollPeriodRow>>();
+        foreach (var c in calendars)
+        {
+            periodsByCal[c.PayrollCalendarId] = await _calendars.PeriodsAsync(c.PayrollCalendarId, null, openableOnly: true, Ct);
+        }
+
+        int Employees(PayrollCalendar c) =>
+            counts.Where(x => x.PayrollCalendarId == c.PayrollCalendarId).Sum(x => x.EmployeeCount)
+            + (c.PayrollCalendarId == defaultCal?.PayrollCalendarId ? unassigned : 0);
+
+        // months: those with an open period on a calendar that pays someone
+        var paying = calendars.Where(c => Employees(c) > 0).ToList();
+        var months = paying.SelectMany(c => periodsByCal[c.PayrollCalendarId]).Select(p => p.RunMonth).Distinct().OrderBy(m => m).ToList();
+        var thisMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        var selected = ParseMonth(month) is { } m && months.Contains(m) ? m
+            : months.Contains(thisMonth) ? thisMonth
+            : months.FirstOrDefault(x => x >= thisMonth) is { Year: > 1 } upcoming ? upcoming
+            : months.LastOrDefault();
+
+        // the payroll number continues per company and month: the first new one gets NextSeq
+        NextRunCode? code = null;
+        var rows = new List<object>();
+        foreach (var c in calendars.OrderByDescending(Employees).ThenBy(c => c.CalendarName, StringComparer.OrdinalIgnoreCase))
+        {
+            var employees = Employees(c);
+            var periods = periodsByCal[c.PayrollCalendarId].Where(p => p.RunMonth == selected).ToList();
+            var def = periods.FirstOrDefault(p => p.StartDate <= DateTime.Today && p.EndDate >= DateTime.Today)
+                      ?? periods.FirstOrDefault(p => p.Status != "APPROVED")
+                      ?? periods.FirstOrDefault();
+            NextRunCode? next = def is null ? null : await _runs.NextCodeAsync(def.PayrollPeriodId, Ct);
+            code ??= next;
+            rows.Add(new
+            {
+                id = c.PayrollCalendarId,
+                name = PayrollFormat.Calendar(_text, c.CalendarName, c.ArabicName),
+                code = c.CalendarCode,
+                frequency = PayrollFormat.Frequency(_text, c.PayFrequency),
+                isDefault = c.IsDefault,
+                employees,
+                unassigned = c.PayrollCalendarId == defaultCal?.PayrollCalendarId ? unassigned : 0,
+                periodId = def?.PayrollPeriodId,
+                regular = next?.RegularRunCode,
+                periods = periods.Select(p => new
+                {
+                    id = p.PayrollPeriodId,
+                    text = PayrollFormat.Period(_text, p),
+                    dates = $"{_text.DayMonth(p.StartDate)} – {_text.Date(p.EndDate)}",
+                    status = p.Status,
+                    statusText = _text.Tr(PeriodStatusLabel(p.Status))
+                })
+            });
+        }
+
+        return Json(new
+        {
+            month = months.Count == 0 ? null : selected.ToString("yyyy-MM", CultureInfo.InvariantCulture),
+            months = months.Select(x => new { value = x.ToString("yyyy-MM", CultureInfo.InvariantCulture), text = _text.MonthYear(x) }),
+            calendars = rows,
+            unassigned,
+            onInactive,
+            hasDefault = defaultCal is not null,
+            calendarsReady,
+            nextSeq = code?.NextSeq ?? 1,
+            nextCode = code?.RunCode
         });
     }
 
@@ -739,17 +871,25 @@ public sealed class PayrollController : Controller
     public async Task<IActionResult> Exclude(long run, long employeeId, string? reason)
     {
         if (!Can(PermExclude)) return Denied();
-        if (await LoadRunAsync(run) is null) return Denied();
-        return Result(await _runs.ExcludeAsync(run, employeeId, true, reason, UserId, Ct));
+        if (await LoadRunAsync(run) is not { } r) return Denied();
+        var result = await _runs.ExcludeAsync(run, employeeId, true, reason, UserId, Ct);
+        if (result.Success) await _auditor.PayrollInclusionAsync(employeeId, true, RunReference(r), reason);
+        return Result(result);
     }
 
     [HttpPost("include")]
     public async Task<IActionResult> Include(long run, long employeeId)
     {
         if (!Can(PermExclude)) return Denied();
-        if (await LoadRunAsync(run) is null) return Denied();
-        return Result(await _runs.ExcludeAsync(run, employeeId, false, null, UserId, Ct));
+        if (await LoadRunAsync(run) is not { } r) return Denied();
+        var result = await _runs.ExcludeAsync(run, employeeId, false, null, UserId, Ct);
+        if (result.Success) await _auditor.PayrollInclusionAsync(employeeId, false, RunReference(r), null);
+        return Result(result);
     }
+
+    /// <summary>The payroll an audit row refers to: its code, or "Draft · calendar · period" before it has one.</summary>
+    private string RunReference(PayrollRun r) =>
+        r.RunCode ?? $"Draft · {r.CalendarName} · {PayrollFormat.Period(_text, r)}";
 
     // =======================================================================
     // Stages, approval, cancel

@@ -1,0 +1,220 @@
+// ============================================================================
+// Audit Report (/audit) and the employee's payroll calendar field (db/60)
+// ----------------------------------------------------------------------------
+// The report reads as a timeline of changes: when, who it is about, what kind
+// of transaction, and "old -> new" for the value that changed. Layout follows
+// the content width (container "content"); the table turns into stacked cards
+// below 600px like every hrms-table.
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ------------------------------------------------------------- filters ----
+.aud-dates {
+  display: flex;
+  align-items: center;
+  gap: space("2");
+
+  .form-control { min-width: 0; flex: 1 1 0; }
+
+  &__sep { color: $ink-400; flex: 0 0 auto; }
+}
+
+.aud-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space("1");
+  margin-top: space("2");
+}
+
+.aud-preset {
+  padding: 2px space("2");
+  border: 1px solid $line-200;
+  border-radius: $radius-pill;
+  background: $white;
+  color: $ink-600;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  cursor: pointer;
+  @include motion(background-color, border-color, color);
+  @include focus-ring;
+
+  &:hover { border-color: $blue-200; color: $blue-700; }
+
+  &.is-active {
+    border-color: $blue-600;
+    background: $blue-050;
+    color: $blue-700;
+  }
+}
+
+.aud-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: space("1");
+  text-decoration: none;
+  color: $ink-500;
+
+  &:hover { color: $blue-700; }
+}
+
+// --------------------------------------------------------------- table ----
+// each cell's parts sit in one block, so the stacked-card layout of a narrow
+// table (label left, value right) keeps them together
+.aud-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.aud-table {
+  td { vertical-align: top; }
+
+  @container table (max-width: 599.98px) {
+    td { align-items: flex-start; }
+
+    .aud-cell { align-items: flex-end; text-align: end; max-width: 70%; }
+    .aud-change__values { justify-content: flex-end; }
+  }
+
+  .aud-when span:first-child { font-variant-numeric: tabular-nums; }
+}
+
+.aud-emp {
+  color: $ink-900;
+  font-weight: $fw-semibold;
+  text-decoration: none;
+
+  &:hover { color: $blue-700; text-decoration: underline; }
+}
+
+// "this employee only" - appears on row hover / focus so the table stays calm
+.aud-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-inline-start: space("1");
+  padding: 0;
+  border: 0;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: $ink-400;
+  vertical-align: middle;
+  opacity: 0;
+  cursor: pointer;
+  @include motion(opacity, background-color, color);
+  @include focus-ring;
+
+  tr:hover &,
+  &:focus-visible { opacity: 1; }
+
+  &:hover { background: $blue-050; color: $blue-700; }
+
+  @media (hover: none) { opacity: 1; }
+}
+
+.aud-change {
+  min-width: 16rem;
+
+  &__field {
+    display: block;
+    margin-bottom: 2px;
+    color: $ink-500;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+  }
+
+  &__values {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: space("1") space("2");
+  }
+
+  &__remarks {
+    display: block;
+    margin-top: space("1");
+    color: $ink-600;
+    font-size: $fs-sm;
+    font-style: italic;
+  }
+}
+
+// old value struck through on a red tint, new value on a green tint
+%aud-value {
+  padding: 1px space("2");
+  border-radius: $radius-sm;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.aud-old {
+  @extend %aud-value;
+  background: $red-050;
+  color: $red-700;
+  text-decoration: line-through;
+  text-decoration-color: rgba($red-700, .45);
+}
+
+.aud-new {
+  @extend %aud-value;
+  background: $green-050;
+  color: $green-700;
+  font-weight: $fw-semibold;
+}
+
+.aud-arrow {
+  display: inline-flex;
+  color: $ink-400;
+
+  [dir="rtl"] & svg { transform: scaleX(-1); }
+}
+
+@include cq-down("sm") {
+  .aud-change { min-width: 0; }
+}
+
+// ----------------------------------------- employee: payroll calendar ----
+.emp-paycal {
+  &__lock {
+    display: inline-flex;
+    margin-inline-start: space("1");
+    color: $amber-700;
+    vertical-align: -1px;
+  }
+
+  .form-select:disabled {
+    background-color: $surface-2;
+    color: $ink-700;
+    opacity: 1;
+  }
+}
+
+.emp-paycal__reason {
+  padding: space("3");
+  border: 1px dashed $amber-600;
+  border-radius: $radius;
+  background: $amber-050;
+}
+
+// the profile strip: Audit history sits just before Save
+.emp-audit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  margin-inline-start: auto;
+
+  + .hrms-emp-strip__actions { margin-inline-start: space("2"); }
+
+  @media (max-width: 575.98px) {
+    width: 100%;
+    justify-content: center;
+  }
+}
