@@ -21,6 +21,13 @@
                 - date of birth / hire date recur every year (the next
                   birthday / work anniversary).
      3. Permission EMPLOYEE_DATE_ALERTS (System Administrator).
+
+   Soft delete (db/28): nothing is physically deleted - removed reminders
+   are flagged Deleted = 1 and every read filters Deleted = 0. (Before this
+   was followed here, the db/28 delete guard turned the procedure's DELETE
+   into Deleted = 1 while the reads still saw those rows: removed reminders
+   came back and were listed more than once. Re-running this script fixes
+   the procedure; the flagged rows simply stay deleted.)
      4. Labels (English + Arabic).
    ===================================================================== */
 SET ANSI_NULLS ON;
@@ -40,9 +47,27 @@ BEGIN
         Value        INT          NOT NULL CONSTRAINT CK_DateFieldAlerts_Value CHECK (Value BETWEEN 0 AND 99),
         CreatedBy    BIGINT       NULL,
         CreatedDate  DATETIME2(0) NOT NULL CONSTRAINT DF_DateFieldAlerts_CreatedDate DEFAULT (SYSUTCDATETIME()),
-        CONSTRAINT UQ_DateFieldAlerts UNIQUE (FieldKey, UnitCode, Value)
+        Deleted      BIT          NOT NULL CONSTRAINT DF_DateFieldAlerts_Deleted DEFAULT (0),
+        DeletedBy    BIGINT       NULL,
+        DeletedDate  DATETIME2(0) NULL
     );
+    -- one live reminder per field / unit / value; deleted ones may repeat (db/28 rule)
+    EXEC (N'CREATE UNIQUE NONCLUSTERED INDEX UQ_DateFieldAlerts ON [Employee].[DateFieldAlerts] (FieldKey, UnitCode, Value) WHERE Deleted = 0;');
     PRINT N'Created [Employee].[DateFieldAlerts].';
+END
+GO
+
+/* a table created by an earlier run of this script: make sure it has the soft-delete columns */
+IF COL_LENGTH(N'Employee.DateFieldAlerts', N'Deleted') IS NULL
+BEGIN
+    IF OBJECT_ID(N'[Core].[usp_SoftDelete_Apply]', N'P') IS NOT NULL
+        EXEC [Core].[usp_SoftDelete_Apply] @SchemaName = N'Employee', @TableName = N'DateFieldAlerts';
+    ELSE
+        ALTER TABLE [Employee].[DateFieldAlerts] ADD
+            Deleted     BIT          NOT NULL CONSTRAINT DF_DateFieldAlerts_Deleted DEFAULT (0),
+            DeletedBy   BIGINT       NULL,
+            DeletedDate DATETIME2(0) NULL;
+    PRINT N'Added the soft-delete columns to [Employee].[DateFieldAlerts].';
 END
 GO
 
@@ -77,6 +102,7 @@ BEGIN
     BEGIN
         SELECT   FieldKey, UnitCode, Value
         FROM     [Employee].[DateFieldAlerts]
+        WHERE    Deleted = 0
         ORDER BY FieldKey, CASE UnitCode WHEN 'M' THEN 1 WHEN 'W' THEN 2 ELSE 3 END, Value DESC;
         RETURN;
     END;
@@ -90,7 +116,9 @@ BEGIN
             RETURN;
         END;
 
-        DELETE FROM [Employee].[DateFieldAlerts] WHERE LTRIM(RTRIM(FieldKey)) = LTRIM(RTRIM(@FieldKey));
+        UPDATE [Employee].[DateFieldAlerts]
+           SET Deleted = 1, DeletedBy = @UserId, DeletedDate = SYSUTCDATETIME()
+         WHERE LTRIM(RTRIM(FieldKey)) = LTRIM(RTRIM(@FieldKey)) AND Deleted = 0;
         SELECT @NewId = @@ROWCOUNT, @ResultMessage = N'Alerts removed.';
         RETURN;
     END;
@@ -132,7 +160,9 @@ BEGIN
         END;
 
         BEGIN TRANSACTION;
-            DELETE FROM [Employee].[DateFieldAlerts] WHERE LTRIM(RTRIM(FieldKey)) = LTRIM(RTRIM(@FieldKey));
+            UPDATE [Employee].[DateFieldAlerts]
+               SET Deleted = 1, DeletedBy = @UserId, DeletedDate = SYSUTCDATETIME()
+             WHERE LTRIM(RTRIM(FieldKey)) = LTRIM(RTRIM(@FieldKey)) AND Deleted = 0;
             INSERT INTO [Employee].[DateFieldAlerts] (FieldKey, UnitCode, Value, CreatedBy)
             SELECT @FieldKey, UnitCode, Value, @UserId FROM @New;
         COMMIT;
@@ -175,7 +205,7 @@ BEGIN
                 ('DrivingLicenseExpiryDate', c.DrivingLicenseExpiryDate),
                 ('HealthCertificateExpiry',  c.HealthCertificateExpiry)) AS v (FieldKey, FieldDate)
             WHERE  v.FieldDate IS NOT NULL
-              AND  EXISTS (SELECT 1 FROM [Employee].[DateFieldAlerts] r WHERE r.FieldKey = v.FieldKey)
+              AND  EXISTS (SELECT 1 FROM [Employee].[DateFieldAlerts] r WHERE r.FieldKey = v.FieldKey AND r.Deleted = 0)
         ),
         due AS (
             SELECT  d.EmployeeId, d.FieldKey, d.FieldDate, f.Kind,
@@ -202,7 +232,7 @@ BEGIN
             CROSS APPLY (SELECT CASE r.UnitCode WHEN 'M' THEN DATEADD(MONTH, -r.Value, u.DueDate)
                                                 WHEN 'W' THEN DATEADD(WEEK,  -r.Value, u.DueDate)
                                                 ELSE          DATEADD(DAY,   -r.Value, u.DueDate) END AS FiresOn) AS fire
-            WHERE  r.FieldKey = u.FieldKey AND fire.FiresOn <= @Today
+            WHERE  r.FieldKey = u.FieldKey AND r.Deleted = 0 AND fire.FiresOn <= @Today
             ORDER BY fire.FiresOn DESC
         ) AS hit
         WHERE   u.DueDate >= @Today OR u.Kind = 'X'   -- only an expiry stays due once it has passed

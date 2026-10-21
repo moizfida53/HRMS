@@ -1073,10 +1073,12 @@
                                : HRMS.t("js.alert_before", "{0} before", unitText(unit, value));
         }
 
+        // "M2,W1,D0" -> rules, one of each
         function parseRules(csv) {
+            var seen = {};
             return (csv || "").split(",").filter(Boolean).map(function (token) {
                 return { unit: token.charAt(0), value: parseInt(token.slice(1), 10) || 0 };
-            });
+            }).filter(function (r) { var key = r.unit + r.value; if (seen[key]) { return false; } seen[key] = true; return true; });
         }
 
         // earliest reminder first, "on the day" last - the order they go off

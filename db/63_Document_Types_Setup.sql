@@ -150,7 +150,10 @@ SELECT  CAST(dt.' + QUOTENAME(@IdCol) + N' AS INT)                       AS Docu
         ' + @ActiveExpr + N'                                              AS IsActive,
         ' + CASE WHEN @SortCol IS NULL THEN N'CAST(NULL AS INT)'
                  ELSE N'CAST(dt.' + QUOTENAME(@SortCol) + N' AS INT)' END + N' AS SortOrder
-FROM    [Documents].[DocumentTypes] AS dt;';
+FROM    [Documents].[DocumentTypes] AS dt'
+    -- db/28: a deleted document type (Deleted = 1) is gone for every reader of the view
+    + CASE WHEN COL_LENGTH(N'Documents.DocumentTypes', N'Deleted') IS NOT NULL THEN N'
+WHERE   dt.[Deleted] = 0' ELSE N'' END + N';';
 
 EXEC sys.sp_executesql @View;
 GO
@@ -333,8 +336,15 @@ BEGIN
             RETURN;
         END;
         BEGIN TRY
-            DECLARE @dSql NVARCHAR(MAX) = N'DELETE FROM [Documents].[DocumentTypes] WHERE ' + QUOTENAME(@IdCol) + N' = @Id;';
-            EXEC sys.sp_executesql @dSql, N'@Id BIGINT', @Id = @Id;
+            -- db/28: never a physical delete - Deleted = 1 when the table has the column
+            DECLARE @dSql NVARCHAR(MAX) =
+                CASE WHEN COL_LENGTH(N'Documents.DocumentTypes', N'Deleted') IS NOT NULL
+                     THEN N'UPDATE [Documents].[DocumentTypes] SET [Deleted] = 1'
+                          + CASE WHEN COL_LENGTH(N'Documents.DocumentTypes', N'DeletedBy') IS NOT NULL THEN N', [DeletedBy] = @UserId' ELSE N'' END
+                          + CASE WHEN COL_LENGTH(N'Documents.DocumentTypes', N'DeletedDate') IS NOT NULL THEN N', [DeletedDate] = SYSUTCDATETIME()' ELSE N'' END
+                          + N' WHERE ' + QUOTENAME(@IdCol) + N' = @Id AND [Deleted] = 0;'
+                     ELSE N'DELETE FROM [Documents].[DocumentTypes] WHERE ' + QUOTENAME(@IdCol) + N' = @Id;' END;
+            EXEC sys.sp_executesql @dSql, N'@Id BIGINT, @UserId BIGINT', @Id = @Id, @UserId = @UserId;
             SELECT @NewId = @Id, @ResultMessage = N'Document type deleted.';
         END TRY
         BEGIN CATCH
