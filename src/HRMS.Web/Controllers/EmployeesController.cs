@@ -338,8 +338,14 @@ public sealed class EmployeesController : Controller
 
         // what is stored now, read back - the bell shows exactly that
         var stored = (await _dateAlerts.ListRulesAsync(Ct))
-            .Where(r => string.Equals(r.FieldKey, field.Key, StringComparison.OrdinalIgnoreCase))
-            .Select(r => r.UnitCode + r.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            .Where(r => string.Equals(r.FieldKey?.Trim(), field.Key, StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.UnitCode?.Trim() + r.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .ToList();
+        if (rules.Count == 0 && stored.Count > 0)
+        {
+            _logger.LogWarning("Removing the alerts of {Field} left {Count} in Employee.DateFieldAlerts (procedure answered {Message}).",
+                field.Key, stored.Count, result.Message);
+        }
         return Json(new { success = true, message = result.Message, id = result.Id, rules = string.Join(",", stored) });
     }
 

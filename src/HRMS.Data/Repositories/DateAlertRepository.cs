@@ -38,10 +38,13 @@ public sealed class DateAlertRepository : IDateAlertRepository
     public async Task<SaveResult> SaveRulesAsync(string fieldKey, IReadOnlyList<DateAlertRule> rules, long? userId, CancellationToken cancellationToken = default)
     {
         var p = new DynamicParameters();
-        p.Add("@Action", "SAVE", DbType.AnsiString, size: 10);
+        // none left: CLEAR deletes the field's reminders outright; else SAVE replaces them with "M2,W1,D0"
+        p.Add("@Action", rules.Count == 0 ? "CLEAR" : "SAVE", DbType.AnsiString, size: 10);
         p.Add("@FieldKey", fieldKey, DbType.AnsiString, size: 50);
-        // "M2,W1,D0": unit + value, comma separated
-        p.Add("@Rules", string.Join(",", rules.Select(r => r.UnitCode + r.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))), DbType.AnsiString, size: 400);
+        if (rules.Count > 0)
+        {
+            p.Add("@Rules", string.Join(",", rules.Select(r => r.UnitCode + r.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))), DbType.AnsiString, size: 400);
+        }
         p.Add("@UserId", userId, DbType.Int64);
         p.Add("@NewId", dbType: DbType.Int64, direction: ParameterDirection.Output);
         p.Add("@ResultCode", dbType: DbType.AnsiString, direction: ParameterDirection.Output, size: 40);

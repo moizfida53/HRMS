@@ -13,6 +13,7 @@
      2. Employee.usp_DateAlert_Manage
           LIST  every reminder
           SAVE  replace one field's reminders (@Rules = 'M2,W1,D0')
+          CLEAR remove all of one field's reminders (no @Rules)
           DUE   the live employees' dates that have reached a reminder:
                 - an expiry (Civil ID, passport, ...) stays due once it has
                   passed, until the date is renewed;
@@ -80,6 +81,20 @@ BEGIN
         RETURN;
     END;
 
+    /* every reminder of the field removed - a plain delete, no list to read */
+    IF @Action = 'CLEAR' OR (@Action = 'SAVE' AND NULLIF(LTRIM(RTRIM(ISNULL(@Rules, ''))), '') IS NULL)
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM @Fields WHERE FieldKey = @FieldKey)
+        BEGIN
+            SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'This date field does not take alerts.';
+            RETURN;
+        END;
+
+        DELETE FROM [Employee].[DateFieldAlerts] WHERE LTRIM(RTRIM(FieldKey)) = LTRIM(RTRIM(@FieldKey));
+        SELECT @NewId = @@ROWCOUNT, @ResultMessage = N'Alerts removed.';
+        RETURN;
+    END;
+
     IF @Action = 'SAVE'
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM @Fields WHERE FieldKey = @FieldKey)
@@ -117,7 +132,7 @@ BEGIN
         END;
 
         BEGIN TRANSACTION;
-            DELETE FROM [Employee].[DateFieldAlerts] WHERE FieldKey = @FieldKey;
+            DELETE FROM [Employee].[DateFieldAlerts] WHERE LTRIM(RTRIM(FieldKey)) = LTRIM(RTRIM(@FieldKey));
             INSERT INTO [Employee].[DateFieldAlerts] (FieldKey, UnitCode, Value, CreatedBy)
             SELECT @FieldKey, UnitCode, Value, @UserId FROM @New;
         COMMIT;
