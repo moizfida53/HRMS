@@ -80,7 +80,16 @@
             if (changed) { HRMS.reload(); }
         });
         window.addEventListener("message", function (event) {
-            if (event.origin === window.location.origin && event.data === "hrms:employee-saved") { changed = true; }
+            if (event.origin !== window.location.origin) { return; }
+            var data = event.data;
+            if (data === "hrms:employee-saved") { changed = true; return; }
+            if (data && data.type === "hrms:employee-saved" && data.close) {
+                // Save Changes in the popup: close it, say so, and reload so the alert list is current
+                changed = false;
+                HRMS.flash(data.message, "success");
+                bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                HRMS.reload();
+            }
         });
     })();
 

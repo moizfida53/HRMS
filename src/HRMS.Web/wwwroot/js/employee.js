@@ -446,6 +446,11 @@
                 if (!doEmployee && !doCompliance) { HRMS.toast(HRMS.t("js.nothing_to_save", "There are no changes to save."), "info"); return; }
                 // saved: say so, then back to the Employees page (the message shows there too)
                 var message = HRMS.t("js.changes_saved_successfully", "Changes saved successfully.");
+                if (document.documentElement.classList.contains("hrms-embed") && window.parent !== window) {
+                    // inside the Dashboard's alert popup: the Dashboard closes it and shows the message
+                    window.parent.postMessage({ type: "hrms:employee-saved", close: true, message: message }, window.location.origin);
+                    return;
+                }
                 HRMS.toast(message, "success");
                 HRMS.flash(message, "success");
                 saveAllButton.disabled = true;
