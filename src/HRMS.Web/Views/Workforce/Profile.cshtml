@@ -27,6 +27,25 @@
         ("personal", "Personal Info"), ("employment", "Employment"),
         ("compliance", "Kuwait Compliance"), ("dependents", "Dependents"),
         ("documents", "Documents") };
+
+    // db/65: an administrator's bell next to each date field - its alerts apply to every employee.
+    ViewData["Embed"] = Model.Embed;
+    var alertRules = Model.DateAlertRules
+        .GroupBy(r => r.FieldKey, StringComparer.OrdinalIgnoreCase)
+        .ToDictionary(g => g.Key, g => string.Join(",", g.Select(r => r.UnitCode + r.Value)), StringComparer.OrdinalIgnoreCase);
+
+    void AlertBell(string key)
+    {
+        var field = DateAlertFields.Find(key);
+        if (!Model.CanManageDateAlerts || field is null) { return; }
+        var rules = alertRules.GetValueOrDefault(key, "");
+        var name = L[field.LabelKey];
+        <button type="button" class="hrms-date-alert@(rules.Length > 0 ? " is-set" : "")" data-date-alert="@key" data-rules="@rules"
+                data-field-name="@name" aria-haspopup="dialog" aria-label="@L["emp.date_alerts_for", name]" title="@L["emp.date_alerts_for", name]">
+            @Html.Icon("bell", 14)
+            <span class="hrms-date-alert__count" data-date-alert-count>@(rules.Length > 0 ? rules.Split(',').Length.ToString() : "")</span>
+        </button>
+    }
 }
 
 
@@ -229,7 +248,7 @@
                                     <span class="field-validation-error" data-valmsg-for="Gender"></span>
                                 </div>
                                 <div class="col-6 col-md-4 col-xl-2">
-                                    <label class="form-label" for="f-DateOfBirth">@L["emp.date_of_birth"]</label>
+                                    <div class="hrms-label-row"><label class="form-label" for="f-DateOfBirth">@L["emp.date_of_birth"]</label>@{ AlertBell("DateOfBirth"); }</div>
                                     <input class="form-control" id="f-DateOfBirth" form="employee-form" name="DateOfBirth" type="date"
                                            value="@e.DateOfBirth?.ToString("yyyy-MM-dd")" />
                                     <span class="field-validation-error" data-valmsg-for="DateOfBirth"></span>
@@ -695,19 +714,19 @@
                         <div class="accordion-body">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label" for="f-HireDate">@L["emp.hire_date"]</label>
+                        <div class="hrms-label-row"><label class="form-label" for="f-HireDate">@L["emp.hire_date"]</label>@{ AlertBell("HireDate"); }</div>
                         <input class="form-control" id="f-HireDate" form="employee-form" name="HireDate" type="date"
                                value="@e.HireDate?.ToString("yyyy-MM-dd")" />
                         <span class="field-validation-error" data-valmsg-for="HireDate"></span>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label" for="f-ProbationEndDate">@L["emp.probation_end_date"]</label>
+                        <div class="hrms-label-row"><label class="form-label" for="f-ProbationEndDate">@L["emp.probation_end_date"]</label>@{ AlertBell("ProbationEndDate"); }</div>
                         <input class="form-control" id="f-ProbationEndDate" form="employee-form" name="ProbationEndDate" type="date"
                                value="@e.ProbationEndDate?.ToString("yyyy-MM-dd")" />
                         <span class="field-validation-error" data-valmsg-for="ProbationEndDate"></span>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label" for="f-TerminationDate">@L["emp.termination_date"]</label>
+                        <div class="hrms-label-row"><label class="form-label" for="f-TerminationDate">@L["emp.termination_date"]</label>@{ AlertBell("TerminationDate"); }</div>
                         <input class="form-control" id="f-TerminationDate" form="employee-form" name="TerminationDate" type="date"
                                value="@e.TerminationDate?.ToString("yyyy-MM-dd")" />
                         <span class="field-validation-error" data-valmsg-for="TerminationDate"></span>
@@ -842,7 +861,7 @@
                             <span class="field-validation-error" data-valmsg-for="CivilIdNumber"></span>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="f-CivilIdExpiryDate">@L["emp.civil_id_expiry"]</label>
+                            <div class="hrms-label-row"><label class="form-label" for="f-CivilIdExpiryDate">@L["emp.civil_id_expiry"]</label>@{ AlertBell("CivilIdExpiryDate"); }</div>
                             <input class="form-control" id="f-CivilIdExpiryDate" name="CivilIdExpiryDate" type="date"
                                    value="@c?.CivilIdExpiryDate?.ToString("yyyy-MM-dd")" />
                             <span class="field-validation-error" data-valmsg-for="CivilIdExpiryDate"></span>
@@ -880,7 +899,7 @@
                             <span class="field-validation-error" data-valmsg-for="PassportCountryId"></span>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="f-PassportExpiryDate">@L["emp.passport_expiry"]</label>
+                            <div class="hrms-label-row"><label class="form-label" for="f-PassportExpiryDate">@L["emp.passport_expiry"]</label>@{ AlertBell("PassportExpiryDate"); }</div>
                             <input class="form-control" id="f-PassportExpiryDate" name="PassportExpiryDate" type="date"
                                    value="@c?.PassportExpiryDate?.ToString("yyyy-MM-dd")" />
                             <span class="field-validation-error" data-valmsg-for="PassportExpiryDate"></span>
@@ -913,7 +932,7 @@
                             <span class="field-validation-error" data-valmsg-for="ResidencyType"></span>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="f-ResidencyExpiryDate">@L["emp.residency_expiry"]</label>
+                            <div class="hrms-label-row"><label class="form-label" for="f-ResidencyExpiryDate">@L["emp.residency_expiry"]</label>@{ AlertBell("ResidencyExpiryDate"); }</div>
                             <input class="form-control" id="f-ResidencyExpiryDate" name="ResidencyExpiryDate" type="date"
                                    value="@c?.ResidencyExpiryDate?.ToString("yyyy-MM-dd")" />
                             <span class="field-validation-error" data-valmsg-for="ResidencyExpiryDate"></span>
@@ -988,7 +1007,7 @@
                             <span class="field-validation-error" data-valmsg-for="WorkPermitNumber"></span>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="f-WorkPermitExpiryDate">@L["emp.work_permit_expiry"]</label>
+                            <div class="hrms-label-row"><label class="form-label" for="f-WorkPermitExpiryDate">@L["emp.work_permit_expiry"]</label>@{ AlertBell("WorkPermitExpiryDate"); }</div>
                             <input class="form-control" id="f-WorkPermitExpiryDate" name="WorkPermitExpiryDate" type="date"
                                    value="@c?.WorkPermitExpiryDate?.ToString("yyyy-MM-dd")" />
                             <span class="field-validation-error" data-valmsg-for="WorkPermitExpiryDate"></span>
@@ -1042,7 +1061,7 @@
                             <span class="field-validation-error" data-valmsg-for="DrivingLicenseNumber"></span>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="f-DrivingLicenseExpiryDate">@L["emp.driving_license_expiry"]</label>
+                            <div class="hrms-label-row"><label class="form-label" for="f-DrivingLicenseExpiryDate">@L["emp.driving_license_expiry"]</label>@{ AlertBell("DrivingLicenseExpiryDate"); }</div>
                             <input class="form-control" id="f-DrivingLicenseExpiryDate" name="DrivingLicenseExpiryDate" type="date"
                                    value="@c?.DrivingLicenseExpiryDate?.ToString("yyyy-MM-dd")" />
                             <span class="field-validation-error" data-valmsg-for="DrivingLicenseExpiryDate"></span>
@@ -1059,7 +1078,7 @@
                             <span class="field-validation-error" data-valmsg-for="BloodType"></span>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label" for="f-HealthCertificateExpiry">@L["emp.health_cert_expiry"]</label>
+                            <div class="hrms-label-row"><label class="form-label" for="f-HealthCertificateExpiry">@L["emp.health_cert_expiry"]</label>@{ AlertBell("HealthCertificateExpiry"); }</div>
                             <input class="form-control" id="f-HealthCertificateExpiry" name="HealthCertificateExpiry" type="date"
                                    value="@c?.HealthCertificateExpiry?.ToString("yyyy-MM-dd")" />
                             <span class="field-validation-error" data-valmsg-for="HealthCertificateExpiry"></span>
@@ -1258,6 +1277,79 @@
         </div>
     </div>
 </div>
+
+@if (!string.IsNullOrEmpty(Model.Focus))
+{
+    @* the Dashboard alert's date field: profile.js opens its section, scrolls to it and highlights it *@
+    <span hidden data-profile-focus="f-@Model.Focus"></span>
+}
+
+@if (Model.CanManageDateAlerts)
+{
+    @* ------------------------------------------------- Date field alerts (db/65) *@
+    @* The bell next to a date field opens this: reminders like a phone's - N months /
+       weeks / days before, or on the day. They apply to that date of every employee. *@
+    <div class="modal fade hrms-alerts" id="date-alert-modal" tabindex="-1" aria-hidden="true" aria-labelledby="date-alert-title"
+         data-save-url="@Url.Action("SaveDateAlerts", "Employees")">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="hrms-alerts__head">
+                        <span class="hrms-alerts__badge" aria-hidden="true">@Html.Icon("bell", 18)</span>
+                        <div>
+                            <h2 class="modal-title h5" id="date-alert-title">@L["emp.date_alerts"]</h2>
+                            <span class="hrms-alerts__field" data-alert-field></span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="hrms-alerts__scope">@Html.Icon("info", 14)<span>@L["emp.date_alerts_scope"]</span></p>
+
+                    <p class="hrms-alerts__label" id="date-alert-quick">@L["emp.date_alerts_quick_add"]</p>
+                    <div class="hrms-alerts__presets" role="group" aria-labelledby="date-alert-quick">
+                        @foreach (var (unit, value) in new[] { ("D", 0), ("D", 1), ("D", 3), ("W", 1), ("W", 2), ("M", 1), ("M", 2), ("M", 3), ("M", 6) })
+                        {
+                            <button type="button" class="hrms-alerts__chip" data-alert-preset data-unit="@unit" data-value="@value" aria-pressed="false"></button>
+                        }
+                    </div>
+
+                    <p class="hrms-alerts__label">@L["emp.date_alerts_list"]</p>
+                    <ul class="hrms-alerts__list" data-alert-list></ul>
+                    <p class="hrms-alerts__empty" data-alert-empty>@L["emp.date_alerts_none"]</p>
+
+                    <button type="button" class="btn btn-sm btn-outline-primary hrms-alerts__add" data-alert-add>
+                        @Html.Icon("plus", 14)<span>@L["emp.date_alerts_add"]</span>
+                    </button>
+                    <p class="field-validation-error mb-0" data-alert-error role="alert"></p>
+
+                    @* one alert row, cloned by employee.js *@
+                    <template data-alert-template>
+                        <li class="hrms-alerts__row">
+                            <span class="hrms-alerts__bell" aria-hidden="true">@Html.Icon("bell", 14)</span>
+                            <input class="form-control form-control-sm hrms-alerts__value" type="number" min="0" max="99" step="1"
+                                   inputmode="numeric" aria-label="@L["emp.date_alerts_value"]" data-alert-value />
+                            <select class="form-select form-select-sm hrms-alerts__unit" aria-label="@L["emp.date_alerts_unit"]" data-alert-unit>
+                                <option value="M">@L["emp.date_alerts_months"]</option>
+                                <option value="W">@L["emp.date_alerts_weeks"]</option>
+                                <option value="D">@L["emp.date_alerts_days"]</option>
+                            </select>
+                            <span class="hrms-alerts__when" data-alert-when></span>
+                            <button type="button" class="btn-icon btn-icon--danger" data-alert-remove
+                                    title="@L["emp.date_alerts_remove"]" aria-label="@L["emp.date_alerts_remove"]">@Html.Icon("trash", 15)</button>
+                        </li>
+                    </template>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                    <button type="button" class="btn btn-primary" data-alert-save>
+                        @Html.Icon("check", 15)<span>@L["emp.date_alerts_save"]</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @* ------------------------------------------------------- Document viewer *@
 @* An uploaded image or PDF opens here instead of a new tab; maximize / restore like a window. *@

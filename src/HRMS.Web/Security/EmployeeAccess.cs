@@ -28,6 +28,9 @@ public sealed record EmployeeAccess(
 
     /// <summary>Open the employee Audit Report (db/60).</summary>
     public const string PermAuditView = "AUDIT_REPORT_VIEW";
+
+    /// <summary>Set the alerts on the employee date fields (db/65) - administrators.</summary>
+    public const string PermDateAlerts = "EMPLOYEE_DATE_ALERTS";
 }
 
 public static class EmployeeAccessExtensions
@@ -38,6 +41,10 @@ public static class EmployeeAccessExtensions
     /// </summary>
     public static bool CanChangePayrollCalendar(this ICurrentUser u) =>
         u.HasPermission(Security.EmployeeAccess.PermPayrollCalendarChange) || u.IsInRole("SYSADMIN");
+
+    /// <summary>The bell next to a date field: set its alerts (for every employee). System Administrator always may.</summary>
+    public static bool CanManageDateAlerts(this ICurrentUser u) =>
+        u.HasPermission(Security.EmployeeAccess.PermDateAlerts) || u.IsInRole("SYSADMIN");
 
     public static bool CanViewAudit(this ICurrentUser u) =>
         u.HasPermission(Security.EmployeeAccess.PermAuditView) || u.IsInRole("SYSADMIN");

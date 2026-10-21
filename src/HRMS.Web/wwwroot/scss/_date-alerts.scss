@@ -1,0 +1,389 @@
+// ============================================================================
+// Date field alerts (db/65)
+// ----------------------------------------------------------------------------
+// - the bell beside each date field on the Employee page (administrators) and
+//   the popup that sets its reminders, like a phone's: "2 months before",
+//   "1 week before", "on the day";
+// - the alerted date opened from the Dashboard (?focus=...), highlighted;
+// - the embedded profile (html.hrms-embed) shown in the Dashboard's popup;
+// - the alert list under "HR actions required" on the Dashboard.
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// --------------------------------------------------------- label + bell ----
+.hrms-label-row {
+  display: flex;
+  align-items: center;
+  gap: space("1");
+  min-width: 0;
+
+  .form-label { margin-bottom: 0.5rem; }
+}
+
+.hrms-date-alert {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: $radius-pill;
+  background: transparent;
+  color: $ink-400;
+  cursor: pointer;
+  @include motion(background-color, color, border-color);
+  @include focus-ring;
+
+  &:hover { background: $blue-050; border-color: $blue-200; color: $blue-700; }
+
+  // alerts set: a filled blue bell with how many
+  &.is-set {
+    background: $blue-050;
+    color: $blue-600;
+
+    svg path:first-child { fill: currentColor; fill-opacity: 0.18; }
+  }
+
+  &__count {
+    position: absolute;
+    inset-block-start: -5px;
+    inset-inline-end: -6px;
+    min-width: 0.95rem;
+    height: 0.95rem;
+    padding: 0 3px;
+    border-radius: $radius-pill;
+    background: $blue-600;
+    color: $white;
+    font-size: 0.6rem;
+    font-weight: $fw-bold;
+    line-height: 0.95rem;
+    text-align: center;
+    box-shadow: 0 0 0 2px $white;
+
+    &:empty { display: none; }
+  }
+}
+
+// ------------------------------------------------------------ the popup ----
+.hrms-alerts {
+  .modal-dialog { max-width: 30rem; }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    min-width: 0;
+  }
+
+  &__badge {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: $radius-md;
+    background: $blue-050;
+    color: $blue-600;
+  }
+
+  &__field {
+    display: block;
+    color: $ink-500;
+    font-size: $fs-sm;
+  }
+
+  &__scope {
+    display: flex;
+    align-items: flex-start;
+    gap: space("2");
+    margin: 0 0 space("4");
+    padding: space("2") space("3");
+    border-radius: $radius;
+    background: $surface;
+    color: $ink-600;
+    font-size: $fs-sm;
+
+    svg { flex: 0 0 auto; margin-block-start: 2px; color: $blue-600; }
+  }
+
+  &__label {
+    margin: 0 0 space("2");
+    @include label-caps;
+  }
+
+  // quick options, like a phone's alert presets
+  &__presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: space("2");
+    margin-bottom: space("4");
+  }
+
+  &__chip {
+    padding: 0.3rem 0.7rem;
+    border: 1px solid $line-300;
+    border-radius: $radius-pill;
+    background: $white;
+    color: $ink-700;
+    font-size: $fs-sm;
+    font-weight: $fw-medium;
+    @include motion(background-color, border-color, color);
+    @include focus-ring;
+
+    &:hover { border-color: $blue-500; color: $blue-700; }
+
+    &.is-on {
+      border-color: $blue-600;
+      background: $blue-600;
+      color: $white;
+    }
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: space("2");
+    margin: 0 0 space("3");
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    padding: space("2");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $surface-2;
+
+    &.is-on-the-day { background: $blue-050; border-color: $blue-100; }
+  }
+
+  &__bell { display: inline-flex; color: $blue-600; }
+
+  &__value { flex: 0 0 4.25rem; width: 4.25rem; text-align: center; }
+
+  &__unit { flex: 0 1 7.5rem; min-width: 0; }
+
+  &__when {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: $ink-600;
+    font-size: $fs-sm;
+  }
+
+  &__empty {
+    margin: 0 0 space("3");
+    padding: space("3");
+    border: 1px dashed $line-300;
+    border-radius: $radius;
+    color: $ink-500;
+    font-size: $fs-sm;
+    text-align: center;
+  }
+
+  &__add { display: inline-flex; align-items: center; gap: space("1"); }
+
+  [data-alert-error]:not(:empty) { margin-top: space("2"); }
+}
+
+// ------------------------------------------- the date opened from an alert ----
+.hrms-focus-field {
+  border-radius: $radius;
+  animation: hrms-focus-pulse 1.4s ease-out 3;
+  box-shadow: 0 0 0 3px rgba($amber-600, 0.55);
+  background: $amber-050;
+  outline: 6px solid $amber-050;
+}
+
+@keyframes hrms-focus-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba($amber-600, 0.7); }
+  70%  { box-shadow: 0 0 0 10px rgba($amber-600, 0); }
+  100% { box-shadow: 0 0 0 3px rgba($amber-600, 0.55); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hrms-focus-field { animation: none; }
+}
+
+// -------------------------------------------- the profile inside a popup ----
+html.hrms-embed {
+  .hrms-sidebar,
+  .hrms-topbar,
+  .hrms-backdrop,
+  .hrms-skip-link,
+  .hrms-password-banner { display: none !important; }
+
+  .hrms-main { margin-inline-start: 0 !important; }
+
+  .hrms-content { padding-block-start: space("4"); }
+}
+
+// --------------------------------------------- Dashboard: alerted dates ----
+.hrms-dalerts {
+  display: flex;
+  flex-direction: column;
+  gap: space("2");
+  padding-top: space("3");
+  border-top: 1px solid $line-200;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: space("2");
+  }
+
+  &__title {
+    display: inline-flex;
+    align-items: center;
+    gap: space("2");
+    @include label-caps;
+
+    svg { color: $blue-600; }
+  }
+
+  &__total {
+    min-width: 1.6rem;
+    padding: 0 space("2");
+    border-radius: $radius-pill;
+    background: $blue-050;
+    color: $blue-700;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+    line-height: 1.4rem;
+    text-align: center;
+  }
+
+  &__empty {
+    margin: 0;
+    color: $ink-500;
+    font-size: $fs-sm;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    padding: space("2") 0;
+    border-bottom: 1px solid $line-100;
+    font-size: $fs-sm;
+
+    &:last-child { border-bottom: 0; }
+
+    --tone: #{$blue-700};
+    --tone-bg: #{$blue-050};
+
+    &.is-critical { --tone: #{$red-700};   --tone-bg: #{$red-050}; }
+    &.is-serious  { --tone: #{$amber-700}; --tone-bg: #{$amber-050}; }
+    &.is-warning  { --tone: #{$amber-600}; --tone-bg: #{$amber-050}; }
+  }
+
+  &__icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: $radius;
+    background: var(--tone-bg);
+    color: var(--tone);
+  }
+
+  &__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__name {
+    color: $ink-900;
+    font-weight: $fw-semibold;
+    @include truncate;
+  }
+
+  &__code {
+    margin-inline-start: space("1");
+    color: $ink-400;
+    font-size: $fs-xs;
+    font-weight: $fw-medium;
+  }
+
+  &__meta {
+    color: $ink-600;
+    font-size: $fs-xs;
+    @include truncate;
+
+    strong { color: $ink-700; font-weight: $fw-semibold; }
+  }
+
+  &__rule {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-inline-start: space("1");
+    color: $ink-400;
+  }
+
+  &__due {
+    flex: 0 0 auto;
+    padding: 0.15rem 0.55rem;
+    border-radius: $radius-pill;
+    background: var(--tone-bg);
+    color: var(--tone);
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+    white-space: nowrap;
+  }
+
+  &__view { flex: 0 0 auto; }
+
+  &__more {
+    align-self: flex-start;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $blue-600;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+
+    &:hover { text-decoration: underline; }
+    &:focus-visible { @include focus-ring; }
+  }
+
+  // phones: the due chip moves under the name
+  @include down("sm") {
+    &__item { flex-wrap: wrap; }
+    &__body { flex-basis: calc(100% - 30px - 2.5rem - #{space("3")} * 2); }
+    &__meta { white-space: normal; }
+    &__due { margin-inline-start: calc(30px + #{space("3")}); }
+    &__view { margin-inline-start: auto; }
+  }
+}
+
+// the employee popup: the frame fills it
+.hrms-dalert-view {
+  .modal-body.hrms-dalert-view__body { padding: 0; }
+
+  .hrms-dalert-view__frame { display: block; height: calc(100vh - 11rem); }
+
+  .modal-fullscreen .hrms-dalert-view__frame { height: 100%; }
+}

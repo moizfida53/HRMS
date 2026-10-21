@@ -10,6 +10,12 @@ public sealed class DashboardViewModel
 
     public required DashboardData Data { get; init; }
 
+    /// <summary>The user may see the date field alerts (db/65) - they can open the employees.</summary>
+    public bool ShowDateAlerts { get; init; }
+
+    /// <summary>Employee dates that have reached one of their field's alerts, soonest (or most overdue) first.</summary>
+    public IReadOnlyList<HRMS.Domain.Workforce.DateAlertDue> DateAlerts { get; init; } = Array.Empty<HRMS.Domain.Workforce.DateAlertDue>();
+
     /// <summary>Top-bar company filter label ("All companies", a name, or "3 companies").</summary>
     public string CompanyLabel { get; init; } = "All companies";
 

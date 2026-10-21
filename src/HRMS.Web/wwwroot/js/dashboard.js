@@ -13,6 +13,74 @@
         picker.addEventListener("change", function () { picker.form.submit(); });
     }
 
+    /* ---- date field alerts (db/65) in "HR actions required" */
+    (function initDateAlerts() {
+        var panel = document.querySelector("[data-dalerts]");
+        if (!panel) { return; }
+
+        var toggle = panel.querySelector("[data-dalerts-toggle]");
+        if (toggle) {
+            toggle.addEventListener("click", function () {
+                var open = toggle.getAttribute("aria-expanded") !== "true";
+                panel.querySelectorAll("[data-dalert-more]").forEach(function (li) { li.hidden = !open; });
+                toggle.setAttribute("aria-expanded", open ? "true" : "false");
+                toggle.textContent = open ? toggle.dataset.textLess : toggle.dataset.textMore;
+            });
+        }
+
+        // the eye: the employee's profile in a popup, opened at the alerted date
+        var modalEl = document.getElementById("date-alert-view-modal");
+        if (!modalEl || !window.bootstrap) { return; }
+        var dialog = modalEl.querySelector("[data-dav-dialog]");
+        var sizeButton = modalEl.querySelector("[data-dav-size]");
+        var body = modalEl.querySelector("[data-dav-body]");
+
+        function setMaximized(on) {
+            var label = on ? sizeButton.dataset.titleRestore : sizeButton.dataset.titleMax;
+            dialog.classList.toggle("modal-fullscreen", on);
+            dialog.classList.toggle("modal-dialog-centered", !on);
+            dialog.classList.toggle("modal-xl", !on);
+            sizeButton.setAttribute("aria-pressed", on ? "true" : "false");
+            sizeButton.title = label;
+            sizeButton.setAttribute("aria-label", label);
+            sizeButton.querySelector("[data-dav-icon-max]").hidden = on;
+            sizeButton.querySelector("[data-dav-icon-restore]").hidden = !on;
+        }
+
+        panel.addEventListener("click", function (event) {
+            var button = event.target.closest("[data-dalert-view]");
+            if (!button) { return; }
+            modalEl.querySelector("[data-dav-title]").textContent = button.dataset.title;
+            modalEl.querySelector("[data-dav-subtitle]").textContent = button.dataset.subtitle;
+            modalEl.querySelector("[data-dav-open]").href = button.dataset.fullUrl;
+
+            var frame = document.createElement("iframe");
+            frame.className = "doc-viewer__frame hrms-dalert-view__frame";
+            frame.title = button.dataset.title;
+            frame.src = button.dataset.dalertView;
+            body.innerHTML = "";
+            body.appendChild(frame);
+
+            setMaximized(false);
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        });
+
+        sizeButton.addEventListener("click", function () {
+            setMaximized(sizeButton.getAttribute("aria-pressed") !== "true");
+        });
+
+        // a date fixed in the popup should drop off the list: reload once it closes
+        var changed = false;
+        modalEl.addEventListener("hidden.bs.modal", function () {
+            body.innerHTML = "";
+            setMaximized(false);
+            if (changed) { window.location.reload(); }
+        });
+        window.addEventListener("message", function (event) {
+            if (event.origin === window.location.origin && event.data === "hrms:employee-saved") { changed = true; }
+        });
+    })();
+
     var dataEl = document.getElementById("dashboard-data");
     if (!dataEl) { return; }
 

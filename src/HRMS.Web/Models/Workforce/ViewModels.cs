@@ -196,6 +196,18 @@ public sealed class EmployeeProfileViewModel
     /// <summary>The user may change a calendar once assigned (EMPLOYEE_PAYROLL_CALENDAR_CHANGE).</summary>
     public bool CanChangePayrollCalendar { get; init; }
 
+    /// <summary>The user sets the alerts on the date fields (db/65): the bell shows next to each.</summary>
+    public bool CanManageDateAlerts { get; init; }
+
+    /// <summary>The reminders set on each date field (db/65), for the bells; empty when the user may not set them.</summary>
+    public IReadOnlyList<DateAlertRule> DateAlertRules { get; init; } = Array.Empty<DateAlertRule>();
+
+    /// <summary>Shown inside the Dashboard's alert popup: no sidebar / top bar (embed=true).</summary>
+    public bool Embed { get; init; }
+
+    /// <summary>A date field to open, scroll to and highlight on load (the Dashboard alert's field).</summary>
+    public string? Focus { get; init; }
+
     /// <summary>The calendar field is read-only: one is assigned and the user may not change it.</summary>
     public bool PayrollCalendarLocked => PayrollCalendar?.PayrollCalendarId is not null && !CanChangePayrollCalendar;
 

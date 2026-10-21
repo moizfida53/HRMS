@@ -977,6 +977,215 @@
         }
     })();
 
+    /* ============================================ date field alerts (db/65) === */
+
+    // The bell next to a date field (administrators): reminders like a phone's -
+    // N months / weeks / days before the date, or on the day. They belong to the
+    // field, so they apply to that date of every employee.
+    (function initDateAlerts() {
+        var modalEl = document.getElementById("date-alert-modal");
+        if (!modalEl) { return; }
+
+        var list = modalEl.querySelector("[data-alert-list]");
+        var empty = modalEl.querySelector("[data-alert-empty]");
+        var error = modalEl.querySelector("[data-alert-error]");
+        var template = modalEl.querySelector("[data-alert-template]");
+        var saveButton = modalEl.querySelector("[data-alert-save]");
+        var current = null;   // the bell being edited
+        var UNIT_ORDER = { M: 3, W: 2, D: 1 };
+        var DAYS = { M: 30, W: 7, D: 1 };
+
+        function unitText(unit, value) {
+            if (value === 1) {
+                return unit === "M" ? HRMS.t("js.alert_1_month", "1 month") : unit === "W" ? HRMS.t("js.alert_1_week", "1 week") : HRMS.t("js.alert_1_day", "1 day");
+            }
+            return unit === "M" ? HRMS.t("js.alert_n_months", "{0} months", value)
+                 : unit === "W" ? HRMS.t("js.alert_n_weeks", "{0} weeks", value)
+                 : HRMS.t("js.alert_n_days", "{0} days", value);
+        }
+
+        // "On the day" / "2 months before"
+        function ruleText(unit, value) {
+            return value === 0 ? HRMS.t("js.alert_on_the_day", "On the day")
+                               : HRMS.t("js.alert_before", "{0} before", unitText(unit, value));
+        }
+
+        function parseRules(csv) {
+            return (csv || "").split(",").filter(Boolean).map(function (token) {
+                return { unit: token.charAt(0), value: parseInt(token.slice(1), 10) || 0 };
+            });
+        }
+
+        // earliest reminder first, "on the day" last - the order they go off
+        function sortRules(rules) {
+            return rules.sort(function (a, b) { return b.value * DAYS[b.unit] - a.value * DAYS[a.unit] || UNIT_ORDER[b.unit] - UNIT_ORDER[a.unit]; });
+        }
+
+        function readRows() {
+            return Array.prototype.map.call(list.children, function (row) {
+                return {
+                    row: row,
+                    unit: row.querySelector("[data-alert-unit]").value,
+                    raw: row.querySelector("[data-alert-value]").value.trim(),
+                    value: parseInt(row.querySelector("[data-alert-value]").value, 10)
+                };
+            });
+        }
+
+        function refresh() {
+            var rows = readRows();
+            empty.hidden = rows.length > 0;
+            rows.forEach(function (r) {
+                var valid = r.raw !== "" && !isNaN(r.value) && r.value >= 0 && r.value <= 99;
+                r.row.querySelector("[data-alert-when]").textContent = !valid ? "" :
+                    r.value === 0 ? HRMS.t("js.alert_on_the_day", "On the day") : HRMS.t("js.alert_before_word", "before");
+                r.row.querySelector("[data-alert-unit]").hidden = valid && r.value === 0;
+                r.row.classList.toggle("is-on-the-day", valid && r.value === 0);
+            });
+            // a quick option is "on" while the same alert is in the list
+            modalEl.querySelectorAll("[data-alert-preset]").forEach(function (chip) {
+                var unit = chip.dataset.unit;
+                var value = parseInt(chip.dataset.value, 10);
+                var on = rows.some(function (r) { return r.value === value && (value === 0 || r.unit === unit); });
+                chip.classList.toggle("is-on", on);
+                chip.setAttribute("aria-pressed", on ? "true" : "false");
+            });
+            modalEl.querySelector("[data-alert-add]").disabled = rows.length >= 10;
+        }
+
+        function addRow(unit, value, focus) {
+            var row = template.content.firstElementChild.cloneNode(true);
+            row.querySelector("[data-alert-unit]").value = unit || "D";
+            row.querySelector("[data-alert-value]").value = value === undefined || value === null ? "" : value;
+            list.appendChild(row);
+            refresh();
+            if (focus) { row.querySelector("[data-alert-value]").focus(); }
+            return row;
+        }
+
+        function setBell(bell, rules) {
+            var csv = rules.map(function (r) { return r.unit + r.value; }).join(",");
+            bell.dataset.rules = csv;
+            bell.classList.toggle("is-set", rules.length > 0);
+            bell.querySelector("[data-date-alert-count]").textContent = rules.length ? rules.length : "";
+            var name = bell.dataset.fieldName;
+            bell.title = rules.length
+                ? name + " - " + rules.map(function (r) { return ruleText(r.unit, r.value); }).join(", ")
+                : HRMS.t("js.alert_none_set", "{0}: no alerts set", name);
+        }
+
+        // presets carry their own text
+        modalEl.querySelectorAll("[data-alert-preset]").forEach(function (chip) {
+            var value = parseInt(chip.dataset.value, 10);
+            chip.textContent = value === 0 ? HRMS.t("js.alert_on_the_day", "On the day") : unitText(chip.dataset.unit, value);
+        });
+        document.querySelectorAll("[data-date-alert]").forEach(function (bell) { setBell(bell, parseRules(bell.dataset.rules)); });
+
+        document.addEventListener("click", function (event) {
+            var bell = event.target.closest("[data-date-alert]");
+            if (!bell) { return; }
+            event.preventDefault();
+            current = bell;
+            modalEl.querySelector("[data-alert-field]").textContent = bell.dataset.fieldName;
+            error.textContent = "";
+            list.innerHTML = "";
+            sortRules(parseRules(bell.dataset.rules)).forEach(function (r) { addRow(r.unit, r.value); });
+            refresh();
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        });
+
+        modalEl.addEventListener("click", function (event) {
+            var chip = event.target.closest("[data-alert-preset]");
+            if (chip) {
+                var unit = chip.dataset.unit;
+                var value = parseInt(chip.dataset.value, 10);
+                var match = readRows().filter(function (r) { return r.value === value && (value === 0 || r.unit === unit); });
+                if (match.length) { match.forEach(function (r) { r.row.remove(); }); refresh(); }
+                else if (list.children.length < 10) { addRow(unit, value); }
+                error.textContent = "";
+                return;
+            }
+            if (event.target.closest("[data-alert-add]")) {
+                addRow("D", "", true);
+                return;
+            }
+            var remove = event.target.closest("[data-alert-remove]");
+            if (remove) {
+                remove.closest("li").remove();
+                refresh();
+            }
+        });
+
+        modalEl.addEventListener("input", function () { error.textContent = ""; refresh(); });
+        modalEl.addEventListener("change", refresh);
+
+        saveButton.addEventListener("click", function () {
+            if (!current) { return; }
+            var rows = readRows();
+            var bad = rows.filter(function (r) { return r.raw === "" || isNaN(r.value) || r.value < 0 || r.value > 99 || String(r.value) !== r.raw.replace(/^0+(?=\d)/, ""); });
+            modalEl.querySelectorAll(".hrms-alerts__value").forEach(function (input) { input.classList.remove("is-invalid"); });
+            if (bad.length) {
+                bad.forEach(function (r) { r.row.querySelector("[data-alert-value]").classList.add("is-invalid"); });
+                error.textContent = HRMS.t("js.alert_value_invalid", "Enter a whole number from 0 to 99 for each alert.");
+                bad[0].row.querySelector("[data-alert-value]").focus();
+                return;
+            }
+
+            // one of each, earliest first
+            var seen = {};
+            var rules = sortRules(rows.map(function (r) { return { unit: r.value === 0 ? "D" : r.unit, value: r.value }; })
+                .filter(function (r) { var key = r.unit + r.value; if (seen[key]) { return false; } seen[key] = true; return true; }));
+
+            var body = new FormData();
+            body.append("fieldKey", current.dataset.dateAlert);
+            rules.forEach(function (r) { body.append("units", r.unit); body.append("values", r.value); });
+
+            saveButton.disabled = true;
+            HRMS.post(modalEl.dataset.saveUrl, body)
+                .then(function (result) {
+                    if (!result.success) { error.textContent = result.message; return; }
+                    // the same field can have a bell in more than one place
+                    document.querySelectorAll('[data-date-alert="' + current.dataset.dateAlert + '"]').forEach(function (bell) { setBell(bell, rules); });
+                    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    HRMS.toast(result.message, "success");
+                })
+                .catch(function (err) { error.textContent = err.message; })
+                .finally(function () { saveButton.disabled = false; });
+        });
+    })();
+
+    /* ============================== open the date a Dashboard alert is about === */
+
+    // Shown inside the Dashboard's alert popup: tell it a save happened, so its list refreshes on close.
+    if (document.documentElement.classList.contains("hrms-embed") && window.parent !== window) {
+        ["employee:saved", "compliance:saved"].forEach(function (name) {
+            document.addEventListener(name, function () { window.parent.postMessage("hrms:employee-saved", window.location.origin); });
+        });
+    }
+
+    // ?focus=<field>: open the section holding the field, scroll to it and highlight it.
+    (function initFocusField() {
+        var marker = document.querySelector("[data-profile-focus]");
+        var field = marker ? document.getElementById(marker.dataset.profileFocus) : null;
+        if (!field) { return; }
+
+        function reveal() {
+            field.scrollIntoView({ block: "center" });
+            var holder = field.closest("[class*='col-']") || field.parentElement;
+            holder.classList.add("hrms-focus-field");
+            field.focus({ preventScroll: true });
+            window.setTimeout(function () { holder.classList.remove("hrms-focus-field"); }, 6000);
+        }
+
+        var collapse = field.closest(".collapse:not(.show)");
+        if (collapse && window.bootstrap) {
+            collapse.addEventListener("shown.bs.collapse", reveal, { once: true });
+            bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+        } else {
+            window.setTimeout(reveal, 150);
+        }
+    })();
+
     /* ==================================================== add wizard === */
 
     // Add Employee = the Profile page, one section at a time (Previous / Next):

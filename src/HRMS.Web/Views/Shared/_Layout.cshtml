@@ -23,9 +23,13 @@
 
     // Authentication:SimplePassword - no strength rules, max 50 characters.
     var simplePassword = AuthPolicy.Value.SimplePassword;
+
+    // ViewData["Embed"]: the page is shown inside a popup frame (the Dashboard's date
+    // alerts) - the sidebar and top bar are hidden (_layout.scss, .hrms-embed).
+    var embed = ViewData["Embed"] is true;
 }
 <!DOCTYPE html>
-<html lang="@L.Lang" dir="@L.Dir">
+<html lang="@L.Lang" dir="@L.Dir" class="@(embed ? "hrms-embed" : null)">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

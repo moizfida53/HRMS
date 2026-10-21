@@ -180,6 +180,73 @@
                     <span class="hrms-actions__count" title="@L["dash.available_once_the_leave_module_is_built"]">@L["common.soon"]</span>
                 </li>
             </ul>
+
+            @if (Model.ShowDateAlerts)
+            {
+                @* db/65: employee dates that have reached an alert set on their field (the bell on the Employee page) *@
+                const int shown = 6;
+                var alerts = Model.DateAlerts;
+                <div class="hrms-dalerts" data-dalerts>
+                    <div class="hrms-dalerts__head">
+                        <span class="hrms-dalerts__title">@Html.Icon("bell", 14)<span>@L["dash.date_alerts"]</span></span>
+                        <span class="hrms-dalerts__total">@alerts.Count.ToString("N0")</span>
+                    </div>
+                    @if (alerts.Count == 0)
+                    {
+                        <p class="hrms-dalerts__empty">@L["dash.date_alerts_none"]</p>
+                    }
+                    else
+                    {
+                        <ul class="hrms-dalerts__list">
+                            @for (var i = 0; i < alerts.Count; i++)
+                            {
+                                var al = alerts[i];
+                                var field = DateAlertFields.Find(al.FieldKey);
+                                var fieldName = field is null ? al.FieldKey : L[field.LabelKey];
+                                var tone = al.DaysLeft < 0 ? "is-critical" : al.DaysLeft <= 7 ? "is-serious" : al.DaysLeft <= 30 ? "is-warning" : "is-info";
+                                var due = al.DaysLeft == -1 ? L["dash.alert_overdue_yesterday"]
+                                        : al.DaysLeft < 0 ? L["dash.alert_overdue_days", -al.DaysLeft]
+                                        : al.DaysLeft == 0 ? L["dash.alert_today"]
+                                        : al.DaysLeft == 1 ? L["dash.alert_tomorrow"]
+                                        : L["dash.alert_in_days", al.DaysLeft];
+                                var one = al.RuleValue == 1;
+                                var rule = al.RuleValue is null or 0 ? L["dash.alert_rule_on_the_day"]
+                                         : al.RuleUnit == "M" ? (one ? L["dash.alert_rule_1_month"] : L["dash.alert_rule_months", al.RuleValue])
+                                         : al.RuleUnit == "W" ? (one ? L["dash.alert_rule_1_week"] : L["dash.alert_rule_weeks", al.RuleValue])
+                                         : (one ? L["dash.alert_rule_1_day"] : L["dash.alert_rule_days", al.RuleValue]);
+                                var view = $"/employees/profile/{al.EmployeeId}?embed=true&focus={al.FieldKey}";
+                                <li class="hrms-dalerts__item @tone" hidden="@(i >= shown)" data-dalert-more="@(i >= shown ? "true" : null)">
+                                    <span class="hrms-dalerts__icon" aria-hidden="true">@Html.Icon(al.DaysLeft < 0 ? "alert" : "calendar", 15)</span>
+                                    <span class="hrms-dalerts__body">
+                                        <span class="hrms-dalerts__name">
+                                            @al.EmployeeName
+                                            @if (!string.IsNullOrWhiteSpace(al.EmployeeCode)) { <span class="hrms-dalerts__code">@al.EmployeeCode</span> }
+                                        </span>
+                                        <span class="hrms-dalerts__meta">
+                                            <strong>@fieldName</strong> · @L.Date(al.DueDate)
+                                            <span class="hrms-dalerts__rule" title="@L["dash.alert_rule_hint"]">@Html.Icon("bell", 11)@rule</span>
+                                        </span>
+                                    </span>
+                                    <span class="hrms-dalerts__due">@due</span>
+                                    <button type="button" class="btn-icon hrms-dalerts__view" data-dalert-view="@view"
+                                            data-full-url="/employees/profile/@al.EmployeeId?focus=@al.FieldKey"
+                                            data-title="@al.EmployeeName" data-subtitle="@fieldName · @L.Date(al.DueDate) · @due"
+                                            title="@L["dash.alert_view"]" aria-label="@L["dash.alert_view_named", al.EmployeeName, fieldName]">
+                                        @Html.Icon("eye", 16)
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                        @if (alerts.Count > shown)
+                        {
+                            <button type="button" class="hrms-dalerts__more" data-dalerts-toggle aria-expanded="false"
+                                    data-text-more="@L["dash.alert_show_all", alerts.Count]" data-text-less="@L["dash.alert_show_less"]">
+                                @L["dash.alert_show_all", alerts.Count]
+                            </button>
+                        }
+                    }
+                </div>
+            }
             <a class="hrms-panel__link" href="/employees">@L["dash.open_employees"] @Html.Icon("chevron-right", 14)</a>
         </section>
     </div>
@@ -329,6 +396,36 @@
         }
     </section>
 </div>
+
+@if (Model.ShowDateAlerts)
+{
+    @* ------------------------------------------------ date alert: the employee *@
+    @* The eye on a date alert opens the employee's profile here (embedded), at the alerted date. *@
+    <div class="modal fade doc-viewer hrms-dalert-view" id="date-alert-view-modal" tabindex="-1" aria-hidden="true" aria-labelledby="dalert-view-title">
+        <div class="modal-dialog modal-dialog-centered modal-xl" data-dav-dialog>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="doc-viewer__title">
+                        <h2 class="modal-title h5" id="dalert-view-title" data-dav-title></h2>
+                        <span class="doc-viewer__file" data-dav-subtitle></span>
+                    </div>
+                    <div class="doc-viewer__tools">
+                        <a class="doc-viewer__tool" href="#" data-dav-open title="@L["dash.alert_open_profile"]" aria-label="@L["dash.alert_open_profile"]">@Html.Icon("user", 17)</a>
+                        <button type="button" class="doc-viewer__tool" data-dav-size
+                                data-title-max="@L["emp.docview_maximize"]" data-title-restore="@L["emp.docview_restore"]"
+                                title="@L["emp.docview_maximize"]" aria-label="@L["emp.docview_maximize"]" aria-pressed="false">
+                            <span data-dav-icon-max>@Html.Icon("maximize", 17)</span>
+                            <span data-dav-icon-restore hidden>@Html.Icon("restore", 17)</span>
+                        </button>
+                        <button type="button" class="doc-viewer__tool doc-viewer__tool--close" data-bs-dismiss="modal"
+                                title="@L["common.close"]" aria-label="@L["common.close"]">@Html.Icon("close", 18)</button>
+                    </div>
+                </div>
+                <div class="modal-body hrms-dalert-view__body" data-dav-body></div>
+            </div>
+        </div>
+    </div>
+}
 
 @* Chart data - read by dashboard.js; type="application/json" is never executed (CSP-safe). *@
 <script type="application/json" id="dashboard-data">@Html.Raw(Model.ChartJsonFor(m => L.Month(m.Month, shortName: true) + " " + (m.Year % 100).ToString("00"), L.MonthYear))</script>

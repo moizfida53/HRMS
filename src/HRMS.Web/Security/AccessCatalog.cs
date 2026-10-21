@@ -93,7 +93,9 @@ public static class AccessCatalog
                 new("WF.DEPENDENTS", "sec.fn_dependents", null, C("EMPLOYEE_DEPENDENT_VIEW"), C("EMPLOYEE_DEPENDENT_EDIT"), C("EMPLOYEE_DEPENDENT_DELETE")),
                 new("WF.DOCUMENTS", "sec.fn_documents", "sec.fn_documents_hint", C("EMPLOYEE_DOCUMENT_VIEW"), C("EMPLOYEE_DOCUMENT_UPLOAD"), C("EMPLOYEE_DOCUMENT_DELETE")),
                 // db/60: the first assignment comes with Create / Edit; changing it afterwards is this right
-                new("WF.PAYROLL_CALENDAR", "sec.fn_payroll_calendar", "sec.fn_payroll_calendar_hint", No, C("EMPLOYEE_PAYROLL_CALENDAR_CHANGE"), No)
+                new("WF.PAYROLL_CALENDAR", "sec.fn_payroll_calendar", "sec.fn_payroll_calendar_hint", No, C("EMPLOYEE_PAYROLL_CALENDAR_CHANGE"), No),
+                // db/65: the bell next to each date field (alerts for every employee)
+                new("WF.DATE_ALERTS", "sec.fn_date_alerts", "sec.fn_date_alerts_hint", No, C("EMPLOYEE_DATE_ALERTS"), No)
             ]),
             new("WF.AUDIT", "sec.pg_audit_report", "sec.pg_audit_report_hint", C("AUDIT_REPORT_VIEW"), No, No)
         ]),

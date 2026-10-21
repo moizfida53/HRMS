@@ -57,6 +57,9 @@ public static class StoredProcedure
     /// <summary>Document sections: LIST / INSERT (db/63).</summary>
     public const string DocumentSectionManage = "Documents.usp_DocumentSection_Manage";
 
+    /// <summary>Alerts on the employee date fields: LIST / SAVE the reminders, DUE employee dates (db/65).</summary>
+    public const string DateAlertManage = "Employee.usp_DateAlert_Manage";
+
     /// <summary>Documents tab: document types grouped by section + the employee's uploaded files.</summary>
     public const string EmployeeDocumentManage = "Documents.usp_EmployeeDocument_Manage";
 

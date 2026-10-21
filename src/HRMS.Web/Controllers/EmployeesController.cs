@@ -54,8 +54,10 @@ public sealed class EmployeesController : Controller
         IPayrollCalendarRepository calendars,
         IEmployeePayrollCalendarRepository payrollCalendar,
         IEmployeeAuditor auditor,
+        IDateAlertRepository dateAlerts,
         ILogger<EmployeesController> logger)
     {
+        _dateAlerts = dateAlerts;
         _employees = employees;
         _compliance = compliance;
         _dependents = dependents;
@@ -69,6 +71,8 @@ public sealed class EmployeesController : Controller
         _auditor = auditor;
         _logger = logger;
     }
+
+    private readonly IDateAlertRepository _dateAlerts;
 
     private CancellationToken Ct => HttpContext.RequestAborted;
 
@@ -157,7 +161,9 @@ public sealed class EmployeesController : Controller
             ActiveTab = "personal",
             Lookups = lookups,
             PayrollCalendars = await LoadPayrollCalendarsAsync(lookups, null),
-            CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar()
+            CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar(),
+            CanManageDateAlerts = _currentUser.CanManageDateAlerts(),
+            DateAlertRules = await TryListDateAlertsAsync()
         });
     }
 
@@ -167,7 +173,7 @@ public sealed class EmployeesController : Controller
 
     [HttpGet("profile/{id:long}")]
     [HttpGet("profile")]
-    public async Task<IActionResult> Profile(long id = 0, string? tab = null, bool wizard = false)
+    public async Task<IActionResult> Profile(long id = 0, string? tab = null, bool wizard = false, bool embed = false, string? focus = null)
     {
         // A new employee is created through the Add wizard, not this page -
         // redirect rather than 404 so an old profile/0 link still works.
@@ -194,17 +200,31 @@ public sealed class EmployeesController : Controller
         var payrollCalendar = await TryGetPayrollCalendarAsync(id);
         employee.PayrollCalendarId = payrollCalendar?.PayrollCalendarId;
 
+        // the Dashboard's alert popup shows this page in a frame of the same site
+        // (SecurityHeadersMiddleware forbids framing everywhere else)
+        if (embed)
+        {
+            Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+            Response.Headers["Content-Security-Policy"] = Response.Headers["Content-Security-Policy"].ToString()
+                .Replace("frame-ancestors 'none'", "frame-ancestors 'self'", StringComparison.Ordinal);
+        }
+        var focusField = DateAlertFields.Find(focus);
+
         return View(ViewsRoot + "Profile.cshtml", new EmployeeProfileViewModel
         {
             Employee = employee,
             Compliance = compliance,
             IsNew = false,
             Wizard = wizard,
-            ActiveTab = string.IsNullOrWhiteSpace(tab) ? "personal" : tab,
+            ActiveTab = !string.IsNullOrWhiteSpace(tab) ? tab : focusField?.Tab ?? "personal",
+            Embed = embed,
+            Focus = focusField?.Key,
             Lookups = lookups,
             PayrollCalendar = payrollCalendar,
             PayrollCalendars = await LoadPayrollCalendarsAsync(lookups, payrollCalendar?.PayrollCalendarId),
-            CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar()
+            CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar(),
+            CanManageDateAlerts = _currentUser.CanManageDateAlerts(),
+            DateAlertRules = await TryListDateAlertsAsync()
         });
     }
 
@@ -261,6 +281,64 @@ public sealed class EmployeesController : Controller
     }
 
     /// <summary>The employee's payroll calendar; null when db/60 has not been run yet.</summary>
+    /// <summary>The reminders on every date field (db/65), for the bells - only for a user who sets them.</summary>
+    private async Task<IReadOnlyList<DateAlertRule>> TryListDateAlertsAsync()
+    {
+        if (!_currentUser.CanManageDateAlerts()) return Array.Empty<DateAlertRule>();
+        try
+        {
+            return await _dateAlerts.ListRulesAsync(Ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "The date field alerts could not be read (run db/65).");
+            return Array.Empty<DateAlertRule>();
+        }
+    }
+
+    /// <summary>
+    /// The bell next to a date field: replaces that field's reminders, which apply to every
+    /// employee. <paramref name="units"/> and <paramref name="values"/> pair up (M / W / D, 0-99; 0 = on the day).
+    /// </summary>
+    [HttpPost("date-alerts")]
+    public async Task<IActionResult> SaveDateAlerts(string? fieldKey, [FromForm] string[]? units, [FromForm] int[]? values)
+    {
+        if (!_currentUser.CanManageDateAlerts())
+        {
+            return Json(ActionResponse.Failed("You do not have permission to do this.", "FORBIDDEN"));
+        }
+
+        var field = DateAlertFields.Find(fieldKey);
+        units ??= [];
+        values ??= [];
+        if (field is null || units.Length != values.Length)
+        {
+            return Json(ActionResponse.Failed("This date field does not take alerts.", "VALIDATION"));
+        }
+
+        var rules = new List<DateAlertRule>();
+        for (var i = 0; i < units.Length; i++)
+        {
+            var unit = units[i]?.Trim().ToUpperInvariant();
+            if (!DateAlertRule.IsUnit(unit) || values[i] < 0 || values[i] > DateAlertRule.MaxValue)
+            {
+                return Json(ActionResponse.Failed("Each alert needs a number from 0 to 99 and months, weeks or days.", "VALIDATION"));
+            }
+            // "on the day" is the same in any unit
+            var rule = new DateAlertRule { FieldKey = field.Key, UnitCode = values[i] == 0 ? "D" : unit!, Value = values[i] };
+            if (!rules.Any(r => r.UnitCode == rule.UnitCode && r.Value == rule.Value)) rules.Add(rule);
+        }
+        if (rules.Count > DateAlertRule.MaxRulesPerField)
+        {
+            return Json(ActionResponse.Failed("A date field can have up to 10 alerts.", "VALIDATION"));
+        }
+
+        var result = await _dateAlerts.SaveRulesAsync(field.Key, rules, _currentUser.UserId, Ct);
+        return Json(result.Success
+            ? ActionResponse.Ok(result.Id, result.Message)
+            : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
     private async Task<EmployeePayrollCalendar?> TryGetPayrollCalendarAsync(long employeeId)
     {
         try
