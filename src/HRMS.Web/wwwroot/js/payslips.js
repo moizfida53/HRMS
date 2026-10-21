@@ -40,7 +40,7 @@
         return HRMS.post(url, body).then(function (res) {
             if (res && res.success) {
                 try { if (res.message) { window.sessionStorage.setItem(FLASH, res.message); } } catch (e) { /* private mode */ }
-                window.location.reload();
+                HRMS.reload();
             } else {
                 busy(button, false);
                 HRMS.toast((res && res.message) || failed(), "error");
@@ -63,7 +63,7 @@
         var button = $("[data-ps-print]");
         if (button) { button.addEventListener("click", function () { window.print(); }); }
         // ?print=1 (the printer icon of a list) opens the print dialog straight away.
-        if ($("[data-ps-doc]") && /[?&]print=1(&|$)/.test(window.location.search)) {
+        if ($("[data-ps-doc]") && /[?&]print=1(&|$)/.test(HRMS.pageUrl().search)) {
             window.setTimeout(function () { window.print(); }, 300);
         }
     })();
@@ -85,7 +85,7 @@
         page.addEventListener("click", function (e) {
             var btn = e.target.closest("[data-page]");
             if (!btn || btn.disabled) { return; }
-            window.location.href = withQs(window.location.pathname, { page: btn.getAttribute("data-page") });
+            HRMS.go(withQs(HRMS.pageUrl().pathname, { page: btn.getAttribute("data-page") }));
         });
         return;
     }
@@ -322,7 +322,7 @@
         params.status = status && status.value !== "ALL" ? status.value : "";
         params.dept = dept ? dept.value : "";
         params.q = q ? q.value.trim() : "";
-        window.location.href = withQs(page.getAttribute("data-urls-page"), params);
+        HRMS.go(withQs(page.getAttribute("data-urls-page"), params));
     }
     function periodChanged() {
         narrow();

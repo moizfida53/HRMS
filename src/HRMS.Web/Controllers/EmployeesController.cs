@@ -334,9 +334,13 @@ public sealed class EmployeesController : Controller
         }
 
         var result = await _dateAlerts.SaveRulesAsync(field.Key, rules, _currentUser.UserId, Ct);
-        return Json(result.Success
-            ? ActionResponse.Ok(result.Id, result.Message)
-            : ActionResponse.Failed(result.Message, result.ErrorCode));
+        if (!result.Success) return Json(ActionResponse.Failed(result.Message, result.ErrorCode));
+
+        // what is stored now, read back - the bell shows exactly that
+        var stored = (await _dateAlerts.ListRulesAsync(Ct))
+            .Where(r => string.Equals(r.FieldKey, field.Key, StringComparison.OrdinalIgnoreCase))
+            .Select(r => r.UnitCode + r.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return Json(new { success = true, message = result.Message, id = result.Id, rules = string.Join(",", stored) });
     }
 
     private async Task<EmployeePayrollCalendar?> TryGetPayrollCalendarAsync(long employeeId)

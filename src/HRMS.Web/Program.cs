@@ -180,6 +180,7 @@ builder.Services.AddScoped<ISignInService, SignInService>();
 builder.Services.AddScoped<ICurrentUser, ClaimsCurrentUser>();
 builder.Services.AddScoped<ICompanyFilter, CookieCompanyFilter>();   // top-bar company filter (cookie)
 builder.Services.AddScoped<IRefProtector, RefProtector>();             // opaque, user-bound references instead of ids in URLs
+builder.Services.AddPageNavigation();                                   // tickets that keep record ids out of the address bar
 
 // Bilingual UI (English / Arabic): labels in Core.UiLabels, the user's choice
 // in Security.Users.PreferredLanguage + the Hrms-Lang cookie. db/33.
@@ -240,6 +241,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseHrmsLanguage();             // UI culture from the Hrms-Lang cookie; keeps the label cache fresh
+app.UsePageNavigation();           // no record ids in the address bar - Security/PageNavigation.cs
 app.UseRouting();
 app.UseRateLimiter();
 

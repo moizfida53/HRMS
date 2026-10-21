@@ -51,7 +51,7 @@
 
         if (options.address) {
             // /audit?employee=12&type=g:calendar&from=2026-01-01&sort=Type&dir=ASC restores the report
-            var p = new URLSearchParams(window.location.search);
+            var p = new URLSearchParams(HRMS.pageUrl().search);
             NAMES.forEach(function (n) {
                 var f = field(n);
                 if (f && p.has(n)) { f.value = p.get(n); f.dispatchEvent(new Event("hrms:refresh")); }

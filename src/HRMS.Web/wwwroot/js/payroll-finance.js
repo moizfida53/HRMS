@@ -44,7 +44,7 @@
 
     function reloadWith(message) {
         try { if (message) { window.sessionStorage.setItem(TOAST_KEY, message); } } catch (e) { /* storage off */ }
-        window.location.reload();
+        HRMS.reload();
     }
 
     function send(url, data, button) {
@@ -96,9 +96,9 @@
         pager.addEventListener("click", function (ev) {
             var b = ev.target.closest("[data-page]");
             if (!b || b.disabled) { return; }
-            var url = new URL(window.location.href);
+            var url = HRMS.pageUrl();
             url.searchParams.set("page", b.getAttribute("data-page"));
-            window.location.href = url.toString();
+            HRMS.go(url.pathname + url.search);
         });
     });
 
@@ -252,7 +252,7 @@
                 a.click();
                 a.remove();
                 try { window.sessionStorage.setItem(TOAST_KEY, res.message || ""); } catch (e) { /* storage off */ }
-                window.setTimeout(function () { window.location.reload(); }, 900);
+                window.setTimeout(function () { HRMS.reload(); }, 900);
                 return;
             }
             reloadWith(res.message);

@@ -343,22 +343,25 @@
                 form.querySelector("[data-submit]");
         }
 
-        function handleSubmit(form, url, onSuccess) {
+        // Saves one form; resolves true when it saved. options.quiet: no success toast
+        // (Save Changes shows one for everything); options.button: the button showing "Saving…".
+        function handleSubmit(form, url, onSuccess, options) {
+            options = options || {};
             clearErrors(form);
 
-            var submit = submitButtonFor(form);
+            var submit = options.button || submitButtonFor(form);
             var label = submit ? submit.querySelector("span") : null;
             var original = label ? label.textContent : null;
 
             if (submit) { submit.disabled = true; }
             if (label) { label.textContent = HRMS.t("js.saving", "Saving…"); }
 
-            HRMS.post(url, new FormData(form))
+            return HRMS.post(url, new FormData(form))
                 .then(function (result) {
                     if (result.success) {
-                        HRMS.toast(result.message, "success");
+                        if (!options.quiet) { HRMS.toast(result.message, "success"); }
                         if (onSuccess) { onSuccess(result); }
-                        return;
+                        return true;
                     }
 
                     if (result.errors) {
@@ -372,9 +375,11 @@
                     }
 
                     HRMS.toast(result.message, "error");
+                    return false;
                 })
                 .catch(function (error) {
                     HRMS.toast(error.message, "error");
+                    return false;
                 })
                 .finally(function () {
                     if (submit) { submit.disabled = false; }
@@ -382,39 +387,89 @@
                 });
         }
 
+        function saveEmployee(options) {
+            return handleSubmit(employeeForm, employeeForm.dataset.saveUrl || "/employees/save", function (result) {
+                var idField = document.querySelector('[name="EmployeeId"][form="employee-form"]');
+                var wasNew = idField && (!idField.value || idField.value === "0");
+
+                if (wasNew && result.id) {
+                    // A brand-new employee: land back on their own profile so
+                    // Kuwait Compliance, Dependents and Documents (which need
+                    // the new employee's id) become available. In the Add
+                    // wizard, carry on at the next step.
+                    var inWizard = Boolean(document.querySelector("[data-wizard]"));
+                    HRMS.go("/employees/profile/" + result.id +
+                        (inWizard ? "?wizard=true&tab=compliance" : ""));
+                    return;
+                }
+
+                if (idField) { idField.value = result.id; }
+                document.dispatchEvent(new CustomEvent("employee:saved", { detail: { result: result } }));
+            }, options);
+        }
+
+        // Kuwait Compliance is saved with Save Changes when something in it was changed
+        var complianceDirty = false;
+        function saveCompliance(options) {
+            return handleSubmit(complianceForm, complianceForm.dataset.saveUrl || "/employees/compliance/save", function (result) {
+                complianceDirty = false;
+                document.dispatchEvent(new CustomEvent("compliance:saved", { detail: { result: result } }));
+            }, options);
+        }
+        if (complianceForm) {
+            ["input", "change"].forEach(function (type) {
+                complianceForm.addEventListener(type, function () { complianceDirty = true; });
+            });
+        }
+
+        // Save Changes (next to the employee's name): one click saves every section the
+        // user may edit - Personal Info / Employment, then Kuwait Compliance.
+        var saveAllButton = document.querySelector("[data-save-all]");
+        function saveAll() {
+            var doEmployee = saveAllButton.dataset.saveEmployee === "true" && employeeForm;
+            var doCompliance = saveAllButton.dataset.saveCompliance === "true" && complianceForm && complianceDirty;
+            var options = { quiet: true, button: saveAllButton };
+
+            var chain = Promise.resolve(true);
+            if (doEmployee) { chain = chain.then(function () { return saveEmployee(options); }); }
+            if (doCompliance) {
+                chain = chain.then(function (ok) {
+                    if (!ok) { return false; }
+                    return saveCompliance(options).then(function (saved) {
+                        if (!saved) { document.dispatchEvent(new CustomEvent("profile:show-tab", { detail: { tab: "compliance" } })); }
+                        return saved;
+                    });
+                });
+            }
+            chain.then(function (ok) {
+                if (ok && (doEmployee || doCompliance)) { HRMS.toast(HRMS.t("js.all_changes_saved", "All changes saved."), "success"); }
+                else if (ok) { HRMS.toast(HRMS.t("js.nothing_to_save", "There are no changes to save."), "info"); }
+            });
+        }
+
         if (employeeForm) {
             employeeForm.addEventListener("submit", function (event) {
                 event.preventDefault();
-
-                handleSubmit(employeeForm, employeeForm.dataset.saveUrl || "/employees/save", function (result) {
-                    var idField = document.querySelector('[name="EmployeeId"][form="employee-form"]');
-                    var wasNew = idField && (!idField.value || idField.value === "0");
-
-                    if (wasNew && result.id) {
-                        // A brand-new employee: land back on their own profile so
-                        // Kuwait Compliance, Dependents and Documents (which need
-                        // the new employee's id) become available. In the Add
-                        // wizard, carry on at the next step.
-                        var inWizard = Boolean(document.querySelector("[data-wizard]"));
-                        window.location.href = "/employees/profile/" + result.id +
-                            (inWizard ? "?wizard=true&tab=compliance" : "");
-                        return;
-                    }
-
-                    if (idField) { idField.value = result.id; }
-                    document.dispatchEvent(new CustomEvent("employee:saved", { detail: { result: result } }));
-                });
+                // the Add wizard saves one step at a time; elsewhere Save Changes saves everything
+                if (saveAllButton && !document.querySelector("[data-wizard]")) { saveAll(); }
+                else { saveEmployee(); }
             });
         }
 
         if (complianceForm) {
             complianceForm.addEventListener("submit", function (event) {
                 event.preventDefault();
-                handleSubmit(complianceForm, complianceForm.dataset.saveUrl || "/employees/compliance/save", function (result) {
-                    document.dispatchEvent(new CustomEvent("compliance:saved", { detail: { result: result } }));
-                });
+                // Enter in a compliance field, or the wizard's Next: same as Save Changes outside the wizard
+                if (saveAllButton && !document.querySelector("[data-wizard]")) { saveAll(); }
+                else { saveCompliance(); }
             });
         }
+
+        // a section that failed to save is brought into view
+        document.addEventListener("profile:show-tab", function (event) {
+            var button = document.getElementById("tab-" + event.detail.tab + "-btn");
+            if (button && window.bootstrap) { bootstrap.Tab.getOrCreateInstance(button).show(); }
+        });
     })();
 
     /* ====================================================== dependents === */
@@ -992,6 +1047,8 @@
         var template = modalEl.querySelector("[data-alert-template]");
         var saveButton = modalEl.querySelector("[data-alert-save]");
         var current = null;   // the bell being edited
+        var opened = "";      // the alerts as the popup opened (to tell whether anything changed)
+        var discard = false;  // Cancel: close without saving
         var UNIT_ORDER = { M: 3, W: 2, D: 1 };
         var DAYS = { M: 30, W: 7, D: 1 };
 
@@ -1091,6 +1148,8 @@
             list.innerHTML = "";
             sortRules(parseRules(bell.dataset.rules)).forEach(function (r) { addRow(r.unit, r.value); });
             refresh();
+            opened = rulesCsv(collect() || []);
+            discard = false;
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
         });
 
@@ -1119,39 +1178,69 @@
         modalEl.addEventListener("input", function () { error.textContent = ""; refresh(); });
         modalEl.addEventListener("change", refresh);
 
-        saveButton.addEventListener("click", function () {
-            if (!current) { return; }
+        // the rows as rules (one of each, earliest first); null when a row is not a valid number
+        function collect() {
             var rows = readRows();
             var bad = rows.filter(function (r) { return r.raw === "" || isNaN(r.value) || r.value < 0 || r.value > 99 || String(r.value) !== r.raw.replace(/^0+(?=\d)/, ""); });
             modalEl.querySelectorAll(".hrms-alerts__value").forEach(function (input) { input.classList.remove("is-invalid"); });
             if (bad.length) {
                 bad.forEach(function (r) { r.row.querySelector("[data-alert-value]").classList.add("is-invalid"); });
-                error.textContent = HRMS.t("js.alert_value_invalid", "Enter a whole number from 0 to 99 for each alert.");
-                bad[0].row.querySelector("[data-alert-value]").focus();
-                return;
+                return null;
             }
-
-            // one of each, earliest first
             var seen = {};
-            var rules = sortRules(rows.map(function (r) { return { unit: r.value === 0 ? "D" : r.unit, value: r.value }; })
+            return sortRules(rows.map(function (r) { return { unit: r.value === 0 ? "D" : r.unit, value: r.value }; })
                 .filter(function (r) { var key = r.unit + r.value; if (seen[key]) { return false; } seen[key] = true; return true; }));
+        }
+
+        function rulesCsv(rules) { return rules.map(function (r) { return r.unit + r.value; }).join(","); }
+
+        function save() {
+            if (!current) { return Promise.resolve(false); }
+            var rules = collect();
+            if (rules === null) {
+                error.textContent = HRMS.t("js.alert_value_invalid", "Enter a whole number from 0 to 99 for each alert.");
+                var firstBad = modalEl.querySelector(".hrms-alerts__value.is-invalid");
+                if (firstBad) { firstBad.focus(); }
+                return Promise.resolve(false);
+            }
 
             var body = new FormData();
             body.append("fieldKey", current.dataset.dateAlert);
             rules.forEach(function (r) { body.append("units", r.unit); body.append("values", r.value); });
 
             saveButton.disabled = true;
-            HRMS.post(modalEl.dataset.saveUrl, body)
+            return HRMS.post(modalEl.dataset.saveUrl, body)
                 .then(function (result) {
-                    if (!result.success) { error.textContent = result.message; return; }
+                    if (!result.success) { error.textContent = result.message; return false; }
+                    // the alerts as stored on the server, read back after the save
+                    var stored = sortRules(parseRules(typeof result.rules === "string" ? result.rules : rulesCsv(rules)));
                     // the same field can have a bell in more than one place
-                    document.querySelectorAll('[data-date-alert="' + current.dataset.dateAlert + '"]').forEach(function (bell) { setBell(bell, rules); });
-                    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    document.querySelectorAll('[data-date-alert="' + current.dataset.dateAlert + '"]').forEach(function (bell) { setBell(bell, stored); });
+                    opened = rulesCsv(stored);
                     HRMS.toast(result.message, "success");
+                    return true;
                 })
-                .catch(function (err) { error.textContent = err.message; })
+                .catch(function (err) { error.textContent = err.message; return false; })
                 .finally(function () { saveButton.disabled = false; });
+        }
+
+        saveButton.addEventListener("click", function () {
+            save().then(function (ok) { if (ok) { discard = true; bootstrap.Modal.getOrCreateInstance(modalEl).hide(); } });
         });
+
+        // Cancel throws the changes away; closing any other way (X, Esc, outside) keeps them, like a phone
+        modalEl.querySelector("[data-alert-cancel]").addEventListener("click", function () {
+            discard = true;
+            bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        });
+        modalEl.addEventListener("hide.bs.modal", function (event) {
+            if (discard || !current) { return; }
+            var rules = collect();
+            if (rules !== null && rulesCsv(rules) === opened) { return; }   // nothing changed
+            event.preventDefault();
+            save().then(function (ok) { if (ok) { discard = true; bootstrap.Modal.getOrCreateInstance(modalEl).hide(); } });
+        });
+        modalEl.addEventListener("hidden.bs.modal", function () { discard = false; current = null; });
     })();
 
     /* ============================== open the date a Dashboard alert is about === */
@@ -1334,7 +1423,7 @@
         if (finishButton) {
             finishButton.addEventListener("click", function () {
                 HRMS.toast(HRMS.t("js.employee_saved", "Employee saved."), "success");
-                window.location.href = "/employees/profile/" + employeeId;
+                HRMS.go("/employees/profile/" + employeeId);
             });
         }
 

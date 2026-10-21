@@ -331,6 +331,130 @@
         });
     };
 
+    /* ------------------------------------- pages without ids in the address -- */
+    // A page that opens a record (employee, payroll, settlement, payslip ...) is never
+    // reached with the id in the URL: the address is posted to /go, which keeps it in a
+    // short-lived ticket and redirects to the page's clean address (Security/PageNavigation.cs).
+    // Links and GET forms to such pages are sent this way automatically; page script
+    // calls HRMS.go(url) instead of setting location.href.
+    var navRules = null;
+    function navPatterns() {
+        if (navRules === null) {
+            navRules = [];
+            var block = document.getElementById("hrms-nav-rules");
+            try {
+                navRules = JSON.parse(block ? block.textContent : "[]").map(function (r) { return { re: new RegExp(r.p, "i"), id: r.id }; });
+            } catch (e) { navRules = []; }
+        }
+        return navRules;
+    }
+
+    /** The url (same site) goes to a page that keeps its parameters out of the address bar. */
+    HRMS.isGuardedUrl = function (url) {
+        var u;
+        try { u = new URL(url, window.location.href); } catch (e) { return false; }
+        if (u.origin !== window.location.origin) { return false; }
+        var path = u.pathname.length > 1 ? u.pathname.replace(/\/+$/, "") : u.pathname;
+        if (/\/export$/i.test(path)) { return false; }
+        // the first rule that matches decides, as on the server
+        var rule = navPatterns().filter(function (r) { return r.re.test(path); })[0];
+        return Boolean(rule) && (rule.id || u.search.length > 1);
+    };
+
+    /** The page's real address (path + query) as the server served it - the address bar shows only its clean form. */
+    HRMS.pageUrl = function () {
+        var meta = document.querySelector('meta[name="hrms-page"]');
+        return new URL(meta ? meta.content : window.location.pathname + window.location.search, window.location.href);
+    };
+
+    /** Reloads the page on the same record (a browser refresh opens the starting screen instead). */
+    HRMS.reload = function () {
+        var page = HRMS.pageUrl();
+        if (HRMS.isGuardedUrl(page.href)) { HRMS.go(page.pathname + page.search); } else { window.location.reload(); }
+    };
+
+    // page script that writes its state into the address (?run=..., ?drafts=...) keeps the clean address instead
+    ["pushState", "replaceState"].forEach(function (name) {
+        var original = window.history && window.history[name];
+        if (!original) { return; }
+        window.history[name] = function (state, title, url) {
+            if (url !== undefined && url !== null && HRMS.isGuardedUrl(String(url))) { url = window.location.pathname; }
+            return original.call(window.history, state, title, url);
+        };
+    });
+
+    /** Opens a page by a hidden POST to /go (newTab: in a new tab). */
+    HRMS.go = function (url, newTab) {
+        var u = new URL(url, window.location.href);
+        if (!HRMS.isGuardedUrl(u.href)) {
+            if (newTab) { window.open(u.href, "_blank", "noopener"); } else { window.location.href = u.href; }
+            return;
+        }
+        var form = document.createElement("form");
+        form.method = "post";
+        form.action = "/go";
+        form.hidden = true;
+        if (newTab) { form.target = "_blank"; }
+        [["url", u.pathname + u.search], ["__RequestVerificationToken", HRMS.antiForgeryToken()]].forEach(function (pair) {
+            var input = document.createElement("input");
+            input.type = "hidden";
+            input.name = pair[0];
+            input.value = pair[1];
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        window.setTimeout(function () { form.remove(); }, 0);
+    };
+
+    /** The clean address to load a guarded page in a frame (the ticket is kept for that one load). */
+    HRMS.goUrl = function (url) {
+        var body = new FormData();
+        body.append("url", url);
+        return HRMS.post("/go?json=true", body).then(function (result) { return result.url; });
+    };
+
+    // a relative link ("?lang=en") means the page's real address, not the clean one in the address bar
+    function linkUrl(link) {
+        var raw = link.getAttribute("href") || "";
+        if (/^(\/|[a-z][a-z0-9+.-]*:)/i.test(raw) || raw.charAt(0) === "#") { return link.href; }
+        return new URL(raw, HRMS.pageUrl()).href;
+    }
+
+    document.addEventListener("click", function (event) {
+        if (event.defaultPrevented || event.button !== 0) { return; }
+        var link = event.target.closest("a[href]");
+        if (!link || link.hasAttribute("download") || link.dataset.navDirect !== undefined) { return; }
+        var href = linkUrl(link);
+        if (!HRMS.isGuardedUrl(href)) { return; }
+        event.preventDefault();
+        HRMS.go(href, link.target === "_blank" || event.ctrlKey || event.metaKey || event.shiftKey);
+    });
+
+    // middle click: a new tab, through /go as well
+    document.addEventListener("auxclick", function (event) {
+        if (event.button !== 1) { return; }
+        var link = event.target.closest("a[href]");
+        if (!link || !HRMS.isGuardedUrl(linkUrl(link))) { return; }
+        event.preventDefault();
+        HRMS.go(linkUrl(link), true);
+    });
+
+    // GET forms (filters, pickers) that really navigate to such a page
+    document.addEventListener("submit", function (event) {
+        var form = event.target;
+        if (event.defaultPrevented || !(form instanceof HTMLFormElement) || (form.method || "get").toLowerCase() !== "get") { return; }
+        var action = new URL(form.getAttribute("action") || HRMS.pageUrl().pathname, HRMS.pageUrl());
+        var params = new URLSearchParams();
+        new FormData(form, event.submitter || undefined).forEach(function (value, key) {
+            if (typeof value === "string" && value !== "") { params.append(key, value); }
+        });
+        var url = action.pathname + (params.toString() ? "?" + params.toString() : "");
+        if (!HRMS.isGuardedUrl(url)) { return; }
+        event.preventDefault();
+        HRMS.go(url, form.target === "_blank");
+    });   // bubble phase: a form its page script handles (and cancels) is left alone
+
     HRMS.getJson = function (url) {
         return fetch(url, {
             credentials: "same-origin",

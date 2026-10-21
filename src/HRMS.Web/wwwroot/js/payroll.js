@@ -81,7 +81,7 @@
         return out;
     })();
     var RUN = urls.run || page.getAttribute("data-run") || "";
-    function openRun(id) { window.location.href = (urls.open || page.getAttribute("data-urls-open") || "/payroll/run/0").replace(/\/0$/, "/" + id); }
+    function openRun(id) { HRMS.go((urls.open || page.getAttribute("data-urls-open") || "/payroll/run/0").replace(/\/0$/, "/" + id)); }
 
     /* ------------------------------------------- reason / confirm dialogs */
 
@@ -127,10 +127,10 @@
                 modal(reasonModal).hide();
                 var refresh = opener.getAttribute("data-reason-refresh");
                 var redirect = opener.getAttribute("data-reason-redirect");
-                if (redirect && RUN) { window.location.href = "/payroll/" + redirect + "?run=" + RUN; }
+                if (redirect && RUN) { HRMS.go("/payroll/" + redirect + "?run=" + RUN); }
                 else if (refresh === "employees" && grid) { grid.reload(true); }
                 else if (refresh === "payitems" && HRMS.payItemsRefresh) { HRMS.payItemsRefresh(); }
-                else { window.location.reload(); }
+                else { HRMS.reload(); }
             });
         });
     }
@@ -168,21 +168,21 @@
         if (stage && urls.stage) {
             post(urls.stage, { run: RUN, stage: stage.getAttribute("data-run-stage") }, stage).then(function (res) {
                 if (res && res.success) { openRun(RUN); }
-                else if (res && res.errorCode === "HAS_ERRORS") { window.setTimeout(function () { window.location.reload(); }, 900); }
+                else if (res && res.errorCode === "HAS_ERRORS") { window.setTimeout(function () { HRMS.reload(); }, 900); }
             });
             return;
         }
         var recalc = ev.target.closest("[data-run-recalc]");
         if (recalc && urls.recalc) {
             post(urls.recalc, { run: RUN }, recalc).then(function (res) {
-                if (res && res.success) { window.location.reload(); }
+                if (res && res.success) { HRMS.reload(); }
             });
             return;
         }
         var reval = ev.target.closest("[data-run-revalidate]");
         if (reval) {
             post(urls.revalidate, { run: RUN }, reval).then(function (res) {
-                if (res && res.success) { window.location.reload(); }
+                if (res && res.success) { HRMS.reload(); }
             });
         }
     });
@@ -443,7 +443,7 @@
                 var inc = ev.target.closest("[data-emp-include]");
                 if (!inc) { return; }
                 post(urls.include, { run: RUN, employeeId: inc.getAttribute("data-emp-include") }, inc)
-                    .then(function (res) { if (res && res.success) { window.location.reload(); } });
+                    .then(function (res) { if (res && res.success) { HRMS.reload(); } });
             });
         }
         var issues = $("[data-issues]");
@@ -482,7 +482,7 @@
             }
             post(dUrls.getAttribute("data-" + kind), { comment: text }, b).then(function (res) {
                 if (!res || !res.success) { return; }
-                if (kind === "return") { openRun(RUN); } else { window.location.reload(); }
+                if (kind === "return") { openRun(RUN); } else { HRMS.reload(); }
             });
         });
     }
@@ -644,7 +644,7 @@
         if (cmpCompany) {
             // payrolls are per company: switching company reloads the page with that company's payrolls
             cmpCompany.addEventListener("change", function () {
-                window.location.href = withQs(cmpCard.getAttribute("data-page-url"), { company: cmpCompany.value });
+                HRMS.go(withQs(cmpCard.getAttribute("data-page-url"), { company: cmpCompany.value }));
             });
         }
         cmpSelects.forEach(function (s) { s.addEventListener("change", refreshPickers); });
@@ -773,7 +773,7 @@
                 if (res.success) {
                     modal(recModal).hide();
                     // a calendar changes the counts in the sidebar - reload; a period only its grid
-                    if (recSave === cu.getAttribute("data-save")) { window.setTimeout(function () { window.location.reload(); }, 400); }
+                    if (recSave === cu.getAttribute("data-save")) { window.setTimeout(function () { HRMS.reload(); }, 400); }
                     else { loadPeriods(); }
                 }
             });
@@ -793,10 +793,10 @@
                 if (ev.target.closest("[data-cal-edit]")) {
                     openForm(cu.getAttribute("data-title-edit"), withQs(cu.getAttribute("data-form"), { id: id }), cu.getAttribute("data-save"));
                 } else if (ev.target.closest("[data-cal-toggle]")) {
-                    post(cu.getAttribute("data-toggle"), { id: id }, ev.target.closest("button")).then(function (res) { if (res && res.success) { window.location.reload(); } });
+                    post(cu.getAttribute("data-toggle"), { id: id }, ev.target.closest("button")).then(function (res) { if (res && res.success) { HRMS.reload(); } });
                 } else if (ev.target.closest("[data-cal-delete]")) {
                     confirmDialog(cu.getAttribute("data-delete-title") + " · " + name, cu.getAttribute("data-delete-calendar"), cu.getAttribute("data-delete-title")).then(function (ok) {
-                        if (ok) { post(cu.getAttribute("data-delete"), { id: id }).then(function (res) { if (res && res.success) { window.location.reload(); } }); }
+                        if (ok) { post(cu.getAttribute("data-delete"), { id: id }).then(function (res) { if (res && res.success) { HRMS.reload(); } }); }
                     });
                 }
             });

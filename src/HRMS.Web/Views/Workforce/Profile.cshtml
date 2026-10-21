@@ -94,8 +94,11 @@
             @Html.Icon("history", 15)<span>@L["emp.audit_history"]</span>
         </button>
     }
-    <div class="hrms-emp-strip__actions" hidden="@(wizard || !canSave ? "hidden" : null)">
-        <button type="submit" form="employee-form" class="btn btn-primary" data-submit="employee">
+    @* One Save Changes for the whole profile: Personal Info / Employment, and Kuwait Compliance
+       when it was changed (employee.js saveAll). Dependents and Documents save as you go. *@
+    <div class="hrms-emp-strip__actions" hidden="@(wizard || !(canSave || (!Model.IsNew && acc.ComplianceEdit)) ? "hidden" : null)">
+        <button type="submit" form="employee-form" class="btn btn-primary" data-submit="employee" data-save-all
+                data-save-employee="@(canSave ? "true" : "false")" data-save-compliance="@(!Model.IsNew && acc.ComplianceEdit ? "true" : "false")">
             @Html.Icon("check", 15)
             <span>@(Model.IsNew ? L["emp.create_employee"] : L["emp.save_changes"])</span>
         </button>
@@ -1091,15 +1094,7 @@
                 </div>
 
                 </fieldset>
-                @if (acc.ComplianceEdit)
-                {
-                    <div class="d-flex justify-content-end pt-2">
-                        <button type="submit" class="btn btn-primary" data-submit="compliance">
-                            @Html.Icon("check", 15)
-                            <span>@L["emp.save_compliance_details"]</span>
-                        </button>
-                    </div>
-                }
+                @* saved with Save Changes at the top (no separate save for this section) *@
             </form>
         }
         </div></div>
@@ -1341,7 +1336,7 @@
                     </template>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                    <button type="button" class="btn btn-outline-secondary" data-alert-cancel>@L["common.cancel"]</button>
                     <button type="button" class="btn btn-primary" data-alert-save>
                         @Html.Icon("check", 15)<span>@L["emp.date_alerts_save"]</span>
                     </button>

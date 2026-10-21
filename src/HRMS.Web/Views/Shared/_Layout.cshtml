@@ -52,6 +52,8 @@
     }
     <link rel="stylesheet" href="~/css/hrms.css" asp-append-version="true" />
     @* Sidebar mode before the first paint (no flash): auto-minimize unless the user pinned it open. *@
+    @* the address the page was served for - with a record, the address bar shows only its clean form (PageNavigation) *@
+    <meta name="hrms-page" content="@(Context.Request.Path + Context.Request.QueryString)" />
     <script src="~/js/nav-mode.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -521,6 +523,7 @@
 @* Text used by the page scripts (keys "js.*" in Core.UiLabels) - read by HRMS.t() in site.js.
    A JSON data block, not a script, so the strict CSP (script-src 'self') is unaffected. *@
 <script type="application/json" id="hrms-labels">@L.ScriptLabelsJson()</script>
+<script type="application/json" id="hrms-nav-rules">@Html.Raw(PageNavigation.ClientRulesJson())</script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -55,7 +55,7 @@
     /** Reloads (or opens url) and shows the message once the page is back. */
     function flashAndGo(message, url) {
         try { if (message) { window.sessionStorage.setItem(FLASH, message); } } catch (e) { /* private mode */ }
-        if (url) { window.location.href = url; } else { window.location.reload(); }
+        if (url) { HRMS.go(url); } else { HRMS.reload(); }
     }
     (function showFlash() {
         try {

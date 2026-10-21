@@ -57,9 +57,12 @@
             var frame = document.createElement("iframe");
             frame.className = "doc-viewer__frame hrms-dalert-view__frame";
             frame.title = button.dataset.title;
-            frame.src = button.dataset.dalertView;
             body.innerHTML = "";
             body.appendChild(frame);
+            // the employee's id never shows in an address: a ticket opens the page (Security/PageNavigation.cs)
+            HRMS.goUrl(button.dataset.dalertView)
+                .then(function (url) { frame.src = url; })
+                .catch(function (error) { HRMS.toast(error.message, "error"); });
 
             setMaximized(false);
             bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -74,7 +77,7 @@
         modalEl.addEventListener("hidden.bs.modal", function () {
             body.innerHTML = "";
             setMaximized(false);
-            if (changed) { window.location.reload(); }
+            if (changed) { HRMS.reload(); }
         });
         window.addEventListener("message", function (event) {
             if (event.origin === window.location.origin && event.data === "hrms:employee-saved") { changed = true; }

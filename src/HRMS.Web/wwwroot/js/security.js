@@ -100,7 +100,7 @@
         // the role to open: the one just saved (?open=, mapped by the server) or the first one
         var first = rolesPage.getAttribute("data-open");
         if (first) { load(first); }
-        if (window.history && window.history.replaceState && /[?&]open=/.test(window.location.search)) {
+        if (window.history && window.history.replaceState && /[?&]open=/.test(HRMS.pageUrl().search)) {
             window.history.replaceState(null, "", window.location.pathname);
         }
 
@@ -250,7 +250,7 @@
                         if (res && res.success) {
                             f.setAttribute("data-dirty", "false");
                             store(FLASH, res.message);
-                            window.location.reload();
+                            HRMS.reload();
                         } else {
                             HRMS.toast((res && res.message) || failed(), "error");
                         }
@@ -319,7 +319,7 @@
                         f.setAttribute("data-dirty", "false");
                         store(FLASH, res.message);
                         // references differ on every request: the server maps this one back to its list
-                        window.location.href = window.location.pathname + "?open=" + encodeURIComponent(res.ref || current || "");
+                        HRMS.go(HRMS.pageUrl().pathname + "?open=" + encodeURIComponent(res.ref || current || ""));
                     } else {
                         HRMS.toast((res && res.message) || failed(), "error");
                     }
