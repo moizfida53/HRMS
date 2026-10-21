@@ -80,6 +80,12 @@ BEGIN
     IF @CompanyId IS NULL OR NOT (@Stage IN ('DRAFT', 'REGISTERED') OR (@Stage = 'VALIDATION' AND @EmployeeIds IS NOT NULL))
         RETURN;
 
+    /* the profile salary is paid through the company's Basic Salary / Other Allowances
+       pay components: a company set up after the payroll seed (db/32) gets the defaults now */
+    IF NOT EXISTS (SELECT 1 FROM [Payroll].[PayComponents] WHERE CompanyId = @CompanyId AND Deleted = 0 AND ComponentCode = N'BASIC')
+       AND OBJECT_ID(N'[Payroll].[usp_PayComponent_SeedDefaults]', N'P') IS NOT NULL
+        EXEC [Payroll].[usp_PayComponent_SeedDefaults] @CompanyId = @CompanyId, @UserId = @UserId;
+
     DECLARE @PeriodDays INT = DATEDIFF(DAY, @Start, @End) + 1;
     DECLARE @BasisDays  INT = CASE WHEN @Freq = 'MONTHLY' THEN @PeriodDays ELSE DAY(EOMONTH(@RunMonth)) END;
     DECLARE @Now DATETIME2(0) = SYSUTCDATETIME();
@@ -174,7 +180,7 @@ BEGIN
     JOIN   [Employee].[Employees] AS e ON e.EmployeeId = re.EmployeeId
     LEFT JOIN [Core].[Departments] AS d ON d.DepartmentId = e.DepartmentId
     LEFT JOIN [Core].[Countries]   AS n ON n.CountryId = e.NationalityCountryId
-    LEFT JOIN [Employee].[EmployeePayroll] AS ep ON ep.EmployeeId = e.EmployeeId
+    LEFT JOIN [Employee].[EmployeePayroll] AS ep ON ep.EmployeeId = e.EmployeeId AND ep.Deleted = 0
     CROSS APPLY (SELECT CASE WHEN e.HireDate > @Start THEN e.HireDate ELSE @Start END AS PaidFrom,
                         CASE WHEN e.TerminationDate < @End THEN e.TerminationDate ELSE @End END AS PaidTo) AS x;
 
@@ -238,7 +244,7 @@ BEGIN
                 c.DisplayOrder
         FROM    [Payroll].[PayrollRunEmployees] AS re
         JOIN    @T AS t ON t.RunEmployeeId = re.RunEmployeeId AND t.IsExcluded = 0 AND (@RunType = 'REGULAR' OR t.CatchUp = 1)
-        JOIN    [Employee].[EmployeePayroll] AS ep ON ep.EmployeeId = re.EmployeeId
+        JOIN    [Employee].[EmployeePayroll] AS ep ON ep.EmployeeId = re.EmployeeId AND ep.Deleted = 0
         CROSS APPLY (VALUES ('BASIC', ep.BasicSalary), ('OTHER_ALW', ep.Allowances)) AS v(Code, Amount)
         JOIN    [Payroll].[PayComponents] AS c ON c.CompanyId = @CompanyId AND c.ComponentCode = v.Code AND c.Deleted = 0
         WHERE   v.Amount > 0
@@ -420,7 +426,22 @@ BEGIN
 
     IF @RunType = 'REGULAR'
     BEGIN
-        INSERT INTO @New SELECT EmployeeId, 'V01', 'ERROR', N'No salary items' FROM @E WHERE HasSalary = 0;
+        /* V01 says why there is no salary, so the right thing gets fixed */
+        INSERT INTO @New
+        SELECT e.EmployeeId, 'V01', 'ERROR',
+               CASE WHEN si.HasItems = 1
+                        THEN N'No salary item in force for this month - check the start / end month of the salary items on Pay Items'
+                    WHEN ISNULL(ep.BasicSalary, 0) + ISNULL(ep.Allowances, 0) > 0
+                        THEN N'Salary on the employee profile could not be paid - the company has no Basic Salary pay component (Payroll Settings > Pay item types)'
+                    ELSE N'No salary items and no salary on the employee profile' END
+        FROM   @E AS e
+        OUTER APPLY (SELECT TOP 1 ep.BasicSalary, ep.Allowances FROM [Employee].[EmployeePayroll] AS ep
+                     WHERE ep.EmployeeId = e.EmployeeId AND ep.Deleted = 0) AS ep
+        OUTER APPLY (SELECT CAST(1 AS BIT) AS HasItems
+                     WHERE EXISTS (SELECT 1 FROM [Payroll].[EmployeePayItems] i
+                                   JOIN [Payroll].[PayComponents] c ON c.PayComponentId = i.PayComponentId
+                                   WHERE i.EmployeeId = e.EmployeeId AND i.Deleted = 0 AND i.PayrollRunId IS NULL AND c.ItemClass = 'SALARY')) AS si
+        WHERE  e.HasSalary = 0;
         INSERT INTO @New
         SELECT DISTINCT l.EmployeeId, 'V02', 'WARNING', N'Salary taken from the employee profile - add salary items on Pay Items'
         FROM [Payroll].[PayrollRunLines] l JOIN @E e ON e.EmployeeId = l.EmployeeId
