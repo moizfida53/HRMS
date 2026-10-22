@@ -413,6 +413,8 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
 .pr-was { display: block; font-size: .7rem; color: var(--hrms-ink-500); font-weight: 400; }
 .pr-pi-level { display: block; margin-top: .2rem; font-size: .68rem; color: var(--hrms-ink-500); white-space: nowrap; }
 .pr-pi-loan { display: block; font-size: .72rem; color: var(--hrms-ink-500); }
+.pr-pi-from { font-variant-numeric: tabular-nums; }
+.pr-pi-until { display: block; font-size: .72rem; color: var(--hrms-ink-500); }
 .pr-pi-head { padding: .6rem .8rem; border: 1px solid var(--hrms-line-100); border-radius: var(--hrms-radius); background: #fafbfc; }
 .pr-pi-pending { align-items: center; flex-wrap: wrap; }
 .pr-pi-pending > div { flex: 1 1 16rem; }

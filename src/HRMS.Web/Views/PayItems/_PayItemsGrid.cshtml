@@ -24,6 +24,7 @@ else
                     <th scope="col">@L["pr.class"]</th>
                     <th scope="col">@L["pr.item_type"]</th>
                     <th scope="col" class="pr-money">@L["pr.amount_kwd"]</th>
+                    <th scope="col">@L["pr.effective_from"]</th>
                     <th scope="col" class="col-p2">@L["pr.applies"]</th>
                     <th scope="col" class="col-p3">@L["pr.comment"]</th>
                     <th scope="col">@L["common.status"]</th>
@@ -59,6 +60,14 @@ else
                             @if (i.ReplacedAmount is { } was && i.IsPending)
                             {
                                 <span class="pr-was">@L["pr.was_0", PayrollFormat.Money(was)]</span>
+                            }
+                        </td>
+                        @* the first payroll month the item counts in (and its last, when it ends) *@
+                        <td data-label="@L["pr.effective_from"]" class="hrms-nowrap">
+                            <span class="pr-pi-from">@PayItemFormat.Month(L, i.StartMonth)</span>
+                            @if (i.EndMonth is { } until)
+                            {
+                                <span class="pr-pi-until">→ @PayItemFormat.Month(L, until)</span>
                             }
                         </td>
                         <td data-label="@L["pr.applies"]" class="col-p2">@PayItemFormat.Applies(L, i)</td>

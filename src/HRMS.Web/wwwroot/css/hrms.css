@@ -5685,6 +5685,16 @@ tr.pr-row-cancelled .hrms-code-chip {
   color: var(--hrms-ink-500);
 }
 
+.pr-pi-from {
+  font-variant-numeric: tabular-nums;
+}
+
+.pr-pi-until {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--hrms-ink-500);
+}
+
 .pr-pi-head {
   padding: 0.6rem 0.8rem;
   border: 1px solid var(--hrms-line-100);
