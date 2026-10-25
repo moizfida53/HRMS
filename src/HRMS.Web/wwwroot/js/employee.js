@@ -1415,8 +1415,14 @@
             }
             var remove = event.target.closest("[data-alert-remove]");
             if (remove) {
-                remove.closest("li").remove();
-                refresh();
+                var li = remove.closest("li");
+                var drop = function () { li.remove(); refresh(); };
+                if (!HRMS.rowHasInput(li)) { drop(); return; }
+                var unit = li.querySelector("[data-alert-unit]");
+                HRMS.confirm({ title: HRMS.t("js.date_alert_remove", "Remove this alert?"),
+                    name: li.querySelector("[data-alert-value]").value + " " + (unit ? unit.options[unit.selectedIndex].text : ""),
+                    note: HRMS.t("js.date_alert_remove_note", "It is dropped when you save the alerts.") })
+                    .then(function (ok) { if (ok) { drop(); } });
             }
         });
 

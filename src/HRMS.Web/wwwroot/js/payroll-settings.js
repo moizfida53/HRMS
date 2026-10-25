@@ -70,7 +70,7 @@
     var confirmEl = $("#st-confirm");
     function confirmDialog(title, text, button) {
         return new Promise(function (resolve) {
-            if (!confirmEl) { resolve(window.confirm(text)); return; }
+            if (!confirmEl) { HRMS.confirm({ title: title, text: text, ok: button || title }).then(resolve); return; }
             $("[data-st-confirm-title]", confirmEl).textContent = title;
             $("[data-st-confirm-text]", confirmEl).textContent = text;
             $("[data-st-confirm-button]", confirmEl).textContent = button || title;
@@ -299,8 +299,10 @@
                     var last = tbody.lastElementChild && tbody.lastElementChild.querySelector("input, select");
                     if (last) { last.focus(); }
                 } else if (ev.target.closest("[data-st-line-remove]")) {
-                    tr.remove();
-                    renumber();
+                    if (!HRMS.rowHasInput(tr)) { tr.remove(); renumber(); return; }
+                    HRMS.confirm({ title: HRMS.t("js.st_remove_row", "Remove this row?"),
+                        note: HRMS.t("js.st_remove_row_note", "It is dropped when you save.") })
+                        .then(function (ok) { if (ok) { tr.remove(); renumber(); } });
                 } else if (ev.target.closest("[data-st-line-up]") && tr.previousElementSibling) {
                     tbody.insertBefore(tr, tr.previousElementSibling);
                     renumber();

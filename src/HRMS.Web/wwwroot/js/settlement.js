@@ -269,7 +269,12 @@
             if (!b) { return; }
             var li = b.closest("[data-line]");
             var verb = b.getAttribute("data-fs-line") === "remove" ? "remove-line" : "toggle-line";
-            post(act(verb), { lineId: li.getAttribute("data-line") }, b, function (res) { flashAndGo(res.message); });
+            var send = function () { post(act(verb), { lineId: li.getAttribute("data-line") }, b, function (res) { flashAndGo(res.message); }); };
+            if (verb === "toggle-line") { send(); return; }
+            var title = li.querySelector(".fs-line__title"), amount = li.querySelector(".fs-line__amt");
+            HRMS.confirm({ title: HRMS.t("js.fs_remove_line", "Remove this line from the settlement?"),
+                name: (title ? title.textContent.trim() : "") + (amount ? " · " + amount.textContent.trim() : "") })
+                .then(function (ok) { if (ok) { send(); } });
         });
 
         /* add a line by hand */

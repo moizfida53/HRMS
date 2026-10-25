@@ -1,0 +1,140 @@
+// ============================================================================
+// Confirmation popup (site.js HRMS.confirm)
+// ----------------------------------------------------------------------------
+// One modal for every Delete / Remove in the app: an icon tile, the question,
+// the record's name in a chip, and a note that the record is only flagged as
+// deleted. Red by default; "--primary" for a non-destructive question.
+// Stacked over an open form (.is-stacked) it lifts above it with its own dim.
+// Below 576px the buttons fill the width, the safe action first.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+.hrms-confirm {
+  --c-ink: #{$red-700};
+  --c-soft: #{$red-050};
+  --c-ring: #{rgba($red-600, .14)};
+  --c-btn: #{$red-700};
+  --c-btn-hover: #{color.adjust($red-700, $lightness: -7%)};
+  --c-focus-rgb: 180, 35, 24;
+
+  &--primary {
+    --c-ink: #{$blue-700};
+    --c-soft: #{$blue-050};
+    --c-ring: #{rgba($blue-600, .14)};
+    --c-btn: #{$blue-600};
+    --c-btn-hover: #{$blue-700};
+    --c-focus-rgb: 29, 95, 191;
+  }
+
+  &.is-stacked { z-index: 1075; }
+
+  .modal-dialog { max-width: 440px; }
+
+  .modal-content {
+    border: 0;
+    border-radius: $radius-lg + 4px;
+    overflow: hidden;
+    box-shadow: 0 24px 48px -12px rgba($ink-900, .28);
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: space("4");
+    padding: space("6") space("6") space("4");
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    color: var(--c-ink);
+    background: var(--c-soft);
+    box-shadow: 0 0 0 7px var(--c-ring);
+    margin: 2px;
+  }
+
+  &__copy { min-width: 0; }
+
+  &__title {
+    margin: 2px 0 space("2");
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: $ink-900;
+  }
+
+  &__text {
+    margin: 0 0 space("2");
+    color: $ink-700;
+    font-size: .9rem;
+    line-height: 1.5;
+  }
+
+  &__name {
+    display: inline-block;
+    max-width: 100%;
+    margin: 0 0 space("2");
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid $line-200;
+    background: color.adjust($line-200, $lightness: 5%);
+    color: $ink-900;
+    font-weight: 600;
+    font-size: .875rem;
+    overflow-wrap: anywhere;
+  }
+
+  &__note {
+    margin: 0;
+    color: $ink-500;
+    font-size: .8rem;
+    line-height: 1.45;
+  }
+
+  &__footer {
+    gap: space("2");
+    padding: space("3") space("6") space("5");
+    border-top: 0;
+    background: transparent;
+
+    > .btn { margin: 0; min-width: 104px; }
+  }
+
+  &__ok {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    --bs-btn-color: #{$white};
+    --bs-btn-bg: var(--c-btn);
+    --bs-btn-border-color: var(--c-btn);
+    --bs-btn-hover-color: #{$white};
+    --bs-btn-hover-bg: var(--c-btn-hover);
+    --bs-btn-hover-border-color: var(--c-btn-hover);
+    --bs-btn-active-color: #{$white};
+    --bs-btn-active-bg: var(--c-btn-hover);
+    --bs-btn-active-border-color: var(--c-btn-hover);
+    --bs-btn-focus-shadow-rgb: var(--c-focus-rgb);
+  }
+
+  @include down(sm) {
+    &__body { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding-inline: space("5"); }
+
+    &__footer {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      padding-inline: space("5");
+
+      > .btn { min-width: 0; }
+    }
+  }
+}
+
+// the dim behind a popup that opened over a form
+.modal-backdrop.is-stacked { z-index: 1070; }

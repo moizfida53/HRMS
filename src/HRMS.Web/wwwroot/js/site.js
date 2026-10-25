@@ -306,6 +306,103 @@
         window.setTimeout(remove, timeout || (type === "error" ? 7000 : 4000));
     };
 
+    /* ---------------------------------------------------------- confirm --- */
+    // HRMS.confirm({ title, text, name, ok, tone }) -> Promise<boolean>.
+    // The one confirmation popup of the app: every Delete / Remove click asks
+    // here first (records are only ever flagged Deleted = 1 in the database).
+    // tone "danger" (default) shows a red button with the bin; "primary" a
+    // blue one; icon: false drops the bin from the button. Opened over another modal (a form) it stacks above it.
+    var CONFIRM_ICON = {
+        danger: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M10 11v6M14 11v6"></path><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"></path><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"></path></svg>',
+        primary: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><circle cx="12" cy="16.3" r="0.7" fill="currentColor" stroke="none"></circle></svg>'
+    };
+    var confirmBox = null;
+    function confirmModal() {
+        if (confirmBox) { return confirmBox; }
+        confirmBox = document.createElement("div");
+        confirmBox.className = "modal fade hrms-confirm";
+        confirmBox.id = "hrms-confirm-modal";
+        confirmBox.tabIndex = -1;
+        confirmBox.setAttribute("aria-hidden", "true");
+        confirmBox.setAttribute("aria-labelledby", "hrms-confirm-title");
+        confirmBox.innerHTML =
+            '<div class="modal-dialog modal-dialog-centered"><div class="modal-content">' +
+            '<div class="modal-body hrms-confirm__body">' +
+            '<span class="hrms-confirm__icon" data-c-icon aria-hidden="true"></span>' +
+            '<div class="hrms-confirm__copy"><h2 class="hrms-confirm__title" id="hrms-confirm-title" data-c-title></h2>' +
+            '<p class="hrms-confirm__text" data-c-text></p><p class="hrms-confirm__name" data-c-name></p>' +
+            '<p class="hrms-confirm__note" data-c-note></p></div></div>' +
+            '<div class="modal-footer hrms-confirm__footer">' +
+            '<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" data-c-cancel></button>' +
+            '<button type="button" class="btn hrms-confirm__ok" data-c-ok></button></div>' +
+            '</div></div>';
+        document.body.appendChild(confirmBox);
+        return confirmBox;
+    }
+
+    HRMS.confirm = function (options) {
+        options = typeof options === "string" ? { text: options } : (options || {});
+        if (!window.bootstrap) { return Promise.resolve(window.confirm(options.text || options.title || "")); }
+        var box = confirmModal();
+        var tone = options.tone === "primary" ? "primary" : "danger";
+        var q = function (s) { return box.querySelector(s); };
+        box.classList.toggle("hrms-confirm--primary", tone === "primary");
+        q("[data-c-icon]").innerHTML = CONFIRM_ICON[tone];
+        q("[data-c-title]").textContent = options.title || HRMS.t("js.confirm_delete_title", "Delete this record?");
+        q("[data-c-text]").textContent = options.text || "";
+        q("[data-c-text]").hidden = !options.text;
+        q("[data-c-name]").textContent = options.name || "";
+        q("[data-c-name]").hidden = !options.name;
+        var note = options.note === undefined && tone === "danger"
+            ? HRMS.t("js.confirm_delete_note", "It is hidden everywhere in the app but kept in the database, flagged as deleted.")
+            : (options.note || "");
+        q("[data-c-note]").textContent = note;
+        q("[data-c-note]").hidden = !note;
+        q("[data-c-cancel]").textContent = options.cancel || HRMS.t("js.cancel", "Cancel");
+        var ok = q("[data-c-ok]");
+        ok.innerHTML = tone === "danger" && options.icon !== false ? CONFIRM_ICON.danger.replace(/22/g, "15") : "";
+        var okText = document.createElement("span");
+        okText.textContent = options.ok || HRMS.t("js.delete", "Delete");
+        ok.appendChild(okText);
+
+        // stacked over an open form: lift above it and pause its focus trap
+        var parent = Array.prototype.slice.call(document.querySelectorAll(".modal.show")).filter(function (m) { return m !== box; }).pop();
+        var parentModal = parent ? bootstrap.Modal.getInstance(parent) : null;
+        var trap = parentModal && parentModal._focustrap;
+        box.classList.toggle("is-stacked", !!parent);
+
+        return new Promise(function (resolve) {
+            var accepted = false;
+            var instance = bootstrap.Modal.getOrCreateInstance(box);
+            function onOk() { accepted = true; instance.hide(); }
+            function onShown() {
+                var backdrops = document.querySelectorAll(".modal-backdrop");
+                if (parent && backdrops.length) { backdrops[backdrops.length - 1].classList.add("is-stacked"); }
+                (tone === "danger" ? q("[data-c-cancel]") : ok).focus();
+            }
+            function onHidden() {
+                ok.removeEventListener("click", onOk);
+                box.removeEventListener("shown.bs.modal", onShown);
+                box.removeEventListener("hidden.bs.modal", onHidden);
+                if (trap) { trap.activate(); }
+                // Bootstrap clears the body lock when any modal closes - keep it for the form below
+                if (parent && parent.classList.contains("show")) { document.body.classList.add("modal-open"); }
+                resolve(accepted);
+            }
+            ok.addEventListener("click", onOk);
+            box.addEventListener("shown.bs.modal", onShown);
+            box.addEventListener("hidden.bs.modal", onHidden);
+            if (trap) { trap.deactivate(); }
+            instance.show();
+        });
+    };
+
+    // true when a form row holds something typed (a blank new row goes without asking)
+    HRMS.rowHasInput = function (row) {
+        return Array.prototype.some.call(row.querySelectorAll("input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea"),
+            function (i) { return i.value.trim() !== ""; });
+    };
+
     /* ------------------------------------------- message for the next page -- */
     // HRMS.flash(message): shown as a toast on the next page this tab opens (e.g. after a save that moves on).
     var FLASH_KEY = "hrms.flash";

@@ -138,7 +138,7 @@
     var confirmModal = $("#confirm-modal");
     function confirmDialog(title, text, button) {
         return new Promise(function (resolve) {
-            if (!confirmModal) { resolve(window.confirm(text)); return; }
+            if (!confirmModal) { HRMS.confirm({ title: title, text: text, ok: button || title }).then(resolve); return; }
             $("[data-confirm-title]", confirmModal).textContent = title;
             $("[data-confirm-text]", confirmModal).textContent = text;
             $("[data-confirm-button]", confirmModal).textContent = button || title;
@@ -239,8 +239,13 @@
             if (add) { self.addLine(add.closest("[data-line-add]"), add); return; }
             var rm = ev.target.closest("[data-line-remove]");
             if (rm) {
-                post(urls.removeline || page.getAttribute("data-urls-removeline"), { run: self.run(), lineId: rm.getAttribute("data-line-remove") }, rm)
-                    .then(function (res) { if (res && res.success) { self.reload(true); } });
+                var cells = rm.closest("tr").cells;
+                HRMS.confirm({ title: HRMS.t("js.pr_remove_line", "Remove this line from the payroll?"),
+                    name: cells.length > 1 ? cells[1].textContent.trim() + " · " + cells[cells.length - 2].textContent.trim() : "" }).then(function (ok) {
+                    if (!ok) { return; }
+                    post(urls.removeline || page.getAttribute("data-urls-removeline"), { run: self.run(), lineId: rm.getAttribute("data-line-remove") }, rm)
+                        .then(function (res) { if (res && res.success) { self.reload(true); } });
+                });
                 return;
             }
             var inc = ev.target.closest("[data-emp-include]");

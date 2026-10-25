@@ -438,7 +438,7 @@
     var confirmAction = null;
     function confirmThen(title, text, action) {
         var dialog = document.getElementById("lv-confirm-modal");
-        if (!dialog) { if (window.confirm(title)) { action(); } return; }
+        if (!dialog) { HRMS.confirm({ title: title, text: text }).then(function (ok) { if (ok) { action(); } }); return; }
         $("[data-lv-confirm-title]", dialog).textContent = title;
         $("[data-lv-confirm-text]", dialog).textContent = text || "";
         confirmAction = action;
@@ -652,7 +652,12 @@
                 var b = event.target.closest("[data-lv-tier-remove]");
                 if (!b) { return; }
                 var rows = $all("[data-lv-tier]", list);
-                if (rows.length > 1) { b.closest("[data-lv-tier]").remove(); }
+                if (rows.length < 2) { return; }
+                var tier = b.closest("[data-lv-tier]");
+                if (!HRMS.rowHasInput(tier)) { tier.remove(); return; }
+                HRMS.confirm({ title: HRMS.t("js.lv_remove_band", "Remove this pay band?"),
+                    note: HRMS.t("js.lv_remove_band_note", "It is dropped when you save the leave type.") })
+                    .then(function (ok) { if (ok) { tier.remove(); } });
             });
             syncMode();
         }

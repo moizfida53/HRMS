@@ -49,8 +49,11 @@
         var form = null;
 
         var isDirty = function () { return form && form.getAttribute("data-dirty") === "true"; };
+        // resolves true when nothing is unsaved, or the user agrees to drop it
         var confirmLeave = function () {
-            return !isDirty() || window.confirm(HRMS.t("js.sec_discard_changes", "Discard the changes to this role?"));
+            if (!isDirty()) { return Promise.resolve(true); }
+            return HRMS.confirm({ title: HRMS.t("js.sec_discard_changes", "Discard the changes to this role?"),
+                ok: HRMS.t("js.discard", "Discard"), note: "", icon: false });
         };
 
         var select = function (ref) {
@@ -81,8 +84,11 @@
 
         rolesPage.addEventListener("click", function (e) {
             var b = e.target.closest("[data-sec-role]");
-            if (b) { if (b.getAttribute("data-sec-role") !== current && confirmLeave()) { load(b.getAttribute("data-sec-role")); } return; }
-            if (e.target.closest("[data-sec-new]") && confirmLeave()) { load(""); }
+            if (b) {
+                if (b.getAttribute("data-sec-role") !== current) { confirmLeave().then(function (ok) { if (ok) { load(b.getAttribute("data-sec-role")); } }); }
+                return;
+            }
+            if (e.target.closest("[data-sec-new]")) { confirmLeave().then(function (ok) { if (ok) { load(""); } }); }
         });
 
         var roleSearch = $("[data-sec-role-search]", rolesPage);
@@ -235,26 +241,29 @@
                     return;
                 }
                 if (e.target.closest("[data-sec-discard]")) {
-                    if (!isDirty() || window.confirm(HRMS.t("js.sec_discard_changes", "Discard the changes to this role?"))) {
+                    confirmLeave().then(function (ok) {
+                        if (!ok) { return; }
                         f.setAttribute("data-dirty", "false");
                         load(current);
-                    }
+                    });
                     return;
                 }
                 var del = e.target.closest("[data-sec-delete]");
                 if (del) {
-                    if (!window.confirm(del.getAttribute("data-confirm"))) { return; }
-                    busy(del, true);
-                    HRMS.post(rolesPage.getAttribute("data-urls-delete"), fd({ ref: current })).then(function (res) {
-                        busy(del, false);
-                        if (res && res.success) {
-                            f.setAttribute("data-dirty", "false");
-                            store(FLASH, res.message);
-                            HRMS.reload();
-                        } else {
-                            HRMS.toast((res && res.message) || failed(), "error");
-                        }
-                    }, function (err) { busy(del, false); HRMS.toast((err && err.message) || failed(), "error"); });
+                    HRMS.confirm({ title: HRMS.t("js.sec_delete_role", "Delete role"), text: del.getAttribute("data-confirm") }).then(function (ok) {
+                        if (!ok) { return; }
+                        busy(del, true);
+                        HRMS.post(rolesPage.getAttribute("data-urls-delete"), fd({ ref: current })).then(function (res) {
+                            busy(del, false);
+                            if (res && res.success) {
+                                f.setAttribute("data-dirty", "false");
+                                store(FLASH, res.message);
+                                HRMS.reload();
+                            } else {
+                                HRMS.toast((res && res.message) || failed(), "error");
+                            }
+                        }, function (err) { busy(del, false); HRMS.toast((err && err.message) || failed(), "error"); });
+                    });
                 }
             });
 
@@ -519,13 +528,16 @@
                 var question = activate
                     ? HRMS.t("js.sec_confirm_activate", "Activate {0}? They can sign in again.")
                     : HRMS.t("js.sec_confirm_deactivate", "Deactivate {0}? They are signed out and can no longer sign in.");
-                if (!window.confirm(question.replace("{0}", who))) { return; }
-                busy(tg, true);
-                HRMS.post(url("toggle"), fd({ ref: tg.getAttribute("data-sec-user-toggle"), active: activate ? "true" : "false" })).then(function (res) {
-                    busy(tg, false);
-                    if (res && res.success) { HRMS.toast(res.message, "success"); loadUsers(); }
-                    else { HRMS.toast((res && res.message) || failed(), "error"); }
-                }, function (err) { busy(tg, false); HRMS.toast((err && err.message) || failed(), "error"); });
+                HRMS.confirm({ title: question.replace("{0}", who), tone: activate ? "primary" : "danger", note: "", icon: false,
+                    ok: activate ? HRMS.t("js.sec_activate", "Activate") : HRMS.t("js.sec_deactivate", "Deactivate") }).then(function (ok) {
+                    if (!ok) { return; }
+                    busy(tg, true);
+                    HRMS.post(url("toggle"), fd({ ref: tg.getAttribute("data-sec-user-toggle"), active: activate ? "true" : "false" })).then(function (res) {
+                        busy(tg, false);
+                        if (res && res.success) { HRMS.toast(res.message, "success"); loadUsers(); }
+                        else { HRMS.toast((res && res.message) || failed(), "error"); }
+                    }, function (err) { busy(tg, false); HRMS.toast((err && err.message) || failed(), "error"); });
+                });
                 return;
             }
 

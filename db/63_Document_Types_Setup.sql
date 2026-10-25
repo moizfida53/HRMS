@@ -343,7 +343,7 @@ BEGIN
                           + CASE WHEN COL_LENGTH(N'Documents.DocumentTypes', N'DeletedBy') IS NOT NULL THEN N', [DeletedBy] = @UserId' ELSE N'' END
                           + CASE WHEN COL_LENGTH(N'Documents.DocumentTypes', N'DeletedDate') IS NOT NULL THEN N', [DeletedDate] = SYSUTCDATETIME()' ELSE N'' END
                           + N' WHERE ' + QUOTENAME(@IdCol) + N' = @Id AND [Deleted] = 0;'
-                     ELSE N'DELETE FROM [Documents].[DocumentTypes] WHERE ' + QUOTENAME(@IdCol) + N' = @Id;' END;
+                     ELSE N'RAISERROR(N''Records are never physically deleted - run db/28_Soft_Delete.sql first.'', 16, 1);' END;
             EXEC sys.sp_executesql @dSql, N'@Id BIGINT, @UserId BIGINT', @Id = @Id, @UserId = @UserId;
             SELECT @NewId = @Id, @ResultMessage = N'Document type deleted.';
         END TRY
