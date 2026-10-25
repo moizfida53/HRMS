@@ -23,6 +23,8 @@
     var showCompliance = wizard || acc.ComplianceView;
     var showDependents = wizard || acc.DependentView;
     var showDocuments = wizard || acc.DocumentView;
+    // Civil ID / Passport / Residency / Work Permit images inside their Kuwait Compliance sections (db/71)
+    var showComplianceImages = !Model.IsNew && !wizard && acc.ComplianceView && acc.DocumentView;
     // Leave (db/68): balances and latest requests - HR with leave access, or the employee themself
     var showLeave = !Model.IsNew && !wizard && (CurrentUser.CanOpen("leave:balances") || (CurrentUser.EmployeeId is { } meId && meId == e.EmployeeId));
     var wizardTabs = new[] {
@@ -853,7 +855,8 @@
         }
         else
         {
-            <form id="compliance-form" novalidate>
+            <form id="compliance-form" novalidate data-kcd-url="@(showComplianceImages ? $"/employees/documents/{e.EmployeeId}/compliance" : null)"
+                  data-kcd-employee="@e.EmployeeId">
                 <input type="hidden" name="EmployeeId" value="@e.EmployeeId" />
                 <fieldset class="hrms-ro-fieldset" disabled="@(!acc.ComplianceEdit)">
 
@@ -882,6 +885,7 @@
                             <span class="field-validation-error" data-valmsg-for="CivilIdExpiryDate"></span>
                         </div>
                     </div>
+                    @if (showComplianceImages) { <div class="kcd-slot" data-kcd-slot="CIVIL_ID"></div> }
                         </div>
                     </div>
                 </div>
@@ -920,6 +924,7 @@
                             <span class="field-validation-error" data-valmsg-for="PassportExpiryDate"></span>
                         </div>
                     </div>
+                    @if (showComplianceImages) { <div class="kcd-slot" data-kcd-slot="PASSPORT"></div> }
                         </div>
                     </div>
                 </div>
@@ -995,6 +1000,7 @@
                             <span class="field-validation-error" data-valmsg-for="ResidencyStatus"></span>
                         </div>
                     </div>
+                    @if (showComplianceImages) { <div class="kcd-slot" data-kcd-slot="RESIDENCY"></div> }
                         </div>
                     </div>
                 </div>
@@ -1028,6 +1034,7 @@
                             <span class="field-validation-error" data-valmsg-for="WorkPermitExpiryDate"></span>
                         </div>
                     </div>
+                    @if (showComplianceImages) { <div class="kcd-slot" data-kcd-slot="WORK_PERMIT"></div> }
                         </div>
                     </div>
                 </div>
@@ -1372,6 +1379,66 @@
             </div>
         </div>
     </div>
+}
+
+@if (showComplianceImages)
+{
+    @* ---- confirm the Kuwait Compliance images against the expiry date (db/71) ---- *@
+    <div class="modal fade" id="kcd-confirm-modal" tabindex="-1" aria-hidden="true" aria-labelledby="kcd-confirm-title">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" data-kcd-confirm-form novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="kcd-confirm-title" data-kcd-confirm-title></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="hrms-text-sm" data-kcd-confirm-hint
+                       data-text-first="@L["kcd.confirm_hint_first"]" data-text-renewal="@L["kcd.confirm_hint_renewal"]"></p>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label" for="kcd-expiry" data-kcd-expiry-label
+                                   data-text-first="@L["kcd.expiry_date"]" data-text-renewal="@L["kcd.new_expiry_date"]"></label>
+                            <input type="date" class="form-control" id="kcd-expiry" name="expiryDate" required data-kcd-expiry />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label" for="kcd-number">@L["kcd.document_number"]</label>
+                            <input type="text" class="form-control" id="kcd-number" name="number" maxlength="50" data-kcd-number />
+                        </div>
+                    </div>
+                    <p class="form-text mb-0 mt-2" data-kcd-previous data-text="@L["kcd.current_expiry_was"]"></p>
+                    <span class="field-validation-error d-block mt-2" data-kcd-confirm-error></span>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                    <button type="submit" class="btn btn-success" data-kcd-confirm-submit>@Html.Icon("check", 15)<span data-kcd-confirm-button
+                            data-text-first="@L["kcd.confirm_images"]" data-text-renewal="@L["kcd.confirm_renewal"]"></span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ---- previous images of one item ---- *@
+    <div class="modal fade" id="kcd-history-modal" tabindex="-1" aria-hidden="true" aria-labelledby="kcd-history-title">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="kcd-history-title" data-kcd-history-title></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body" data-kcd-history-body></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* item names for the dialogs *@
+    <div hidden data-kcd-names
+         data-civil_id="@L["kcd.item_civil_id"]" data-passport="@L["kcd.item_passport"]"
+         data-residency="@L["kcd.item_residency"]" data-work_permit="@L["kcd.item_work_permit"]"
+         data-text-history="@L["kcd.previous_images_of"]" data-text-confirm="@L["kcd.confirm_title"]" data-text-renewal="@L["kcd.renewal_title"]"
+         data-text-discard="@L["kcd.discard_renewal_q"]"></div>
 }
 
 @* ------------------------------------------------------- Document viewer *@

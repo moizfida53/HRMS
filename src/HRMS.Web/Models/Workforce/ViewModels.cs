@@ -231,3 +231,70 @@ public sealed class EmployeeProfileViewModel
         }
     }
 }
+
+/// <summary>
+/// The images of the Kuwait Compliance items (Civil ID, Passport, Residency, Work Permit)
+/// shown inside their sections of the Kuwait Compliance tab (db/71).
+/// </summary>
+public sealed class ComplianceDocumentsViewModel
+{
+    /// <summary>"Update renewal image" is offered from this many days before the expiry date.</summary>
+    public const int RenewalWindowDays = 90;
+
+    public required long EmployeeId { get; init; }
+    public required IReadOnlyList<ComplianceDocumentGroup> Groups { get; init; }
+    public bool CanUpload { get; init; }
+    public bool CanConfirm { get; init; }
+    public bool CanDiscard { get; init; }
+    public int MaxFileSizeMb { get; init; } = 5;
+}
+
+public sealed class ComplianceDocumentGroup
+{
+    public required string Key { get; init; }
+    /// <summary>The item's expiry date and number on Kuwait Compliance (as saved).</summary>
+    public DateTime? ExpiryDate { get; init; }
+    public string? Number { get; init; }
+    public required IReadOnlyList<ComplianceDocumentSlot> Slots { get; init; }
+
+    public bool HasRenewal => Slots.Any(s => s.Renewal is not null);
+    public bool HasUnconfirmed => Slots.Any(s => s.Current is { IsConfirmed: false });
+    public bool HasConfirmed => Slots.Any(s => s.Current is { IsConfirmed: true });
+    public int ArchivedCount => Slots.Sum(s => s.ArchivedCount);
+    public bool HasAnyImage => Slots.Any(s => s.Current is not null || s.Renewal is not null) || ArchivedCount > 0;
+
+    /// <summary>The expiry date the current images were confirmed against.</summary>
+    public DateTime? ConfirmedExpiry => Slots.Where(s => s.Current is { IsConfirmed: true }).Max(s => s.Current!.ConfirmedExpiryDate);
+
+    public int? DaysToExpiry => ExpiryDate is { } d ? (int)(d.Date - DateTime.Today).TotalDays : null;
+
+    /// <summary>The expiry date of the images a waiting renewal replaces.</summary>
+    public DateTime? RenewalPrevious => Slots.Where(s => s.Renewal is not null && s.Current is { IsConfirmed: true })
+                                             .Max(s => s.Current!.ConfirmedExpiryDate);
+
+    /// <summary>An image still of the previous document while another type of the item is renewed (e.g. the back of the old Civil ID).</summary>
+    public bool IsStale(ComplianceDocumentSlot slot) =>
+        slot.Current is { IsConfirmed: true, ConfirmedExpiryDate: { } own } && ConfirmedExpiry is { } latest && own < latest;
+
+    public bool HasStale => Slots.Any(IsStale);
+
+    /// <summary>Confirmed images whose expiry date is within the renewal window (or already past).</summary>
+    public bool RenewalDue => HasConfirmed && DaysToExpiry is { } n && n <= ComplianceDocumentsViewModel.RenewalWindowDays;
+}
+
+public sealed class ComplianceDocumentSlot
+{
+    public required int DocumentTypeId { get; init; }
+    public required string Name { get; init; }
+    public string? NameAr { get; init; }
+    public ComplianceDocumentRow? Current { get; init; }
+    public ComplianceDocumentRow? Renewal { get; init; }
+    public int ArchivedCount { get; init; }
+}
+
+public sealed class ComplianceHistoryViewModel
+{
+    public required long EmployeeId { get; init; }
+    public required string Key { get; init; }
+    public required IReadOnlyList<ComplianceImageEntry> Images { get; init; }
+}

@@ -1,0 +1,74 @@
+@model ComplianceHistoryViewModel
+@* "Previous images" of one Kuwait Compliance item: the renewal waiting, the current and the archived images. *@
+@{
+    var fileUrl = $"/employees/documents/{Model.EmployeeId}/file/";
+    string DocName(string? english, string? arabic) =>
+        L.IsArabic && !string.IsNullOrWhiteSpace(arabic) ? arabic! : english ?? string.Empty;
+}
+@if (Model.Images.Count == 0)
+{
+    <div class="hrms-empty"><p class="hrms-empty__title">@L["kcd.no_images_yet"]</p></div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table kcd-history">
+            <thead>
+                <tr>
+                    <th scope="col">@L["kcd.image"]</th>
+                    <th scope="col">@L["kcd.applied_to_expiry"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col">@L["kcd.uploaded"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in Model.Images)
+                {
+                    var name = DocName(i.DocumentTypeName, i.DocumentTypeNameAr);
+                    <tr class="@(i.ImageState == ComplianceImageState.Archived ? "is-archived" : null)">
+                        <td data-label="@L["kcd.image"]">
+                            <span class="kcd-history__cell">
+                                <span class="hrms-table__primary">@name</span>
+                                <span class="pr-emp-sub">@i.OriginalFileName</span>
+                            </span>
+                        </td>
+                        <td data-label="@L["kcd.applied_to_expiry"]">
+                            <span class="kcd-history__cell">
+                                <span>@(i.ConfirmedExpiryDate is { } x ? L.Date(x) : "—")</span>
+                                @if (!string.IsNullOrWhiteSpace(i.ConfirmedNumber)) { <span class="pr-emp-sub">@i.ConfirmedNumber</span> }
+                            </span>
+                        </td>
+                        <td data-label="@L["common.status"]">
+                            @switch (i.ImageState)
+                            {
+                                case ComplianceImageState.Renewal:
+                                    <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["kcd.renewal_waiting"]</span>
+                                    break;
+                                case ComplianceImageState.Archived:
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["kcd.archived_on", i.ArchivedDate is { } ad ? L.Date(ad) : "—"]</span>
+                                    break;
+                                default:
+                                    <span class="hrms-badge @(i.ConfirmedDate is null ? "hrms-badge--warning" : "hrms-badge--success")"><span class="hrms-badge__dot"></span>@(i.ConfirmedDate is null ? L["kcd.not_confirmed"] : L["kcd.current"])</span>
+                                    break;
+                            }
+                        </td>
+                        <td data-label="@L["kcd.uploaded"]">
+                            <span class="kcd-history__cell">
+                                <span>@L.Date(i.UploadedDate)</span>
+                                @if (i.UploadedByName is not null) { <span class="pr-emp-sub">@i.UploadedByName</span> }
+                            </span>
+                        </td>
+                        <td class="hrms-table__actions">
+                            <button type="button" class="btn-icon" data-docs-view="@(fileUrl + i.AttachmentId)" data-docs-type="@i.ContentType"
+                                    data-docs-name="@i.OriginalFileName" data-docs-title="@name"
+                                    title="@L["kcd.view_image"]" aria-label="@L["common.view_named", name]">@Html.Icon("eye", 15)</button>
+                            <a class="btn-icon" href="@(fileUrl + i.AttachmentId)?download=true"
+                               title="@L["emp.download"]" aria-label="@L["common.download_named", name]">@Html.Icon("download", 15)</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

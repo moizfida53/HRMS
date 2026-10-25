@@ -1,0 +1,174 @@
+@model ComplianceDocumentsViewModel
+@* The images of the Kuwait Compliance items (db/71). Each group is moved by
+   employee.js into its section of the Kuwait Compliance tab ([data-kcd-slot]). *@
+@{
+    var fileUrl = $"/employees/documents/{Model.EmployeeId}/file/";
+    string DocName(string? english, string? arabic) =>
+        L.IsArabic && !string.IsNullOrWhiteSpace(arabic) ? arabic! : english ?? string.Empty;
+    static string FileBadge(string? contentType) => contentType switch
+    {
+        "application/pdf" => "PDF",
+        "image/png" => "PNG",
+        "image/jpeg" => "JPG",
+        _ => "FILE"
+    };
+}
+<div data-kcd-root data-max-mb="@Model.MaxFileSizeMb">
+@foreach (var g in Model.Groups)
+{
+    var days = g.DaysToExpiry;
+    <section class="kcd" data-kcd-group="@g.Key" data-renewal="@(g.HasRenewal ? "1" : "0")"
+             data-confirmed-expiry="@g.RenewalPrevious?.ToString("yyyy-MM-dd")"
+             data-confirmed-expiry-text="@(g.RenewalPrevious is { } cet ? L.Date(cet) : "")">
+        <header class="kcd__head">
+            <span class="kcd__title">@Html.Icon("file", 15)<span>@L["kcd.document_images"]</span></span>
+            @if (g.HasRenewal)
+            {
+                <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["kcd.renewal_waiting"]</span>
+            }
+            else if (g.HasUnconfirmed)
+            {
+                <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["kcd.not_confirmed"]</span>
+            }
+            else if (g.HasStale)
+            {
+                <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["kcd.partly_renewed"]</span>
+            }
+            else if (g.RenewalDue)
+            {
+                <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@(days < 0 ? L["kcd.expired_days_ago", -days!.Value] : L["kcd.renewal_due_in", days!.Value])</span>
+            }
+            else if (g.HasConfirmed)
+            {
+                <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["kcd.confirmed_until", g.ConfirmedExpiry is { } ce ? L.Date(ce) : "—"]</span>
+            }
+            @if (g.HasAnyImage)
+            {
+                <a href="#" role="button" class="btn btn-sm btn-link kcd__history" data-kcd-history="@g.Key">
+                    @Html.Icon("history", 14)<span>@L["kcd.previous_images"]</span>@if (g.ArchivedCount > 0) {<span class="kcd__count">@g.ArchivedCount</span>}
+                </a>
+            }
+        </header>
+
+        @if (g.Slots.Count == 0)
+        {
+            <p class="kcd__none">@L["kcd.no_types_linked"]</p>
+        }
+        else
+        {
+            <ul class="kcd__list">
+                @foreach (var s in g.Slots)
+                {
+                    var name = DocName(s.Name, s.NameAr);
+                    var inputId = $"kcd-file-{s.DocumentTypeId}";
+                    var c = s.Current;
+                    var r = s.Renewal;
+                    var stale = g.IsStale(s);
+                    string? uploadLabel = !Model.CanUpload ? null
+                        : r is not null ? L["kcd.replace_new_image"]
+                        : c is null ? L["kcd.upload_image"]
+                        : !c.IsConfirmed ? L["emp.replace"]
+                        : g.RenewalDue || stale ? L["kcd.update_renewal_image"]
+                        : null;
+                    <li class="kcd__item">
+                        <span class="kcd__name">@name</span>
+                        <div class="kcd__images">
+                            @if (c is not null)
+                            {
+                                var badge = FileBadge(c.ContentType);
+                                <div class="kcd__img @(r is not null ? "is-old" : null)">
+                                    <a class="kcd__view" role="button" href="@(fileUrl + c.AttachmentId)" title="@L["kcd.view_image"]"
+                                            data-docs-view="@(fileUrl + c.AttachmentId)" data-docs-type="@c.ContentType"
+                                            data-docs-name="@c.OriginalFileName" data-docs-title="@name"
+                                            aria-label="@L["common.view_named", name]">@Html.Icon("eye", 16)</a>
+                                    <span class="kcd__meta">
+                                        <span class="kcd__file"><span class="hrms-file__type @(badge == "PDF" ? "hrms-file__type--pdf" : "hrms-file__type--img")" aria-hidden="true">@badge</span>@c.OriginalFileName</span>
+                                        <span class="kcd__state">
+                                            @if (stale)
+                                            {
+                                                <span class="is-warn">@L["kcd.previous_document", c.ConfirmedExpiryDate is { } sx ? L.Date(sx) : "—"]</span>
+                                            }
+                                            else if (c.IsConfirmed)
+                                            {
+                                                @Html.Icon("check", 12)<span>@L["kcd.applied_to", c.ConfirmedExpiryDate is { } x ? L.Date(x) : "—"]</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="is-warn">@L["kcd.waiting_confirmation"]</span>
+                                            }
+                                        </span>
+                                    </span>
+                                </div>
+                            }
+                            @if (r is not null)
+                            {
+                                var badge = FileBadge(r.ContentType);
+                                <div class="kcd__img is-new">
+                                    <a class="kcd__view" role="button" href="@(fileUrl + r.AttachmentId)" title="@L["kcd.view_image"]"
+                                            data-docs-view="@(fileUrl + r.AttachmentId)" data-docs-type="@r.ContentType"
+                                            data-docs-name="@r.OriginalFileName" data-docs-title="@(name + " · " + L["kcd.renewal"])"
+                                            aria-label="@L["common.view_named", name + " · " + L["kcd.renewal"]]">@Html.Icon("eye", 16)</a>
+                                    <span class="kcd__meta">
+                                        <span class="kcd__file"><span class="hrms-file__type @(badge == "PDF" ? "hrms-file__type--pdf" : "hrms-file__type--img")" aria-hidden="true">@badge</span>@r.OriginalFileName</span>
+                                        <span class="kcd__state"><span class="kcd__tag">@L["kcd.renewal"]</span><span class="is-warn">@L["kcd.waiting_confirmation"]</span></span>
+                                    </span>
+                                    @if (Model.CanDiscard)
+                                    {
+                                        <button type="button" class="btn-icon btn-icon--danger" data-kcd-discard="@r.AttachmentId" data-name="@name"
+                                                title="@L["kcd.discard_renewal"]" aria-label="@L["kcd.discard_renewal"]">@Html.Icon("trash", 14)</button>
+                                    }
+                                </div>
+                            }
+                            @if (c is null && r is null)
+                            {
+                                <span class="kcd__missing">@L["kcd.not_uploaded"]</span>
+                            }
+                        </div>
+                        <div class="kcd__actions">
+                            @if (uploadLabel is not null)
+                            {
+                                <input type="file" class="kcd__input" id="@inputId" data-kcd-file="@s.DocumentTypeId"
+                                       accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" aria-label="@(uploadLabel + " · " + name)" />
+                                <label class="btn btn-sm @(c is { IsConfirmed: true } && r is null ? "btn-primary" : "btn-outline-primary") mb-0" for="@inputId">
+                                    @Html.Icon(c is { IsConfirmed: true } && r is null ? "refresh" : "upload", 14)<span>@uploadLabel</span>
+                                </label>
+                            }
+                        </div>
+                        <span class="kcd__error" data-kcd-error aria-live="polite"></span>
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (g.HasRenewal)
+        {
+            <div class="kcd__bar is-renewal">
+                @Html.Icon("info", 16)
+                <span>@L["kcd.renewal_bar"]</span>
+                @if (Model.CanConfirm)
+                {
+                    <button type="button" class="btn btn-sm btn-success" data-kcd-confirm="@g.Key" data-renewal="1">@Html.Icon("check", 14)<span>@L["kcd.confirm_renewal"]</span></button>
+                }
+            </div>
+        }
+        else if (g.HasUnconfirmed)
+        {
+            <div class="kcd__bar">
+                @Html.Icon("info", 16)
+                <span>@L["kcd.confirm_bar"]</span>
+                @if (Model.CanConfirm)
+                {
+                    <button type="button" class="btn btn-sm btn-success" data-kcd-confirm="@g.Key" data-renewal="0">@Html.Icon("check", 14)<span>@L["kcd.confirm_images"]</span></button>
+                }
+            </div>
+        }
+        else if (g.RenewalDue && Model.CanUpload)
+        {
+            <div class="kcd__bar is-due">
+                @Html.Icon("alert", 16)
+                <span>@L["kcd.due_bar"]</span>
+            </div>
+        }
+    </section>
+}
+</div>

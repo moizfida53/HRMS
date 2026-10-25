@@ -208,7 +208,7 @@
                     .then(function (result) {
                         confirmModal.hide();
                         HRMS.toast(result.message, result.success ? "success" : "error");
-                        if (result.success) { loadGrid(); }
+                        if (result.success) { changed(); if (loaded) { loadGrid(); } }
                     })
                     .catch(function (error) { HRMS.toast(error.message, "error"); })
                     .finally(function () {
@@ -683,6 +683,21 @@
 
         function root() { return slot.querySelector("[data-docs-root]"); }
 
+        // the Kuwait Compliance images (db/71) show the same files: each side tells the other
+        function changed() { document.dispatchEvent(new CustomEvent("hrms:documents-changed", { detail: { source: "documents" } })); }
+        document.addEventListener("hrms:documents-changed", function (event) {
+            if (loaded && (!event.detail || event.detail.source !== "documents")) { loadGrid(); }
+        });
+
+        /** Removes one file after the "Remove document" confirmation (also used by Kuwait Compliance). */
+        HRMS.removeDocument = function (attachmentId, name) {
+            if (!confirmEl) { return; }
+            pendingRemove = attachmentId;
+            confirmEl.querySelector("[data-document-confirm-name]").textContent = name || HRMS.t("js.this_document", "this document");
+            if (!confirmModal) { confirmModal = new bootstrap.Modal(confirmEl); }
+            confirmModal.show();
+        };
+
         function loadGrid() {
             slot.setAttribute("aria-busy", "true");
 
@@ -873,6 +888,7 @@
                 .then(function (result) {
                     if (result.success) {
                         HRMS.toast(HRMS.t("js.doc_uploaded", "{0} uploaded.", row.dataset.labelName || HRMS.t("js.document", "Document")), "success");
+                        changed();
                         return loadGrid();
                     }
                     showRowError(row, result.message);
@@ -1007,6 +1023,23 @@
             bootstrap.Modal.getOrCreateInstance(viewerEl).show();
         }
 
+        // an image or PDF anywhere else on the page (Kuwait Compliance, previous images) opens here too
+        // (from inside another popup, e.g. Previous images, that popup steps aside and comes back after)
+        var returnTo = null;
+        document.addEventListener("click", function (event) {
+            var viewButton = event.target.closest("[data-docs-view]");
+            if (!viewButton || !viewerEl || slot.contains(viewButton)) { return; }
+            event.preventDefault();
+            var parent = viewButton.closest(".modal.show");
+            if (parent && parent !== viewerEl) {
+                returnTo = parent;
+                parent.addEventListener("hidden.bs.modal", function () { openViewer(viewButton); }, { once: true });
+                bootstrap.Modal.getOrCreateInstance(parent).hide();
+                return;
+            }
+            openViewer(viewButton);
+        });
+
         if (viewerEl) {
             viewerEl.querySelector("[data-docview-size]").addEventListener("click", function () {
                 setViewerMaximized(this.getAttribute("aria-pressed") !== "true");
@@ -1014,6 +1047,7 @@
             viewerEl.addEventListener("hidden.bs.modal", function () {
                 viewerEl.querySelector("[data-docview-body]").innerHTML = "";
                 setViewerMaximized(false);
+                if (returnTo) { bootstrap.Modal.getOrCreateInstance(returnTo).show(); returnTo = null; }
             });
         }
 
@@ -1032,7 +1066,7 @@
                     .then(function (result) {
                         confirmModal.hide();
                         HRMS.toast(result.message, result.success ? "success" : "error");
-                        if (result.success) { loadGrid(); }
+                        if (result.success) { changed(); if (loaded) { loadGrid(); } }
                     })
                     .catch(function (error) { HRMS.toast(error.message, "error"); })
                     .finally(function () {
@@ -1041,6 +1075,179 @@
                     });
             });
         }
+    })();
+
+    /* ================================ Kuwait Compliance images (db/71) === */
+
+    // Civil ID, Passport, Residency and Work Permit images inside their Kuwait
+    // Compliance sections: view, upload, confirm them against the expiry date;
+    // near the expiry a new image waits as a renewal until it is confirmed with
+    // the new date, and the old one is archived ("Previous images").
+    (function initComplianceImages() {
+        var form = document.getElementById("compliance-form");
+        var url = form && form.dataset.kcdUrl;
+        if (!url) { return; }
+
+        var employeeId = form.dataset.kcdEmployee;
+        var names = document.querySelector("[data-kcd-names]");
+        var confirmEl = document.getElementById("kcd-confirm-modal");
+        var confirmForm = confirmEl.querySelector("[data-kcd-confirm-form]");
+        var historyEl = document.getElementById("kcd-history-modal");
+        var ALLOWED = ["pdf", "jpg", "jpeg", "png"];
+        var FIELDS = {
+            CIVIL_ID: ["CivilIdExpiryDate", "CivilIdNumber"],
+            PASSPORT: ["PassportExpiryDate", "PassportNumber"],
+            RESIDENCY: ["ResidencyExpiryDate", "ResidencyNumber"],
+            WORK_PERMIT: ["WorkPermitExpiryDate", "WorkPermitNumber"]
+        };
+        var maxMb = 5;
+        var pending = null;   // { key, renewal }
+
+        function itemName(key) { return (names && names.getAttribute("data-" + key.toLowerCase())) || key; }
+        function field(name) { return form.querySelector('[name="' + name + '"]'); }
+
+        function load() {
+            return HRMS.getHtml(url).then(function (html) {
+                var holder = document.createElement("div");
+                holder.innerHTML = html;
+                var rootEl = holder.querySelector("[data-kcd-root]");
+                if (rootEl) { maxMb = parseInt(rootEl.dataset.maxMb, 10) || maxMb; }
+                holder.querySelectorAll("[data-kcd-group]").forEach(function (group) {
+                    var target = form.querySelector('[data-kcd-slot="' + group.dataset.kcdGroup + '"]');
+                    if (target) { target.innerHTML = ""; target.appendChild(group); }
+                });
+            }).catch(function () {
+                form.querySelectorAll("[data-kcd-slot]").forEach(function (target) { target.innerHTML = ""; });
+            });
+        }
+
+        function upload(input) {
+            var file = input.files && input.files[0];
+            var item = input.closest(".kcd__item");
+            var error = item && item.querySelector("[data-kcd-error]");
+            input.value = "";
+            if (!file) { return; }
+            if (error) { error.textContent = ""; }
+            var ext = (file.name.split(".").pop() || "").toLowerCase();
+            if (ALLOWED.indexOf(ext) === -1) {
+                if (error) { error.textContent = HRMS.t("js.only_pdf_jpg_png", "Only PDF, JPG or PNG files can be uploaded."); }
+                return;
+            }
+            if (file.size > maxMb * 1024 * 1024) {
+                if (error) { error.textContent = HRMS.t("js.kcd_too_big", "The file is larger than {0} MB.", maxMb); }
+                return;
+            }
+            var body = new FormData();
+            body.append("employeeId", employeeId);
+            body.append("documentTypeId", input.dataset.kcdFile);
+            body.append("file", file);
+            if (item) { item.classList.add("is-busy"); }
+            HRMS.post("/employees/documents/upload", body)
+                .then(function (result) {
+                    HRMS.toast(result.message, result.success ? "success" : "error");
+                    if (result.success) {
+                        document.dispatchEvent(new CustomEvent("hrms:documents-changed", { detail: { source: "compliance" } }));
+                        return load();
+                    }
+                })
+                .catch(function (err) { HRMS.toast(err.message, "error"); })
+                .finally(function () { if (item) { item.classList.remove("is-busy"); } });
+        }
+
+        function openConfirm(key, renewal) {
+            pending = { key: key, renewal: renewal };
+            var mode = renewal ? "renewal" : "first";
+            var group = form.querySelector('[data-kcd-group="' + key + '"]');
+            var expiryField = field(FIELDS[key][0]);
+            var numberField = field(FIELDS[key][1]);
+            var expiry = confirmForm.querySelector("[data-kcd-expiry]");
+            var number = confirmForm.querySelector("[data-kcd-number]");
+            var previous = confirmForm.querySelector("[data-kcd-previous]");
+            var current = group ? group.dataset.confirmedExpiry : "";
+
+            confirmForm.querySelector("[data-kcd-confirm-title]").textContent =
+                (names.dataset[renewal ? "textRenewal" : "textConfirm"] || "").replace("{0}", itemName(key));
+            ["[data-kcd-confirm-hint]", "[data-kcd-expiry-label]", "[data-kcd-confirm-button]"].forEach(function (sel) {
+                var el = confirmForm.querySelector(sel);
+                el.textContent = el.getAttribute("data-text-" + mode) || "";
+            });
+            // first time: the date already on the form; a renewal: the new date is entered
+            var onForm = expiryField ? expiryField.value : "";
+            expiry.value = !renewal ? onForm : (current && onForm > current ? onForm : "");
+            expiry.min = renewal && current ? current : "";
+            number.value = numberField ? numberField.value : "";
+            number.maxLength = numberField && numberField.maxLength > 0 ? numberField.maxLength : 50;
+            previous.textContent = renewal && current ? previous.dataset.text.replace("{0}", group.dataset.confirmedExpiryText || current) : "";
+            previous.hidden = !(renewal && current);
+            confirmForm.querySelector("[data-kcd-confirm-error]").textContent = "";
+            bootstrap.Modal.getOrCreateInstance(confirmEl).show();
+            window.setTimeout(function () { expiry.focus(); }, 300);
+        }
+
+        confirmForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+            if (!pending) { return; }
+            var expiry = confirmForm.querySelector("[data-kcd-expiry]");
+            var number = confirmForm.querySelector("[data-kcd-number]");
+            var error = confirmForm.querySelector("[data-kcd-confirm-error]");
+            error.textContent = "";
+            if (!expiry.value) {
+                error.textContent = HRMS.t("js.kcd_expiry_needed", "Enter the expiry date the images apply to.");
+                expiry.focus();
+                return;
+            }
+            var submit = confirmForm.querySelector("[data-kcd-confirm-submit]");
+            var body = new FormData();
+            body.append("employeeId", employeeId);
+            body.append("key", pending.key);
+            body.append("expiryDate", expiry.value);
+            body.append("number", number.value.trim());
+            submit.disabled = true;
+            HRMS.post("/employees/documents/compliance/confirm", body)
+                .then(function (result) {
+                    if (!result.success) { error.textContent = result.message; return; }
+                    HRMS.toast(result.message, "success");
+                    // the date (and number) are saved: the form shows them, so Save Changes keeps them
+                    var expiryField = field(FIELDS[pending.key][0]);
+                    var numberField = field(FIELDS[pending.key][1]);
+                    if (expiryField) { expiryField.value = expiry.value; expiryField.defaultValue = expiry.value; }
+                    if (numberField && number.value.trim()) { numberField.value = number.value.trim(); numberField.defaultValue = numberField.value; }
+                    bootstrap.Modal.getOrCreateInstance(confirmEl).hide();
+                    document.dispatchEvent(new CustomEvent("hrms:documents-changed", { detail: { source: "compliance" } }));
+                    return load();
+                })
+                .catch(function (err) { error.textContent = err.message; })
+                .finally(function () { submit.disabled = false; });
+        });
+
+        function openHistory(key) {
+            var body = historyEl.querySelector("[data-kcd-history-body]");
+            historyEl.querySelector("[data-kcd-history-title]").textContent = (names.dataset.textHistory || "{0}").replace("{0}", itemName(key));
+            body.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
+            bootstrap.Modal.getOrCreateInstance(historyEl).show();
+            HRMS.getHtml(url + "/history?key=" + encodeURIComponent(key))
+                .then(function (html) { body.innerHTML = html; })
+                .catch(function (err) { body.textContent = err.message; });
+        }
+
+        form.addEventListener("change", function (event) {
+            if (event.target.matches("[data-kcd-file]")) { upload(event.target); }
+        });
+
+        form.addEventListener("click", function (event) {
+            var history = event.target.closest("[data-kcd-history]");
+            if (history) { event.preventDefault(); openHistory(history.dataset.kcdHistory); return; }
+            var confirmButton = event.target.closest("[data-kcd-confirm]");
+            if (confirmButton) { openConfirm(confirmButton.dataset.kcdConfirm, confirmButton.dataset.renewal === "1"); return; }
+            var discard = event.target.closest("[data-kcd-discard]");
+            if (discard && HRMS.removeDocument) { HRMS.removeDocument(discard.dataset.kcdDiscard, discard.dataset.name); }
+        });
+
+        document.addEventListener("hrms:documents-changed", function (event) {
+            if (!event.detail || event.detail.source !== "compliance") { load(); }
+        });
+
+        load();
     })();
 
     /* ============================================ date field alerts (db/65) === */

@@ -1,4 +1,4 @@
-using HRMS.Data.Infrastructure;
+﻿using HRMS.Data.Infrastructure;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Common;
 using HRMS.Domain.Payroll;
@@ -55,9 +55,11 @@ public sealed class EmployeesController : Controller
         IEmployeePayrollCalendarRepository payrollCalendar,
         IEmployeeAuditor auditor,
         IDateAlertRepository dateAlerts,
+        IComplianceDocumentRepository complianceDocuments,
         ILogger<EmployeesController> logger)
     {
         _dateAlerts = dateAlerts;
+        _complianceDocuments = complianceDocuments;
         _employees = employees;
         _compliance = compliance;
         _dependents = dependents;
@@ -73,6 +75,7 @@ public sealed class EmployeesController : Controller
     }
 
     private readonly IDateAlertRepository _dateAlerts;
+    private readonly IComplianceDocumentRepository _complianceDocuments;
 
     private CancellationToken Ct => HttpContext.RequestAborted;
 
@@ -693,6 +696,97 @@ public sealed class EmployeesController : Controller
             file.ContentType,
             fileDownloadName: download ? file.OriginalFileName : null,
             enableRangeProcessing: true);
+    }
+
+    // =======================================================================
+    // Kuwait Compliance images (db/71) - Civil ID, Passport, Residency and
+    // Work Permit images shown inside their Kuwait Compliance sections:
+    // view, upload, confirm against the expiry date, renew, previous images.
+    // Uploads use documents/upload; a new image for a confirmed item waits
+    // as a renewal until it is confirmed here.
+    // =======================================================================
+
+    [HttpGet("documents/{employeeId:long}/compliance")]
+    public async Task<IActionResult> ComplianceDocuments(long employeeId)
+    {
+        var access = Access;
+        if (!access.ComplianceView || !access.DocumentView) return Forbid();
+        if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
+
+        var rows = await _complianceDocuments.ListAsync(employeeId, Ct);
+        var compliance = await _compliance.GetAsync(employeeId, Ct);
+
+        var groups = ComplianceDocumentKey.All.Select(key => new ComplianceDocumentGroup
+        {
+            Key = key,
+            ExpiryDate = key switch
+            {
+                ComplianceDocumentKey.CivilId => compliance?.CivilIdExpiryDate,
+                ComplianceDocumentKey.Passport => compliance?.PassportExpiryDate,
+                ComplianceDocumentKey.Residency => compliance?.ResidencyExpiryDate,
+                _ => compliance?.WorkPermitExpiryDate
+            },
+            Number = key switch
+            {
+                ComplianceDocumentKey.CivilId => compliance?.CivilIdNumber,
+                ComplianceDocumentKey.Passport => compliance?.PassportNumber,
+                ComplianceDocumentKey.Residency => compliance?.ResidencyNumber,
+                _ => compliance?.WorkPermitNumber
+            },
+            Slots = rows.Where(r => r.ComplianceKey == key)
+                .GroupBy(r => r.DocumentTypeId)
+                .Select(g => new ComplianceDocumentSlot
+                {
+                    DocumentTypeId = g.Key,
+                    Name = g.First().DocumentTypeName,
+                    NameAr = g.First().DocumentTypeNameAr,
+                    Current = g.FirstOrDefault(r => r.AttachmentId is > 0 && r.ImageState == ComplianceImageState.Current),
+                    Renewal = g.FirstOrDefault(r => r.AttachmentId is > 0 && r.ImageState == ComplianceImageState.Renewal),
+                    ArchivedCount = g.First().ArchivedCount
+                })
+                .ToList()
+        }).ToList();
+
+        return PartialView(ViewsRoot + "Partials/_ComplianceDocuments.cshtml", new ComplianceDocumentsViewModel
+        {
+            EmployeeId = employeeId,
+            Groups = groups,
+            // the images sit in the Kuwait Compliance form: changing them takes the right to edit it
+            CanUpload = access.DocumentUpload && access.ComplianceEdit,
+            CanConfirm = access.ComplianceEdit,
+            CanDiscard = access.DocumentDelete && access.ComplianceEdit,
+            MaxFileSizeMb = (int)(_storage.MaxFileSizeBytes / 1024 / 1024)
+        });
+    }
+
+    /// <summary>"Previous images": every image of one item - waiting, current and archived.</summary>
+    [HttpGet("documents/{employeeId:long}/compliance/history")]
+    public async Task<IActionResult> ComplianceDocumentHistory(long employeeId, string? key)
+    {
+        if (!Access.ComplianceView || !Access.DocumentView) return Forbid();
+        if (!ComplianceDocumentKey.IsValid(key) || !await OwnsEmployeeAsync(employeeId)) return NotFound();
+
+        return PartialView(ViewsRoot + "Partials/_ComplianceHistory.cshtml", new ComplianceHistoryViewModel
+        {
+            EmployeeId = employeeId,
+            Key = key!,
+            Images = await _complianceDocuments.HistoryAsync(employeeId, key!, Ct)
+        });
+    }
+
+    /// <summary>Applies the item's new images to the expiry date (and number) - also saved on Kuwait Compliance.</summary>
+    [HttpPost("documents/compliance/confirm")]
+    public async Task<IActionResult> ConfirmComplianceDocuments(long employeeId, string? key, DateTime? expiryDate, string? number)
+    {
+        if (!Access.ComplianceEdit) return NoRight();
+        if (!ComplianceDocumentKey.IsValid(key)) return Json(ActionResponse.Failed("Unknown compliance item.", "INVALID_REQUEST"));
+        if (!await OwnsEmployeeAsync(employeeId)) return NotYours();
+
+        var result = await _complianceDocuments.ConfirmAsync(employeeId, key!, expiryDate, number, _currentUser.UserId, Ct);
+
+        return Json(result.Success
+            ? ActionResponse.Ok(result.Id, result.Message)
+            : ActionResponse.Failed(result.Message, result.ErrorCode));
     }
 
     [HttpPost("documents/delete")]
