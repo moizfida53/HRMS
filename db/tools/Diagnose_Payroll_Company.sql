@@ -68,8 +68,11 @@ DECLARE @Start DATE = @Month, @End DATE = EOMONTH(@Month);
     FROM   [Employee].[Employees] AS e
     JOIN   @Co AS x ON x.CompanyId = e.CompanyId
     LEFT JOIN [Payroll].[PayrollCalendars] AS pc ON pc.PayrollCalendarId = e.PayrollCalendarId
+    -- the default calendar; with none set, the first active monthly one (db/80)
     OUTER APPLY (SELECT TOP (1) dc.PayrollCalendarId, dc.PayFrequency FROM [Payroll].[PayrollCalendars] dc
-                 WHERE dc.CompanyId = e.CompanyId AND dc.IsDefault = 1 AND dc.IsActive = 1 AND dc.Deleted = 0) AS d
+                 WHERE dc.CompanyId = e.CompanyId AND dc.IsActive = 1 AND dc.Deleted = 0
+                   AND (dc.IsDefault = 1 OR dc.PayFrequency = 'MONTHLY')
+                 ORDER BY dc.IsDefault DESC, dc.PayrollCalendarId) AS d
 )
 SELECT N'3. Employee' AS [Check], EmployeeId, EmployeeNo, EmployeeName, EmploymentStatus, HireDate, TerminationDate,
        Deleted, IsDeleted AS Inactive, PayrollCalendarId, CalendarName, PayFrequency,
@@ -83,7 +86,11 @@ SELECT N'3. Employee' AS [Check], EmployeeId, EmployeeNo, EmployeeName, Employme
          WHEN EXISTS (SELECT 1 FROM [Payroll].[PayrollRunEmployees] oe JOIN [Payroll].[PayrollRuns] o ON o.PayrollRunId = oe.PayrollRunId
                       WHERE oe.EmployeeId = emp.EmployeeId AND oe.Deleted = 0 AND o.Deleted = 0 AND o.RunType = 'REGULAR'
                         AND o.RunMonth = @Month AND o.Stage IN ('REGISTERED', 'VALIDATION', 'AWAITING_APPROVAL', 'CLOSED'))
-              THEN N'Already in a created regular payroll of the month'
+              THEN N'Already in a created regular payroll of the month: '
+                   + (SELECT STRING_AGG(CONCAT(o.RunCode, N' (', o.Stage, N', calendar ', o.PayrollCalendarId, N', period ', o.PayrollPeriodId, N')'), N', ')
+                      FROM [Payroll].[PayrollRunEmployees] oe JOIN [Payroll].[PayrollRuns] o ON o.PayrollRunId = oe.PayrollRunId
+                      WHERE oe.EmployeeId = emp.EmployeeId AND oe.Deleted = 0 AND o.Deleted = 0 AND o.RunType = 'REGULAR'
+                        AND o.RunMonth = @Month AND o.Stage IN ('REGISTERED', 'VALIDATION', 'AWAITING_APPROVAL', 'CLOSED'))
          WHEN OBJECT_ID(N'[Payroll].[FinalSettlements]', N'U') IS NOT NULL
               AND EXISTS (SELECT 1 FROM [Payroll].[FinalSettlements] fs WHERE fs.EmployeeId = emp.EmployeeId AND fs.Deleted = 0
                             AND fs.SettlementType <> 'ENCASHMENT' AND fs.Status <> 'CANCELLED' AND fs.SalaryFrom <= @End)
@@ -93,6 +100,9 @@ SELECT N'3. Employee' AS [Check], EmployeeId, EmployeeNo, EmployeeName, Employme
                         ELSE N'OK - paid by its ' + LOWER(PayFrequency) + N' calendar (Create Payroll > Weekly / bi-weekly)' END
          WHEN DefaultCalendarId IS NULL
               THEN N'OK - no (usable) calendar: paid by the "Monthly Payroll" calendar Create Payroll makes'
+         WHEN PayrollCalendarId IS NULL
+              THEN N'OK - no calendar: paid by the default calendar ' + CAST(DefaultCalendarId AS NVARCHAR(12))
+                   + N' (none marked Default: the first monthly one - db/80)'
          ELSE CASE WHEN PayrollCalendarId IS NOT NULL AND CalendarCompanyId <> CompanyId THEN N'Calendar of ANOTHER company - paid by the default calendar (db/80)'
                    WHEN PayrollCalendarId IS NOT NULL THEN N'Calendar inactive / removed - paid by the default calendar (db/80)'
                    ELSE N'OK - no calendar: paid by the default calendar' END

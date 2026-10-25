@@ -19,6 +19,8 @@
    Weekly / bi-weekly).
 
    This script, the engine (Payroll.usp_PayrollRun_Calculate):
+     * a company with no active default calendar: its first active
+       monthly calendar is the default;
      * the default calendar also pays employees whose calendar was
        deactivated or removed, or belongs to another company (before,
        nobody paid them);
@@ -79,8 +81,17 @@ BEGIN
     BEGIN
         /* a payroll pays the employees of ITS calendar (db/60); an employee with no
            calendar yet is paid by the company's default calendar */
-        DECLARE @DefaultCal BIT = CASE WHEN EXISTS (SELECT 1 FROM [Payroll].[PayrollCalendars]
-                                                    WHERE PayrollCalendarId = @CalendarId AND IsDefault = 1) THEN 1 ELSE 0 END;
+        /* db/80: a company with no active default calendar uses its first active
+           monthly calendar as the default (Kuwait pays monthly) */
+        DECLARE @DefaultCal BIT = CASE
+            WHEN EXISTS (SELECT 1 FROM [Payroll].[PayrollCalendars]
+                         WHERE PayrollCalendarId = @CalendarId AND IsDefault = 1) THEN 1
+            WHEN NOT EXISTS (SELECT 1 FROM [Payroll].[PayrollCalendars]
+                             WHERE CompanyId = @CompanyId AND IsDefault = 1 AND IsActive = 1 AND Deleted = 0)
+                 AND @CalendarId = (SELECT TOP (1) PayrollCalendarId FROM [Payroll].[PayrollCalendars]
+                                    WHERE CompanyId = @CompanyId AND PayFrequency = 'MONTHLY' AND IsActive = 1 AND Deleted = 0
+                                    ORDER BY PayrollCalendarId) THEN 1
+            ELSE 0 END;
         DECLARE @Eligible TABLE (EmployeeId BIGINT PRIMARY KEY);
         INSERT INTO @Eligible (EmployeeId)
         SELECT e.EmployeeId

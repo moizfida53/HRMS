@@ -290,7 +290,9 @@ public sealed class PayrollController : Controller
         // no calendar, or one since deactivated: paid by the default calendar (db/80)
         var unassigned = counts.Where(c => c.PayrollCalendarId is not { } id || calendars.All(x => x.PayrollCalendarId != id)).Sum(c => c.EmployeeCount);
         var onInactive = 0;
-        var defaultCal = calendars.FirstOrDefault(c => c.IsDefault);
+        // no default set: the first active monthly calendar is the default (as in the engine, db/80)
+        var defaultCal = calendars.FirstOrDefault(c => c.IsDefault)
+                         ?? calendars.Where(c => c.PayFrequency == "MONTHLY").OrderBy(c => c.PayrollCalendarId).FirstOrDefault();
 
         // employees without a calendar go to the default one - or, before the monthly calendar
         // exists, to the monthly payroll that will create it
