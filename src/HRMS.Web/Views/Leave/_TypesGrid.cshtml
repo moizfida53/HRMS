@@ -1,0 +1,84 @@
+@model LeaveTypesGridModel
+<div data-total="@Model.Types.Count">
+@if (Model.Types.Count == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("calendar", 26)</span>
+        <p class="hrms-empty__title">@L["lv.no_leave_types"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table lv-table">
+            <caption class="hrms-sr-only">@L["lv.leave_types"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["lv.leave_type"]</th>
+                    @if (Model.ManyCompanies) { <th scope="col" class="col-p3">@L["common.company"]</th> }
+                    <th scope="col">@L["lv.entitlement"]</th>
+                    <th scope="col" class="col-p2">@L["lv.pay"]</th>
+                    <th scope="col" class="col-p3">@L["lv.rules"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.Types)
+                {
+                    var name = LeaveFormat.Name(L, t.TypeName, t.ArabicName);
+                    var rules = new List<string>();
+                    if (t.EligibleAfterMonths > 0) { rules.Add(L["lv.after_n_months", t.EligibleAfterMonths]); }
+                    rules.Add(t.CountMode == "CALENDAR" ? L["lv.calendar_days"] : L["lv.working_days"]);
+                    if (t.Gender == "F") { rules.Add(L["lv.women_only"]); } else if (t.Gender == "M") { rules.Add(L["lv.men_only"]); }
+                    if (t.MaxDaysPerRequest is { } max) { rules.Add(L["lv.max_n_per_request", max]); }
+                    if (t.MinNoticeDays > 0) { rules.Add(L["lv.n_days_notice", t.MinNoticeDays]); }
+                    if (t.AllowHalfDay) { rules.Add(L["lv.half_days"]); }
+                    if (t.RequiresDocument) { rules.Add(L["lv.document_needed"]); }
+                    <tr data-lv-type-row="@t.LeaveTypeId" data-name="@name" class="@(t.IsActive ? null : "is-inactive")">
+                        <td data-label="@L["lv.leave_type"]"><span class="lv-cell">
+                            <span class="lv-type"><span class="lv-swatch" style="--lv-color:@LeaveFormat.Swatch(t.Color)" aria-hidden="true"></span><span class="hrms-table__primary">@name</span></span>
+                            <span class="pr-emp-sub"><span class="hrms-code-chip">@t.TypeCode</span> · @LeaveFormat.CategoryLabel(L, t.Category)</span>
+                        </span></td>
+                        @if (Model.ManyCompanies) { <td data-label="@L["common.company"]" class="col-p3">@t.CompanyName</td> }
+                        <td data-label="@L["lv.entitlement"]"><span class="lv-cell">
+                            @(t.BalanceMode == LeaveBalanceMode.Unlimited ? L["lv.no_limit"] : L["lv.n_days_rule", LeaveFormat.Days(t.DaysPerYear)])
+                            <span class="pr-emp-sub">@LeaveFormat.ModeLabel(L, t.BalanceMode, t.AccrualMethod)</span>
+                        </span></td>
+                        <td data-label="@L["lv.pay"]" class="col-p2"><span class="lv-cell">
+                            @LeaveFormat.PayLabel(L, t.PayType)
+                            @if (t.PayType == "TIERED" && !string.IsNullOrEmpty(t.Tiers))
+                            {
+                                <span class="pr-emp-sub lv-tiers-text">@string.Join(" · ", t.Tiers.Split(',').Select(x => x.Replace(":", " → ") + "%"))</span>
+                            }
+                        </span></td>
+                        <td data-label="@L["lv.rules"]" class="col-p3"><span class="lv-rules-text">@string.Join(L["common.list_separator"], rules)</span></td>
+                        <td data-label="@L["common.status"]"><span class="lv-cell">
+                            @if (t.IsActive)
+                            {
+                                <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["lv.active"]</span>
+                            }
+                            else
+                            {
+                                <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["lv.inactive"]</span>
+                            }
+                            @if (t.UsageCount > 0) { <span class="pr-emp-sub">@L["lv.used_n", t.UsageCount]</span> }
+                        </span></td>
+                        <td class="hrms-table__actions">
+                            @if (Model.CanEdit)
+                            {
+                                <button type="button" class="btn-icon" data-lv-type-edit="@t.LeaveTypeId" title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
+                                <button type="button" class="btn-icon" data-lv-type-toggle="@t.LeaveTypeId" title="@(t.IsActive ? L["common.deactivate"] : L["common.activate"])" aria-label="@(t.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
+                                @if (t.UsageCount == 0)
+                                {
+                                    <button type="button" class="btn-icon btn-icon--danger" data-lv-type-delete="@t.LeaveTypeId" title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+</div>

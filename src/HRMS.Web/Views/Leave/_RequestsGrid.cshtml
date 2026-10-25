@@ -1,0 +1,76 @@
+@using HRMS.Web.Models.Organization
+@model LeaveRequestsGridModel
+@{
+    var pg = Model.Page;
+    var r = Model.Rights;
+    var my = Model.Mode == "my";
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["lv.1_request"] : L["lv.n_requests", pg.TotalCount.ToString("N0")])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "calendar", 26)</span>
+        <p class="hrms-empty__title">@(Model.Mode switch { "team" => L["lv.no_team_requests"], "my" => L["lv.no_my_requests"], _ => Model.IsFiltered ? L["lv.no_requests_match"] : L["lv.no_requests_yet"] })</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table lv-table">
+            <caption class="hrms-sr-only">@L["lv.leave_requests"]</caption>
+            <thead>
+                <tr>
+                    @if (!my) { <th scope="col">@L["lv.employee"]</th> }
+                    <th scope="col">@L["lv.leave_type"]</th>
+                    <th scope="col">@L["lv.dates"]</th>
+                    <th scope="col" class="pr-money">@L["lv.days"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col" class="col-p3">@L["lv.request_no"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var q in pg.Items)
+                {
+                    var type = LeaveFormat.Name(L, q.TypeName, q.TypeArabicName);
+                    var emp = LeaveFormat.Name(L, q.EmployeeName, q.EmployeeArabicName);
+                    <tr data-lv-row="@q.LeaveRequestId" data-level="@q.ApprovalLevel" class="lv-row lv-row--@q.Status.ToLowerInvariant()">
+                        @if (!my)
+                        {
+                            <td data-label="@L["lv.employee"]" class="hrms-nowrap"><span class="lv-cell">
+                                <span class="hrms-table__primary">@emp</span>
+                                <span class="pr-emp-sub">@q.EmployeeNo@(Model.ManyCompanies && q.CompanyName is not null ? " · " + q.CompanyName : q.DepartmentName is not null ? " · " + q.DepartmentName : "")</span>
+                            </span></td>
+                        }
+                        <td data-label="@L["lv.leave_type"]" class="hrms-nowrap">
+                            <span class="lv-type"><span class="lv-swatch" style="--lv-color:@LeaveFormat.Swatch(q.Color)" aria-hidden="true"></span>@type@if (q.HasDocument) {<span class="lv-attach" title="@L["lv.document_attached"]">@Html.Icon("file", 13)</span>}</span>
+                        </td>
+                        <td data-label="@L["lv.dates"]" class="hrms-nowrap"><span class="lv-cell">
+                            @LeaveFormat.Period(L, q.StartDate, q.LastDay, q.HalfDay)
+                            @if (q.ActualReturnDate is { } back) { <span class="pr-emp-sub">@L["lv.back_on", L.Date(back)]</span> }
+                        </span></td>
+                        <td data-label="@L["lv.days"]" class="pr-money">@LeaveFormat.Days(q.Days)</td>
+                        <td data-label="@L["common.status"]">
+                            <span class="hrms-badge hrms-badge--@LeaveStatus.Badge(q.Status)"><span class="hrms-badge__dot"></span>@LeaveFormat.StatusLabel(L, q)</span>
+                        </td>
+                        <td data-label="@L["lv.request_no"]" class="col-p3"><span class="hrms-code-chip">@q.RequestNo</span></td>
+                        <td class="hrms-table__actions">
+                            @if (r.CanDecide(q))
+                            {
+                                <button type="button" class="btn-icon btn-icon--success" data-lv-act="approve" title="@L["lv.approve"]" aria-label="@L["lv.approve_named", emp]">@Html.Icon("check", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--danger" data-lv-act="reject" title="@L["lv.reject"]" aria-label="@L["lv.reject_named", emp]">@Html.Icon("x-circle", 15)</button>
+                            }
+                            <button type="button" class="btn-icon" data-lv-act="view" title="@L["lv.view"]" aria-label="@L["lv.view_named", q.RequestNo]">@Html.Icon("eye", 15)</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

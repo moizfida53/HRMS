@@ -1,0 +1,46 @@
+@model LeaveHolidaysGridModel
+<div data-total="@Model.Holidays.Count">
+@if (Model.Holidays.Count == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("calendar", 26)</span>
+        <p class="hrms-empty__title">@L["lv.no_holidays", Model.Year]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table lv-table">
+            <caption class="hrms-sr-only">@L["lv.public_holidays"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["lv.holiday"]</th>
+                    <th scope="col">@L["lv.dates"]</th>
+                    <th scope="col" class="pr-money">@L["lv.days"]</th>
+                    <th scope="col" class="col-p2">@L["common.company"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var h in Model.Holidays)
+                {
+                    var name = LeaveFormat.Name(L, h.HolidayName, h.ArabicName);
+                    <tr data-lv-holiday-row="@h.HolidayId" data-name="@name" class="@(h.ToDate.Date < DateTime.Today ? "is-past" : null)">
+                        <td data-label="@L["lv.holiday"]"><span class="hrms-table__primary">@name</span></td>
+                        <td data-label="@L["lv.dates"]" class="hrms-nowrap">@LeaveFormat.Period(L, h.FromDate, h.ToDate, false)</td>
+                        <td data-label="@L["lv.days"]" class="pr-money">@h.DayCount</td>
+                        <td data-label="@L["common.company"]" class="col-p2">@(h.CompanyId is null ? L["lv.all_companies"] : h.CompanyName)</td>
+                        <td class="hrms-table__actions">
+                            @if (Model.CanEdit)
+                            {
+                                <button type="button" class="btn-icon" data-lv-holiday-edit="@h.HolidayId" title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--danger" data-lv-holiday-delete="@h.HolidayId" title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+</div>

@@ -1,0 +1,167 @@
+@model LeaveTypeFormModel
+@{
+    var t = Model.Type;
+    var isNew = t is null;
+    var mode = t?.BalanceMode ?? LeaveBalanceMode.Yearly;
+    var tiers = (t?.Tiers ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(x => x.Split(':'))
+        .Where(x => x.Length == 2 && x[0].Contains('-'))
+        .Select(x => (From: x[0].Split('-')[0], To: x[0].Split('-')[1], Pct: x[1]))
+        .ToList();
+    if (tiers.Count == 0) { tiers.Add(("1", "", "100")); }
+}
+<input type="hidden" name="LeaveTypeId" value="@(t?.LeaveTypeId ?? 0)" />
+<input type="hidden" name="Tiers" value="@t?.Tiers" data-lv-tiers-value />
+<div class="row g-3 lv-type-form">
+    @if (isNew)
+    {
+        <div class="col-12">
+            <label class="form-label" for="lv-t-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="lv-t-company" name="CompanyId" required>
+                @if (Model.Companies.Count > 1) { <option value="">@L["common.select"]</option> }
+                @foreach (var c in Model.Companies)
+                {
+                    <option value="@c.CompanyId">@c.CompanyName</option>
+                }
+            </select>
+        </div>
+    }
+    else
+    {
+        <input type="hidden" name="CompanyId" value="@t!.CompanyId" />
+    }
+    <div class="col-sm-4">
+        <label class="form-label" for="lv-t-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+        <input type="text" class="form-control text-uppercase" id="lv-t-code" name="TypeCode" value="@t?.TypeCode" maxlength="20" required autocomplete="off" />
+    </div>
+    <div class="col-sm-8">
+        <label class="form-label" for="lv-t-category">@L["lv.leave_kind"]</label>
+        <select class="form-select" id="lv-t-category" name="Category">
+            @foreach (var c in LeaveCategory.All)
+            {
+                <option value="@c" selected="@(c == (t?.Category ?? "OTHER"))">@LeaveFormat.CategoryLabel(L, c)</option>
+            }
+        </select>
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-name">@L["lv.name_english"] <span class="req" aria-hidden="true">*</span></label>
+        <input type="text" class="form-control" id="lv-t-name" name="TypeName" value="@t?.TypeName" maxlength="100" required />
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-arabic">@L["lv.name_arabic"]</label>
+        <input type="text" class="form-control" id="lv-t-arabic" name="ArabicName" value="@t?.ArabicName" maxlength="100" dir="rtl" />
+    </div>
+
+    <div class="col-12"><h3 class="lv-detail__sub mb-0">@L["lv.entitlement"]</h3></div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-mode">@L["lv.balance_rule"]</label>
+        <select class="form-select" id="lv-t-mode" name="BalanceMode" data-lv-t-mode>
+            <option value="ACCRUE" selected="@(mode == "ACCRUE")">@L["lv.mode_accrue"]</option>
+            <option value="YEARLY" selected="@(mode == "YEARLY")">@L["lv.mode_yearly"]</option>
+            <option value="ONCE" selected="@(mode == "ONCE")">@L["lv.mode_once"]</option>
+            <option value="UNLIMITED" selected="@(mode == "UNLIMITED")">@L["lv.mode_unlimited"]</option>
+        </select>
+    </div>
+    <div class="col-sm-3" data-lv-t-when="ACCRUE YEARLY ONCE">
+        <label class="form-label" for="lv-t-days">@L["lv.days_per_year"]</label>
+        <input type="number" class="form-control" id="lv-t-days" name="DaysPerYear" value="@LeaveFormat.Days(t?.DaysPerYear).Replace("—", "")" min="0" max="366" step="0.5" inputmode="decimal" />
+    </div>
+    <div class="col-sm-3" data-lv-t-when="ACCRUE">
+        <label class="form-label" for="lv-t-accrual">@L["lv.earned"]</label>
+        <select class="form-select" id="lv-t-accrual" name="AccrualMethod">
+            <option value="MONTHLY" selected="@(t?.AccrualMethod != "UPFRONT")">@L["lv.monthly"]</option>
+            <option value="UPFRONT" selected="@(t?.AccrualMethod == "UPFRONT")">@L["lv.upfront"]</option>
+        </select>
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-eligible">@L["lv.eligible_after_months"]</label>
+        <input type="number" class="form-control" id="lv-t-eligible" name="EligibleAfterMonths" value="@(t?.EligibleAfterMonths ?? 0)" min="0" max="120" inputmode="numeric" />
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-gender">@L["lv.who_can_take_it"]</label>
+        <select class="form-select" id="lv-t-gender" name="Gender">
+            <option value="" selected="@(string.IsNullOrEmpty(t?.Gender))">@L["lv.everyone"]</option>
+            <option value="F" selected="@(t?.Gender == "F")">@L["lv.women_only"]</option>
+            <option value="M" selected="@(t?.Gender == "M")">@L["lv.men_only"]</option>
+        </select>
+    </div>
+
+    <div class="col-12"><h3 class="lv-detail__sub mb-0">@L["lv.pay"]</h3></div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-pay">@L["lv.paid_as"]</label>
+        <select class="form-select" id="lv-t-pay" name="PayType" data-lv-t-pay>
+            <option value="FULL" selected="@(t?.PayType is null or "FULL")">@L["lv.pay_full"]</option>
+            <option value="TIERED" selected="@(t?.PayType == "TIERED")">@L["lv.pay_tiered"]</option>
+            <option value="UNPAID" selected="@(t?.PayType == "UNPAID")">@L["lv.pay_unpaid"]</option>
+        </select>
+    </div>
+    <div class="col-12" data-lv-t-tiers @(t?.PayType == "TIERED" ? null : "hidden")>
+        <span class="form-label d-block">@L["lv.pay_bands"]</span>
+        <div class="lv-tiers" data-lv-tier-list>
+            @foreach (var x in tiers)
+            {
+                <div class="lv-tier" data-lv-tier>
+                    <input type="number" class="form-control" data-lv-tier-from value="@x.From" min="1" max="366" aria-label="@L["lv.from_day"]" placeholder="@L["lv.from_day"]" />
+                    <span aria-hidden="true">–</span>
+                    <input type="number" class="form-control" data-lv-tier-to value="@x.To" min="1" max="366" aria-label="@L["lv.to_day"]" placeholder="@L["lv.to_day"]" />
+                    <div class="input-group">
+                        <input type="number" class="form-control" data-lv-tier-pct value="@x.Pct" min="0" max="100" aria-label="@L["lv.percent_paid"]" />
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <button type="button" class="btn-icon btn-icon--danger" data-lv-tier-remove title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button>
+                </div>
+            }
+        </div>
+        <button type="button" class="btn btn-link btn-sm px-0" data-lv-tier-add>@Html.Icon("plus", 14)<span>@L["lv.add_band"]</span></button>
+        <span class="form-text d-block">@L["lv.pay_bands_hint"]</span>
+    </div>
+
+    <div class="col-12"><h3 class="lv-detail__sub mb-0">@L["lv.counting_and_requests"]</h3></div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-count">@L["lv.count_days_as"]</label>
+        <select class="form-select" id="lv-t-count" name="CountMode">
+            <option value="WORKING" selected="@(t?.CountMode != "CALENDAR")">@L["lv.working_days"]</option>
+            <option value="CALENDAR" selected="@(t?.CountMode == "CALENDAR")">@L["lv.calendar_days"]</option>
+        </select>
+    </div>
+    <div class="col-sm-3">
+        <label class="form-label" for="lv-t-notice">@L["lv.notice_days"]</label>
+        <input type="number" class="form-control" id="lv-t-notice" name="MinNoticeDays" value="@(t?.MinNoticeDays ?? 0)" min="0" max="365" inputmode="numeric" />
+    </div>
+    <div class="col-sm-3">
+        <label class="form-label" for="lv-t-max">@L["lv.max_per_request"]</label>
+        <input type="number" class="form-control" id="lv-t-max" name="MaxDaysPerRequest" value="@t?.MaxDaysPerRequest" min="1" max="366" inputmode="numeric" placeholder="@L["lv.no_limit"]" />
+    </div>
+    <div class="col-12">
+        <div class="lv-switches">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="lv-t-holidays" name="ExcludeHolidays" value="true" checked="@(t?.ExcludeHolidays ?? true)" />
+                <label class="form-check-label" for="lv-t-holidays">@L["lv.skip_public_holidays"]</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="lv-t-half" name="AllowHalfDay" value="true" checked="@(t?.AllowHalfDay ?? false)" />
+                <label class="form-check-label" for="lv-t-half">@L["lv.allow_half_days"]</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="lv-t-negative" name="AllowNegative" value="true" checked="@(t?.AllowNegative ?? false)" />
+                <label class="form-check-label" for="lv-t-negative">@L["lv.allow_negative"]</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="lv-t-doc" name="RequiresDocument" value="true" checked="@(t?.RequiresDocument ?? false)" />
+                <label class="form-check-label" for="lv-t-doc">@L["lv.require_document"]</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="lv-t-active" name="IsActive" value="true" checked="@(t?.IsActive ?? true)" />
+                <label class="form-check-label" for="lv-t-active">@L["lv.active"]</label>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-color">@L["lv.colour"]</label>
+        <input type="color" class="form-control form-control-color" id="lv-t-color" name="Color" value="@LeaveFormat.Swatch(t?.Color ?? "#2563eb")" />
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-t-sort">@L["lv.sort_order"]</label>
+        <input type="number" class="form-control" id="lv-t-sort" name="SortOrder" value="@(t?.SortOrder ?? 100)" min="0" max="999" inputmode="numeric" />
+    </div>
+</div>

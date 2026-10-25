@@ -1,0 +1,100 @@
+@model LeaveLedgerModel
+@{
+    var b = Model.Balance;
+    var free = b.Available - b.Pending;
+}
+<div class="modal-header">
+    <div>
+        <h2 class="modal-title h5" id="lv-ledger-title">@LeaveFormat.Name(L, b.TypeName, b.TypeArabicName)</h2>
+        <span class="hrms-muted hrms-text-sm">@LeaveFormat.ModeLabel(L, b.BalanceMode, b.AccrualMethod)@(b.DaysPerYear is { } dpy ? " · " + L["lv.n_days_rule", LeaveFormat.Days(dpy)] : "")</span>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+</div>
+<div class="modal-body" data-lv-ledger-of="@b.EmployeeId" data-type="@b.LeaveTypeId">
+    @* how today's figure is made up *@
+    <dl class="lv-sum">
+        @if (b.OpeningDate is not null || b.OpeningDays != 0)
+        {
+            <div><dt>@L["lv.opening_on", b.OpeningDate is { } od ? L.Date(od) : "—"]</dt><dd>@LeaveFormat.Days(b.OpeningDays)</dd></div>
+        }
+        @if (!b.IsUnlimited)
+        {
+            <div><dt>@(b.BalanceMode == LeaveBalanceMode.Accrue ? L["lv.earned_since", b.WinStart is { } ws ? L.Date(ws) : "—"] : L["lv.allowance"])</dt><dd>+@LeaveFormat.Days(b.Earned)</dd></div>
+        }
+        @if (b.Adjusted != 0) { <div><dt>@L["lv.adjustments"]</dt><dd>@((b.Adjusted > 0 ? "+" : "") + LeaveFormat.Days(b.Adjusted))</dd></div> }
+        <div><dt>@L["lv.taken_approved"]</dt><dd>−@LeaveFormat.Days(b.Taken)</dd></div>
+        @if (b.Pending > 0) { <div><dt>@L["lv.waiting_for_approval"]</dt><dd>−@LeaveFormat.Days(b.Pending)</dd></div> }
+        <div class="lv-sum__total"><dt>@L["lv.available"]</dt><dd>@(b.IsUnlimited ? L["lv.no_limit"] : LeaveFormat.Days(free))</dd></div>
+    </dl>
+
+    <h3 class="lv-detail__sub">@L["lv.entries_and_requests"]</h3>
+    @if (Model.Lines.Count == 0)
+    {
+        <p class="hrms-muted">@L["lv.no_entries"]</p>
+    }
+    else
+    {
+        <div class="hrms-table-wrap">
+            <table class="hrms-table lv-table lv-table--compact">
+                <thead><tr><th scope="col">@L["lv.date"]</th><th scope="col">@L["lv.entry"]</th><th scope="col" class="pr-money">@L["lv.days"]</th><th scope="col">@L["lv.comment"]</th><th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th></tr></thead>
+                <tbody>
+                    @foreach (var line in Model.Lines)
+                    {
+                        <tr>
+                            <td data-label="@L["lv.date"]" class="hrms-nowrap">@(line.ToDate is { } td && td != line.OnDate ? LeaveFormat.Period(L, line.OnDate, td, false) : L.Date(line.OnDate))</td>
+                            <td data-label="@L["lv.entry"]">
+                                @(line.Code switch { "OPENING" => L["lv.e_opening"], "ADJUST" => L["lv.e_adjust"], _ => L["lv.e_leave"] })
+                                @if (line.RequestNo is not null) { <span class="hrms-code-chip ms-1">@line.RequestNo</span> }
+                                @if (line.Status == LeaveStatus.Pending) { <span class="hrms-badge hrms-badge--warning ms-1"><span class="hrms-badge__dot"></span>@L["lv.f_pending"]</span> }
+                            </td>
+                            <td data-label="@L["lv.days"]" class="pr-money @(line.Days < 0 ? "pr-neg" : null)">@((line.Days > 0 && line.Code == "ADJUST" ? "+" : "") + LeaveFormat.Days(line.Days))</td>
+                            <td data-label="@L["lv.comment"]" class="pr-line-comment"><span class="lv-cell">@(line.Comment ?? "—")<span class="pr-emp-sub">@line.ByName</span></span></td>
+                            <td class="hrms-table__actions">
+                                @if (Model.CanAdjust && line.Kind == "ENTRY")
+                                {
+                                    <button type="button" class="btn-icon btn-icon--danger" data-lv-entry-delete="@line.RefId" title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (Model.CanAdjust)
+    {
+        <form class="lv-adjust" data-lv-adjust-form novalidate>
+            <h3 class="lv-detail__sub">@L["lv.adjust_balance"]</h3>
+            <div class="row g-2">
+                <div class="col-sm-4">
+                    <label class="form-label" for="lv-adj-type">@L["lv.entry"]</label>
+                    <select class="form-select" id="lv-adj-type" name="entryType">
+                        <option value="ADJUST">@L["lv.e_adjust_plus_minus"]</option>
+                        <option value="OPENING">@L["lv.e_opening_balance"]</option>
+                    </select>
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label" for="lv-adj-date">@L["lv.on_date"]</label>
+                    <input type="date" class="form-control" id="lv-adj-date" name="entryDate" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-sm-4">
+                    <label class="form-label" for="lv-adj-days">@L["lv.days"]</label>
+                    <input type="number" class="form-control" id="lv-adj-days" name="days" step="0.5" min="-999" max="999" inputmode="decimal" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="lv-adj-comment">@L["lv.reason"]</label>
+                    <input type="text" class="form-control" id="lv-adj-comment" name="comment" maxlength="500" placeholder="@L["lv.adjust_reason_placeholder"]" />
+                    <span class="form-text">@L["lv.opening_hint"]</span>
+                </div>
+            </div>
+            <span class="field-validation-error d-block" data-lv-adjust-error></span>
+            <div class="d-flex justify-content-end mt-2">
+                <button type="submit" class="btn btn-primary btn-sm">@Html.Icon("check", 14)<span>@L["lv.save_entry"]</span></button>
+            </div>
+        </form>
+    }
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+</div>

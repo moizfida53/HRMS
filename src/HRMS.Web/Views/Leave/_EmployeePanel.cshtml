@@ -1,0 +1,43 @@
+@model LeaveEmployeePanelModel
+@* The Leave tab of the employee profile. *@
+<div class="lv-emp-panel" data-lv-employee="@Model.EmployeeId">
+    <section class="hrms-card hrms-panel">
+        <header class="hrms-panel__head">
+            <h2 class="hrms-panel__title">@L["lv.balances"]</h2>
+            <span class="hrms-panel__meta">@L["lv.as_of", L.Date(DateTime.Today)]</span>
+        </header>
+        @await Html.PartialAsync("~/Views/Leave/_BalanceCards.cshtml", new LeaveBalanceCardsModel { Balances = Model.Balances, Compact = true })
+    </section>
+    <section class="hrms-card hrms-panel">
+        <header class="hrms-panel__head">
+            <h2 class="hrms-panel__title">@L["lv.latest_requests"]</h2>
+            @if (Model.CanOpenLeave)
+            {
+                <a class="hrms-panel__link" href="@Url.Action("Index", "Leave")">@L["lv.open_leave"] @Html.Icon("chevron-right", 14)</a>
+            }
+        </header>
+        @if (Model.Requests.Count == 0)
+        {
+            <p class="hrms-muted mb-0">@L["lv.no_requests_for_employee"]</p>
+        }
+        else
+        {
+            <div class="hrms-table-wrap">
+                <table class="hrms-table lv-table lv-table--compact">
+                    <thead><tr><th scope="col">@L["lv.leave_type"]</th><th scope="col">@L["lv.dates"]</th><th scope="col" class="pr-money">@L["lv.days"]</th><th scope="col">@L["common.status"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var q in Model.Requests)
+                        {
+                            <tr data-lv-row="@q.LeaveRequestId" class="lv-row">
+                                <td data-label="@L["lv.leave_type"]"><span class="lv-type"><span class="lv-swatch" style="--lv-color:@LeaveFormat.Swatch(q.Color)" aria-hidden="true"></span>@LeaveFormat.Name(L, q.TypeName, q.TypeArabicName)</span></td>
+                                <td data-label="@L["lv.dates"]" class="hrms-nowrap">@LeaveFormat.Period(L, q.StartDate, q.LastDay, q.HalfDay)</td>
+                                <td data-label="@L["lv.days"]" class="pr-money">@LeaveFormat.Days(q.Days)</td>
+                                <td data-label="@L["common.status"]"><span class="hrms-badge hrms-badge--@LeaveStatus.Badge(q.Status)"><span class="hrms-badge__dot"></span>@LeaveFormat.StatusLabel(L, q)</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</div>

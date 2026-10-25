@@ -1,0 +1,77 @@
+@model LeaveMyPageModel
+@{
+    ViewData["Title"] = "My Leave";
+    ViewData["ActiveArea"] = "leave";
+    ViewData["LeavePage"] = "my";
+    ViewData["Subtitle"] = L["lv.my_subtitle"];
+    var r = Model.Rights;
+}
+@if (!Model.HasEmployee)
+{
+    <div class="hrms-card">
+        <div class="hrms-empty">
+            <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("user", 26)</span>
+            <p class="hrms-empty__title">@L["lv.no_employee_title"]</p>
+            <p class="hrms-empty__text">@L["lv.no_employee_text"]</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="lv-page" data-lv-page="my"
+         data-urls-grid="@Url.Action("MyGrid", "Leave")"
+         data-urls-team="@Url.Action("TeamGrid", "Leave")">
+
+        <section class="hrms-card hrms-panel" aria-labelledby="lv-my-balances">
+            <header class="hrms-panel__head">
+                <h2 id="lv-my-balances" class="hrms-panel__title">@L["lv.my_balances"]</h2>
+                <span class="hrms-panel__meta">@L["lv.as_of", L.Date(DateTime.Today)]</span>
+            </header>
+            @await Html.PartialAsync("~/Views/Leave/_BalanceCards.cshtml", new LeaveBalanceCardsModel { Balances = Model.Balances })
+        </section>
+
+        @* the user's team - requests waiting for them as the line manager *@
+        <section class="hrms-card" data-lv-team @(Model.TeamPending == 0 ? "hidden" : null)>
+            <div class="hrms-card__toolbar">
+                <div class="hrms-card__filters lv-filters">
+                    <h2 class="hrms-card__title h6 mb-0">@L["lv.team_requests"]</h2>
+                    <select class="form-select lv-filter" data-lv-team-status aria-label="@L["common.status"]">
+                        <option value="MINE">@L["lv.f_waiting_for_me"]</option>
+                        <option value="ALL">@L["lv.f_all"]</option>
+                    </select>
+                </div>
+                <div class="hrms-card__count" data-lv-team-count></div>
+            </div>
+            <div data-lv-team-slot><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+        </section>
+
+        <section class="hrms-card" data-lv-list>
+            <div class="hrms-card__toolbar">
+                <div class="hrms-card__filters lv-filters">
+                    <h2 class="hrms-card__title h6 mb-0">@L["lv.my_requests"]</h2>
+                    <select class="form-select lv-filter" data-lv-f="status" aria-label="@L["common.status"]">
+                        <option value="ALL">@L["lv.f_all"]</option>
+                        <option value="PENDING">@L["lv.f_pending"]</option>
+                        <option value="APPROVED">@L["lv.f_approved"]</option>
+                        <option value="REJECTED">@L["lv.f_rejected"]</option>
+                        <option value="CANCELLED">@L["lv.f_cancelled"]</option>
+                    </select>
+                </div>
+                <div class="hrms-card__count" data-lv-count></div>
+            </div>
+            <div data-lv-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+        </section>
+    </div>
+
+    @await Html.PartialAsync("~/Views/Leave/_Modals.cshtml")
+}
+
+@section PageActions {
+    @if (Model.HasEmployee)
+    {
+        <button type="button" class="btn btn-primary" data-lv-new="my">@Html.Icon("plus", 15)<span>@L["lv.request_leave"]</span></button>
+    }
+}
+@section Scripts {
+    <script src="~/js/leave.js" asp-append-version="true"></script>
+}

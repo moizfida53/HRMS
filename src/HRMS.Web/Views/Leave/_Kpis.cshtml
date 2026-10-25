@@ -1,0 +1,24 @@
+@model LeaveSummary
+@* Each tile filters the list below (data-lv-kpi = the status filter). *@
+<section class="pr-kpis pr-kpis--4 lv-kpis" aria-label="@L["lv.key_figures"]">
+    <button type="button" class="hrms-card hrms-kpi lv-kpi @(Model.PendingForMe > 0 ? "is-alert" : null)" data-lv-kpi="MINE">
+        <span class="hrms-kpi__head"><span class="hrms-kpi__label">@L["lv.kpi_waiting_for_you"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("clock", 16)</span></span>
+        <span class="hrms-kpi__value">@Model.PendingForMe.ToString("N0")</span>
+        <span class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["lv.kpi_pending_in_total", Model.PendingTotal.ToString("N0")]</span></span>
+    </button>
+    <button type="button" class="hrms-card hrms-kpi lv-kpi" data-lv-kpi="ONLEAVE">
+        <span class="hrms-kpi__head"><span class="hrms-kpi__label">@L["lv.kpi_on_leave_today"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span></span>
+        <span class="hrms-kpi__value">@Model.OnLeaveToday.ToString("N0")</span>
+        <span class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["lv.kpi_employees"]</span></span>
+    </button>
+    <button type="button" class="hrms-card hrms-kpi lv-kpi" data-lv-kpi="UPCOMING">
+        <span class="hrms-kpi__head"><span class="hrms-kpi__label">@L["lv.kpi_starting_soon"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("send", 16)</span></span>
+        <span class="hrms-kpi__value">@Model.StartingThisWeek.ToString("N0")</span>
+        <span class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["lv.kpi_next_7_days"]</span></span>
+    </button>
+    <button type="button" class="hrms-card hrms-kpi lv-kpi @(Model.DueBack > 0 ? "is-warn" : null)" data-lv-kpi="APPROVED">
+        <span class="hrms-kpi__head"><span class="hrms-kpi__label">@L["lv.kpi_return_not_recorded"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("user-check", 16)</span></span>
+        <span class="hrms-kpi__value">@Model.DueBack.ToString("N0")</span>
+        <span class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["lv.kpi_ended_last_30_days"]</span></span>
+    </button>
+</section>

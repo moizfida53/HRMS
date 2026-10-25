@@ -23,6 +23,8 @@
     var showCompliance = wizard || acc.ComplianceView;
     var showDependents = wizard || acc.DependentView;
     var showDocuments = wizard || acc.DocumentView;
+    // Leave (db/68): balances and latest requests - HR with leave access, or the employee themself
+    var showLeave = !Model.IsNew && !wizard && (CurrentUser.CanOpen("leave:balances") || (CurrentUser.EmployeeId is { } meId && meId == e.EmployeeId));
     var wizardTabs = new[] {
         ("personal", "Personal Info"), ("employment", "Employment"),
         ("compliance", "Kuwait Compliance"), ("dependents", "Dependents"),
@@ -169,6 +171,16 @@
                 disabled="@(Model.IsNew && !wizard ? "disabled" : null)"
                 title="@(Model.IsNew ? L["emp.save_employee_first"] : null)">
             @Html.Icon("folder", 15)<span>@L["emp.documents"]</span>
+        </button>
+    </li>
+    }
+    @if (showLeave)
+    {
+    <li class="nav-item" role="presentation">
+        <button class="nav-link @(Model.ActiveTab == "leave" ? "active" : null)" id="tab-leave-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-leave" type="button" role="tab"
+                aria-controls="tab-leave" aria-selected="@(Model.ActiveTab == "leave" ? "true" : "false")">
+            @Html.Icon("calendar", 15)<span>@L["layout.leave"]</span>
         </button>
     </li>
     }
@@ -1138,6 +1150,22 @@
         }
     </div>
     }
+
+    @if (showLeave)
+    {
+    <div class="tab-pane fade @(Model.ActiveTab == "leave" ? "show active" : null)" id="tab-leave" role="tabpanel" aria-labelledby="tab-leave-btn">
+        @if (CurrentUser.HasPermission("LEAVE_MANAGE"))
+        {
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-primary btn-sm" data-lv-new="hr" data-emp="@e.EmployeeId">@Html.Icon("plus", 14)<span>@L["lv.new_request"]</span></button>
+            </div>
+        }
+        @* filled by leave.js when the tab is first shown *@
+        <div data-lv-panel-url="@Url.Action("EmployeePanel", "Leave", new { emp = e.EmployeeId })">
+            <div class="pr-loading"><div class="hrms-spinner"></div></div>
+        </div>
+    </div>
+    }
 </div>
 
 @if (wizard)
@@ -1556,8 +1584,17 @@
     </div>
 }
 
+@if (showLeave)
+{
+    @await Html.PartialAsync("~/Views/Leave/_Modals.cshtml")
+}
+
 @section Scripts {
     <script src="~/js/employee.js" asp-append-version="true"></script>
+    @if (showLeave)
+    {
+        <script src="~/js/leave.js" asp-append-version="true"></script>
+    }
     @if (!Model.IsNew && !wizard && CurrentUser.CanViewAudit())
     {
         <script src="~/js/audit.js" asp-append-version="true"></script>

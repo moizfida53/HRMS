@@ -174,11 +174,14 @@
                     <span class="hrms-actions__text">@L["dash.employees_missing_a_mandatory_document_upload"]</span>
                     <span class="hrms-actions__count">@(a.MandatoryDocumentsMissing?.ToString() ?? "—")</span>
                 </li>
-                <li class="hrms-actions__item is-pending">
-                    <span class="hrms-actions__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span>
-                    <span class="hrms-actions__text">@L["dash.leave_approvals_pending"]</span>
-                    <span class="hrms-actions__count" title="@L["dash.available_once_the_leave_module_is_built"]">@L["common.soon"]</span>
-                </li>
+                @if (Model.Leave is { } lv)
+                {
+                    <li class="hrms-actions__item @(lv.PendingForMe > 0 ? "is-warning" : "is-info")">
+                        <span class="hrms-actions__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span>
+                        <a class="hrms-actions__text" asp-controller="Leave" asp-action="Index" asp-route-status="MINE">@L["dash.leave_approvals_pending"]</a>
+                        <span class="hrms-actions__count" title="@L["lv.kpi_pending_in_total", lv.PendingTotal.ToString("N0")]">@lv.PendingForMe.ToString("N0")</span>
+                    </li>
+                }
             </ul>
 
             @if (Model.ShowDateAlerts)
@@ -275,15 +278,22 @@
                 <h2 id="p-leave" class="hrms-panel__title">@L["dash.leave_summary"]</h2>
                 <span class="hrms-panel__meta">@L.MonthYear(d.MonthStart)</span>
             </header>
-            <dl class="hrms-figures is-pending">
-                <div><dt>@L["dash.annual_leave"]</dt><dd>—</dd></div>
-                <div><dt>@L["dash.sick_leave"]</dt><dd>—</dd></div>
-                <div><dt>@L["dash.emergency_leave"]</dt><dd>—</dd></div>
-                <div><dt>@L["dash.other"]</dt><dd>—</dd></div>
+            <dl class="hrms-figures @(Model.Leave is null ? "is-pending" : null)">
+                <div><dt>@L["dash.annual_leave"]</dt><dd>@(Model.Leave?.AnnualInMonth.ToString("N0") ?? "—")</dd></div>
+                <div><dt>@L["dash.sick_leave"]</dt><dd>@(Model.Leave?.SickInMonth.ToString("N0") ?? "—")</dd></div>
+                <div><dt>@L["dash.emergency_leave"]</dt><dd>@(Model.Leave?.EmergencyInMonth.ToString("N0") ?? "—")</dd></div>
+                <div><dt>@L["dash.other"]</dt><dd>@(Model.Leave?.OtherInMonth.ToString("N0") ?? "—")</dd></div>
             </dl>
             <p class="hrms-panel__note">
                 @Html.Icon("info", 14)
-                <span>@Html.Raw(L["dash.leave_counts_note", k.OnLeave])</span>
+                @if (Model.Leave is { } lvs)
+                {
+                    <span>@L["dash.leave_month_note", lvs.OnLeaveToday.ToString("N0")]</span>
+                }
+                else
+                {
+                    <span>@Html.Raw(L["dash.leave_counts_note", k.OnLeave])</span>
+                }
             </p>
         </section>
     </div>

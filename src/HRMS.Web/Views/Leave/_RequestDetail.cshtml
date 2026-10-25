@@ -1,0 +1,122 @@
+@model LeaveRequestDetailModel
+@{
+    var q = Model.Request;
+    var r = Model.Rights;
+    var b = Model.Balance;
+    var type = LeaveFormat.Name(L, q.TypeName, q.TypeArabicName);
+}
+<div class="modal-header lv-detail__head">
+    <div class="lv-detail__title">
+        <span class="lv-swatch lv-swatch--lg" style="--lv-color:@LeaveFormat.Swatch(q.Color)" aria-hidden="true"></span>
+        <div>
+            <h2 class="modal-title h5" id="lv-detail-title">@type</h2>
+            <span class="hrms-muted hrms-text-sm">@q.RequestNo · @L["lv.requested_on", L.Date(q.CreatedDate)]</span>
+        </div>
+    </div>
+    <span class="hrms-badge hrms-badge--@LeaveStatus.Badge(q.Status) ms-auto"><span class="hrms-badge__dot"></span>@LeaveFormat.StatusLabel(L, q)</span>
+    <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+</div>
+<div class="modal-body" data-lv-detail="@q.LeaveRequestId" data-level="@q.ApprovalLevel" data-start="@q.StartDate.ToString("yyyy-MM-dd")">
+    <div class="lv-detail__grid">
+        <div class="lv-detail__item lv-detail__item--wide">
+            <span class="lv-detail__label">@L["lv.employee"]</span>
+            <span class="lv-detail__value">@LeaveFormat.Name(L, q.EmployeeName, q.EmployeeArabicName) <span class="hrms-muted">· @q.EmployeeNo</span></span>
+            <span class="hrms-muted hrms-text-sm">@string.Join(" · ", new[] { q.DepartmentName, q.CompanyName }.Where(x => !string.IsNullOrWhiteSpace(x)))</span>
+        </div>
+        <div class="lv-detail__item">
+            <span class="lv-detail__label">@L["lv.dates"]</span>
+            <span class="lv-detail__value">@LeaveFormat.Period(L, q.StartDate, q.EndDate, q.HalfDay)</span>
+            @if (q.ActualReturnDate is { } back)
+            {
+                <span class="hrms-text-sm">@L["lv.back_on", L.Date(back)]</span>
+            }
+        </div>
+        <div class="lv-detail__item">
+            <span class="lv-detail__label">@L["lv.days"]</span>
+            <span class="lv-detail__value">@LeaveFormat.DaysText(L, q.Days)</span>
+            @if (q.PlannedDays != q.Days) { <span class="hrms-muted hrms-text-sm">@L["lv.planned_n", LeaveFormat.Days(q.PlannedDays)]</span> }
+        </div>
+        @if (b is not null && !b.IsUnlimited)
+        {
+            <div class="lv-detail__item">
+                <span class="lv-detail__label">@L["lv.balance_now"]</span>
+                <span class="lv-detail__value">@L["lv.n_available", LeaveFormat.Days(b.Available - b.Pending)]</span>
+                <span class="hrms-muted hrms-text-sm">@L["lv.taken_pending", LeaveFormat.Days(b.Taken), LeaveFormat.Days(b.Pending)]</span>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(q.Reason))
+        {
+            <div class="lv-detail__item lv-detail__item--wide">
+                <span class="lv-detail__label">@L["lv.reason"]</span>
+                <span class="lv-detail__value lv-detail__text">@q.Reason</span>
+            </div>
+        }
+        @if (q.HasDocument)
+        {
+            <div class="lv-detail__item lv-detail__item--wide">
+                <span class="lv-detail__label">@L["lv.supporting_document"]</span>
+                <span class="lv-detail__doc">
+                    @Html.Icon("file", 15)<span>@q.DocumentName</span>
+                    <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Document", "Leave", new { id = q.LeaveRequestId })" target="_blank" rel="noopener">@Html.Icon("eye", 14)<span>@L["lv.open"]</span></a>
+                    <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Document", "Leave", new { id = q.LeaveRequestId, download = true })">@Html.Icon("download", 14)<span>@L["emp.download"]</span></a>
+                </span>
+            </div>
+        }
+        @if (q.DecisionComment is { Length: > 0 } dc)
+        {
+            <div class="lv-detail__item lv-detail__item--wide">
+                <span class="lv-detail__label">@L["lv.decision_comment"]</span>
+                <span class="lv-detail__value lv-detail__text">@dc</span>
+            </div>
+        }
+    </div>
+
+    @* approval route and what happened *@
+    <h3 class="lv-detail__sub">@L["lv.approval_and_history"]</h3>
+    @if (q.IsPending)
+    {
+        <ol class="lv-steps">
+            <li class="@(q.ApprovalLevel > 1 || q.ManagerApprovedDate is not null ? "is-done" : q.ManagerUserId is null ? "is-skip" : "is-now")">
+                <span class="lv-steps__dot"></span>
+                <span>@L["lv.step_manager"]@(q.ManagerEmployeeName is { Length: > 0 } mn ? " · " + mn : "")</span>
+                @if (q.ManagerUserId is null) { <span class="hrms-muted hrms-text-sm">@L["lv.step_not_needed"]</span> }
+            </li>
+            <li class="@(q.ApprovalLevel == 2 ? "is-now" : null)">
+                <span class="lv-steps__dot"></span><span>@L["lv.step_hr"]</span>
+            </li>
+        </ol>
+    }
+    <ul class="lv-history">
+        @foreach (var h in Model.History)
+        {
+            <li>
+                <span class="lv-history__what">@LeaveFormat.HistoryLabel(L, h.ActionCode)</span>
+                <span class="hrms-muted hrms-text-sm">@(h.ActionByName ?? "—") · <span title="@L["dash.utc_suffix", L.Date(h.ActionDate) + " " + h.ActionDate.ToString("HH:mm")]">@L.Date(h.ActionDate)</span></span>
+                @if (!string.IsNullOrWhiteSpace(h.Comment)) { <span class="lv-history__comment">@h.Comment</span> }
+            </li>
+        }
+    </ul>
+</div>
+<div class="modal-footer lv-detail__actions">
+    @if (r.CanCancel(q))
+    {
+        <button type="button" class="btn btn-outline-danger me-auto" data-lv-act="cancel">@Html.Icon("x-circle", 15)<span>@L["lv.cancel_request"]</span></button>
+    }
+    @if (r.CanEdit(q))
+    {
+        <button type="button" class="btn btn-outline-secondary" data-lv-act="edit" data-mode="@(r.CanManage ? "hr" : "my")">@Html.Icon("edit", 15)<span>@L["common.edit"]</span></button>
+    }
+    @if (r.CanRecordReturn(q))
+    {
+        <button type="button" class="btn btn-outline-secondary" data-lv-act="return">@Html.Icon("user-check", 15)<span>@L["lv.record_return"]</span></button>
+    }
+    @if (r.CanDecide(q))
+    {
+        <button type="button" class="btn btn-outline-danger" data-lv-act="reject">@Html.Icon("x-circle", 15)<span>@L["lv.reject"]</span></button>
+        <button type="button" class="btn btn-success" data-lv-act="approve">@Html.Icon("check", 15)<span>@(q.ApprovalLevel == 1 ? L["lv.approve_send_hr"] : L["lv.approve"])</span></button>
+    }
+    else
+    {
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+    }
+</div>

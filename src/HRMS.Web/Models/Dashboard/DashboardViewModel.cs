@@ -13,6 +13,9 @@ public sealed class DashboardViewModel
     /// <summary>The user may see the date field alerts (db/65) - they can open the employees.</summary>
     public bool ShowDateAlerts { get; init; }
 
+    /// <summary>Leave figures (db/68) - null when the user has no leave access or the module is not installed.</summary>
+    public HRMS.Domain.Leave.LeaveSummary? Leave { get; init; }
+
     /// <summary>Employee dates that have reached one of their field's alerts, soonest (or most overdue) first.</summary>
     public IReadOnlyList<HRMS.Domain.Workforce.DateAlertDue> DateAlerts { get; init; } = Array.Empty<HRMS.Domain.Workforce.DateAlertDue>();
 

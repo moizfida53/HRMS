@@ -57,6 +57,15 @@ public static class StoredProcedure
     /// <summary>Document sections: LIST / INSERT (db/63).</summary>
     public const string DocumentSectionManage = "Documents.usp_DocumentSection_Manage";
 
+    /// <summary>Leave > Settings: leave types and pay bands, public holidays, weekend / approval (db/69).</summary>
+    public const string LeaveSetupManage = "Leave.usp_LeaveSetup_Manage";
+
+    /// <summary>Leave requests: list, preview, save, approve / reject, cancel, return to work (db/69).</summary>
+    public const string LeaveRequestManage = "Leave.usp_LeaveRequest_Manage";
+
+    /// <summary>Leave balances: list, one employee, how it is made up, opening / adjustments (db/69).</summary>
+    public const string LeaveBalanceManage = "Leave.usp_LeaveBalance_Manage";
+
     /// <summary>Alerts on the employee date fields: LIST / SAVE the reminders, DUE employee dates (db/65).</summary>
     public const string DateAlertManage = "Employee.usp_DateAlert_Manage";
 

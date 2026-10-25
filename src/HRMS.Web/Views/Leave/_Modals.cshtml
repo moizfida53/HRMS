@@ -1,0 +1,118 @@
+@* Dialogs shared by the Leave pages - filled by leave.js. *@
+<div class="lv-modals"
+     data-urls-form="@Url.Action("Form", "Leave")"
+     data-urls-types="@Url.Action("TypesFor", "Leave")"
+     data-urls-preview="@Url.Action("Preview", "Leave")"
+     data-urls-save="@Url.Action("Save", "Leave")"
+     data-urls-detail="@Url.Action("Detail", "Leave")"
+     data-urls-approve="@Url.Action("Approve", "Leave")"
+     data-urls-reject="@Url.Action("Reject", "Leave")"
+     data-urls-cancel="@Url.Action("Cancel", "Leave")"
+     data-urls-return="@Url.Action("Return", "Leave")"
+     data-urls-ledger="@Url.Action("Ledger", "Leave")"
+     data-urls-adjust="@Url.Action("Adjust", "Leave")"
+     data-urls-delete-entry="@Url.Action("DeleteEntry", "Leave")"
+     data-text-new="@L["lv.new_request"]"
+     data-text-edit="@L["lv.edit_request"]"
+     data-text-approve="@L["lv.approve"]"
+     data-text-approve-hint="@L["lv.approve_hint"]"
+     data-text-reject="@L["lv.reject"]"
+     data-text-reject-hint="@L["lv.reject_hint"]"
+     data-text-cancel="@L["lv.cancel_request"]"
+     data-text-cancel-hint="@L["lv.cancel_hint"]"
+     data-text-comment="@L["lv.comment_optional"]"
+     data-text-reason="@L["lv.reason_required"]"></div>
+
+@* ---- new / edit request: the body comes from the server ---- *@
+<div class="modal fade" id="lv-form-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-form-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <form class="modal-content" data-lv-form novalidate enctype="multipart/form-data">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="lv-form-title" data-lv-form-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-lv-form-body></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="submit" class="btn btn-primary" data-lv-save>@Html.Icon("send", 15)<span>@L["lv.submit_request"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ---- one request ---- *@
+<div class="modal fade" id="lv-detail-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-detail-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content" data-lv-detail-body></div>
+    </div>
+</div>
+
+@* ---- approve with a comment / reject / cancel with a reason ---- *@
+<div class="modal fade" id="lv-reason-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-reason-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" data-lv-reason-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="lv-reason-title" data-lv-reason-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="hrms-muted hrms-text-sm" data-lv-reason-hint></p>
+                <label class="form-label" for="lv-reason-input" data-lv-reason-label></label>
+                <textarea class="form-control" id="lv-reason-input" rows="3" maxlength="500" data-lv-reason-input></textarea>
+                <span class="field-validation-error" data-lv-reason-error></span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="submit" class="btn btn-primary" data-lv-reason-submit><span data-lv-reason-button></span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ---- return to work ---- *@
+<div class="modal fade" id="lv-return-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-return-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" data-lv-return-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="lv-return-title">@L["lv.record_return"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="hrms-muted hrms-text-sm">@L["lv.record_return_hint"]</p>
+                <label class="form-label" for="lv-return-date">@L["lv.back_at_work_on"] <span class="req" aria-hidden="true">*</span></label>
+                <input type="date" class="form-control mb-3" id="lv-return-date" data-lv-return-date required />
+                <label class="form-label" for="lv-return-comment">@L["lv.comment_optional"]</label>
+                <textarea class="form-control" id="lv-return-comment" rows="2" maxlength="500" data-lv-return-comment></textarea>
+                <span class="field-validation-error" data-lv-return-error></span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                <button type="submit" class="btn btn-primary" data-lv-return-submit>@Html.Icon("check", 15)<span>@L["lv.record_return"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ---- how a balance is made up (+ adjust) ---- *@
+<div class="modal fade" id="lv-ledger-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-ledger-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content" data-lv-ledger-body></div>
+    </div>
+</div>
+@* ---- "are you sure?" ---- *@
+<div class="modal fade" id="lv-confirm-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-confirm-title">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="lv-confirm-title" data-lv-confirm-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body"><p class="mb-0" data-lv-confirm-text></p></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="button" class="btn btn-danger" data-lv-confirm-accept>@L["common.delete"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+@Html.AntiForgeryToken()

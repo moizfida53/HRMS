@@ -1,0 +1,36 @@
+@model LeaveBalanceCardsModel
+@* One card per leave type: what is left, out of what is earned / allowed. *@
+@if (Model.Balances.Count == 0)
+{
+    <p class="hrms-muted mb-0">@L["lv.no_leave_types"]</p>
+}
+else
+{
+    <div class="lv-cards @(Model.Compact ? "lv-cards--compact" : null)">
+        @foreach (var b in Model.Balances)
+        {
+            var name = LeaveFormat.Name(L, b.TypeName, b.TypeArabicName);
+            var free = b.Available - b.Pending;
+            var pct = b.Entitled is > 0 && free is { } f ? (int)Math.Clamp(Math.Round(f / b.Entitled.Value * 100), 0, 100) : 0;
+            <button type="button" class="lv-card" style="--lv-color:@LeaveFormat.Swatch(b.Color)" data-lv-ledger="@b.EmployeeId" data-type="@b.LeaveTypeId"
+                    title="@L["lv.see_how_balance_is_made_up"]">
+                <span class="lv-card__name">@name</span>
+                @if (b.IsUnlimited)
+                {
+                    <span class="lv-card__value">@LeaveFormat.Days(b.Taken)</span>
+                    <span class="lv-card__note">@L["lv.days_taken_no_limit"]</span>
+                }
+                else
+                {
+                    <span class="lv-card__value @(free < 0 ? "is-neg" : null)">@LeaveFormat.Days(free)</span>
+                    <span class="lv-card__note">@L["lv.available_of_n", LeaveFormat.Days(b.Entitled)]</span>
+                    <span class="lv-card__bar" aria-hidden="true"><span style="width:@(pct)%"></span></span>
+                    <span class="lv-card__meta">
+                        @L["lv.taken_n", LeaveFormat.Days(b.Taken)]
+                        @if (b.Pending > 0) { <span>· @L["lv.pending_n", LeaveFormat.Days(b.Pending)]</span> }
+                    </span>
+                }
+            </button>
+        }
+    </div>
+}

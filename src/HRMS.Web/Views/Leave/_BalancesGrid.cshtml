@@ -1,0 +1,63 @@
+@using HRMS.Web.Models.Organization
+@model LeaveBalancesGridModel
+@{ var pg = Model.Page; }
+<div data-total="@pg.TotalCount" data-count-text="@L["lv.n_rows", pg.TotalCount.ToString("N0")]">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "calendar", 26)</span>
+        <p class="hrms-empty__title">@L["lv.no_balances"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table lv-table">
+            <caption class="hrms-sr-only">@L["lv.leave_balances_on", L.Date(Model.AsOf)]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["lv.employee"]</th>
+                    <th scope="col">@L["lv.leave_type"]</th>
+                    <th scope="col" class="pr-money col-p3">@L["lv.opening"]</th>
+                    <th scope="col" class="pr-money col-p2">@L["lv.earned"]</th>
+                    <th scope="col" class="pr-money col-p3">@L["lv.adjusted"]</th>
+                    <th scope="col" class="pr-money">@L["lv.taken"]</th>
+                    <th scope="col" class="pr-money col-p2">@L["lv.pending"]</th>
+                    <th scope="col" class="pr-money">@L["lv.available"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var b in pg.Items)
+                {
+                    var free = b.Available - b.Pending;
+                    <tr>
+                        <td data-label="@L["lv.employee"]" class="hrms-nowrap"><span class="lv-cell">
+                            <span class="hrms-table__primary">@LeaveFormat.Name(L, b.EmployeeName, b.EmployeeArabicName)</span>
+                            <span class="pr-emp-sub">@b.EmployeeNo@(b.DepartmentName is { } d ? " · " + d : "")</span>
+                        </span></td>
+                        <td data-label="@L["lv.leave_type"]" class="hrms-nowrap">
+                            <span class="lv-type"><span class="lv-swatch" style="--lv-color:@LeaveFormat.Swatch(b.Color)" aria-hidden="true"></span>@LeaveFormat.Name(L, b.TypeName, b.TypeArabicName)</span>
+                        </td>
+                        <td data-label="@L["lv.opening"]" class="pr-money col-p3">@LeaveFormat.Days(b.OpeningDays)</td>
+                        <td data-label="@L["lv.earned"]" class="pr-money col-p2">@(b.IsUnlimited ? "—" : LeaveFormat.Days(b.Earned))</td>
+                        <td data-label="@L["lv.adjusted"]" class="pr-money col-p3">@(b.Adjusted == 0 ? "—" : (b.Adjusted > 0 ? "+" : "") + LeaveFormat.Days(b.Adjusted))</td>
+                        <td data-label="@L["lv.taken"]" class="pr-money">@LeaveFormat.Days(b.Taken)</td>
+                        <td data-label="@L["lv.pending"]" class="pr-money col-p2">@(b.Pending == 0 ? "—" : LeaveFormat.Days(b.Pending))</td>
+                        <td data-label="@L["lv.available"]" class="pr-money"><strong class="@(free < 0 ? "pr-neg" : null)">@(b.IsUnlimited ? L["lv.no_limit"] : LeaveFormat.Days(free))</strong></td>
+                        <td class="hrms-table__actions">
+                            <button type="button" class="btn-icon" data-lv-ledger="@b.EmployeeId" data-type="@b.LeaveTypeId"
+                                    title="@L["lv.see_how_balance_is_made_up"]" aria-label="@L["lv.see_how_balance_is_made_up"]">@Html.Icon("history", 15)</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

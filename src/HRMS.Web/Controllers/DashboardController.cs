@@ -1,5 +1,6 @@
 using System.Globalization;
 using HRMS.Data.Repositories;
+using HRMS.Domain.Leave;
 using HRMS.Domain.Workforce;
 using HRMS.Web.Models.Dashboard;
 using HRMS.Web.Security;
@@ -18,11 +19,13 @@ public sealed class DashboardController : Controller
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
     private readonly IDateAlertRepository _dateAlerts;
+    private readonly ILeaveRepository _leave;
     private readonly ILogger<DashboardController> _logger;
 
     public DashboardController(IDashboardRepository dashboard, ICurrentUser currentUser, ICompanyFilter companyFilter,
-        IDateAlertRepository dateAlerts, ILogger<DashboardController> logger)
+        IDateAlertRepository dateAlerts, ILeaveRepository leave, ILogger<DashboardController> logger)
     {
+        _leave = leave;
         _dateAlerts = dateAlerts;
         _logger = logger;
         _dashboard = dashboard;
@@ -60,9 +63,32 @@ public sealed class DashboardController : Controller
             }
         }
 
+        // leave (db/68): approvals waiting for the user, who was on leave in the month
+        var showLeave = _currentUser.CanOpen("leave");
+        LeaveSummary? leave = null;
+        if (showLeave)
+        {
+            try
+            {
+                leave = await _leave.SummaryAsync(new LeaveScope
+                {
+                    CompanyId = _currentUser.ActiveCompanyId,
+                    CompanyIds = _companyFilter.Csv,
+                    UserId = _currentUser.UserId,
+                    CanApproveL1 = _currentUser.HasPermission("LEAVE_APPROVE_L1"),
+                    CanApproveL2 = _currentUser.HasPermission("LEAVE_APPROVE_L2")
+                }, selected, HttpContext.RequestAborted);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "The leave summary could not be read (run db/68 and db/69).");
+            }
+        }
+
         return View("~/Views/Dashboard/Index.cshtml", new DashboardViewModel
         {
             Data = data,
+            Leave = leave,
             ShowDateAlerts = showDateAlerts,
             DateAlerts = dateAlerts,
             CompanyLabel = await _companyFilter.GetLabelAsync(HttpContext.RequestAborted),

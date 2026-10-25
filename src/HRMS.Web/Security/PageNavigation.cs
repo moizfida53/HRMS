@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.DataProtection;
 
@@ -67,7 +67,9 @@ public static class PageNavigation
         R(@"/payroll/payslips/view", "/payroll/payslips/view", "/payroll/payslips/employees"),
         R(@"/payroll/payslips/my/[^/]+", "/payroll/payslips/slip", "/payroll/payslips/my", idInPath: true),
         R(@"/payroll/payslips/slip", "/payroll/payslips/slip", "/payroll/payslips/my"),
-        R(@"/security/roles", "/security/roles")
+        R(@"/security/roles", "/security/roles"),
+        R(@"/leave", "/leave"),
+        R(@"/leave/document", "/leave/document", "/leave")
     ];
 
     /// <summary>The rule for a path, or null when the page takes no identifiers.</summary>

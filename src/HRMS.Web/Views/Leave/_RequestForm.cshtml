@@ -1,0 +1,99 @@
+@model LeaveRequestFormModel
+@{
+    var q = Model.Request;
+    var hr = Model.Mode == "hr";
+    var maxMb = Math.Max(1, Model.MaxFileBytes / 1024 / 1024);
+    string Iso(DateTime? d) => d?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+}
+<input type="hidden" name="LeaveRequestId" value="@(q?.LeaveRequestId ?? 0)" />
+<input type="hidden" name="mode" value="@Model.Mode" data-lv-mode />
+
+<div class="row g-3">
+    @if (hr)
+    {
+        <div class="col-12">
+            <label class="form-label" for="lv-emp">@L["lv.employee"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="lv-emp" name="EmployeeId" data-lv-emp required disabled="@(q is not null ? "disabled" : null)">
+                <option value="">@L["lv.choose_employee"]</option>
+                @foreach (var e in Model.Employees)
+                {
+                    <option value="@e.EmployeeId" selected="@(e.EmployeeId == Model.EmployeeId)">@LeaveFormat.Name(L, e.EmployeeName, e.ArabicName) · @e.EmployeeNo</option>
+                }
+            </select>
+            @if (q is not null) { <input type="hidden" name="EmployeeId" value="@q.EmployeeId" /> }
+            <span class="field-validation-error" data-valmsg-for="EmployeeId"></span>
+        </div>
+    }
+
+    <div class="col-12">
+        <label class="form-label" for="lv-type">@L["lv.leave_type"] <span class="req" aria-hidden="true">*</span></label>
+        <select class="form-select" id="lv-type" name="LeaveTypeId" data-lv-type required>
+            <option value="">@L["lv.choose_leave_type"]</option>
+            @foreach (var t in Model.Types)
+            {
+                var unlimited = t.BalanceMode == LeaveBalanceMode.Unlimited;
+                var free = t.Available - (t.Pending ?? 0);
+                <option value="@t.LeaveTypeId" selected="@(t.LeaveTypeId == q?.LeaveTypeId)"
+                        data-half="@(t.AllowHalfDay ? "1" : "0")" data-doc="@(t.RequiresDocument ? "1" : "0")">
+                    @LeaveFormat.Name(L, t.TypeName, t.ArabicName)@(unlimited ? "" : " · " + L["lv.n_available", LeaveFormat.Days(free)])
+                </option>
+            }
+        </select>
+        <span class="field-validation-error" data-valmsg-for="LeaveTypeId"></span>
+    </div>
+
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-start">@L["lv.first_day"] <span class="req" aria-hidden="true">*</span></label>
+        <input type="date" class="form-control" id="lv-start" name="StartDate" value="@Iso(q?.StartDate)" data-lv-start required />
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-end">@L["lv.last_day"] <span class="req" aria-hidden="true">*</span></label>
+        <input type="date" class="form-control" id="lv-end" name="EndDate" value="@Iso(q?.EndDate)" data-lv-end required />
+    </div>
+    <div class="col-12" data-lv-half-wrap hidden>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="lv-half" name="HalfDay" value="true" data-lv-half checked="@(q?.HalfDay == true)" />
+            <label class="form-check-label" for="lv-half">@L["lv.half_day_only"]</label>
+        </div>
+    </div>
+
+    @* what the dates count and leave - from the server as the form is filled *@
+    <div class="col-12">
+        <div class="lv-preview" data-lv-preview hidden>
+            <div class="lv-preview__figures">
+                <div><span class="lv-preview__label">@L["lv.days_requested"]</span><strong data-lv-p="days">—</strong></div>
+                <div data-lv-p-balance><span class="lv-preview__label">@L["lv.available_now"]</span><strong data-lv-p="available">—</strong></div>
+                <div data-lv-p-balance><span class="lv-preview__label">@L["lv.left_after"]</span><strong data-lv-p="after">—</strong></div>
+            </div>
+            <ul class="lv-preview__problems" data-lv-p="problems"></ul>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label" for="lv-reason">@L["lv.reason"]</label>
+        <textarea class="form-control" id="lv-reason" name="Reason" rows="2" maxlength="500" placeholder="@L["lv.reason_placeholder"]">@q?.Reason</textarea>
+    </div>
+
+    <div class="col-12" data-lv-doc-wrap hidden>
+        <label class="form-label" for="lv-doc">@L["lv.supporting_document"] @if (!hr) { <span class="req" aria-hidden="true">*</span> }</label>
+        <input type="file" class="form-control" id="lv-doc" name="document" accept=".pdf,.jpg,.jpeg,.png" data-lv-doc />
+        <span class="form-text">
+            @L["lv.document_hint", maxMb]
+            @if (q?.HasDocument == true) { <br /><strong>@L["lv.current_document"]</strong> @q.DocumentName }
+        </span>
+        <span class="field-validation-error" data-valmsg-for="document"></span>
+    </div>
+
+    @if (hr && Model.Rights.CanApproveL2)
+    {
+        <div class="col-12">
+            <div class="lv-approve-now">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="lv-approve-now" name="ApproveNow" value="true" />
+                    <label class="form-check-label" for="lv-approve-now"><strong>@L["lv.approve_now"]</strong></label>
+                </div>
+                <span class="form-text">@L["lv.approve_now_hint"]</span>
+            </div>
+        </div>
+    }
+</div>

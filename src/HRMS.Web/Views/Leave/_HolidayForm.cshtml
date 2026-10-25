@@ -1,0 +1,43 @@
+@model LeaveHolidayFormModel
+@{
+    var h = Model.Holiday;
+    var allCompanies = h is null ? Model.AllCompaniesUser : h.CompanyId is null;
+}
+<input type="hidden" name="HolidayId" value="@(h?.HolidayId ?? 0)" />
+<div class="row g-3">
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-h-name">@L["lv.name_english"] <span class="req" aria-hidden="true">*</span></label>
+        <input type="text" class="form-control" id="lv-h-name" name="HolidayName" value="@h?.HolidayName" maxlength="100" required />
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-h-arabic">@L["lv.name_arabic"]</label>
+        <input type="text" class="form-control" id="lv-h-arabic" name="ArabicName" value="@h?.ArabicName" maxlength="100" dir="rtl" />
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-h-from">@L["lv.from"] <span class="req" aria-hidden="true">*</span></label>
+        <input type="date" class="form-control" id="lv-h-from" name="FromDate" value="@h?.FromDate.ToString("yyyy-MM-dd")" required data-lv-h-from />
+    </div>
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-h-to">@L["lv.to"]</label>
+        <input type="date" class="form-control" id="lv-h-to" name="ToDate" value="@h?.ToDate.ToString("yyyy-MM-dd")" data-lv-h-to />
+        <span class="form-text">@L["lv.holiday_to_hint"]</span>
+    </div>
+    @if (Model.AllCompaniesUser)
+    {
+        <div class="col-12">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="lv-h-all" name="AllCompanies" value="true" checked="@allCompanies" data-lv-h-all />
+                <label class="form-check-label" for="lv-h-all">@L["lv.applies_to_all_companies"]</label>
+            </div>
+        </div>
+    }
+    <div class="col-12" data-lv-h-company @(allCompanies && Model.AllCompaniesUser ? "hidden" : null)>
+        <label class="form-label" for="lv-h-company">@L["common.company"]</label>
+        <select class="form-select" id="lv-h-company" name="CompanyId">
+            @foreach (var c in Model.Companies)
+            {
+                <option value="@c.CompanyId" selected="@(c.CompanyId == h?.CompanyId)">@c.CompanyName</option>
+            }
+        </select>
+    </div>
+</div>

@@ -92,6 +92,8 @@
             var openSetup = activeArea == "organization" || onPayrollSettings;
             var openPayroll = activeArea == "payroll" && !onPayrollSettings;
             var openSecurity = activeArea == "security";
+            var openLeave = activeArea == "leave";
+            var leavePage = ViewData["LeavePage"] as string;
 
             // Pages the user has no read access to are not offered (Security > Create Roles).
             var canEmployees = CurrentUser.CanOpen("employees");
@@ -100,6 +102,10 @@
             var canRoles = CurrentUser.CanOpen("security:roles");
             var canUsers = CurrentUser.CanOpen("security:users");
             var canAudit = CurrentUser.CanViewAudit();
+            var canLeave = CurrentUser.CanOpen("leave");
+            var canLeaveBalances = CurrentUser.CanOpen("leave:balances");
+            var canLeaveSettings = CurrentUser.CanOpen("leave:settings");
+            var hasLeave = CurrentUser.EmployeeId is not null || canLeave || canLeaveBalances || canLeaveSettings;
             var payrollSections = HRMS.Web.Models.Payroll.PayrollNav.Sections
                 .Where(s => s.Key != HRMS.Web.Models.Payroll.PayrollNav.SettingsKey && CurrentUser.CanOpen("payroll:" + s.Key))
                 .ToList();
@@ -141,6 +147,43 @@
                     <a class="hrms-nav-link is-disabled" aria-disabled="true" title="@L["layout.open_an_employee_s_profile_for_their_kuwait_comp"]">
                         @Html.Icon("shield")<span>@L["common.kuwait_compliance"]</span><span class="hrms-nav-soon">@L["layout.per_employee"]</span>
                     </a>
+                </div>
+            </div>
+            }
+
+            @* Leave (db/68): the user's own leave, requests and approvals, balances, the rules *@
+            @if (hasLeave)
+            {
+            <div class="hrms-nav-group">
+                <button type="button" class="hrms-nav-group__toggle @(openLeave ? null : "collapsed")" data-bs-toggle="collapse"
+                        data-bs-target="#nav-leave" aria-expanded="@(openLeave ? "true" : "false")" aria-controls="nav-leave">
+                    <span>@L["layout.leave"]</span>@Html.Icon("chevron-down", 14)
+                </button>
+                <div class="collapse hrms-nav-group__items @(openLeave ? "show" : null)" id="nav-leave">
+                    @if (CurrentUser.EmployeeId is not null)
+                    {
+                        <a class="hrms-nav-link @(openLeave && leavePage == "my" ? "is-active" : null)" asp-controller="Leave" asp-action="My">
+                            @Html.Icon("user")<span>@L["lv.my_leave"]</span>
+                        </a>
+                    }
+                    @if (canLeave)
+                    {
+                        <a class="hrms-nav-link @(openLeave && leavePage == "requests" ? "is-active" : null)" asp-controller="Leave" asp-action="Index">
+                            @Html.Icon("calendar")<span>@L["lv.leave_requests"]</span>
+                        </a>
+                    }
+                    @if (canLeaveBalances)
+                    {
+                        <a class="hrms-nav-link @(openLeave && leavePage == "balances" ? "is-active" : null)" asp-controller="Leave" asp-action="Balances">
+                            @Html.Icon("book")<span>@L["lv.balances"]</span>
+                        </a>
+                    }
+                    @if (canLeaveSettings)
+                    {
+                        <a class="hrms-nav-link @(openLeave && leavePage == "settings" ? "is-active" : null)" asp-controller="Leave" asp-action="Settings">
+                            @Html.Icon("sliders")<span>@L["lv.leave_settings"]</span>
+                        </a>
+                    }
                 </div>
             </div>
             }
@@ -189,9 +232,6 @@
                             @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>
                         </a>
                     }
-                    <a class="hrms-nav-link is-disabled" aria-disabled="true">
-                        @Html.Icon("calendar")<span>@L["layout.leave"]</span><span class="hrms-nav-soon">@L["common.soon"]</span>
-                    </a>
                 </div>
             </div>
             }

@@ -1,0 +1,507 @@
+// ============================================================================
+// Leave (/leave, /leave/my, /leave/balances, /leave/settings) - db/68, db/69
+// ----------------------------------------------------------------------------
+// Every leave type carries a colour (--lv-color) that follows it everywhere:
+// the swatch in a list, the stripe of a balance card, the request popup.
+// Layout follows the content column (container "content"); tables turn into
+// stacked cards below 600px like every hrms-table.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+.lv-page {
+  display: flex;
+  flex-direction: column;
+  gap: space("4");
+  min-width: 0;
+}
+
+// ------------------------------------------------------------- filters ----
+.lv-filters {
+  // Bootstrap's width:100% would be the flex basis - size them by their content instead
+  .lv-filter { flex: 0 1 190px; width: auto; min-width: 150px; max-width: 230px; }
+  .lv-filter--emp { flex-basis: 240px; max-width: 280px; }
+
+  @include cq-down("sm") {
+    .lv-filter, .lv-filter--emp, .lv-filter-search, .lv-filter-dates, .lv-asof { flex: 1 1 100%; min-width: 0; }
+  }
+}
+
+.lv-filter-search { flex: 1 1 220px; min-width: 180px; max-width: 320px; }
+
+.lv-filter-dates {
+  display: flex;
+  align-items: center;
+  gap: space("1");
+  color: $ink-400;
+
+  .form-control { width: 9.5rem; min-width: 0; flex: 1 1 0; }
+}
+
+.lv-asof {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  margin: 0;
+  font-size: $fs-sm;
+  color: $ink-500;
+  white-space: nowrap;
+
+  .form-control { width: 10rem; }
+}
+
+// ------------------------------------------------------------- KPI tiles ----
+.lv-kpi {
+  width: 100%;
+  text-align: start;
+  border: 1px solid $line-200;
+  cursor: pointer;
+  @include motion(border-color, box-shadow, transform);
+  @include focus-ring;
+
+  &:hover { border-color: $blue-200; box-shadow: $shadow-sm; transform: translateY(-1px); }
+  &.is-active { border-color: $blue-600; box-shadow: 0 0 0 1px $blue-600 inset; }
+
+  &.is-alert .hrms-kpi__value { color: $amber-700; }
+  &.is-alert .hrms-kpi__icon { background: $amber-050; color: $amber-700; }
+  &.is-warn .hrms-kpi__value { color: $red-700; }
+
+  @media (prefers-reduced-motion: reduce) { &:hover { transform: none; } }
+}
+
+// ------------------------------------------------------------- the lists ----
+.lv-table {
+  .lv-row { cursor: pointer; }
+  .lv-row--cancelled td, .lv-row--rejected td { color: $ink-400; }
+  tr.is-inactive td, tr.is-past td { color: $ink-400; }
+  tr.is-inactive .lv-swatch { opacity: .45; }
+
+  &--compact {
+    td, th { padding-block: space("2"); }
+  }
+
+  // a cell with a second line (employee no., schedule...) keeps its lines together
+  .lv-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+
+  @container table (max-width: 599.98px) {
+    td { align-items: flex-start; }
+    .lv-cell { align-items: flex-end; text-align: end; max-width: 72%; }
+    .lv-cell .hrms-nowrap, .lv-cell .pr-emp-sub { white-space: normal; }
+    .lv-rules-text, .lv-tiers-text { text-align: end; }
+  }
+}
+
+[data-lv-slot], [data-lv-team-slot] {
+  @include motion(opacity);
+  &.is-loading { opacity: .55; pointer-events: none; }
+}
+
+.lv-type {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  font-weight: $fw-medium;
+}
+
+.lv-swatch {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--lv-color, #{$ink-400});
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--lv-color, #{$ink-400}) 18%, transparent);
+
+  &--lg { width: 14px; height: 14px; border-radius: 4px; }
+}
+
+.lv-attach {
+  display: inline-flex;
+  margin-inline-start: space("1");
+  color: $ink-400;
+  vertical-align: middle;
+}
+
+.lv-rules-text { font-size: $fs-xs; color: $ink-500; }
+.lv-tiers-text { white-space: normal; }
+
+// --------------------------------------------------------- request form ----
+.lv-preview {
+  border: 1px solid $blue-100;
+  border-radius: $radius;
+  background: $blue-050;
+  padding: space("3") space("4");
+
+  &__figures {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: space("3");
+
+    > div { display: flex; flex-direction: column; min-width: 0; }
+    > [hidden] { display: none; }
+    strong { font-size: $fs-lg; font-variant-numeric: tabular-nums; color: $ink-900; }
+    strong.is-neg { color: $red-700; }
+
+    @include cq-down("xs") { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  &__label { @include label-caps; color: $ink-500; }
+
+  &__problems {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &:empty { display: none; }
+
+    li {
+      display: flex;
+      gap: space("2");
+      margin-top: space("2");
+      font-size: $fs-sm;
+      color: $red-700;
+
+      &::before { content: "!"; flex: 0 0 18px; height: 18px; border-radius: 50%; background: $red-050; text-align: center; font-weight: $fw-bold; line-height: 18px; font-size: $fs-xs; }
+    }
+  }
+
+  &.has-problems { border-color: $red-300; background: color.adjust($red-050, $lightness: 1%); }
+}
+
+.lv-approve-now {
+  padding: space("3") space("4");
+  border: 1px dashed $green-600;
+  border-radius: $radius;
+  background: $green-050;
+}
+
+// ------------------------------------------------------- request popup ----
+.lv-detail {
+  &__head { gap: space("2"); align-items: flex-start; }
+  &__title { display: flex; align-items: center; gap: space("3"); min-width: 0; }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: space("3") space("5");
+
+    @include cq-down("sm") { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    &--wide { grid-column: 1 / -1; }
+  }
+
+  &__label { @include label-caps; color: $ink-500; }
+  &__value { font-weight: $fw-semibold; color: $ink-900; }
+  &__text { font-weight: $fw-regular; white-space: pre-line; overflow-wrap: anywhere; }
+
+  &__doc {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: space("2");
+
+    > span { @include truncate; max-width: 100%; flex: 1 1 140px; }
+  }
+
+  &__sub {
+    margin: space("5") 0 space("2");
+    @include label-caps;
+    color: $ink-500;
+    font-size: $fs-xs;
+  }
+
+  &__actions {
+    flex-wrap: wrap;
+    gap: space("2");
+
+    @include down("sm") {
+      > .btn { flex: 1 1 calc(50% - #{space("2")}); justify-content: center; }
+      > .me-auto { margin-inline-end: 0 !important; flex-basis: 100%; }
+    }
+  }
+}
+
+.modal-body:has(> .lv-detail__grid), [data-lv-detail], [data-lv-ledger-of] { container-type: inline-size; container-name: content; }
+
+// approval route: manager -> HR
+.lv-steps {
+  display: flex;
+  gap: space("2");
+  margin: 0 0 space("3");
+  padding: 0;
+  list-style: none;
+  flex-wrap: wrap;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: space("2");
+    padding: space("1") space("3");
+    border-radius: $radius-pill;
+    border: 1px solid $line-200;
+    font-size: $fs-sm;
+    color: $ink-500;
+
+    &.is-now { border-color: $amber-600; background: $amber-050; color: $amber-700; font-weight: $fw-semibold; }
+    &.is-done { border-color: rgba($green-600, .4); background: $green-050; color: $green-700; }
+    &.is-skip { opacity: .65; text-decoration: line-through; }
+  }
+
+  &__dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+}
+
+.lv-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-inline-start: 2px solid $line-200;
+
+  li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 0 space("3") space("4");
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: -6px;
+      top: 5px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: $white;
+      border: 2px solid $blue-600;
+    }
+
+    &:last-child { padding-bottom: 0; }
+  }
+
+  &__what { font-weight: $fw-semibold; color: $ink-800; }
+  &__comment { font-size: $fs-sm; color: $ink-600; font-style: italic; overflow-wrap: anywhere; }
+}
+
+// -------------------------------------------------------- balance cards ----
+.lv-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: space("3");
+
+  &--compact { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); }
+
+  @include cq-down("xs") { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.lv-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: space("3") space("4") space("3") calc(#{space("4")} + 4px);
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+  background: $white;
+  text-align: start;
+  overflow: hidden;
+  cursor: pointer;
+  @include motion(border-color, box-shadow, transform);
+  @include focus-ring;
+
+  // the type's colour as a stripe on the start edge
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 4px;
+    background: var(--lv-color, #{$blue-600});
+  }
+
+  &:hover { border-color: color-mix(in srgb, var(--lv-color, #{$blue-600}) 45%, #{$line-200}); box-shadow: $shadow-sm; transform: translateY(-1px); }
+
+  &__name { font-size: $fs-sm; font-weight: $fw-semibold; color: $ink-700; @include truncate; }
+  &__value {
+    font-family: $font-display;
+    font-size: $fs-2xl;
+    font-weight: $fw-semibold;
+    line-height: 1.15;
+    color: $ink-900;
+    font-variant-numeric: tabular-nums;
+
+    &.is-neg { color: $red-700; }
+  }
+  &__note { font-size: $fs-xs; color: $ink-500; }
+  &__meta { font-size: $fs-xs; color: $ink-400; margin-top: space("1"); }
+
+  &__bar {
+    display: block;
+    height: 5px;
+    margin-top: space("2");
+    border-radius: $radius-pill;
+    background: $line-100;
+    overflow: hidden;
+
+    > span { display: block; height: 100%; border-radius: inherit; background: var(--lv-color, #{$blue-600}); @include motion(width); }
+  }
+
+  .lv-cards--compact & {
+    padding-block: space("2");
+    .lv-card__value { font-size: $fs-xl; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { &:hover { transform: none; } }
+}
+
+// ------------------------------------------------- ledger and adjusting ----
+.lv-sum {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  overflow: hidden;
+
+  > div {
+    display: flex;
+    justify-content: space-between;
+    gap: space("3");
+    padding: space("2") space("3");
+    border-bottom: 1px solid $line-100;
+
+    &:last-child { border-bottom: 0; }
+  }
+
+  dt { font-weight: $fw-regular; color: $ink-600; font-size: $fs-sm; }
+  dd { margin: 0; font-weight: $fw-semibold; font-variant-numeric: tabular-nums; }
+
+  &__total {
+    background: $surface;
+    dt { font-weight: $fw-semibold; color: $ink-900; }
+    dd { font-size: $fs-md; color: $blue-700; }
+  }
+}
+
+.lv-adjust {
+  margin-top: space("4");
+  padding: space("3") space("4") space("4");
+  border: 1px dashed $line-300;
+  border-radius: $radius;
+  background: $surface;
+
+  .lv-detail__sub { margin-top: 0; }
+}
+
+// ----------------------------------------------------- profile Leave tab ----
+.lv-emp-panel {
+  display: grid;
+  gap: space("4");
+}
+
+// --------------------------------------------------------------- settings ----
+.lv-settings [data-lv-pane][hidden] { display: none; }
+
+.lv-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+  gap: space("4");
+}
+
+.lv-rule {
+  display: flex;
+  flex-direction: column;
+
+  &__head { padding: space("4") space("5") space("2"); }
+
+  &__block {
+    padding: space("2") space("5") space("3");
+    border: 0;
+    margin: 0;
+    min-width: 0;
+
+    legend { float: none; width: auto; padding: 0; }
+    .form-text { display: block; margin-top: space("1"); }
+  }
+
+  &__foot {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding: space("3") space("5");
+    border-top: 1px solid $line-100;
+  }
+}
+
+// weekday toggles: Sun ... Sat as pills
+.lv-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: space("1");
+
+  @include cq-down("xs") { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.lv-weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: space("1");
+  border: 1px solid $line-200;
+  border-radius: $radius-sm;
+  background: $white;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  color: $ink-600;
+  cursor: pointer;
+  user-select: none;
+  @include truncate;
+  @include motion(background-color, border-color, color);
+
+  &:hover { border-color: $blue-200; color: $blue-700; }
+
+  .btn-check:checked + & { background: $blue-600; border-color: $blue-600; color: $white; }
+  .btn-check:focus-visible + & { outline: 3px solid rgba($blue-600, .35); outline-offset: 1px; }
+  .btn-check:disabled + & { cursor: default; opacity: .7; }
+}
+
+// switches: room between the toggle and its label
+#lv-set-modal, #lv-form-modal, .lv-rule {
+  .form-switch { display: flex; align-items: flex-start; gap: space("2"); padding-inline-start: 0; }
+  .form-switch .form-check-input { float: none; flex: 0 0 auto; margin: 2px 0 0; }
+}
+
+// leave type dialog
+.lv-switches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: space("2") space("4");
+}
+
+.lv-tiers { display: flex; flex-direction: column; gap: space("2"); }
+
+.lv-tier {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1.2fr) 32px;
+  align-items: center;
+  gap: space("2");
+  max-width: 520px;
+
+  > span { color: $ink-400; }
+
+  @include down("sm") {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 32px;
+    .input-group { grid-column: 1 / 4; grid-row: 2; }
+  }
+}
+
+.lv-tier:only-child [data-lv-tier-remove] { visibility: hidden; }

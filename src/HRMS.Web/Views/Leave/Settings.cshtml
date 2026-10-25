@@ -1,0 +1,136 @@
+@model LeaveSettingsPageModel
+@{
+    ViewData["Title"] = "Leave Settings";
+    ViewData["ActiveArea"] = "leave";
+    ViewData["LeavePage"] = "settings";
+    ViewData["Subtitle"] = L["lv.settings_subtitle"];
+    var canEdit = Model.Rights.CanSetupEdit;
+    var years = Enumerable.Range(DateTime.Today.Year - 2, 5).ToList();
+}
+<div class="lv-page lv-settings" data-lv-page="settings"
+     data-urls-types="@Url.Action("TypesGrid", "Leave")"
+     data-urls-type-form="@Url.Action("TypeForm", "Leave")"
+     data-urls-type-save="@Url.Action("TypeSave", "Leave")"
+     data-urls-type-toggle="@Url.Action("TypeToggle", "Leave")"
+     data-urls-type-delete="@Url.Action("TypeDelete", "Leave")"
+     data-urls-holidays="@Url.Action("HolidaysGrid", "Leave")"
+     data-urls-holiday-form="@Url.Action("HolidayForm", "Leave")"
+     data-urls-holiday-save="@Url.Action("HolidaySave", "Leave")"
+     data-urls-holiday-delete="@Url.Action("HolidayDelete", "Leave")"
+     data-urls-company="@Url.Action("CompanySave", "Leave")"
+     data-text-new-type="@L["lv.new_leave_type"]"
+     data-text-edit-type="@L["lv.edit_leave_type"]"
+     data-text-new-holiday="@L["lv.new_holiday"]"
+     data-text-edit-holiday="@L["lv.edit_holiday"]"
+     data-text-delete-type="@L["lv.delete_leave_type"]"
+     data-text-delete-holiday="@L["lv.delete_holiday"]">
+
+    <nav class="hrms-tabs" aria-label="@L["lv.leave_settings"]">
+        <div class="hrms-tabs__rail" role="tablist">
+            <button type="button" role="tab" id="lv-tab-types" class="hrms-tab is-active" data-lv-tab="types" aria-selected="true" aria-controls="lv-pane-types">@L["lv.leave_types"]</button>
+            <button type="button" role="tab" id="lv-tab-holidays" class="hrms-tab" data-lv-tab="holidays" aria-selected="false" aria-controls="lv-pane-holidays" tabindex="-1">@L["lv.public_holidays"]</button>
+            <button type="button" role="tab" id="lv-tab-rules" class="hrms-tab" data-lv-tab="rules" aria-selected="false" aria-controls="lv-pane-rules" tabindex="-1">@L["lv.weekend_and_approval"]</button>
+        </div>
+    </nav>
+
+    @* ---- leave types ---- *@
+    <section class="hrms-card" id="lv-pane-types" role="tabpanel" aria-labelledby="lv-tab-types" data-lv-pane="types">
+        <div class="hrms-card__toolbar">
+            <p class="hrms-muted hrms-text-sm mb-0">@L["lv.types_hint"]</p>
+            @if (canEdit)
+            {
+                <button type="button" class="btn btn-primary btn-sm ms-auto" data-lv-type-new>@Html.Icon("plus", 14)<span>@L["lv.new_leave_type"]</span></button>
+            }
+        </div>
+        <div data-lv-types-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+
+    @* ---- public holidays ---- *@
+    <section class="hrms-card" id="lv-pane-holidays" role="tabpanel" aria-labelledby="lv-tab-holidays" data-lv-pane="holidays" hidden>
+        <div class="hrms-card__toolbar">
+            <div class="hrms-card__filters lv-filters">
+                <select class="form-select lv-filter" data-lv-holiday-year aria-label="@L["lv.year"]">
+                    @foreach (var y in years)
+                    {
+                        <option value="@y" selected="@(y == Model.Year)">@y</option>
+                    }
+                </select>
+                <span class="hrms-muted hrms-text-sm">@L["lv.holidays_hint"]</span>
+            </div>
+            @if (canEdit)
+            {
+                <button type="button" class="btn btn-primary btn-sm ms-auto" data-lv-holiday-new>@Html.Icon("plus", 14)<span>@L["lv.new_holiday"]</span></button>
+            }
+        </div>
+        <div data-lv-holidays-slot aria-live="polite"></div>
+    </section>
+
+    @* ---- weekend days and the line-manager step, per company ---- *@
+    <section id="lv-pane-rules" role="tabpanel" aria-labelledby="lv-tab-rules" data-lv-pane="rules" hidden>
+        @if (Model.Companies.Count == 0)
+        {
+            <div class="hrms-card"><div class="hrms-empty"><p>@L["lv.no_companies"]</p></div></div>
+        }
+        <div class="lv-rules">
+            @foreach (var c in Model.Companies)
+            {
+                <form class="hrms-card lv-rule" data-lv-company-form novalidate>
+                    <input type="hidden" name="companyId" value="@c.CompanyId" />
+                    <header class="lv-rule__head">
+                        <h2 class="h6 mb-0">@c.CompanyName</h2>
+                    </header>
+                    <fieldset class="lv-rule__block" disabled="@(!canEdit)">
+                        <legend class="form-label">@L["lv.weekend_days"]</legend>
+                        <div class="lv-weekdays">
+                            @foreach (var d in new[] { 7, 1, 2, 3, 4, 5, 6 })
+                            {
+                                var id = $"lv-wk-{c.CompanyId}-{d}";
+                                <input type="checkbox" class="btn-check" id="@id" name="weekend" value="@d" checked="@c.IsWeekend(d)" autocomplete="off" />
+                                <label class="lv-weekday" for="@id">@LeaveFormat.WeekdayName(L, d)</label>
+                            }
+                        </div>
+                        <span class="form-text">@L["lv.weekend_hint"]</span>
+                    </fieldset>
+                    <fieldset class="lv-rule__block" disabled="@(!canEdit)">
+                        <legend class="form-label">@L["lv.approval_route"]</legend>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="lv-mgr-@c.CompanyId" name="managerApproval" value="true" checked="@c.ManagerApproval" />
+                            <label class="form-check-label" for="lv-mgr-@c.CompanyId">@L["lv.manager_approves_first"]</label>
+                        </div>
+                        <span class="form-text">@L["lv.manager_approval_hint"]</span>
+                    </fieldset>
+                    @if (canEdit)
+                    {
+                        <footer class="lv-rule__foot">
+                            <button type="submit" class="btn btn-primary btn-sm">@Html.Icon("check", 14)<span>@L["common.save"]</span></button>
+                        </footer>
+                    }
+                </form>
+            }
+        </div>
+    </section>
+</div>
+
+@* ---- leave type / holiday form: the body comes from the server ---- *@
+<div class="modal fade" id="lv-set-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-set-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <form class="modal-content" data-lv-set-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="lv-set-title" data-lv-set-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-lv-set-body></div>
+            <div class="modal-footer">
+                <span class="field-validation-error me-auto" data-lv-set-error></span>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="submit" class="btn btn-primary" data-lv-set-save>@Html.Icon("check", 15)<span>@L["common.save"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@await Html.PartialAsync("~/Views/Leave/_Modals.cshtml")
+
+@section Scripts {
+    <script src="~/js/leave.js" asp-append-version="true"></script>
+}

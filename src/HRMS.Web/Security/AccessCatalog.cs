@@ -99,6 +99,16 @@ public static class AccessCatalog
             ]),
             new("WF.AUDIT", "sec.pg_audit_report", "sec.pg_audit_report_hint", C("AUDIT_REPORT_VIEW"), No, No)
         ]),
+        new("LV", "sec.mod_leave", "calendar",
+        [
+            new("LV.REQUESTS", "sec.pg_leave_requests", "sec.pg_leave_requests_hint",
+                C("LEAVE_VIEW"), C("LEAVE_MANAGE"), No,
+            [
+                new("LV.BALANCE_ADJUST", "sec.fn_leave_balance_adjust", "sec.fn_leave_balance_adjust_hint", No, C("LEAVE_BALANCE_ADJUST"), No)
+            ]),
+            new("LV.SETTINGS", "sec.pg_leave_settings", "sec.pg_leave_settings_hint",
+                C("LEAVE_SETUP_VIEW"), C("LEAVE_SETUP_EDIT"), No)
+        ]),
         new("ORG", "sec.mod_organization", "building",
         [
             new("ORG.SETUP", "sec.pg_organization", "sec.pg_organization_hint",
@@ -160,7 +170,10 @@ public static class AccessCatalog
         new("APR.PAYITEM", "sec.apr_pay_items", "sec.apr_pay_items_hint",
             "PAYROLL_ITEM_APPROVE_L1", "PAYROLL_ITEM_APPROVE_L2", "PAYROLL_ITEM_APPROVE_SELF"),
         new("APR.SETTLEMENT", "sec.apr_settlement", "sec.apr_settlement_hint",
-            "PAYROLL_FS_APPROVE_L1", "PAYROLL_FS_APPROVE_L2", "PAYROLL_FS_APPROVE_SELF")
+            "PAYROLL_FS_APPROVE_L1", "PAYROLL_FS_APPROVE_L2", "PAYROLL_FS_APPROVE_SELF"),
+        // db/68: level 1 = the line manager step (the employee's reporting manager always may), level 2 = HR
+        new("APR.LEAVE", "sec.apr_leave", "sec.apr_leave_hint",
+            "LEAVE_APPROVE_L1", "LEAVE_APPROVE_L2", "LEAVE_APPROVE_SELF")
     ];
 
     public static IEnumerable<AccessItem> Pages => Modules.SelectMany(m => m.Pages);
@@ -229,7 +242,10 @@ public static class AccessCatalog
         ["tab:calendars"] = ["PAYROLL_CALENDAR_VIEW"],
         ["tab:pay-periods"] = ["PAYROLL_CALENDAR_VIEW"],
         ["security:roles"] = ["SECURITY_ROLE_VIEW"],
-        ["security:users"] = ["SECURITY_USER_VIEW"]
+        ["security:users"] = ["SECURITY_USER_VIEW"],
+        ["leave"] = ["LEAVE_VIEW", "LEAVE_APPROVE_L1", "LEAVE_APPROVE_L2"],
+        ["leave:balances"] = ["LEAVE_VIEW"],
+        ["leave:settings"] = ["LEAVE_SETUP_VIEW", "LEAVE_SETUP_EDIT"]
     };
 
     /// <summary>The user may open a sidebar entry (unknown entries stay visible).</summary>
