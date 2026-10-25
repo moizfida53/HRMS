@@ -26,6 +26,7 @@ public static class OrganizationTabs
     public const string Locations    = "locations";
     public const string CostCenters  = "cost-centers";
     public const string DocumentTypes = "employee-documents";
+    public const string OrgDocumentTypes = "organization-documents";
 
     public static readonly IReadOnlyList<OrgTab> All =
     [
@@ -64,7 +65,12 @@ public static class OrganizationTabs
         // db/63: group-wide (no company); the "+" on the form adds a section in place
         new(DocumentTypes, "Employee Documents", "Document type",
             "Documents employees upload, their section and whether they are mandatory",
-            "folder", "_DocumentTypesGrid", "_DocumentTypeForm", "DOCUMENTTYPE")
+            "folder", "_DocumentTypesGrid", "_DocumentTypeForm", "DOCUMENTTYPE"),
+
+        // db/73: group-wide; each company keeps them on Workforce > Organizations, with alerts on the expiry date
+        new(OrgDocumentTypes, "Organization Documents", "Organization document type",
+            "Legal and compliance documents each company keeps, and the alerts on their expiry date",
+            "shield", "_OrgDocumentTypesGrid", "_OrgDocumentTypeForm", "ORGDOCUMENTTYPE")
     ];
 
     private static readonly Dictionary<string, OrgTab> Index =

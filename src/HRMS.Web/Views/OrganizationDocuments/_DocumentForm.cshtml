@@ -1,0 +1,83 @@
+@model OrgDocumentFormModel
+@* Add / change a company document, or renew it (a new version; the current one goes to History). *@
+@{
+    var d = Model.Row;
+    var renew = Model.Renew;
+    var editing = d.HasDocument && !renew;
+    string Iso(DateTime? x) => x?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+    var alerts = ExpiryAlert.Parse(d.AlertRules);
+}
+<input type="hidden" name="OrgDocumentId" value="@(editing ? d.OrgDocumentId : 0)" />
+<input type="hidden" name="CompanyId" value="@Model.Company.CompanyId" />
+<input type="hidden" name="OrgDocumentTypeId" value="@d.OrgDocumentTypeId" />
+<input type="hidden" name="Renew" value="@(renew ? "true" : "false")" />
+
+<div class="od-formhead od-cat-@OrgDocumentFormat.CategoryKey(d.Category)">
+    <span class="od-formhead__icon" aria-hidden="true">@Html.Icon(OrgDocumentFormat.CategoryIcon(d.Category), 18)</span>
+    <div>
+        <strong>@OrgDocumentFormat.Name(L, d.TypeName, d.ArabicName)</strong>
+        <span class="od-formhead__sub">@Model.Company.CompanyName · @OrgDocumentFormat.CategoryLabel(L, d.Category)</span>
+    </div>
+</div>
+
+@if (renew)
+{
+    <div class="pr-banner pr-banner--info mb-3">
+        @Html.Icon("refresh", 16)
+        <div>@L["od.renew_hint", d.ExpiryDate is { } cur ? L.Date(cur) : "—"]</div>
+    </div>
+}
+
+<div class="row g-3">
+    @if (d.HasNumber)
+    {
+        <div class="col-sm-6">
+            <label class="form-label" for="od-number">@L["od.document_number"]</label>
+            <input type="text" class="form-control" id="od-number" name="DocumentNumber" maxlength="100" value="@(editing ? d.DocumentNumber : null)" />
+        </div>
+    }
+    <div class="col-sm-6">
+        <label class="form-label" for="od-authority">@L["od.issuing_authority"]</label>
+        <input type="text" class="form-control" id="od-authority" name="IssuingAuthority" maxlength="150" value="@d.IssuingAuthority"
+               placeholder="@L["od.issuing_authority_placeholder"]" />
+    </div>
+    @if (d.HasIssueDate)
+    {
+        <div class="col-sm-6">
+            <label class="form-label" for="od-issue">@L["od.issue_date"]</label>
+            <input type="date" class="form-control" id="od-issue" name="IssueDate" value="@(editing ? Iso(d.IssueDate) : "")" data-od-issue />
+        </div>
+    }
+    @if (d.HasExpiryDate)
+    {
+        <div class="col-sm-6">
+            <label class="form-label" for="od-expiry">@L["od.expiry_date"] <span class="req" aria-hidden="true">*</span></label>
+            <input type="date" class="form-control" id="od-expiry" name="ExpiryDate" required value="@(editing ? Iso(d.ExpiryDate) : "")"
+                   min="@(renew ? Iso(d.ExpiryDate?.AddDays(1)) : null)" data-od-expiry />
+            <span class="form-text od-alertnote">
+                @Html.Icon("bell", 12)
+                @(alerts.Count == 0 ? L["od.no_alerts_set"] : L["od.alerts_will_fire", string.Join(L["common.list_separator"], alerts.Select(a => OrgDocumentFormat.AlertLabel(L, a)))])
+            </span>
+        </div>
+    }
+    <div class="col-12">
+        <label class="form-label" for="od-notes">@L["od.notes"]</label>
+        <textarea class="form-control" id="od-notes" name="Notes" rows="2" maxlength="500">@(editing ? d.Notes : null)</textarea>
+    </div>
+    <div class="col-12">
+        <label class="form-label" for="od-file">@L["od.scan"]</label>
+        <input type="file" class="form-control" id="od-file" name="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" data-od-file />
+        <span class="form-text">@L["emp.docs_hint", Model.MaxFileSizeMb]</span>
+        @if (editing && d.HasFile)
+        {
+            <div class="od-curfile">
+                @Html.Icon("file", 14)<span>@L["od.current_scan"] <strong>@d.OriginalFileName</strong> (@OrgDocumentFormat.FileSize(d.FileSizeBytes))</span>
+                <div class="form-check ms-auto">
+                    <input class="form-check-input" type="checkbox" id="od-remove-file" name="RemoveFile" value="true" />
+                    <label class="form-check-label" for="od-remove-file">@L["od.remove_scan"]</label>
+                </div>
+            </div>
+        }
+        <span class="field-validation-error" data-valmsg-for="file"></span>
+    </div>
+</div>

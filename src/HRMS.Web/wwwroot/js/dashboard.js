@@ -15,18 +15,20 @@
 
     /* ---- date field alerts (db/65) in "HR actions required" */
     (function initDateAlerts() {
-        var panel = document.querySelector("[data-dalerts]");
-        if (!panel) { return; }
+        // each list (employee dates; company documents, db/73) has its own "show all"
+        var panels = document.querySelectorAll("[data-dalerts]");
+        if (!panels.length) { return; }
 
-        var toggle = panel.querySelector("[data-dalerts-toggle]");
-        if (toggle) {
+        Array.prototype.forEach.call(panels, function (panel) {
+            var toggle = panel.querySelector("[data-dalerts-toggle]");
+            if (!toggle) { return; }
             toggle.addEventListener("click", function () {
                 var open = toggle.getAttribute("aria-expanded") !== "true";
                 panel.querySelectorAll("[data-dalert-more]").forEach(function (li) { li.hidden = !open; });
                 toggle.setAttribute("aria-expanded", open ? "true" : "false");
                 toggle.textContent = open ? toggle.dataset.textLess : toggle.dataset.textMore;
             });
-        }
+        });
 
         // the eye: the employee's profile in a popup, opened at the alerted date
         var modalEl = document.getElementById("date-alert-view-modal");
@@ -47,7 +49,7 @@
             sizeButton.querySelector("[data-dav-icon-restore]").hidden = !on;
         }
 
-        panel.addEventListener("click", function (event) {
+        document.addEventListener("click", function (event) {
             var button = event.target.closest("[data-dalert-view]");
             if (!button) { return; }
             modalEl.querySelector("[data-dav-title]").textContent = button.dataset.title;

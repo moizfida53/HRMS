@@ -250,6 +250,58 @@
                     }
                 </div>
             }
+            @if (Model.OrgDocumentAlerts is { } orgAlerts)
+            {
+                @* db/73: company documents whose expiry date reached an alert set on their type *@
+                const int orgShown = 5;
+                <div class="hrms-dalerts hrms-dalerts--org" data-dalerts>
+                    <div class="hrms-dalerts__head">
+                        <span class="hrms-dalerts__title">@Html.Icon("building", 14)<span>@L["od.dash_title"]</span></span>
+                        <span class="hrms-dalerts__total">@orgAlerts.Count.ToString("N0")</span>
+                    </div>
+                    @if (orgAlerts.Count == 0)
+                    {
+                        <p class="hrms-dalerts__empty">@L["od.dash_none"]</p>
+                    }
+                    else
+                    {
+                        <ul class="hrms-dalerts__list">
+                            @for (var i = 0; i < orgAlerts.Count; i++)
+                            {
+                                var oa = orgAlerts[i];
+                                var tone = oa.DaysLeft < 0 ? "is-critical" : oa.DaysLeft <= 7 ? "is-serious" : oa.DaysLeft <= 30 ? "is-warning" : "is-info";
+                                var due = oa.DaysLeft == -1 ? L["dash.alert_overdue_yesterday"]
+                                        : oa.DaysLeft < 0 ? L["dash.alert_overdue_days", -oa.DaysLeft]
+                                        : oa.DaysLeft == 0 ? L["dash.alert_today"]
+                                        : oa.DaysLeft == 1 ? L["dash.alert_tomorrow"]
+                                        : L["dash.alert_in_days", oa.DaysLeft];
+                                var fired = HRMS.Domain.Organization.ExpiryAlert.Parse(oa.FiredRule).FirstOrDefault();
+                                var typeName = OrgDocumentFormat.Name(L, oa.TypeName, oa.ArabicName);
+                                <li class="hrms-dalerts__item @tone" hidden="@(i >= orgShown)" data-dalert-more="@(i >= orgShown ? "true" : null)">
+                                    <span class="hrms-dalerts__icon" aria-hidden="true">@Html.Icon(oa.DaysLeft < 0 ? "alert" : OrgDocumentFormat.CategoryIcon(oa.Category), 15)</span>
+                                    <span class="hrms-dalerts__body">
+                                        <span class="hrms-dalerts__name">@typeName</span>
+                                        <span class="hrms-dalerts__meta">
+                                            <strong>@oa.CompanyName</strong> · @L.Date(oa.ExpiryDate)
+                                            @if (oa.FiredRule is not null) { <span class="hrms-dalerts__rule">@Html.Icon("bell", 11)@OrgDocumentFormat.AlertLabel(L, fired)</span> }
+                                        </span>
+                                    </span>
+                                    <span class="hrms-dalerts__due">@due</span>
+                                    <a class="btn-icon hrms-dalerts__view" href="/organizations?company=@oa.CompanyId"
+                                       title="@L["od.dash_open"]" aria-label="@L["od.dash_open_named", typeName, oa.CompanyName]">@Html.Icon("chevron-right", 16)</a>
+                                </li>
+                            }
+                        </ul>
+                        @if (orgAlerts.Count > orgShown)
+                        {
+                            <button type="button" class="hrms-dalerts__more" data-dalerts-toggle aria-expanded="false"
+                                    data-text-more="@L["dash.alert_show_all", orgAlerts.Count]" data-text-less="@L["dash.alert_show_less"]">
+                                @L["dash.alert_show_all", orgAlerts.Count]
+                            </button>
+                        }
+                    }
+                </div>
+            }
             <a class="hrms-panel__link" href="/employees">@L["dash.open_employees"] @Html.Icon("chevron-right", 14)</a>
         </section>
     </div>

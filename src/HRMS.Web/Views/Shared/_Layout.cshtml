@@ -86,7 +86,7 @@
             // collapsible and start collapsed. The one
             // exception is the group holding the current page, which opens so
             // you can see where you are.
-            var openWorkforce = activeArea == "workforce";
+            var openWorkforce = activeArea == "workforce" || activeArea == "organizations";
             // Payroll Settings is a payroll page (ActiveArea "payroll") shown under Setup.
             var onPayrollSettings = activeArea == "payroll" && (ViewData["PayrollSection"] as string) == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey;
             var openSetup = activeArea == "organization" || onPayrollSettings;
@@ -98,6 +98,7 @@
             // Pages the user has no read access to are not offered (Security > Create Roles).
             var canEmployees = CurrentUser.CanOpen("employees");
             var canOrganization = CurrentUser.CanOpen("organization");
+            var canOrgDocuments = CurrentUser.CanOpen("organizations");
             var canSettings = CurrentUser.CanOpen("payroll:settings");
             var canRoles = CurrentUser.CanOpen("security:roles");
             var canUsers = CurrentUser.CanOpen("security:users");
@@ -132,7 +133,7 @@
                 </a>
             }
 
-            @if (canEmployees)
+            @if (canEmployees || canOrgDocuments)
             {
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle @(openWorkforce ? null : "collapsed")" data-bs-toggle="collapse"
@@ -140,10 +141,21 @@
                     <span>@L["layout.workforce"]</span>@Html.Icon("chevron-down", 14)
                 </button>
                 <div class="collapse hrms-nav-group__items @(openWorkforce ? "show" : null)" id="nav-workforce">
+                    @if (canEmployees)
+                    {
                     <a class="hrms-nav-link @(activeArea == "workforce" ? "is-active" : null)"
                        asp-controller="Employees" asp-action="Index">
                         @Html.Icon("users")<span>@L["common.employees"]</span>
                     </a>
+                    }
+                    @* db/73: the companies and their Legal & Compliance Documents *@
+                    @if (canOrgDocuments)
+                    {
+                    <a class="hrms-nav-link @(activeArea == "organizations" ? "is-active" : null)"
+                       asp-controller="OrganizationDocuments" asp-action="Index">
+                        @Html.Icon("building")<span>@L["od.nav_organizations"]</span>
+                    </a>
+                    }
                     <a class="hrms-nav-link is-disabled" aria-disabled="true" title="@L["layout.open_an_employee_s_profile_for_their_kuwait_comp"]">
                         @Html.Icon("shield")<span>@L["common.kuwait_compliance"]</span><span class="hrms-nav-soon">@L["layout.per_employee"]</span>
                     </a>

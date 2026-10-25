@@ -60,6 +60,8 @@ public static class DependencyInjection
         services.AddScoped<IEmployeeDependentRepository, EmployeeDependentRepository>();
         services.AddScoped<IEmployeeDocumentRepository, EmployeeDocumentRepository>();
         services.AddScoped<IComplianceDocumentRepository, ComplianceDocumentRepository>();
+        services.AddScoped<IOrgDocumentTypeRepository, OrgDocumentTypeRepository>();
+        services.AddScoped<IOrganizationDocumentRepository, OrganizationDocumentRepository>();
         services.AddScoped<IEmployeeAuditRepository, EmployeeAuditRepository>();
         services.AddScoped<IEmployeePayrollCalendarRepository, EmployeePayrollCalendarRepository>();
 

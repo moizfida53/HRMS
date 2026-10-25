@@ -1,0 +1,116 @@
+@model FormViewModel<OrgDocumentType>
+@{
+    // Organization > Organization Documents (db/73): a type of company document, its fields and its expiry alerts.
+    var t = Model.Model;
+    var picked = ExpiryAlert.Parse(t.AlertRules);
+    // the offered alerts, plus any stored one that is not among them
+    var choices = ExpiryAlert.Presets.Concat(picked).Distinct().OrderByDescending(r => r.DaysBefore).ToList();
+}
+
+<form id="record-form" data-tab="@Model.Tab.Key" novalidate>
+    <div class="modal-header">
+        <h2 class="modal-title h5" id="record-modal-title">@(Model.IsNew ? L["common.add_named", L.Tr(Model.Tab.Singular)] : L["common.edit_named", L.Tr(Model.Tab.Singular)])</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+    </div>
+
+    <div class="modal-body od-type-form">
+        <input type="hidden" name="OrgDocumentTypeId" value="@t.OrgDocumentTypeId" />
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.identity"]</legend>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="f-TypeName">@L["org.doc_type_name"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" id="f-TypeName" name="TypeName" type="text" value="@t.TypeName" maxlength="150" required
+                           placeholder="@L["od.type_name_placeholder"]" />
+                    <span class="field-validation-error" data-valmsg-for="TypeName"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="f-ArabicName">@L["org.arabic_name"]</label>
+                    <input class="form-control hrms-arabic" id="f-ArabicName" name="ArabicName" type="text" value="@t.ArabicName" maxlength="150" dir="rtl" lang="ar" />
+                </div>
+                <div class="col-12">
+                    <span class="form-label d-block">@L["od.category"]</span>
+                    <div class="od-catpick" role="radiogroup" aria-label="@L["od.category"]">
+                        @foreach (var c in OrgDocumentCategory.All)
+                        {
+                            <input type="radio" class="btn-check" name="Category" id="f-cat-@c" value="@c" checked="@(t.Category == c)" autocomplete="off" />
+                            <label class="od-cat od-cat--@OrgDocumentFormat.CategoryKey(c) od-catpick__opt" for="f-cat-@c">@Html.Icon(OrgDocumentFormat.CategoryIcon(c), 13)@OrgDocumentFormat.CategoryLabel(L, c)</label>
+                        }
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["od.what_is_kept"]</legend>
+            <div class="od-switches">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="f-HasNumber" name="HasNumber" value="true" checked="@t.HasNumber" />
+                    <input type="hidden" name="HasNumber" value="false" />
+                    <label class="form-check-label" for="f-HasNumber">@L["od.has_number"]</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="f-HasIssueDate" name="HasIssueDate" value="true" checked="@t.HasIssueDate" />
+                    <input type="hidden" name="HasIssueDate" value="false" />
+                    <label class="form-check-label" for="f-HasIssueDate">@L["od.has_issue_date"]</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="f-HasExpiryDate" name="HasExpiryDate" value="true" checked="@t.HasExpiryDate" data-od-expiry-switch />
+                    <input type="hidden" name="HasExpiryDate" value="false" />
+                    <label class="form-check-label" for="f-HasExpiryDate">@L["od.has_expiry_date"]</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="f-IsMandatory" name="IsMandatory" value="true" checked="@t.IsMandatory" />
+                    <input type="hidden" name="IsMandatory" value="false" />
+                    <label class="form-check-label" for="f-IsMandatory"><strong>@L["od.mandatory"]</strong></label>
+                </div>
+            </div>
+            <span class="form-text">@L["od.mandatory_hint"]</span>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset od-alertset" data-od-alerts>
+            <legend>@Html.Icon("bell", 15) @L["od.expiry_alerts"]</legend>
+            <p class="form-text mt-0">@L["od.alerts_hint"]</p>
+            @* always posted (even with nothing ticked) so clearing every alert is saved *@
+            <input type="hidden" name="AlertChoices" value="" />
+            <div class="od-alertpick">
+                @foreach (var r in choices)
+                {
+                    <input type="checkbox" class="btn-check" name="AlertChoices" id="f-al-@r.Code" value="@r.Code" checked="@picked.Contains(r)" autocomplete="off" />
+                    <label class="od-alertpick__opt" for="f-al-@r.Code">@Html.Icon("bell", 12)@OrgDocumentFormat.AlertLabel(L, r)</label>
+                }
+            </div>
+            <p class="od-alertset__off form-text mb-0">@Html.Icon("info", 13) @L["od.alerts_need_expiry"]</p>
+        </fieldset>
+
+        <fieldset class="hrms-fieldset">
+            <legend>@L["common.status"]</legend>
+            <div class="row g-3 align-items-end">
+                <div class="col-sm-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="f-IsActive" name="IsActive" value="true" checked="@t.IsActive" />
+                        <input type="hidden" name="IsActive" value="false" />
+                        <label class="form-check-label" for="f-IsActive">@L["org.active"]</label>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label" for="f-SortOrder">@L["od.sort_order"]</label>
+                    <input class="form-control" id="f-SortOrder" name="SortOrder" type="number" min="0" max="9999" value="@t.SortOrder" inputmode="numeric" />
+                </div>
+            </div>
+            @if (t.UsageCount > 0)
+            {
+                <div class="org-docsec__usage">@Html.Icon("info", 14)<span>@L["od.in_use", t.UsageCount]</span></div>
+            }
+        </fieldset>
+    </div>
+
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+        <button type="submit" class="btn btn-primary" data-submit>
+            @Html.Icon("check", 15)
+            <span>@(Model.IsNew ? L["common.create"] : L["common.save_changes"])</span>
+        </button>
+    </div>
+</form>

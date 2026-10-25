@@ -38,6 +38,10 @@ public interface IDocumentStorage
     Task<(StoredDocument? Document, string? Error)> SaveAsync(
         long employeeId, IFormFile file, CancellationToken cancellationToken);
 
+    /// <summary>The same checks, written under <paramref name="folder"/> (e.g. companies/12) - db/73.</summary>
+    Task<(StoredDocument? Document, string? Error)> SaveToAsync(
+        string folder, IFormFile file, CancellationToken cancellationToken);
+
     /// <summary>Full path for a stored relative path, or null if it escapes the root or is missing.</summary>
     string? Resolve(string relativePath);
 }
@@ -74,8 +78,12 @@ public sealed class LocalDocumentStorage : IDocumentStorage
 
     public long MaxFileSizeBytes { get; }
 
-    public async Task<(StoredDocument? Document, string? Error)> SaveAsync(
-        long employeeId, IFormFile file, CancellationToken cancellationToken)
+    public Task<(StoredDocument? Document, string? Error)> SaveAsync(
+        long employeeId, IFormFile file, CancellationToken cancellationToken) =>
+        SaveToAsync(Path.Combine("employees", employeeId.ToString(System.Globalization.CultureInfo.InvariantCulture)), file, cancellationToken);
+
+    public async Task<(StoredDocument? Document, string? Error)> SaveToAsync(
+        string folder, IFormFile file, CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
         {
@@ -105,7 +113,8 @@ public sealed class LocalDocumentStorage : IDocumentStorage
             return (null, $"This file is not a real {extension.TrimStart('.').ToUpperInvariant()} file. Re-save it and try again.");
         }
 
-        var relativeFolder = Path.Combine("employees", employeeId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        // a folder of the app's own making (employees/12, companies/3) - never a name from the request
+        var relativeFolder = folder;
         var storedName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
         var relativePath = Path.Combine(relativeFolder, storedName);
         var fullPath = Path.Combine(_root, relativePath);

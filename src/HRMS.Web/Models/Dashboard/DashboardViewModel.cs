@@ -16,6 +16,9 @@ public sealed class DashboardViewModel
     /// <summary>Leave figures (db/68) - null when the user has no leave access or the module is not installed.</summary>
     public HRMS.Domain.Leave.LeaveSummary? Leave { get; init; }
 
+    /// <summary>Company documents whose expiry date reached an alert (db/73); null = not shown.</summary>
+    public IReadOnlyList<HRMS.Domain.Organization.OrgDocumentDue>? OrgDocumentAlerts { get; init; }
+
     /// <summary>Employee dates that have reached one of their field's alerts, soonest (or most overdue) first.</summary>
     public IReadOnlyList<HRMS.Domain.Workforce.DateAlertDue> DateAlerts { get; init; } = Array.Empty<HRMS.Domain.Workforce.DateAlertDue>();
 

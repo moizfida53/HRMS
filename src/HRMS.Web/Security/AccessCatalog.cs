@@ -1,4 +1,4 @@
-namespace HRMS.Web.Security;
+﻿namespace HRMS.Web.Security;
 
 /// <summary>Access to a page or a function on Security > Create Roles. Each level includes the ones below it.</summary>
 public enum AccessLevel
@@ -115,7 +115,10 @@ public static class AccessCatalog
                 C("ORGANIZATION_VIEW"), C("ORGANIZATION_CREATE", "ORGANIZATION_EDIT"), C("ORGANIZATION_DELETE"),
             [
                 new("ORG.COMPANIES", "sec.fn_companies", "sec.fn_companies_hint", No, C("ORGANIZATION_COMPANY_EDIT"), C("ORGANIZATION_COMPANY_DELETE"))
-            ])
+            ]),
+            // db/73: Workforce > Organizations - each company's Legal & Compliance Documents
+            new("ORG.DOCUMENTS", "sec.pg_org_documents", "sec.pg_org_documents_hint",
+                C("ORG_DOCUMENT_VIEW"), C("ORG_DOCUMENT_EDIT"), C("ORG_DOCUMENT_DELETE"))
         ]),
         new("PR", "sec.mod_payroll", "calculator",
         [
@@ -227,6 +230,7 @@ public static class AccessCatalog
         ["employees"] = ["EMPLOYEE_VIEW"],
         ["audit"] = ["AUDIT_REPORT_VIEW"],
         ["organization"] = ["ORGANIZATION_VIEW"],
+        ["organizations"] = ["ORG_DOCUMENT_VIEW", "ORG_DOCUMENT_EDIT"],
         ["payroll:dashboard"] = ["PAYROLL_DASHBOARD_VIEW"],
         ["payroll:processing"] = ["PAYROLL_RUN_VIEW", "PAYROLL_CALENDAR_VIEW"],
         ["payroll:payitems"] = ["PAYROLL_ITEM_VIEW"],

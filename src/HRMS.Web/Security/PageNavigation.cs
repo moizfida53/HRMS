@@ -69,6 +69,7 @@ public static class PageNavigation
         R(@"/payroll/payslips/slip", "/payroll/payslips/slip", "/payroll/payslips/my"),
         R(@"/security/roles", "/security/roles"),
         R(@"/leave", "/leave"),
+        R(@"/organizations", "/organizations"),
         R(@"/leave/document", "/leave/document", "/leave")
     ];
 

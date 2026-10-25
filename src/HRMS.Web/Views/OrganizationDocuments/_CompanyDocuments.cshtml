@@ -1,0 +1,174 @@
+@model OrgCompanyDocumentsModel
+@* One company's Legal & Compliance Documents, grouped by category; each with its status
+   against the expiry date, its alerts, its scan and the actions the user may take. *@
+@{
+    var c = Model.Company;
+    var r = Model.Rights;
+    string Status(OrgDocumentRow d) =>
+        !d.HasDocument ? (d.IsMandatory ? "missing" : "none")
+        : d.IsExpired ? "expired"
+        : d.IsDue ? "due"
+        : "valid";
+    var counts = Model.Rows.GroupBy(Status).ToDictionary(g => g.Key, g => g.Count());
+    int Count(string s) => counts.GetValueOrDefault(s);
+    var pct = c.TypeCount > 0 ? (int)Math.Round(100.0 * c.RecordedCount / c.TypeCount) : 0;
+}
+<div class="od-co-panel" data-od-company-panel="@c.CompanyId" data-company-name="@c.CompanyName">
+    <header class="hrms-card od-cohead">
+        <div class="od-cohead__id">
+            <span class="od-cohead__icon" aria-hidden="true">@Html.Icon("building", 22)</span>
+            <div class="od-cohead__text">
+                <h2 class="od-cohead__name">@c.CompanyName</h2>
+                <span class="od-cohead__sub">@string.Join(" · ", new[] { c.LegalName, c.CommercialRegistrationNo is { Length: > 0 } cr ? L["od.cr_no", cr] : null }.Where(x => !string.IsNullOrWhiteSpace(x)))</span>
+            </div>
+        </div>
+        <div class="od-cohead__progress">
+            <span class="od-cohead__pct">@pct%</span>
+            <span class="od-cohead__bar"><span style="width:@(pct)%"></span></span>
+            <span class="od-cohead__note">@L["od.recorded_of", c.RecordedCount, c.TypeCount]</span>
+        </div>
+    </header>
+
+    <div class="od-filter" role="group" aria-label="@L["od.show"]">
+        <button type="button" class="od-filter__btn is-active" data-od-filter="" aria-pressed="true">@L["od.f_all"] <span>@Model.Rows.Count</span></button>
+        <button type="button" class="od-filter__btn od-filter__btn--expired" data-od-filter="expired" aria-pressed="false" disabled="@(Count("expired") == 0)">@L["od.f_expired"] <span>@Count("expired")</span></button>
+        <button type="button" class="od-filter__btn od-filter__btn--due" data-od-filter="due" aria-pressed="false" disabled="@(Count("due") == 0)">@L["od.f_due"] <span>@Count("due")</span></button>
+        <button type="button" class="od-filter__btn od-filter__btn--missing" data-od-filter="missing" aria-pressed="false" disabled="@(Count("missing") + Count("none") == 0)">@L["od.f_missing"] <span>@(Count("missing") + Count("none"))</span></button>
+        <button type="button" class="od-filter__btn od-filter__btn--valid" data-od-filter="valid" aria-pressed="false" disabled="@(Count("valid") == 0)">@L["od.f_valid"] <span>@Count("valid")</span></button>
+    </div>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="hrms-card"><div class="hrms-empty"><p class="hrms-empty__title">@L["od.no_types"]</p></div></div>
+    }
+    @foreach (var group in Model.Rows.GroupBy(x => x.Category))
+    {
+        var catKey = OrgDocumentFormat.CategoryKey(group.Key);
+        <section class="od-group od-cat-@catKey" data-od-group>
+            <h3 class="od-group__title"><span class="od-group__icon" aria-hidden="true">@Html.Icon(OrgDocumentFormat.CategoryIcon(group.Key), 15)</span>@OrgDocumentFormat.CategoryLabel(L, group.Key)</h3>
+            <div class="od-group__list">
+                @foreach (var d in group)
+                {
+                    var name = OrgDocumentFormat.Name(L, d.TypeName, d.ArabicName);
+                    var status = Status(d);
+                    var alerts = ExpiryAlert.Parse(d.AlertRules);
+                    var days = d.DaysLeft;
+                    var fileUrl = d.HasFile ? Url.Action("DocumentFile", "OrganizationDocuments", new { id = d.OrgDocumentId }) : null;
+                    <article class="od-doc od-doc--@status" data-od-doc="@d.OrgDocumentTypeId" data-status="@(status == "none" ? "missing" : status)"
+                             data-name="@name" data-id="@d.OrgDocumentId">
+                        <span class="od-doc__icon" aria-hidden="true">@Html.Icon(OrgDocumentFormat.CategoryIcon(d.Category), 18)</span>
+                        <div class="od-doc__main">
+                            <h4 class="od-doc__name">@name @if (d.IsMandatory) { <span class="od-doc__req" title="@L["emp.mandatory"]">*</span> }</h4>
+                            @if (d.HasDocument)
+                            {
+                                <div class="od-doc__meta">
+                                    @if (d.HasNumber && d.DocumentNumber is { } no) { <span>@Html.Icon("id-card", 12)<span class="od-doc__no">@no</span></span> }
+                                    @if (d.HasIssueDate && d.IssueDate is { } issued) { <span>@L["od.issued_on", L.Date(issued)]</span> }
+                                    @if (d.IssuingAuthority is { } by) { <span>@by</span> }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="od-doc__meta"><span class="od-doc__none">@(d.IsMandatory ? L["od.missing_mandatory"] : L["od.not_recorded"])</span></div>
+                            }
+                            @if (d.HasExpiryDate)
+                            {
+                                <div class="od-doc__alerts" title="@L["od.expiry_alerts"]">
+                                    @Html.Icon("bell", 12)
+                                    @if (alerts.Count == 0)
+                                    {
+                                        <span class="od-doc__alert is-none">@L["od.no_alerts"]</span>
+                                    }
+                                    @foreach (var a in alerts)
+                                    {
+                                        var fired = d.HasDocument && d.ExpiryDate is { } ex && a.FiresOn(ex).Date <= DateTime.Today;
+                                        <span class="od-doc__alert @(fired ? "is-fired" : null)" title="@OrgDocumentFormat.AlertLabel(L, a)@(d.ExpiryDate is { } ex2 ? " · " + L.Date(a.FiresOn(ex2)) : "")">@OrgDocumentFormat.AlertShort(L, a)</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="od-doc__status">
+                            @switch (status)
+                            {
+                                case "expired":
+                                    <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["od.s_expired"]</span>
+                                    <span class="od-doc__date">@L.Date(d.ExpiryDate)</span>
+                                    <span class="od-doc__days">@L["od.days_ago", -days!.Value]</span>
+                                    break;
+                                case "due":
+                                    <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["od.s_due"]</span>
+                                    <span class="od-doc__date">@L.Date(d.ExpiryDate)</span>
+                                    <span class="od-doc__days">@(days == 0 ? L["od.today"] : L["od.in_days", days!.Value])</span>
+                                    break;
+                                case "valid":
+                                    <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@(d.HasExpiryDate ? L["od.s_valid"] : L["od.s_on_record"])</span>
+                                    @if (d.HasExpiryDate)
+                                    {
+                                        <span class="od-doc__date">@L.Date(d.ExpiryDate)</span>
+                                        <span class="od-doc__days">@L["od.in_days", days!.Value]</span>
+                                    }
+                                    break;
+                                case "missing":
+                                    <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["od.s_missing"]</span>
+                                    break;
+                                default:
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["od.s_none"]</span>
+                                    break;
+                            }
+                        </div>
+
+                        <div class="od-doc__file">
+                            @if (fileUrl is not null)
+                            {
+                                var isImage = d.ContentType is "image/png" or "image/jpeg";
+                                <a class="od-doc__thumb @(isImage ? null : "is-pdf")" href="@fileUrl" role="button"
+                                   data-od-view="@fileUrl" data-type="@d.ContentType" data-file="@d.OriginalFileName" data-title="@name"
+                                   title="@L["kcd.view_image"]" aria-label="@L["common.view_named", name]">
+                                    @if (isImage) { <img src="@fileUrl" alt="" loading="lazy" decoding="async" /> } else { <span>PDF</span> }
+                                </a>
+                            }
+                            else if (d.HasDocument)
+                            {
+                                <span class="od-doc__noscan" title="@L["od.no_scan"]">@Html.Icon("file", 16)</span>
+                            }
+                        </div>
+
+                        <div class="od-doc__actions">
+                            @if (!d.HasDocument)
+                            {
+                                if (r.CanEdit)
+                                {
+                                    <button type="button" class="btn btn-sm btn-primary" data-od-act="add">@Html.Icon("plus", 14)<span>@L["od.add"]</span></button>
+                                }
+                            }
+                            else
+                            {
+                                if (r.CanEdit && d.HasExpiryDate && (status is "expired" or "due"))
+                                {
+                                    <button type="button" class="btn btn-sm btn-warning od-renew" data-od-act="renew">@Html.Icon("refresh", 14)<span>@L["od.renew"]</span></button>
+                                }
+                                if (r.CanEdit)
+                                {
+                                    <button type="button" class="btn-icon" data-od-act="edit" title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
+                                    if (d.HasExpiryDate && status == "valid")
+                                    {
+                                        <button type="button" class="btn-icon" data-od-act="renew" title="@L["od.renew"]" aria-label="@L["od.renew_named", name]">@Html.Icon("refresh", 15)</button>
+                                    }
+                                }
+                                <button type="button" class="btn-icon" data-od-act="history" title="@L["od.history"]" aria-label="@L["od.history_named", name]">
+                                    @Html.Icon("history", 15)@if (d.ArchivedCount > 0) {<span class="od-doc__count">@d.ArchivedCount</span>}
+                                </button>
+                                if (r.CanDelete)
+                                {
+                                    <button type="button" class="btn-icon btn-icon--danger" data-od-act="delete" title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
+                                }
+                            }
+                        </div>
+                    </article>
+                }
+            </div>
+        </section>
+    }
+    <div class="hrms-card od-nomatch" data-od-nomatch hidden><div class="hrms-empty"><p class="hrms-empty__title">@L["od.no_match"]</p></div></div>
+</div>

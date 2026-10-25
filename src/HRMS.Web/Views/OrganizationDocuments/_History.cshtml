@@ -1,0 +1,46 @@
+@model OrgDocumentHistoryModel
+@* A document's versions: the current one and the ones its renewals archived. *@
+@if (Model.Versions.Count == 0)
+{
+    <div class="hrms-empty"><p class="hrms-empty__title">@L["od.no_history"]</p></div>
+}
+else
+{
+    <ol class="od-timeline">
+        @foreach (var v in Model.Versions)
+        {
+            var url = string.IsNullOrEmpty(v.OriginalFileName) ? null : Url.Action("DocumentFile", "OrganizationDocuments", new { id = v.OrgDocumentId });
+            <li class="od-timeline__item @(v.State == "C" ? "is-current" : null)">
+                <span class="od-timeline__dot" aria-hidden="true"></span>
+                <div class="od-timeline__card">
+                    <div class="od-timeline__head">
+                        @if (v.State == "C")
+                        {
+                            <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["kcd.current"]</span>
+                        }
+                        else
+                        {
+                            <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["kcd.archived_on", v.ArchivedDate is { } ad ? L.Date(ad) : "—"]</span>
+                        }
+                        <span class="od-timeline__by">@L["od.added_by", L.Date(v.CreatedDate), v.CreatedByName ?? "—"]</span>
+                    </div>
+                    <dl class="od-timeline__facts">
+                        @if (v.DocumentNumber is { } no) { <div><dt>@L["od.document_number"]</dt><dd>@no</dd></div> }
+                        @if (v.IssueDate is { } i) { <div><dt>@L["od.issue_date"]</dt><dd>@L.Date(i)</dd></div> }
+                        @if (v.ExpiryDate is { } x) { <div><dt>@L["od.expiry_date"]</dt><dd>@L.Date(x)</dd></div> }
+                        @if (v.IssuingAuthority is { } by) { <div><dt>@L["od.issuing_authority"]</dt><dd>@by</dd></div> }
+                    </dl>
+                    @if (v.Notes is { } n) { <p class="od-timeline__notes">@n</p> }
+                    @if (url is not null)
+                    {
+                        <div class="od-timeline__file">
+                            <a class="btn btn-sm btn-outline-secondary" href="@url" role="button" data-od-view="@url" data-type="@v.ContentType" data-file="@v.OriginalFileName"
+                               data-title="@OrgDocumentFormat.Name(L, Model.Row.TypeName, Model.Row.ArabicName)">@Html.Icon("eye", 14)<span>@v.OriginalFileName</span></a>
+                            <a class="btn-icon" href="@(url)&download=true" title="@L["emp.download"]" aria-label="@L["emp.download"]">@Html.Icon("download", 15)</a>
+                        </div>
+                    }
+                </div>
+            </li>
+        }
+    </ol>
+}

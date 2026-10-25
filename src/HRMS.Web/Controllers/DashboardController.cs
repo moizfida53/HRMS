@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Leave;
 using HRMS.Domain.Workforce;
@@ -20,12 +20,15 @@ public sealed class DashboardController : Controller
     private readonly ICompanyFilter _companyFilter;
     private readonly IDateAlertRepository _dateAlerts;
     private readonly ILeaveRepository _leave;
+    private readonly IOrganizationDocumentRepository _orgDocuments;
     private readonly ILogger<DashboardController> _logger;
 
     public DashboardController(IDashboardRepository dashboard, ICurrentUser currentUser, ICompanyFilter companyFilter,
-        IDateAlertRepository dateAlerts, ILeaveRepository leave, ILogger<DashboardController> logger)
+        IDateAlertRepository dateAlerts, ILeaveRepository leave, IOrganizationDocumentRepository orgDocuments,
+        ILogger<DashboardController> logger)
     {
         _leave = leave;
+        _orgDocuments = orgDocuments;
         _dateAlerts = dateAlerts;
         _logger = logger;
         _dashboard = dashboard;
@@ -85,9 +88,25 @@ public sealed class DashboardController : Controller
             }
         }
 
+        // company documents whose expiry date reached an alert (db/73) - for users who may open them
+        IReadOnlyList<HRMS.Domain.Organization.OrgDocumentDue>? orgAlerts = null;
+        if (_currentUser.CanOpen("organizations"))
+        {
+            try
+            {
+                orgAlerts = await _orgDocuments.DueAsync(
+                    new OrgDocumentScope(_currentUser.ActiveCompanyId, _companyFilter.Csv, _currentUser.UserId), HttpContext.RequestAborted);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "The company document alerts could not be read (run db/73).");
+            }
+        }
+
         return View("~/Views/Dashboard/Index.cshtml", new DashboardViewModel
         {
             Data = data,
+            OrgDocumentAlerts = orgAlerts,
             Leave = leave,
             ShowDateAlerts = showDateAlerts,
             DateAlerts = dateAlerts,

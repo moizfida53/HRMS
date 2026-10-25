@@ -1,0 +1,109 @@
+@model GridViewModel<OrgDocumentType>
+@{
+    // Organization > Organization Documents (db/73): what each company keeps on Workforce > Organizations.
+}
+<div class="hrms-card">
+    @await Html.PartialAsync("Partials/_GridToolbar", (IGridView)Model)
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        @await Html.PartialAsync("Partials/_EmptyState", (IGridView)Model)
+    }
+    else
+    {
+        <div class="hrms-table-wrap">
+            <table class="hrms-table od-types">
+                <caption class="hrms-sr-only">@L["common.records_page_of", Model.PageNumber, Model.TotalPages]</caption>
+                <thead>
+                    <tr>
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "TypeName", "Document Type"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "Category", "Category"))
+                        <th scope="col" class="col-p3">@L["od.fields"]</th>
+                        <th scope="col">@L["od.expiry_alerts"]</th>
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "IsMandatory", "Requirement", "col-p2"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "UsageCount", "Companies", "col-p3"))
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "IsActive", "Status"))
+                        <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Page.Items)
+                    {
+                        var name = OrgDocumentFormat.Name(L, row.TypeName, row.ArabicName);
+                        var alerts = ExpiryAlert.Parse(row.AlertRules);
+                        <tr data-id="@row.OrgDocumentTypeId" data-name="@row.TypeName" data-active="@row.IsActive.ToString().ToLowerInvariant()">
+                            <td data-label="@L.Tr("Document Type")">
+                                <span class="od-cell">
+                                    <span class="hrms-table__primary">@name</span>
+                                    @if (!string.IsNullOrWhiteSpace(row.ArabicName))
+                                    {
+                                        <span class="org-doctypes__alt" dir="@(L.IsArabic ? "ltr" : "rtl")" lang="@(L.IsArabic ? "en" : "ar")">@(L.IsArabic ? row.TypeName : row.ArabicName)</span>
+                                    }
+                                </span>
+                            </td>
+                            <td data-label="@L.Tr("Category")">
+                                <span class="od-cat od-cat--@OrgDocumentFormat.CategoryKey(row.Category)">@Html.Icon(OrgDocumentFormat.CategoryIcon(row.Category), 13)@OrgDocumentFormat.CategoryLabel(L, row.Category)</span>
+                            </td>
+                            <td data-label="@L["od.fields"]" class="col-p3">
+                                <span class="od-fields">
+                                    <span class="@(row.HasNumber ? "is-on" : null)">@L["od.f_number"]</span>
+                                    <span class="@(row.HasIssueDate ? "is-on" : null)">@L["od.f_issue"]</span>
+                                    <span class="@(row.HasExpiryDate ? "is-on" : null)">@L["od.f_expiry"]</span>
+                                </span>
+                            </td>
+                            <td data-label="@L["od.expiry_alerts"]">
+                                @if (!row.HasExpiryDate)
+                                {
+                                    <span class="hrms-muted hrms-text-sm">@L["od.no_expiry"]</span>
+                                }
+                                else if (alerts.Count == 0)
+                                {
+                                    <span class="od-noalert">@Html.Icon("bell", 12)@L["od.no_alerts"]</span>
+                                }
+                                else
+                                {
+                                    <span class="od-alerts" title="@string.Join(L["common.list_separator"], alerts.Select(a => OrgDocumentFormat.AlertLabel(L, a)))">
+                                        @Html.Icon("bell", 12)
+                                        @foreach (var a in alerts) { <span class="od-alerts__chip">@OrgDocumentFormat.AlertShort(L, a)</span> }
+                                    </span>
+                                }
+                            </td>
+                            <td data-label="@L.Tr("Requirement")" class="col-p2">
+                                @if (row.IsMandatory)
+                                {
+                                    <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["emp.mandatory"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["emp.optional"]</span>
+                                }
+                            </td>
+                            <td data-label="@L.Tr("Companies")" class="col-p3 hrms-numeric">@row.UsageCount</td>
+                            <td data-label="@L.Tr("Status")">
+                                @if (row.IsActive)
+                                {
+                                    <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["org.active"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["org.inactive"]</span>
+                                }
+                            </td>
+                            <td class="hrms-table__actions">
+                                <button type="button" class="btn-icon" data-action="edit"
+                                        title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--success" data-action="toggle"
+                                        title="@(row.IsActive ? L["common.deactivate"] : L["common.activate"])"
+                                        aria-label="@(row.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--danger" data-action="delete"
+                                        title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @await Html.PartialAsync("Partials/_Pagination", PaginationModel.From(Model))
+    }
+</div>

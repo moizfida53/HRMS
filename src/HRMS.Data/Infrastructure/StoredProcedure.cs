@@ -72,6 +72,8 @@ public static class StoredProcedure
     /// <summary>Documents tab: document types grouped by section + the employee's uploaded files.</summary>
     public const string EmployeeDocumentManage = "Documents.usp_EmployeeDocument_Manage";
     public const string ComplianceDocumentManage = "Kuwait.usp_ComplianceDocument_Manage";
+    public const string OrgDocumentTypeManage = "Documents.usp_OrgDocumentType_Manage";
+    public const string OrgDocumentManage = "Documents.usp_OrgDocument_Manage";
 
     // ---- Dashboard (landing page) ----
 
