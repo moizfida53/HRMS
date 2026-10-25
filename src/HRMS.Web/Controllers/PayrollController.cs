@@ -433,7 +433,10 @@ public sealed class PayrollController : Controller
             // A payroll is shown only on the page of its own stage (Register, Validation or
             // Approval - a closed payroll on Approval, a cancelled one on Register).
             var reached = run.IsCancelled ? 0 : Math.Min(run.StageIndex, 2);
-            if (pageStage != reached)
+            // the Register is the payroll's full list of employees: a payroll asked for by number
+            // opens there read-only at any stage ("Open full register (read-only)" on Approval)
+            var readOnlyRegister = pageStage == 0 && runId is > 0;
+            if (pageStage != reached && !readOnlyRegister)
             {
                 return RedirectToAction(PageName(reached), new { run = run.PayrollRunId });
             }
