@@ -1,4 +1,4 @@
-@model PayItemFormModel
+﻿@model PayItemFormModel
 @{
     var i = Model.Item;
     var mode = Model.Mode;
@@ -16,7 +16,8 @@
         (ItemClass.Deduction, L["pr.deduction"], L["pr.absence_penalty_recovery"]),
         (ItemClass.Loan, L["pr.loan_advance"], L["pr.paid_back_in_monthly_instalments"])
     };
-    string MonthOptions(DateTime? selected) => string.Concat(Model.Months.Select(m =>
+    // a salary change (revise) can only start after the current amount's month
+    string MonthOptions(DateTime? selected, DateTime? after = null) => string.Concat(Model.Months.Where(m => after is not { } a || m > a).Select(m =>
         $"<option value=\"{PayItemFormat.MonthValue(m)}\"{(selected is { } s && s.Year == m.Year && s.Month == m.Month ? " selected" : "")}>{System.Net.WebUtility.HtmlEncode(L.MonthYear(m))}</option>"));
 }
 <input type="hidden" name="EmployeePayItemId" value="@(i?.EmployeePayItemId ?? 0)" />
@@ -91,19 +92,34 @@ else if (i?.IsPending == true)
 
     @* amount: salary, earnings, deductions (a loan's instalment is calculated) *@
     <div class="col-md-6" data-show-for="SALARY EARNING DEDUCTION">
-        <label class="form-label" for="pi-amount"><span data-pi-amount-label>@L["pr.amount_kwd"]</span> <span class="req" aria-hidden="true">*</span></label>
+        <label class="form-label" for="pi-amount"><span data-pi-amount-label>@(revise ? L["pr.new_amount_kwd"] : L["pr.amount_kwd"])</span> <span class="req" aria-hidden="true">*</span></label>
         @if (locked)
         {
             <input type="hidden" name="Amount" value="@i!.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
         }
         <input class="form-control pr-input-money" id="pi-amount" name="@(locked ? null : "Amount")" inputmode="decimal" placeholder="0.000" value="@amount" autocomplete="off" disabled="@lockAttr" data-pi-amount
-               data-label-instalment="@L["pr.amount_per_instalment_kwd"]" data-label-default="@L["pr.amount_kwd"]" />
+               data-label-instalment="@L["pr.amount_per_instalment_kwd"]" data-label-default="@(revise ? L["pr.new_amount_kwd"] : L["pr.amount_kwd"])" />
     </div>
 
-    @* salary: every month from *@
+    @* salary: every month from - a change to an approved salary keeps the current amount
+       (and its own Effective from) and starts a new amount from a later month *@
+    @if (revise)
+    {
+        <div class="col-md-6" data-show-for="SALARY">
+            <span class="form-label d-block">@L["pr.current_amount"]</span>
+            <div class="pr-pi-current">
+                <span class="pr-pi-current__amount pr-money">@PayrollFormat.Money(i!.Amount)</span>
+                <span class="pr-pi-current__since">@L["pr.effective_from"] <strong>@PayItemFormat.Month(L, i.StartMonth)</strong></span>
+            </div>
+        </div>
+    }
     <div class="col-md-6" data-show-for="SALARY">
-        <label class="form-label" for="pi-from-salary">@L["pr.effective_from"] <span class="req" aria-hidden="true">*</span></label>
-        <select class="form-select" id="pi-from-salary" data-pi-start="SALARY" disabled="@lockAttr">@Html.Raw(MonthOptions(start))</select>
+        <label class="form-label" for="pi-from-salary">@(revise ? L["pr.new_amount_from"] : L["pr.effective_from"]) <span class="req" aria-hidden="true">*</span></label>
+        <select class="form-select" id="pi-from-salary" data-pi-start="SALARY" disabled="@lockAttr">@Html.Raw(MonthOptions(start, revise ? i!.StartMonth : null))</select>
+        @if (revise)
+        {
+            <div class="form-text">@L["pr.new_amount_from_hint", PayItemFormat.Month(L, i!.StartMonth)]</div>
+        }
     </div>
     <div class="col-12" data-show-for="SALARY">
         @if (!revise)

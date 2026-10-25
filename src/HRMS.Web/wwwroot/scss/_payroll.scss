@@ -415,6 +415,23 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
 .pr-pi-loan { display: block; font-size: .72rem; color: var(--hrms-ink-500); }
 .pr-pi-from { font-variant-numeric: tabular-nums; }
 .pr-pi-until { display: block; font-size: .72rem; color: var(--hrms-ink-500); }
+
+// salary change form: the amount being replaced, with its own Effective from
+.pr-pi-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-height: calc(1.5em + .75rem + 2px);
+  padding: .375rem .75rem;
+  border: 1px dashed var(--hrms-line-300, #d0d5dd);
+  border-radius: var(--bs-border-radius, .5rem);
+  background: var(--hrms-blue-050, #f2f7fd);
+
+  &__amount { font-weight: 700; color: var(--hrms-ink-900, #101828); font-variant-numeric: tabular-nums; }
+  &__since { font-size: .8rem; color: var(--hrms-ink-500); }
+  &__since strong { color: var(--hrms-blue-700, #1b4f91); font-weight: 600; }
+}
 .pr-pi-head { padding: .6rem .8rem; border: 1px solid var(--hrms-line-100); border-radius: var(--hrms-radius); background: #fafbfc; }
 .pr-pi-pending { align-items: center; flex-wrap: wrap; }
 .pr-pi-pending > div { flex: 1 1 16rem; }
