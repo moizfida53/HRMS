@@ -1,4 +1,4 @@
-@model CreatePageModel
+﻿@model CreatePageModel
 @{
     ViewData["Title"] = "Create Payroll";
     ViewData["ActiveArea"] = "payroll";
@@ -28,6 +28,7 @@
      data-urls-periods="@Url.Action("Periods", "Payroll")"
      data-urls-next="@Url.Action("NextCode", "Payroll")"
      data-urls-draft="@Url.Action("DraftSave", "Payroll")"
+     data-urls-drafts="@Url.Action("CreateDrafts", "Payroll")"
      data-urls-discard="@Url.Action("DraftDiscard", "Payroll")"
      data-urls-finalize="@Url.Action("FinalizeRun", "Payroll")"
      data-urls-employees="@Url.Action("EmployeesGrid", "Payroll")"
@@ -100,7 +101,7 @@
                         <div class="col-md-6">
                             <label class="form-label" for="cr-month">@L["pr.cr_payroll_month"] <span class="req" aria-hidden="true">*</span></label>
                             <select class="form-select" id="cr-month" data-cr-month></select>
-                            <span class="form-text">@L["pr.cr_month_hint"]</span>
+                            <span class="form-text">@L["pr.cr_month_hint_auto"]</span>
                             <span class="field-validation-error" data-cr-error="month" hidden>@L["pr.cr_no_month"]</span>
                         </div>
                     </div>
@@ -121,17 +122,24 @@
                     </label>
                 </div>
 
-                @* the payrolls this will create: one per payroll calendar the company's employees are on *@
+                @* the payrolls of the month, worked out - not chosen: each employee's assigned payroll
+                   calendar and that calendar's pay period of the month (periods are generated when missing) *@
                 <section class="cr-plan mt-3" data-cr-plan aria-labelledby="cr-plan-title">
-                    <div class="cr-plan__head">
-                        <h3 class="pr-section-label mb-0" id="cr-plan-title">@L["pr.cr_payrolls_to_create"]</h3>
-                        <span class="cr-plan__summary" data-cr-plan-summary></span>
+                    <div class="cr-plan__hero" data-cr-plan-hero>
+                        <span class="cr-plan__icon" aria-hidden="true">@Html.Icon("calculator", 20)</span>
+                        <div class="cr-plan__copy">
+                            <h3 class="cr-plan__title" id="cr-plan-title" data-cr-plan-title>@L["pr.cr_payrolls_to_create"]</h3>
+                            <span class="cr-plan__summary" data-cr-plan-summary></span>
+                            <p class="cr-plan__hint mb-0">@L["pr.cr_plan_auto_hint"]</p>
+                        </div>
                     </div>
-                    <p class="hrms-muted small mb-2">@L["pr.cr_plan_hint"]</p>
-                    <div class="cr-plan__list" data-cr-plan-list role="list"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
-                    <div class="pr-banner pr-banner--info mt-2" data-cr-plan-empty hidden>@Html.Icon("info", 18)<div>@L["pr.cr_no_calendar_in_month"]</div></div>
+                    <details class="cr-plan__details" data-cr-plan-details>
+                        <summary>@L["pr.cr_plan_details"]</summary>
+                        <div class="cr-plan__list" data-cr-plan-list role="list"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+                    </details>
+                    <div class="pr-banner pr-banner--info mt-2" data-cr-plan-empty hidden>@Html.Icon("info", 18)<div data-cr-plan-empty-text>@L["pr.cr_no_calendar_in_month"]</div></div>
                     <div class="pr-banner pr-banner--lock mt-2" data-cr-unassigned hidden>@Html.Icon("alert", 18)<div data-cr-unassigned-text></div></div>
-                    <span class="field-validation-error" data-cr-error="plan" hidden>@L["pr.cr_choose_one"]</span>
+                    <span class="field-validation-error" data-cr-error="plan" hidden>@L["pr.cr_nothing_to_create"]</span>
                 </section>
 
                 <div class="row g-3 mt-1">
@@ -237,7 +245,16 @@
      data-incl-unassigned="@L["pr.cr_incl_unassigned"]"
      data-ready="@L["pr.cr_ready"]"
      data-exists="@L["pr.cr_regular_exists"]"
-     data-no-period="@L["pr.cr_no_open_period"]"
+     data-no-period="@L["pr.cr_state_no_period"]"
+     data-generate="@L["pr.cr_state_generate"]"
+     data-closed="@L["pr.cr_state_closed"]"
+     data-later="@L["pr.cr_state_later"]"
+     data-month-closed="@L["pr.cr_month_closed"]"
+     data-plan-title="@L["pr.cr_plan_title"]"
+     data-summary-one="@L["pr.cr_summary_one"]"
+     data-all-created="@L["pr.cr_all_created"]"
+     data-no-open="@L["pr.cr_no_open_period_in"]"
+     data-nobody="@L["pr.cr_nobody_to_pay"]"
      data-no-employees="@L["pr.cr_no_employees"]"
      data-default="@L["emp.paycal_default"]"
      data-summary="@L["pr.cr_summary"]"

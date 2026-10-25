@@ -13619,11 +13619,88 @@ html.hrms-embed .hrms-content {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+.cr-plan__hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+}
+.cr-plan__hero.is-empty .cr-plan__icon {
+  background: #e4e7ec;
+  color: #667085;
+  box-shadow: none;
+}
+.cr-plan__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3373d6, #1b4f91);
+  color: #ffffff;
+  box-shadow: 0 6px 14px -6px rgba(27, 79, 145, 0.6);
+}
+.cr-plan__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cr-plan__title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #101828;
+}
+.cr-plan__summary:empty {
+  display: none;
+}
+.cr-plan__hint {
+  color: #667085;
+  font-size: 0.725rem;
+}
+.cr-plan__details {
+  margin-top: 0.75rem;
+  border-top: 1px dashed #d0d5dd;
+  padding-top: 0.5rem;
+}
+.cr-plan__details > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #1b4f91;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.cr-plan__details > summary::-webkit-details-marker {
+  display: none;
+}
+.cr-plan__details > summary::before {
+  content: "▸";
+  transition: transform 0.15s ease;
+}
+.cr-plan__details > summary:focus-visible:focus {
+  outline: none;
+}
+.cr-plan__details > summary:focus-visible:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(29, 95, 191, 0.28);
+  border-color: #1d5fbf;
+}
+.cr-plan__details > summary:focus-visible {
+  border-radius: 5px;
+}
+.cr-plan__details[open] > summary::before {
+  transform: rotate(90deg);
 }
 
 .cr-cal {
   display: grid;
-  grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1.6fr) auto minmax(7rem, auto);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr) auto minmax(7rem, auto);
   align-items: center;
   gap: 0.5rem 1rem;
   padding: 0.75rem 1rem;
@@ -13653,12 +13730,6 @@ html.hrms-embed .hrms-content {
 .cr-cal.is-blocked {
   background: #f5f7fa;
 }
-.cr-cal__pick .form-check-input {
-  width: 1.15rem;
-  height: 1.15rem;
-  margin: 0;
-  cursor: pointer;
-}
 .cr-cal__info {
   display: flex;
   flex-wrap: wrap;
@@ -13686,8 +13757,16 @@ html.hrms-embed .hrms-content {
   color: #667085;
   font-size: 0.8rem;
 }
-.cr-cal__period .form-select {
+.cr-cal__period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.5rem;
   min-width: 0;
+}
+.cr-cal__period strong {
+  color: #344054;
+  font-weight: 600;
 }
 .cr-cal__code:empty, .cr-cal__code .hrms-code-chip:empty {
   display: none;
@@ -13698,14 +13777,11 @@ html.hrms-embed .hrms-content {
 
 @container content (max-width: 819.98px) {
   .cr-cal {
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas: "pick info" ".    code" ".    period" ".    state";
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "info   info" "period period" "code   state";
   }
   .cr-cal__info strong {
     white-space: normal;
-  }
-  .cr-cal__pick {
-    grid-area: pick;
   }
   .cr-cal__info {
     grid-area: info;
@@ -13719,7 +13795,8 @@ html.hrms-embed .hrms-content {
   }
   .cr-cal__state {
     grid-area: state;
-    justify-self: start;
+    justify-self: end;
+    align-self: center;
   }
 }
 .cr-switch {

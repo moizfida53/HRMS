@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using HRMS.Domain.Common;
 using HRMS.Domain.Payroll;
 using HRMS.Web.Localization;
@@ -25,8 +25,9 @@ public static class PayrollNav
         new("dashboard", "Payroll Dashboard", "grid", [new("payroll-dashboard", "Dashboard", true)]),
         new("processing", "Payroll Processing", "calculator",
         [
-            new("payrolls", "Payrolls", true), new("calendars", "Payroll Calendar", true),
-            new("pay-periods", "Period", true), new("history", "Payroll History", true),
+            // Payroll Calendar and Period are set up once, under Setup > Payroll Settings:
+            // Create Payroll works them out from each employee's calendar and the month
+            new("payrolls", "Payrolls", true), new("history", "Payroll History", true),
             new("compare", "Payroll Comparison", true)
         ], SubNav: true),
         new("payitems", "Pay Items", "card", [new("pay-items", "Pay Items", true)]),
@@ -49,6 +50,7 @@ public static class PayrollNav
         ]),
         new("settings", "Payroll Settings", "sliders",
         [
+            new("calendars", "Payroll Calendar", true), new("pay-periods", "Period", true),
             new("st-rules", "Payroll Rules", true), new("st-components", "Pay Item Types", true), new("st-deduction-rules", "Deduction Rules", true),
             new("st-proration", "Proration Rules", true), new("st-approval", "Approval Workflow", true), new("st-banks", "Banks & Accounts", true),
             new("st-bank-formats", "Bank Formats", true), new("st-gl-mapping", "GL Mapping", true)
@@ -278,6 +280,22 @@ public sealed class CalendarPageModel
     public int? SelectedCalendarId { get; init; }
     public int SelectedYear { get; init; }
     public bool CanSetup { get; init; }
+}
+
+/// <summary>Create Payroll, step 1: the month and type the payrolls are made for (create-drafts).</summary>
+public sealed class CreateDraftsInput
+{
+    public int CompanyId { get; set; }
+    /// <summary>yyyy-MM</summary>
+    public string? Month { get; set; }
+    public string? RunType { get; set; }
+    /// <summary>The drafts already made on the page (CSV of run ids) - kept, or discarded when no longer needed.</summary>
+    public string? Drafts { get; set; }
+    public string? Description { get; set; }
+    public int? ScopeDepartmentId { get; set; }
+    public int? ScopeWorkLocationId { get; set; }
+    public string? ScopeEmploymentType { get; set; }
+    public string? ScopeNationality { get; set; }
 }
 
 public sealed class CreatePageModel

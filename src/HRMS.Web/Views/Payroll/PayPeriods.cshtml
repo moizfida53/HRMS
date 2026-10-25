@@ -1,10 +1,10 @@
-@using HRMS.Web.Models.Payroll
+﻿@using HRMS.Web.Models.Payroll
 @model CalendarPageModel
 @{
     // Payroll Processing > Period: the periods of one calendar and year.
     ViewData["Title"] = "Period";
     ViewData["ActiveArea"] = "payroll";
-    ViewData["PayrollSection"] = "processing";
+    ViewData["PayrollSection"] = "settings";
     ViewData["PayrollPage"] = "pay-periods";
     ViewData["Subtitle"] = L["pr.periods_subtitle"];
     var year = Model.SelectedYear;

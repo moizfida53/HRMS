@@ -239,7 +239,7 @@ public static class AccessCatalog
         ["payroll:bank"] = ["PAYROLL_BANK_VIEW"],
         ["payroll:accounting"] = ["PAYROLL_GL_VIEW"],
         ["payroll:reports"] = ["PAYROLL_REPORT_VIEW"],
-        ["payroll:settings"] = ["PAYROLL_SETUP_VIEW"],
+        ["payroll:settings"] = ["PAYROLL_SETUP_VIEW", "PAYROLL_CALENDAR_VIEW"],
         ["tab:payrolls"] = ["PAYROLL_RUN_VIEW"],
         ["tab:history"] = ["PAYROLL_RUN_VIEW"],
         ["tab:compare"] = ["PAYROLL_RUN_VIEW"],

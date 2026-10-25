@@ -1,8 +1,10 @@
 // ============================================================================
 // Create Payroll - one payroll per payroll calendar (db/60)
 // ----------------------------------------------------------------------------
-// Step 1 lists the calendars the company's employees are on ("payrolls to
-// create"): pick / period / payroll number / state, one row each. Steps 2-4
+// Step 1: the user picks the company and the month; the payrolls of the
+// month are worked out (each employee's assigned calendar and its period of
+// the month) and shown as a summary, with the split by calendar folded away
+// in a <details> - read-only, nothing to tick or choose. Steps 2-4
 // work on one draft at a time, chosen in the switcher above the steps.
 // Layout follows the content width (container "content").
 // ============================================================================
@@ -36,13 +38,66 @@
     display: flex;
     flex-direction: column;
     gap: space("2");
+    padding-top: space("2");
+  }
+
+  // the month's payrolls at a glance
+  &__hero {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: space("3");
+
+    &.is-empty .cr-plan__icon { background: $line-200; color: $ink-500; box-shadow: none; }
+  }
+
+  &__icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: $radius;
+    background: linear-gradient(135deg, $blue-500, $blue-700);
+    color: $white;
+    box-shadow: 0 6px 14px -6px rgba($blue-700, .6);
+  }
+
+  &__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+  &__title { margin: 0; font-size: $fs-md; font-weight: $fw-bold; color: $ink-900; }
+
+  &__summary:empty { display: none; }
+
+  &__hint { color: $ink-500; font-size: $fs-xs; }
+
+  &__details {
+    margin-top: space("3");
+    border-top: 1px dashed $line-300;
+    padding-top: space("2");
+
+    > summary {
+      display: inline-flex;
+      align-items: center;
+      gap: space("1");
+      color: $blue-700;
+      font-size: $fs-sm;
+      font-weight: $fw-semibold;
+      cursor: pointer;
+      list-style: none;
+
+      &::-webkit-details-marker { display: none; }
+      &::before { content: "▸"; transition: transform .15s ease; }
+      &:focus-visible { @include focus-ring; border-radius: $radius-sm; }
+    }
+
+    &[open] > summary::before { transform: rotate(90deg); }
   }
 }
 
-// pick | calendar | period | payroll number | state
+// calendar | period of the month | payroll number | state
 .cr-cal {
   display: grid;
-  grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1.6fr) auto minmax(7rem, auto);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr) auto minmax(7rem, auto);
   align-items: center;
   gap: space("2") space("4");
   padding: space("3") space("4");
@@ -58,8 +113,6 @@
   &.is-off .cr-cal__info,
   &.is-off .cr-cal__period { opacity: .65; }
   &.is-blocked { background: $surface; }
-
-  &__pick .form-check-input { width: 1.15rem; height: 1.15rem; margin: 0; cursor: pointer; }
 
   &__info {
     display: flex;
@@ -86,7 +139,15 @@
     font-size: $fs-sm;
   }
 
-  &__period .form-select { min-width: 0; }
+  &__period {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 space("2");
+    min-width: 0;
+
+    strong { color: $ink-700; font-weight: $fw-semibold; }
+  }
 
   &__code:empty,
   &__code .hrms-code-chip:empty { display: none; }
@@ -97,20 +158,18 @@
 // narrower content: the period and state move under the calendar
 @include cq-down("md") {
   .cr-cal {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "pick info"
-      ".    code"
-      ".    period"
-      ".    state";
+      "info   info"
+      "period period"
+      "code   state";
 
     &__info strong { white-space: normal; }
 
-    &__pick   { grid-area: pick; }
     &__info   { grid-area: info; }
     &__code   { grid-area: code; justify-self: start; }
     &__period { grid-area: period; }
-    &__state  { grid-area: state; justify-self: start; }
+    &__state  { grid-area: state; justify-self: end; align-self: center; }
   }
 }
 
