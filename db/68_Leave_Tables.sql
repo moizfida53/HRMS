@@ -1,7 +1,8 @@
 ﻿/* =====================================================================
    68_Leave_Tables.sql  -  HRMS Leave, phase 1: tables, defaults, rights
    ---------------------------------------------------------------------
-   Run after 28 (soft delete) and 60. Safe to re-run.
+   Run after 28 (soft delete) and 60. Safe to re-run - a re-run also repairs
+   a first run that met older Leave.LeaveTypes / LeaveRequests tables (step 0).
 
      Leave.Settings          one row per company: weekend days, whether
                              the line manager approves before HR
@@ -35,6 +36,78 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = N'Leave')
     EXEC (N'CREATE SCHEMA [Leave]');
+GO
+
+/* ------------------------------------------------------------------
+   0. An older Leave design (from the original base schema) may already
+      have Leave.LeaveTypes / Leave.LeaveRequests with other columns.
+      Such a table is renamed to ..._Legacy (with its constraints and
+      triggers, so their names are free again) when it is EMPTY; when it
+      holds rows the script stops and changes nothing. Foreign keys of
+      this module's tables that a first run tied to the old tables are
+      dropped here and added again further down.
+   ------------------------------------------------------------------ */
+DECLARE @Legacy TABLE (TableName SYSNAME, MarkerColumn SYSNAME);
+INSERT INTO @Legacy VALUES (N'LeaveTypes', N'TypeCode'), (N'LeaveRequests', N'RequestNo');
+
+DECLARE @t SYSNAME, @marker SYSNAME, @id INT, @rows BIGINT, @sql NVARCHAR(MAX), @child SYSNAME, @fk SYSNAME, @fkTable SYSNAME;
+DECLARE legacy_cursor CURSOR LOCAL FAST_FORWARD FOR SELECT TableName, MarkerColumn FROM @Legacy;
+OPEN legacy_cursor;
+FETCH NEXT FROM legacy_cursor INTO @t, @marker;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @id = OBJECT_ID(N'[Leave].' + QUOTENAME(@t), N'U');
+    IF @id IS NOT NULL AND COL_LENGTH(N'[Leave].' + QUOTENAME(@t), @marker) IS NULL
+    BEGIN
+        SET @sql = N'SELECT @n = COUNT_BIG(*) FROM [Leave].' + QUOTENAME(@t) + N';';
+        EXEC sp_executesql @sql, N'@n BIGINT OUTPUT', @n = @rows OUTPUT;
+        IF @rows > 0
+        BEGIN
+            RAISERROR (N'[Leave].[%s] already exists with a different design and holds %I64d rows. Nothing was changed - send its structure to the developer before running this script.', 16, 1, @t, @rows);
+            SET NOEXEC ON;   -- skip the rest of the script (reset at its end)
+            BREAK;
+        END;
+
+        /* this module's foreign keys that point at the old table */
+        DECLARE fk_cursor CURSOR LOCAL FAST_FORWARD FOR
+            SELECT f.name, OBJECT_NAME(f.parent_object_id)
+            FROM   sys.foreign_keys f
+            WHERE  f.referenced_object_id = @id
+              AND  f.parent_object_id IN (OBJECT_ID(N'[Leave].[LeaveTypeTiers]'), OBJECT_ID(N'[Leave].[LeaveLedger]'),
+                                          OBJECT_ID(N'[Leave].[LeaveRequestHistory]'));
+        OPEN fk_cursor;
+        FETCH NEXT FROM fk_cursor INTO @fk, @fkTable;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @sql = N'ALTER TABLE [Leave].' + QUOTENAME(@fkTable) + N' DROP CONSTRAINT ' + QUOTENAME(@fk) + N';';
+            EXEC (@sql);
+            FETCH NEXT FROM fk_cursor INTO @fk, @fkTable;
+        END;
+        CLOSE fk_cursor; DEALLOCATE fk_cursor;
+
+        /* its constraints and triggers keep their names otherwise (PK_LeaveTypes, TR_SoftDelete_LeaveTypes ...) */
+        DECLARE child_cursor CURSOR LOCAL FAST_FORWARD FOR
+            SELECT o.name FROM sys.objects o
+            WHERE  o.parent_object_id = @id AND o.type IN ('PK', 'UQ', 'F', 'D', 'C', 'TR') AND o.name NOT LIKE N'%[_]Legacy';
+        OPEN child_cursor;
+        FETCH NEXT FROM child_cursor INTO @child;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @sql = N'[Leave].' + QUOTENAME(@child);
+            SET @child = LEFT(@child, 121) + N'_Legacy';
+            EXEC sp_rename @sql, @child, N'OBJECT';
+            FETCH NEXT FROM child_cursor INTO @child;
+        END;
+        CLOSE child_cursor; DEALLOCATE child_cursor;
+
+        SET @sql = N'[Leave].' + QUOTENAME(@t);
+        SET @child = @t + N'_Legacy';
+        EXEC sp_rename @sql, @child, N'OBJECT';
+        PRINT CONCAT(N'The old, empty [Leave].[', @t, N'] was renamed to [Leave].[', @t, N'_Legacy].');
+    END;
+    FETCH NEXT FROM legacy_cursor INTO @t, @marker;
+END;
+CLOSE legacy_cursor; DEALLOCATE legacy_cursor;
 GO
 
 /* ------------------------------------------------------------------
@@ -272,6 +345,18 @@ BEGIN
 END
 GO
 
+/* foreign keys to this module's own LeaveTypes / LeaveRequests (step 0 drops ones a first run tied to old tables) */
+IF OBJECT_ID(N'[Leave].[FK_LeaveTypeTiers_Type]', N'F') IS NULL
+    ALTER TABLE [Leave].[LeaveTypeTiers] WITH CHECK
+        ADD CONSTRAINT FK_LeaveTypeTiers_Type FOREIGN KEY (LeaveTypeId) REFERENCES [Leave].[LeaveTypes](LeaveTypeId);
+IF OBJECT_ID(N'[Leave].[FK_LeaveLedger_Type]', N'F') IS NULL
+    ALTER TABLE [Leave].[LeaveLedger] WITH CHECK
+        ADD CONSTRAINT FK_LeaveLedger_Type FOREIGN KEY (LeaveTypeId) REFERENCES [Leave].[LeaveTypes](LeaveTypeId);
+IF OBJECT_ID(N'[Leave].[FK_LeaveRequestHistory_Request]', N'F') IS NULL
+    ALTER TABLE [Leave].[LeaveRequestHistory] WITH CHECK
+        ADD CONSTRAINT FK_LeaveRequestHistory_Request FOREIGN KEY (LeaveRequestId) REFERENCES [Leave].[LeaveRequests](LeaveRequestId);
+GO
+
 /* ------------------------------------------------------------------
    7. Default leave types for a company (also called for a company
       created later - Leave > Settings does it when it finds none)
@@ -384,4 +469,7 @@ WHERE  r.RoleCode = N'SYSADMIN' AND r.Deleted = 0
 DECLARE @CodesCreated INT = (SELECT COUNT(1) FROM #Codes WHERE IsNew = 1);
 PRINT CONCAT(N'Leave permission codes created: ', @CodesCreated);
 DROP TABLE #Codes;
+GO
+
+SET NOEXEC OFF;   -- in case step 0 stopped the script
 GO
