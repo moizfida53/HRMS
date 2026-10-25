@@ -855,8 +855,7 @@
         }
         else
         {
-            <form id="compliance-form" novalidate data-kcd-url="@(showComplianceImages ? $"/employees/documents/{e.EmployeeId}/compliance" : null)"
-                  data-kcd-employee="@e.EmployeeId">
+            <form id="compliance-form" novalidate data-kct-url="@(showComplianceImages ? $"/employees/documents/{e.EmployeeId}/compliance/thumbs" : null)">
                 <input type="hidden" name="EmployeeId" value="@e.EmployeeId" />
                 <fieldset class="hrms-ro-fieldset" disabled="@(!acc.ComplianceEdit)">
 
@@ -873,10 +872,15 @@
                         <div class="accordion-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label" for="f-CivilIdNumber">@L["emp.civil_id_number"]</label>
-                            <input class="form-control" id="f-CivilIdNumber" name="CivilIdNumber" type="text"
-                                   value="@c?.CivilIdNumber" maxlength="12" inputmode="numeric" />
-                            <span class="field-validation-error" data-valmsg-for="CivilIdNumber"></span>
+                            <div class="kct-field">
+                                @if (showComplianceImages) { <span class="kct" data-kct-slot="CIVIL_ID"></span> }
+                                <div class="kct-field__input">
+                                <label class="form-label" for="f-CivilIdNumber">@L["emp.civil_id_number"]</label>
+                                <input class="form-control" id="f-CivilIdNumber" name="CivilIdNumber" type="text"
+                                       value="@c?.CivilIdNumber" maxlength="12" inputmode="numeric" />
+                                <span class="field-validation-error" data-valmsg-for="CivilIdNumber"></span>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <div class="hrms-label-row"><label class="form-label" for="f-CivilIdExpiryDate">@L["emp.civil_id_expiry"]</label>@{ AlertBell("CivilIdExpiryDate"); }</div>
@@ -885,7 +889,6 @@
                             <span class="field-validation-error" data-valmsg-for="CivilIdExpiryDate"></span>
                         </div>
                     </div>
-                    @if (showComplianceImages) { <div class="kcd-slot" data-kcd-slot="CIVIL_ID"></div> }
                         </div>
                     </div>
                 </div>
@@ -901,10 +904,15 @@
                         <div class="accordion-body">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label" for="f-PassportNumber">@L["emp.passport_number"]</label>
-                            <input class="form-control" id="f-PassportNumber" name="PassportNumber" type="text"
-                                   value="@c?.PassportNumber" maxlength="30" />
-                            <span class="field-validation-error" data-valmsg-for="PassportNumber"></span>
+                            <div class="kct-field">
+                                @if (showComplianceImages) { <span class="kct" data-kct-slot="PASSPORT"></span> }
+                                <div class="kct-field__input">
+                                <label class="form-label" for="f-PassportNumber">@L["emp.passport_number"]</label>
+                                <input class="form-control" id="f-PassportNumber" name="PassportNumber" type="text"
+                                       value="@c?.PassportNumber" maxlength="30" />
+                                <span class="field-validation-error" data-valmsg-for="PassportNumber"></span>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="f-PassportCountryId">@L["emp.issuing_country"]</label>
@@ -924,7 +932,6 @@
                             <span class="field-validation-error" data-valmsg-for="PassportExpiryDate"></span>
                         </div>
                     </div>
-                    @if (showComplianceImages) { <div class="kcd-slot" data-kcd-slot="PASSPORT"></div> }
                         </div>
                     </div>
                 </div>
@@ -940,10 +947,15 @@
                         <div class="accordion-body">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label" for="f-ResidencyNumber">@L["emp.residency_number"]</label>
-                            <input class="form-control" id="f-ResidencyNumber" name="ResidencyNumber" type="text"
-                                   value="@c?.ResidencyNumber" maxlength="30" />
-                            <span class="field-validation-error" data-valmsg-for="ResidencyNumber"></span>
+                            <div class="kct-field">
+                                @if (showComplianceImages) { <span class="kct" data-kct-slot="RESIDENCY"></span> }
+                                <div class="kct-field__input">
+                                <label class="form-label" for="f-ResidencyNumber">@L["emp.residency_number"]</label>
+                                <input class="form-control" id="f-ResidencyNumber" name="ResidencyNumber" type="text"
+                                       value="@c?.ResidencyNumber" maxlength="30" />
+                                <span class="field-validation-error" data-valmsg-for="ResidencyNumber"></span>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="f-ResidencyType">@L["emp.residency_type"]</label>
@@ -1000,7 +1012,6 @@
                             <span class="field-validation-error" data-valmsg-for="ResidencyStatus"></span>
                         </div>
                     </div>
-                    @if (showComplianceImages) { <div class="kcd-slot" data-kcd-slot="RESIDENCY"></div> }
                         </div>
                     </div>
                 </div>
@@ -1022,10 +1033,15 @@
                             <span class="field-validation-error" data-valmsg-for="MolFileNumber"></span>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label" for="f-WorkPermitNumber">@L["emp.work_permit_number"]</label>
-                            <input class="form-control" id="f-WorkPermitNumber" name="WorkPermitNumber" type="text"
-                                   value="@c?.WorkPermitNumber" maxlength="50" />
-                            <span class="field-validation-error" data-valmsg-for="WorkPermitNumber"></span>
+                            <div class="kct-field">
+                                @if (showComplianceImages) { <span class="kct" data-kct-slot="WORK_PERMIT"></span> }
+                                <div class="kct-field__input">
+                                <label class="form-label" for="f-WorkPermitNumber">@L["emp.work_permit_number"]</label>
+                                <input class="form-control" id="f-WorkPermitNumber" name="WorkPermitNumber" type="text"
+                                       value="@c?.WorkPermitNumber" maxlength="50" />
+                                <span class="field-validation-error" data-valmsg-for="WorkPermitNumber"></span>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <div class="hrms-label-row"><label class="form-label" for="f-WorkPermitExpiryDate">@L["emp.work_permit_expiry"]</label>@{ AlertBell("WorkPermitExpiryDate"); }</div>
@@ -1034,7 +1050,6 @@
                             <span class="field-validation-error" data-valmsg-for="WorkPermitExpiryDate"></span>
                         </div>
                     </div>
-                    @if (showComplianceImages) { <div class="kcd-slot" data-kcd-slot="WORK_PERMIT"></div> }
                         </div>
                     </div>
                 </div>
@@ -1151,6 +1166,11 @@
         {
             @* Filled by employee.js (initDocuments) from Partials/_DocumentsGrid.cshtml,
                and reloaded after every upload / remove. *@
+            @if (showComplianceImages)
+            {
+                @* Civil ID / Passport / Residency / Work Permit: confirm against the expiry date, renewals, previous images (db/71) *@
+                <div class="kcd-host" data-kcd-host data-kcd-url="/employees/documents/@e.EmployeeId/compliance" data-kcd-employee="@e.EmployeeId"></div>
+            }
             <div id="documents-slot" class="@(wizard ? "is-wizard" : null)" data-grid-url="/employees/documents/@e.EmployeeId/grid" data-employee-id="@e.EmployeeId" aria-busy="true">
                 <div class="hrms-spinner" aria-hidden="true"></div>
             </div>

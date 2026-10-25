@@ -1,0 +1,48 @@
+@model ComplianceDocumentsViewModel
+@* Kuwait Compliance tab: a thumbnail of each Civil ID / Passport / Residency / Work Permit
+   image before the item's number - view only (confirmation and renewals are on the
+   Documents tab). employee.js moves each group into its [data-kct-slot]. *@
+@{
+    var fileUrl = $"/employees/documents/{Model.EmployeeId}/file/";
+    string DocName(string? english, string? arabic) =>
+        L.IsArabic && !string.IsNullOrWhiteSpace(arabic) ? arabic! : english ?? string.Empty;
+}
+<div data-kct-root>
+@foreach (var g in Model.Groups)
+{
+    var shown = g.Slots.Where(s => s.Current is not null || s.Renewal is not null).ToList();
+    <span class="kct__group" data-kct-group="@g.Key">
+        @if (shown.Count == 0)
+        {
+            <a href="#" role="button" class="kct__thumb is-empty" data-kct-open-docs
+               title="@L["kct.no_image"]" aria-label="@L["kct.no_image"]">@Html.Icon("id-card", 20)</a>
+        }
+        @foreach (var s in shown)
+        {
+            var img = s.Current ?? s.Renewal!;
+            var name = DocName(s.Name, s.NameAr);
+            var isImage = img.ContentType is "image/png" or "image/jpeg";
+            var note = s.Current is null ? L["kcd.waiting_confirmation"]
+                     : s.Renewal is not null ? L["kcd.renewal_waiting"]
+                     : !img.IsConfirmed ? L["kcd.not_confirmed"]
+                     : g.RenewalDue ? L["kcd.update_renewal_image"]
+                     : null;
+            <a class="kct__thumb @(isImage ? null : "is-file") @(note is not null ? "has-note" : null) @(g.RenewalDue && s.Renewal is null ? "is-due" : null)"
+               role="button" href="@(fileUrl + img.AttachmentId)"
+               data-docs-view="@(fileUrl + img.AttachmentId)" data-docs-type="@img.ContentType"
+               data-docs-name="@img.OriginalFileName" data-docs-title="@name"
+               title="@(name + (note is null ? "" : " · " + note))" aria-label="@L["common.view_named", name]">
+                @if (isImage)
+                {
+                    <img src="@(fileUrl + img.AttachmentId)" alt="" loading="lazy" decoding="async" />
+                }
+                else
+                {
+                    <span class="kct__pdf">PDF</span>
+                }
+                @if (note is not null) { <span class="kct__dot" aria-hidden="true"></span> }
+            </a>
+        }
+    </span>
+}
+</div>

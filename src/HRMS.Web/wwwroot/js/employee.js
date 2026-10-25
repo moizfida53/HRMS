@@ -1079,16 +1079,18 @@
 
     /* ================================ Kuwait Compliance images (db/71) === */
 
-    // Civil ID, Passport, Residency and Work Permit images inside their Kuwait
-    // Compliance sections: view, upload, confirm them against the expiry date;
-    // near the expiry a new image waits as a renewal until it is confirmed with
-    // the new date, and the old one is archived ("Previous images").
+    // Documents tab: the Civil ID, Passport, Residency and Work Permit images -
+    // view, upload, confirm them against the expiry date; near the expiry a new
+    // image waits as a renewal until it is confirmed with the new date, and the
+    // old one is archived ("Previous images"). The dates live on the Kuwait
+    // Compliance form, which shows the new ones after a confirmation.
     (function initComplianceImages() {
-        var form = document.getElementById("compliance-form");
-        var url = form && form.dataset.kcdUrl;
+        var host = document.querySelector("[data-kcd-host]");
+        var url = host && host.dataset.kcdUrl;
         if (!url) { return; }
 
-        var employeeId = form.dataset.kcdEmployee;
+        var form = document.getElementById("compliance-form");
+        var employeeId = host.dataset.kcdEmployee;
         var names = document.querySelector("[data-kcd-names]");
         var confirmEl = document.getElementById("kcd-confirm-modal");
         var confirmForm = confirmEl.querySelector("[data-kcd-confirm-form]");
@@ -1104,21 +1106,14 @@
         var pending = null;   // { key, renewal }
 
         function itemName(key) { return (names && names.getAttribute("data-" + key.toLowerCase())) || key; }
-        function field(name) { return form.querySelector('[name="' + name + '"]'); }
+        function field(name) { return form ? form.querySelector('[name="' + name + '"]') : null; }
 
         function load() {
             return HRMS.getHtml(url).then(function (html) {
-                var holder = document.createElement("div");
-                holder.innerHTML = html;
-                var rootEl = holder.querySelector("[data-kcd-root]");
+                host.innerHTML = html;
+                var rootEl = host.querySelector("[data-kcd-root]");
                 if (rootEl) { maxMb = parseInt(rootEl.dataset.maxMb, 10) || maxMb; }
-                holder.querySelectorAll("[data-kcd-group]").forEach(function (group) {
-                    var target = form.querySelector('[data-kcd-slot="' + group.dataset.kcdGroup + '"]');
-                    if (target) { target.innerHTML = ""; target.appendChild(group); }
-                });
-            }).catch(function () {
-                form.querySelectorAll("[data-kcd-slot]").forEach(function (target) { target.innerHTML = ""; });
-            });
+            }).catch(function () { host.innerHTML = ""; });
         }
 
         function upload(input) {
@@ -1157,7 +1152,7 @@
         function openConfirm(key, renewal) {
             pending = { key: key, renewal: renewal };
             var mode = renewal ? "renewal" : "first";
-            var group = form.querySelector('[data-kcd-group="' + key + '"]');
+            var group = host.querySelector('[data-kcd-group="' + key + '"]');
             var expiryField = field(FIELDS[key][0]);
             var numberField = field(FIELDS[key][1]);
             var expiry = confirmForm.querySelector("[data-kcd-expiry]");
@@ -1230,11 +1225,11 @@
                 .catch(function (err) { body.textContent = err.message; });
         }
 
-        form.addEventListener("change", function (event) {
+        host.addEventListener("change", function (event) {
             if (event.target.matches("[data-kcd-file]")) { upload(event.target); }
         });
 
-        form.addEventListener("click", function (event) {
+        host.addEventListener("click", function (event) {
             var history = event.target.closest("[data-kcd-history]");
             if (history) { event.preventDefault(); openHistory(history.dataset.kcdHistory); return; }
             var confirmButton = event.target.closest("[data-kcd-confirm]");
@@ -1247,6 +1242,36 @@
             if (!event.detail || event.detail.source !== "compliance") { load(); }
         });
 
+        load();
+    })();
+
+    // Kuwait Compliance tab: a thumbnail of the image before the Civil ID, Passport,
+    // Residency and Work Permit numbers - view only. With no image yet, it leads
+    // to the Documents tab, where images are uploaded and confirmed.
+    (function initComplianceThumbnails() {
+        var form = document.getElementById("compliance-form");
+        var url = form && form.dataset.kctUrl;
+        if (!url) { return; }
+
+        function load() {
+            return HRMS.getHtml(url).then(function (html) {
+                var holder = document.createElement("div");
+                holder.innerHTML = html;
+                holder.querySelectorAll("[data-kct-group]").forEach(function (group) {
+                    var target = form.querySelector('[data-kct-slot="' + group.dataset.kctGroup + '"]');
+                    if (target) { target.innerHTML = ""; target.appendChild(group); }
+                });
+            }).catch(function () { /* the numbers stay usable without their pictures */ });
+        }
+
+        form.addEventListener("click", function (event) {
+            if (!event.target.closest("[data-kct-open-docs]")) { return; }
+            event.preventDefault();
+            var tab = document.getElementById("tab-documents-btn");
+            if (tab) { bootstrap.Tab.getOrCreateInstance(tab).show(); }
+        });
+
+        document.addEventListener("hrms:documents-changed", load);
         load();
     })();
 

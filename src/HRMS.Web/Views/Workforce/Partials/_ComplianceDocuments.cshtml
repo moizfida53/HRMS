@@ -13,7 +13,14 @@
         _ => "FILE"
     };
 }
-<div data-kcd-root data-max-mb="@Model.MaxFileSizeMb">
+<section class="hrms-card kcd-card" data-kcd-root data-max-mb="@Model.MaxFileSizeMb">
+    <header class="kcd-card__head">
+        <div>
+            <h2 class="h6 mb-0">@L["kcd.card_title"]</h2>
+            <p class="kcd-card__sub">@L["kcd.card_sub", ComplianceDocumentsViewModel.RenewalWindowDays]</p>
+        </div>
+    </header>
+    <div class="kcd-card__grid">
 @foreach (var g in Model.Groups)
 {
     var days = g.DaysToExpiry;
@@ -21,7 +28,10 @@
              data-confirmed-expiry="@g.RenewalPrevious?.ToString("yyyy-MM-dd")"
              data-confirmed-expiry-text="@(g.RenewalPrevious is { } cet ? L.Date(cet) : "")">
         <header class="kcd__head">
-            <span class="kcd__title">@Html.Icon("file", 15)<span>@L["kcd.document_images"]</span></span>
+            <span class="kcd__title">
+                @Html.Icon("id-card", 15)<span>@L["kcd.item_" + g.Key.ToLowerInvariant()]</span>
+                <span class="kcd__expiry">@(g.ExpiryDate is { } ed ? L["kcd.expires_on", L.Date(ed)] : L["kcd.no_expiry_date"])</span>
+            </span>
             @if (g.HasRenewal)
             {
                 <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["kcd.renewal_waiting"]</span>
@@ -155,7 +165,7 @@
         {
             <div class="kcd__bar">
                 @Html.Icon("info", 16)
-                <span>@L["kcd.confirm_bar"]</span>
+                <span>@L["kcd.confirm_bar_docs"]</span>
                 @if (Model.CanConfirm)
                 {
                     <button type="button" class="btn btn-sm btn-success" data-kcd-confirm="@g.Key" data-renewal="0">@Html.Icon("check", 14)<span>@L["kcd.confirm_images"]</span></button>
@@ -171,4 +181,5 @@
         }
     </section>
 }
-</div>
+    </div>
+</section>

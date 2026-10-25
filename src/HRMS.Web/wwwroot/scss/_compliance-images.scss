@@ -1,21 +1,40 @@
 // ============================================================================
-// Kuwait Compliance images (db/71) - Employee Profile > Kuwait Compliance
+// Kuwait Compliance images (db/71) - Employee Profile
 // ----------------------------------------------------------------------------
-// Under the Civil ID / Passport / Residency / Work Permit fields: each linked
-// document type with its current image (and a renewal waiting), a View icon,
-// the upload / renewal button, and a bar asking to confirm new images against
-// the expiry date. The strip follows the accordion body's width (container
-// "kcd"), so it stacks on a phone and in a narrow column alike.
+// Documents tab (.kcd-card): one block per item - Civil ID, Passport,
+// Residency, Work Permit - with each linked document type's current image
+// (and a renewal waiting), a View icon, the upload / renewal button and a bar
+// asking to confirm new images against the expiry date. Each block follows
+// its own width (container "kcd"), so it stacks on a phone and in a narrow
+// column alike.
+// Kuwait Compliance tab (.kct): view-only thumbnails before the numbers.
 // ============================================================================
 
 @use "tokens" as *;
 @use "mixins" as *;
 
-.kcd-slot { container-type: inline-size; container-name: kcd; }
-.kcd-slot:empty { display: none; }
+// ----------------------------------------------------- Documents tab ----
+.kcd-host:empty { display: none; }
+.kcd-host { margin-bottom: space("4"); }
+
+.kcd-card {
+  &__head { padding: space("4") space("5") space("2"); }
+  &__sub { margin: space("1") 0 0; font-size: $fs-sm; color: $ink-500; }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
+    gap: space("3");
+    padding: space("2") space("5") space("5");
+
+    @include down("sm") { padding-inline: space("3"); }
+  }
+}
 
 .kcd {
-  margin-top: space("4");
+  container-type: inline-size;
+  container-name: kcd;
+  min-width: 0;
   border: 1px solid $line-200;
   border-radius: $radius-md;
   background: $surface;
@@ -34,11 +53,14 @@
   &__title {
     display: inline-flex;
     align-items: center;
-    gap: space("2");
+    flex-wrap: wrap;
+    gap: space("1") space("2");
     font-size: $fs-sm;
     font-weight: $fw-semibold;
-    color: $ink-700;
+    color: $ink-800;
   }
+
+  &__expiry { font-weight: $fw-regular; color: $ink-500; font-size: $fs-xs; }
 
   &__history {
     display: inline-flex;
@@ -205,4 +227,59 @@
     td { align-items: flex-start; }
     .kcd-history__cell { align-items: flex-end; text-align: end; }
   }
+}
+
+// ------------------------------------------------ Kuwait Compliance tab ----
+// the number field with its document's thumbnail in front
+.kct-field {
+  display: flex;
+  align-items: flex-end;
+  gap: space("3");
+
+  &__input { flex: 1 1 auto; min-width: 0; }
+}
+
+.kct:empty { display: none; }
+
+.kct__group { display: inline-flex; gap: space("1"); }
+
+.kct__thumb {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 62px;
+  height: 44px;            // the height of the field it stands in front of
+  border: 1px solid $line-200;
+  border-radius: $radius-sm;
+  background: $surface;
+  overflow: hidden;
+  color: $ink-400;
+  @include motion(border-color, box-shadow, transform);
+  @include focus-ring;
+
+  img { width: 100%; height: 100%; object-fit: cover; }
+
+  &:hover { border-color: $blue-600; box-shadow: $shadow-sm; transform: translateY(-1px); color: $blue-700; }
+
+  &.is-empty { border-style: dashed; }
+  &.is-file { background: $red-050; }
+  &.is-due { border-color: $red-300; box-shadow: 0 0 0 2px rgba($red-600, .15); }
+
+  @media (prefers-reduced-motion: reduce) { &:hover { transform: none; } }
+}
+
+.kct__pdf { font-size: .65rem; font-weight: $fw-bold; color: $red-700; letter-spacing: .04em; }
+
+// something waits on the Documents tab (confirmation, renewal)
+.kct__dot {
+  position: absolute;
+  top: 3px;
+  inset-inline-end: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: $amber-600;
+  box-shadow: 0 0 0 2px $white;
 }

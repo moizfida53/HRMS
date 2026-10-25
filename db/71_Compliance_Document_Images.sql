@@ -3,9 +3,9 @@
    ---------------------------------------------------------------------
    Run after 22, 28 and 63. Safe to re-run. Then run 72 (labels).
 
-   The Civil ID, Passport, Residency and Work Permit images (uploaded on
-   the Documents tab or from Kuwait Compliance) are tied to their Kuwait
-   Compliance item:
+   The Civil ID, Passport, Residency and Work Permit images are tied to
+   their Kuwait Compliance item (confirmed and renewed on the Documents
+   tab; Kuwait Compliance shows a thumbnail before each number):
 
      Kuwait.ComplianceDocumentTypes  which document types belong to which
                                      item (Civil ID - Front / Back -> Civil
@@ -282,7 +282,7 @@ BEGIN
         COMMIT TRANSACTION;
 
         SET @ResultMessage = CASE WHEN @Renewal = 1
-                                  THEN N'Renewal image uploaded - confirm it on Kuwait Compliance to apply the new expiry date.'
+                                  THEN N'Renewal image uploaded - confirm it with the new expiry date to apply it.'
                                   ELSE N'Document uploaded.' END;
         RETURN;
     END;

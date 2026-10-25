@@ -2,8 +2,8 @@
    72_Compliance_Document_Images_Labels.sql  -  HRMS: labels for db/71
    ---------------------------------------------------------------------
    Run after 71. Safe to re-run. Labels only (English + Arabic): the
-   images inside Kuwait Compliance, the confirm / renewal dialog and
-   "Previous images".
+   Kuwait Compliance documents on the Documents tab, the confirm /
+   renewal dialog, "Previous images" and the Kuwait Compliance thumbnails.
    ===================================================================== */
 SET NOCOUNT ON;
 GO
@@ -15,6 +15,12 @@ FROM  (VALUES
         ('kcd.applied_to_expiry', 'kcd', N'Applied to expiry', N'مطبّقة على تاريخ الانتهاء', NULL),
         ('kcd.archived_on', 'kcd', N'Archived {0}', N'مؤرشفة {0}', NULL),
         ('kcd.confirm_bar', 'kcd', N'New images uploaded - confirm they apply to the expiry date above.', N'تم رفع صور جديدة - أكّد أنها تنطبق على تاريخ الانتهاء أعلاه.', NULL),
+        ('kcd.card_title', 'kcd', N'Kuwait Compliance documents', N'مستندات الامتثال الكويتي', NULL),
+        ('kcd.card_sub', 'kcd', N'Civil ID, Passport, Residency and Work Permit images: confirm new images against the expiry date. From {0} days before the expiry, upload the renewed image and confirm it with the new date - the previous image is archived.', N'صور البطاقة المدنية وجواز السفر والإقامة وإذن العمل: أكّد الصور الجديدة على تاريخ الانتهاء. قبل {0} يوماً من الانتهاء، ارفع الصورة المجدّدة وأكّدها بالتاريخ الجديد - تُؤرشف الصورة السابقة.', NULL),
+        ('kcd.confirm_bar_docs', 'kcd', N'New images uploaded - confirm them against the expiry date.', N'تم رفع صور جديدة - أكّدها على تاريخ الانتهاء.', NULL),
+        ('kcd.expires_on', 'kcd', N'Expires {0}', N'تنتهي في {0}', NULL),
+        ('kcd.no_expiry_date', 'kcd', N'No expiry date yet', N'لا يوجد تاريخ انتهاء بعد', NULL),
+        ('kct.no_image', 'kct', N'No image uploaded - add it on the Documents tab', N'لم تُرفع صورة - أضفها من تبويب المستندات', NULL),
         ('kcd.confirm_hint_first', 'kcd', N'The images are applied to this expiry date and number, which are also saved on Kuwait Compliance.', N'تُطبَّق الصور على تاريخ الانتهاء والرقم هذين، ويُحفظان أيضاً في الامتثال الكويتي.', NULL),
         ('kcd.confirm_hint_renewal', 'kcd', N'Enter the new expiry date of the renewed document. The current images are archived (see Previous images) and the expiry date on Kuwait Compliance is updated.', N'أدخل تاريخ الانتهاء الجديد للمستند المجدّد. تُؤرشف الصور الحالية (راجع الصور السابقة) ويُحدَّث تاريخ الانتهاء في الامتثال الكويتي.', NULL),
         ('kcd.confirm_images', 'kcd', N'Confirm images', N'تأكيد الصور', NULL),
@@ -62,7 +68,7 @@ FROM  (VALUES
         ('msg.kcd_after_current', 'msg', N'The new expiry date must be after the current one ({0}).', N'يجب أن يكون تاريخ الانتهاء الجديد بعد التاريخ الحالي ({0}).', N'The new expiry date must be after the current one ({0}).'),
         ('msg.kcd_renewal_confirmed', 'msg', N'Renewal confirmed - the previous images are archived and the expiry date is updated.', N'تم تأكيد التجديد - أُرشفت الصور السابقة وحُدّث تاريخ الانتهاء.', N'Renewal confirmed - the previous images are archived and the expiry date is updated.'),
         ('msg.kcd_confirmed', 'msg', N'Images confirmed against the expiry date.', N'تم تأكيد الصور على تاريخ الانتهاء.', N'Images confirmed against the expiry date.'),
-        ('msg.kcd_renewal_uploaded', 'msg', N'Renewal image uploaded - confirm it on Kuwait Compliance to apply the new expiry date.', N'تم رفع صورة التجديد - أكّدها في الامتثال الكويتي لتطبيق تاريخ الانتهاء الجديد.', N'Renewal image uploaded - confirm it on Kuwait Compliance to apply the new expiry date.'),
+        ('msg.kcd_renewal_uploaded', 'msg', N'Renewal image uploaded - confirm it with the new expiry date to apply it.', N'تم رفع صورة التجديد - أكّدها بتاريخ الانتهاء الجديد لتطبيقها.', N'Renewal image uploaded - confirm it with the new expiry date to apply it.'),
         ('msg.kcd_unknown_item', 'msg', N'Unknown compliance item.', N'بند امتثال غير معروف.', N'Unknown compliance item.')
       ) AS s (LabelKey, Module, EnglishText, ArabicText, SourceText)
 WHERE NOT EXISTS (SELECT 1 FROM [Core].[UiLabels] AS l WHERE l.LabelKey = s.LabelKey COLLATE DATABASE_DEFAULT AND l.Deleted = 0);

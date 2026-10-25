@@ -700,12 +700,14 @@ public sealed class EmployeesController : Controller
 
     // =======================================================================
     // Kuwait Compliance images (db/71) - Civil ID, Passport, Residency and
-    // Work Permit images shown inside their Kuwait Compliance sections:
-    // view, upload, confirm against the expiry date, renew, previous images.
+    // Work Permit images: on the Documents tab they are confirmed against the
+    // expiry date, renewed, and their previous images listed; Kuwait
+    // Compliance only shows a thumbnail before each number.
     // Uploads use documents/upload; a new image for a confirmed item waits
     // as a renewal until it is confirmed here.
     // =======================================================================
 
+    /// <summary>The panel on the Documents tab: images, confirmation, renewals, previous images.</summary>
     [HttpGet("documents/{employeeId:long}/compliance")]
     public async Task<IActionResult> ComplianceDocuments(long employeeId)
     {
@@ -713,10 +715,38 @@ public sealed class EmployeesController : Controller
         if (!access.ComplianceView || !access.DocumentView) return Forbid();
         if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
 
+        return PartialView(ViewsRoot + "Partials/_ComplianceDocuments.cshtml", new ComplianceDocumentsViewModel
+        {
+            EmployeeId = employeeId,
+            Groups = await ComplianceGroupsAsync(employeeId),
+            // the images apply to the Kuwait Compliance dates: changing them takes the right to edit those
+            CanUpload = access.DocumentUpload && access.ComplianceEdit,
+            CanConfirm = access.ComplianceEdit,
+            CanDiscard = access.DocumentDelete && access.ComplianceEdit,
+            MaxFileSizeMb = (int)(_storage.MaxFileSizeBytes / 1024 / 1024)
+        });
+    }
+
+    /// <summary>The thumbnails before the Civil ID / Passport / Residency / Work Permit numbers on Kuwait Compliance (view only).</summary>
+    [HttpGet("documents/{employeeId:long}/compliance/thumbs")]
+    public async Task<IActionResult> ComplianceThumbnails(long employeeId)
+    {
+        if (!Access.ComplianceView || !Access.DocumentView) return Forbid();
+        if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
+
+        return PartialView(ViewsRoot + "Partials/_ComplianceThumbs.cshtml", new ComplianceDocumentsViewModel
+        {
+            EmployeeId = employeeId,
+            Groups = await ComplianceGroupsAsync(employeeId)
+        });
+    }
+
+    private async Task<IReadOnlyList<ComplianceDocumentGroup>> ComplianceGroupsAsync(long employeeId)
+    {
         var rows = await _complianceDocuments.ListAsync(employeeId, Ct);
         var compliance = await _compliance.GetAsync(employeeId, Ct);
 
-        var groups = ComplianceDocumentKey.All.Select(key => new ComplianceDocumentGroup
+        return ComplianceDocumentKey.All.Select(key => new ComplianceDocumentGroup
         {
             Key = key,
             ExpiryDate = key switch
@@ -746,17 +776,6 @@ public sealed class EmployeesController : Controller
                 })
                 .ToList()
         }).ToList();
-
-        return PartialView(ViewsRoot + "Partials/_ComplianceDocuments.cshtml", new ComplianceDocumentsViewModel
-        {
-            EmployeeId = employeeId,
-            Groups = groups,
-            // the images sit in the Kuwait Compliance form: changing them takes the right to edit it
-            CanUpload = access.DocumentUpload && access.ComplianceEdit,
-            CanConfirm = access.ComplianceEdit,
-            CanDiscard = access.DocumentDelete && access.ComplianceEdit,
-            MaxFileSizeMb = (int)(_storage.MaxFileSizeBytes / 1024 / 1024)
-        });
     }
 
     /// <summary>"Previous images": every image of one item - waiting, current and archived.</summary>
