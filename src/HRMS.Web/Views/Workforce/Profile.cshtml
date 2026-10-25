@@ -1,4 +1,4 @@
-@inject ICurrentUser CurrentUser
+﻿@inject ICurrentUser CurrentUser
 @model EmployeeProfileViewModel
 @{
     // Security > Create Roles: each section is shown read-only, editable, or not at all.
@@ -1171,7 +1171,7 @@
                 @* Civil ID / Passport / Residency / Work Permit: confirm against the expiry date, renewals, previous images (db/71) *@
                 <div class="kcd-host" data-kcd-host data-kcd-url="/employees/documents/@e.EmployeeId/compliance" data-kcd-employee="@e.EmployeeId"></div>
             }
-            <div id="documents-slot" class="@(wizard ? "is-wizard" : null)" data-grid-url="/employees/documents/@e.EmployeeId/grid" data-employee-id="@e.EmployeeId" aria-busy="true">
+            <div id="documents-slot" class="@(wizard ? "is-wizard" : null)" data-grid-url="/employees/documents/@e.EmployeeId/grid@(showComplianceImages ? "?exceptCompliance=true" : "")" data-employee-id="@e.EmployeeId" aria-busy="true">
                 <div class="hrms-spinner" aria-hidden="true"></div>
             </div>
         }

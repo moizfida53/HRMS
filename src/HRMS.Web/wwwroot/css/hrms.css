@@ -3374,8 +3374,17 @@ html.hrms-dragging * {
   margin-bottom: 1rem;
 }
 
+.kcd-card {
+  overflow: hidden;
+}
 .kcd-card__head {
-  padding: 1rem 1.25rem 0.5rem;
+  padding: 1rem 1.25rem 0.75rem;
+  background: linear-gradient(120deg, #eef2ff 0%, #ffffff 55%, #f0fdfa 100%);
+  border-bottom: 1px solid #eef1f5;
+}
+.kcd-card__head h2 {
+  font-weight: 700;
+  color: #0f2a4d;
 }
 .kcd-card__sub {
   margin: 0.25rem 0 0;
@@ -3386,7 +3395,7 @@ html.hrms-dragging * {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
   gap: 0.75rem;
-  padding: 0.5rem 1.25rem 1.25rem;
+  padding: 1rem 1.25rem 1.25rem;
 }
 @media (max-width: 575.98px) {
   .kcd-card__grid {
@@ -3395,59 +3404,129 @@ html.hrms-dragging * {
 }
 
 .kcd {
+  --kcd-accent: #1d5fbf;
+  --kcd-ink: #1b4f91;
+  --kcd-tint: #f2f7fd;
   container-type: inline-size;
   container-name: kcd;
+  position: relative;
   min-width: 0;
-  border: 1px solid #e4e7ec;
-  border-radius: 10px;
-  background: #f5f7fa;
+  border: 1px solid color-mix(in srgb, var(--kcd-accent) 22%, #e4e7ec);
+  border-radius: 12px;
+  background: #ffffff;
   overflow: hidden;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  transition-property: box-shadow, border-color;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kcd {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+.kcd::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 4px;
+  background: var(--kcd-accent);
+}
+.kcd:hover {
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  border-color: color-mix(in srgb, var(--kcd-accent) 40%, #e4e7ec);
+}
+.kcd--civil-id {
+  --kcd-accent: #2563eb;
+  --kcd-ink: #1e40af;
+  --kcd-tint: #eff6ff;
+}
+.kcd--passport {
+  --kcd-accent: #7c3aed;
+  --kcd-ink: #5b21b6;
+  --kcd-tint: #f5f3ff;
+}
+.kcd--residency {
+  --kcd-accent: #0d9488;
+  --kcd-ink: #115e59;
+  --kcd-tint: #f0fdfa;
+}
+.kcd--work-permit {
+  --kcd-accent: #ea580c;
+  --kcd-ink: #9a3412;
+  --kcd-tint: #fff7ed;
 }
 .kcd__head {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #eef1f5;
-  background: #ffffff;
+  padding: 0.75rem 0.75rem 0.75rem calc(0.75rem + 4px);
+  border-bottom: 1px solid color-mix(in srgb, var(--kcd-accent) 15%, #eef1f5);
+  background: linear-gradient(90deg, var(--kcd-tint) 0%, #ffffff 100%);
+}
+.kcd__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--kcd-accent);
+  color: #ffffff;
+  box-shadow: 0 4px 10px -4px var(--kcd-accent);
 }
 .kcd__title {
   display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.5rem;
-  font-size: 0.8rem;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.kcd__name-title {
+  font-family: "Lexend", "Public Sans", -apple-system, "Segoe UI", sans-serif;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: #1d2939;
+  line-height: 1.2;
+  color: var(--kcd-ink);
 }
 .kcd__expiry {
-  font-weight: 400;
-  color: #667085;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.725rem;
+  color: #667085;
 }
 .kcd__history {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
   margin-inline-start: auto;
-  padding: 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
   font-size: 0.8rem;
+  color: var(--kcd-ink);
   text-decoration: none;
+}
+.kcd__history:hover {
+  background: #ffffff;
+  color: var(--kcd-accent);
 }
 .kcd__count {
   min-width: 1.25rem;
   padding: 0 0.25rem;
   border-radius: 999px;
-  background: #e4edfb;
-  color: #1b4f91;
+  background: var(--kcd-accent);
+  color: #ffffff;
   font-size: 0.725rem;
   font-weight: 700;
   text-align: center;
 }
 .kcd__none {
   margin: 0;
-  padding: 0.75rem;
+  padding: 0.75rem 0.75rem 0.75rem calc(0.75rem + 4px);
   font-size: 0.8rem;
   color: #667085;
 }
@@ -3461,9 +3540,9 @@ html.hrms-dragging * {
   grid-template-columns: minmax(120px, 0.8fr) minmax(0, 2fr) auto;
   align-items: center;
   gap: 0.5rem 0.75rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.75rem 0.5rem calc(0.75rem + 4px);
   border-bottom: 1px solid #eef1f5;
-  transition-property: opacity;
+  transition-property: opacity, background-color;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -3472,6 +3551,9 @@ html.hrms-dragging * {
     transition-duration: 0.01ms;
     animation-duration: 0.01ms;
   }
+}
+.kcd__item:hover {
+  background: color-mix(in srgb, var(--kcd-tint) 55%, #ffffff);
 }
 .kcd__item:last-child {
   border-bottom: 0;
@@ -3526,8 +3608,8 @@ html.hrms-dragging * {
   width: 34px;
   height: 34px;
   border-radius: 5px;
-  background: #f2f7fd;
-  color: #1b4f91;
+  background: var(--kcd-tint);
+  color: var(--kcd-accent);
   transition-property: background-color, color;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
@@ -3547,7 +3629,7 @@ html.hrms-dragging * {
   border-color: #1d5fbf;
 }
 .kcd__view:hover {
-  background: #1d5fbf;
+  background: var(--kcd-accent);
   color: #ffffff;
 }
 .kcd__meta {
@@ -3609,6 +3691,23 @@ html.hrms-dragging * {
   gap: 0.25rem;
   white-space: nowrap;
 }
+.kcd__actions .btn-primary {
+  --bs-btn-bg: var(--kcd-accent);
+  --bs-btn-border-color: var(--kcd-accent);
+  --bs-btn-hover-bg: var(--kcd-ink);
+  --bs-btn-hover-border-color: var(--kcd-ink);
+  --bs-btn-active-bg: var(--kcd-ink);
+  --bs-btn-active-border-color: var(--kcd-ink);
+}
+.kcd__actions .btn-outline-primary {
+  --bs-btn-color: var(--kcd-accent);
+  --bs-btn-border-color: color-mix(in srgb, var(--kcd-accent) 55%, transparent);
+  --bs-btn-hover-color: #ffffff;
+  --bs-btn-hover-bg: var(--kcd-accent);
+  --bs-btn-hover-border-color: var(--kcd-accent);
+  --bs-btn-active-bg: var(--kcd-ink);
+  --bs-btn-active-border-color: var(--kcd-ink);
+}
 .kcd__input {
   position: absolute;
   width: 1px;
@@ -3636,7 +3735,7 @@ html.hrms-dragging * {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5rem 0.75rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 0.75rem 0.5rem calc(0.75rem + 4px);
   border-top: 1px solid #e4edfb;
   background: #f2f7fd;
   color: #1b4f91;

@@ -596,12 +596,19 @@ public sealed class EmployeesController : Controller
     // =======================================================================
 
     [HttpGet("documents/{employeeId:long}/grid")]
-    public async Task<IActionResult> DocumentsGrid(long employeeId)
+    /// <param name="exceptCompliance">The profile shows the Kuwait Compliance documents (Civil ID, Passport,
+    /// Residency, Work Permit) in their own panel above the list - leave them out of it.</param>
+    public async Task<IActionResult> DocumentsGrid(long employeeId, bool exceptCompliance = false)
     {
         if (!Access.DocumentView) return Forbid();
         if (!await OwnsEmployeeAsync(employeeId)) return NotFound();
 
         var rows = await _documents.ListAsync(employeeId, Ct);
+        if (exceptCompliance && Access.ComplianceView)
+        {
+            var linked = (await _complianceDocuments.ListAsync(employeeId, Ct)).Select(r => r.DocumentTypeId).ToHashSet();
+            rows = rows.Where(r => !linked.Contains(r.DocumentTypeId)).ToList();
+        }
 
         return PartialView(ViewsRoot + "Partials/_DocumentsGrid.cshtml", new EmployeeDocumentsViewModel
         {

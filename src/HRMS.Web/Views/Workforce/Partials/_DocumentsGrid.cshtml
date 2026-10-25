@@ -51,41 +51,6 @@
     }
     else
     {
-        <div class="hrms-docs__summary">
-            <div class="hrms-docs__stat">
-                <span class="hrms-docs__stat-icon hrms-docs__stat-icon--blue" aria-hidden="true">@Html.Icon("folder", 18)</span>
-                <div class="hrms-docs__stat-body">
-                    <div class="hrms-docs__stat-value">@Model.TotalCount</div>
-                    <div class="hrms-docs__stat-label">@L["emp.document_types"]</div>
-                </div>
-            </div>
-            <div class="hrms-docs__stat">
-                <span class="hrms-docs__stat-icon hrms-docs__stat-icon--green" aria-hidden="true">@Html.Icon("step-check", 18)</span>
-                <div class="hrms-docs__stat-body">
-                    <div class="hrms-docs__stat-value">@Model.UploadedCount</div>
-                    <div class="hrms-docs__stat-label">@L["emp.uploaded"]</div>
-                </div>
-            </div>
-            <div class="hrms-docs__stat">
-                <span class="hrms-docs__stat-icon hrms-docs__stat-icon--red" aria-hidden="true">@Html.Icon("alert", 18)</span>
-                <div class="hrms-docs__stat-body">
-                    <div class="hrms-docs__stat-value">@Model.MandatoryMissingCount</div>
-                    <div class="hrms-docs__stat-label">@L["emp.mandatory_missing"]</div>
-                </div>
-            </div>
-            <div class="hrms-docs__stat">
-                <span class="hrms-docs__stat-icon hrms-docs__stat-icon--amber" aria-hidden="true">@Html.Icon("chart", 18)</span>
-                <div class="hrms-docs__stat-body">
-                    <div class="hrms-docs__stat-value">@Model.MandatoryPercent%</div>
-                    <div class="hrms-docs__stat-label">@L["emp.mandatory_complete"]</div>
-                    <div class="hrms-docs__progress" role="progressbar" aria-label="@L["emp.mandatory_documents_complete"]"
-                         aria-valuenow="@Model.MandatoryPercent" aria-valuemin="0" aria-valuemax="100">
-                        <span style="width:@(Model.MandatoryPercent)%"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="hrms-card__toolbar">
             <div class="hrms-card__filters">
                 <label class="hrms-search" style="max-width:320px;flex:1 1 220px" for="docs-search">

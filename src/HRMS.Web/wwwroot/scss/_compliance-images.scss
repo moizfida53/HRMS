@@ -10,80 +10,154 @@
 // Kuwait Compliance tab (.kct): view-only thumbnails before the numbers.
 // ============================================================================
 
+@use "sass:map";
 @use "tokens" as *;
 @use "mixins" as *;
+
+// One colour per item, so the four blocks tell themselves apart at a glance:
+// accent (stripe, icon chip, buttons), ink (title on the tint) and tint (head).
+$kcd-items: (
+  "civil-id":    (accent: #2563eb, ink: #1e40af, tint: #eff6ff),   // blue   - the identity card
+  "passport":    (accent: #7c3aed, ink: #5b21b6, tint: #f5f3ff),   // violet - the travel document
+  "residency":   (accent: #0d9488, ink: #115e59, tint: #f0fdfa),   // teal   - the iqama
+  "work-permit": (accent: #ea580c, ink: #9a3412, tint: #fff7ed)    // orange - Ministry of Labour
+);
 
 // ----------------------------------------------------- Documents tab ----
 .kcd-host:empty { display: none; }
 .kcd-host { margin-bottom: space("4"); }
 
 .kcd-card {
-  &__head { padding: space("4") space("5") space("2"); }
+  overflow: hidden;
+
+  &__head {
+    padding: space("4") space("5") space("3");
+    background: linear-gradient(120deg, #eef2ff 0%, $white 55%, #f0fdfa 100%);
+    border-bottom: 1px solid $line-100;
+
+    h2 { font-weight: $fw-bold; color: $navy-900; }
+  }
   &__sub { margin: space("1") 0 0; font-size: $fs-sm; color: $ink-500; }
 
   &__grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr));
     gap: space("3");
-    padding: space("2") space("5") space("5");
+    padding: space("4") space("5") space("5");
 
     @include down("sm") { padding-inline: space("3"); }
   }
 }
 
 .kcd {
+  --kcd-accent: #{$blue-600};
+  --kcd-ink: #{$blue-700};
+  --kcd-tint: #{$blue-050};
+
   container-type: inline-size;
   container-name: kcd;
+  position: relative;
   min-width: 0;
-  border: 1px solid $line-200;
-  border-radius: $radius-md;
-  background: $surface;
+  border: 1px solid color-mix(in srgb, var(--kcd-accent) 22%, #{$line-200});
+  border-radius: $radius-lg;
+  background: $white;
   overflow: hidden;
+  box-shadow: $shadow-xs;
+  @include motion(box-shadow, border-color);
+
+  // the item's colour down the start edge
+  &::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 4px;
+    background: var(--kcd-accent);
+  }
+
+  &:hover { box-shadow: $shadow-sm; border-color: color-mix(in srgb, var(--kcd-accent) 40%, #{$line-200}); }
+
+  @each $name, $c in $kcd-items {
+    &--#{$name} {
+      --kcd-accent: #{map.get($c, accent)};
+      --kcd-ink: #{map.get($c, ink)};
+      --kcd-tint: #{map.get($c, tint)};
+    }
+  }
 
   &__head {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: space("2") space("3");
-    padding: space("2") space("3");
-    border-bottom: 1px solid $line-100;
-    background: $white;
+    padding: space("3") space("3") space("3") calc(#{space("3")} + 4px);
+    border-bottom: 1px solid color-mix(in srgb, var(--kcd-accent) 15%, #{$line-100});
+    background: linear-gradient(90deg, var(--kcd-tint) 0%, $white 100%);
+  }
+
+  // the item's icon in a chip of its colour
+  &__icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: $radius;
+    background: var(--kcd-accent);
+    color: $white;
+    box-shadow: 0 4px 10px -4px var(--kcd-accent);
   }
 
   &__title {
     display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: space("1") space("2");
-    font-size: $fs-sm;
-    font-weight: $fw-semibold;
-    color: $ink-800;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
   }
 
-  &__expiry { font-weight: $fw-regular; color: $ink-500; font-size: $fs-xs; }
+  &__name-title {
+    font-family: $font-display;
+    font-size: $fs-md;
+    font-weight: $fw-semibold;
+    line-height: 1.2;
+    color: var(--kcd-ink);
+  }
+
+  &__expiry {
+    display: inline-flex;
+    align-items: center;
+    gap: space("1");
+    font-size: $fs-xs;
+    color: $ink-500;
+  }
 
   &__history {
     display: inline-flex;
     align-items: center;
     gap: space("1");
     margin-inline-start: auto;
-    padding: 0;
+    padding: space("1") space("2");
+    border-radius: $radius-pill;
     font-size: $fs-sm;
+    color: var(--kcd-ink);
     text-decoration: none;
+
+    &:hover { background: $white; color: var(--kcd-accent); }
   }
 
   &__count {
     min-width: 1.25rem;
     padding: 0 space("1");
     border-radius: $radius-pill;
-    background: $blue-100;
-    color: $blue-700;
+    background: var(--kcd-accent);
+    color: $white;
     font-size: $fs-xs;
     font-weight: $fw-bold;
     text-align: center;
   }
 
-  &__none { margin: 0; padding: space("3"); font-size: $fs-sm; color: $ink-500; }
+  &__none { margin: 0; padding: space("3") space("3") space("3") calc(#{space("3")} + 4px); font-size: $fs-sm; color: $ink-500; }
 
   &__list { margin: 0; padding: 0; list-style: none; }
 
@@ -92,9 +166,11 @@
     grid-template-columns: minmax(120px, 0.8fr) minmax(0, 2fr) auto;
     align-items: center;
     gap: space("2") space("3");
-    padding: space("2") space("3");
+    padding: space("2") space("3") space("2") calc(#{space("3")} + 4px);
     border-bottom: 1px solid $line-100;
-    @include motion(opacity);
+    @include motion(opacity, background-color);
+
+    &:hover { background: color-mix(in srgb, var(--kcd-tint) 55%, #{$white}); }
 
     &:last-child { border-bottom: 0; }
     &.is-busy { opacity: .55; pointer-events: none; }
@@ -132,12 +208,12 @@
     width: 34px;
     height: 34px;
     border-radius: $radius-sm;
-    background: $blue-050;
-    color: $blue-700;
+    background: var(--kcd-tint);
+    color: var(--kcd-accent);
     @include motion(background-color, color);
     @include focus-ring;
 
-    &:hover { background: $blue-600; color: $white; }
+    &:hover { background: var(--kcd-accent); color: $white; }
   }
 
   &__meta { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
@@ -183,6 +259,25 @@
     justify-content: flex-end;
 
     .btn { display: inline-flex; align-items: center; gap: space("1"); white-space: nowrap; }
+
+    // upload / renewal buttons in the item's colour
+    .btn-primary {
+      --bs-btn-bg: var(--kcd-accent);
+      --bs-btn-border-color: var(--kcd-accent);
+      --bs-btn-hover-bg: var(--kcd-ink);
+      --bs-btn-hover-border-color: var(--kcd-ink);
+      --bs-btn-active-bg: var(--kcd-ink);
+      --bs-btn-active-border-color: var(--kcd-ink);
+    }
+    .btn-outline-primary {
+      --bs-btn-color: var(--kcd-accent);
+      --bs-btn-border-color: color-mix(in srgb, var(--kcd-accent) 55%, transparent);
+      --bs-btn-hover-color: #{$white};
+      --bs-btn-hover-bg: var(--kcd-accent);
+      --bs-btn-hover-border-color: var(--kcd-accent);
+      --bs-btn-active-bg: var(--kcd-ink);
+      --bs-btn-active-border-color: var(--kcd-ink);
+    }
   }
 
   // the file input stays reachable from the keyboard through its label
@@ -203,7 +298,7 @@
     align-items: center;
     flex-wrap: wrap;
     gap: space("2") space("3");
-    padding: space("2") space("3");
+    padding: space("2") space("3") space("2") calc(#{space("3")} + 4px);
     border-top: 1px solid $blue-100;
     background: $blue-050;
     color: $blue-700;

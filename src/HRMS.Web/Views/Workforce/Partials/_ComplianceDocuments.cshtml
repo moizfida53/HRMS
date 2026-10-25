@@ -24,13 +24,15 @@
 @foreach (var g in Model.Groups)
 {
     var days = g.DaysToExpiry;
-    <section class="kcd" data-kcd-group="@g.Key" data-renewal="@(g.HasRenewal ? "1" : "0")"
+    var icon = g.Key switch { "CIVIL_ID" => "id-card", "PASSPORT" => "globe", "RESIDENCY" => "building", _ => "briefcase" };
+    <section class="kcd kcd--@g.Key.ToLowerInvariant().Replace('_', '-')" data-kcd-group="@g.Key" data-renewal="@(g.HasRenewal ? "1" : "0")"
              data-confirmed-expiry="@g.RenewalPrevious?.ToString("yyyy-MM-dd")"
              data-confirmed-expiry-text="@(g.RenewalPrevious is { } cet ? L.Date(cet) : "")">
         <header class="kcd__head">
+            <span class="kcd__icon" aria-hidden="true">@Html.Icon(icon, 18)</span>
             <span class="kcd__title">
-                @Html.Icon("id-card", 15)<span>@L["kcd.item_" + g.Key.ToLowerInvariant()]</span>
-                <span class="kcd__expiry">@(g.ExpiryDate is { } ed ? L["kcd.expires_on", L.Date(ed)] : L["kcd.no_expiry_date"])</span>
+                <span class="kcd__name-title">@L["kcd.item_" + g.Key.ToLowerInvariant()]</span>
+                <span class="kcd__expiry">@Html.Icon("calendar", 12)@(g.ExpiryDate is { } ed ? L["kcd.expires_on", L.Date(ed)] : L["kcd.no_expiry_date"])</span>
             </span>
             @if (g.HasRenewal)
             {
