@@ -64,7 +64,14 @@
                                 <div class="od-doc__meta">
                                     @if (d.HasNumber && d.DocumentNumber is { } no) { <span>@Html.Icon("id-card", 12)<span class="od-doc__no">@no</span></span> }
                                     @if (d.HasIssueDate && d.IssueDate is { } issued) { <span>@L["od.issued_on", L.Date(issued)]</span> }
-                                    @if (d.IssuingAuthority is { } by) { <span>@by</span> }
+                                    @if (d.AuthorityName is not null)
+                                    {
+                                        <span title="@OrgDocumentFormat.Name(L, d.AuthorityName, d.AuthorityNameAr)">@Html.Icon("building", 12)@(d.AuthorityShortName ?? OrgDocumentFormat.Name(L, d.AuthorityName, d.AuthorityNameAr))</span>
+                                    }
+                                    else if (d.IssuingAuthority is { } by)
+                                    {
+                                        <span>@Html.Icon("building", 12)@by</span>
+                                    }
                                 </div>
                             }
                             else

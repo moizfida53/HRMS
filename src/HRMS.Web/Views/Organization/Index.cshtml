@@ -26,7 +26,30 @@
 }
 
 
-<nav class="hrms-tabs" aria-label="@L["org.organization_masters"]">
+@{
+    var orgTabs = OrganizationTabs.All;
+    var activeIndex = orgTabs.ToList().FindIndex(t => t.Key == Model.ActiveTab.Key);
+}
+@* The masters are listed in the sidebar (Setup > Organization); here: the one open, with
+   arrows (and the ← / → keys) to the previous / next one. The tab buttons below stay as the
+   page's data (title, description, count) but are not shown. *@
+<div class="org-switch" data-org-switch role="group" aria-label="@L["org.organization_masters"]">
+    <button type="button" class="org-switch__arrow" data-org-step="-1" title="@L["org.previous_master"]" aria-label="@L["org.previous_master"]">@Html.Icon("chevron-left", 18)</button>
+    <div class="org-switch__current">
+        <span class="org-switch__title" data-org-switch-title>@L.Tr(Model.ActiveTab.Title)</span>
+        <span class="org-switch__count" data-org-switch-count hidden></span>
+        <span class="org-switch__pos" data-org-switch-pos>@(activeIndex + 1) / @orgTabs.Count</span>
+    </div>
+    <button type="button" class="org-switch__arrow" data-org-step="1" title="@L["org.next_master"]" aria-label="@L["org.next_master"]">@Html.Icon("chevron-right", 18)</button>
+    <div class="org-switch__dots" aria-hidden="true">
+        @for (var i = 0; i < orgTabs.Count; i++)
+        {
+            <span class="org-switch__dot @(i == activeIndex ? "is-active" : null)" data-org-dot="@orgTabs[i].Key" title="@L.Tr(orgTabs[i].Title)"></span>
+        }
+    </div>
+</div>
+
+<nav class="hrms-tabs org-tabs-hidden" aria-label="@L["org.organization_masters"]" hidden>
     <div class="hrms-tabs__rail" role="tablist">
         @foreach (var tab in Model.Tabs)
         {

@@ -120,6 +120,7 @@
             active.textContent = "0";
             active.hidden = false;
         }
+        syncSwitch();
     }
 
     /* ============================================================= tabs === */
@@ -152,10 +153,13 @@
         var description = document.querySelector("[data-tab-description]");
         if (description) { description.textContent = button.dataset.description || ""; }
 
-        // Keep the sidebar highlight in step with the visible tab.
-        document.querySelectorAll('.hrms-sidebar .hrms-nav-link[href*="tab="]').forEach(function (link) {
-            link.classList.toggle("is-active", link.href.indexOf("tab=" + key) !== -1);
+        // Keep the sidebar highlight in step with the visible master.
+        document.querySelectorAll(".hrms-sidebar [data-org-tab]").forEach(function (link) {
+            var on = link.getAttribute("data-org-tab") === key;
+            link.classList.toggle("is-active", on);
+            if (on) { link.setAttribute("aria-current", "page"); } else { link.removeAttribute("aria-current"); }
         });
+        syncSwitch();
 
         if (pushHistory) {
             var url = new URL(window.location.href);
@@ -167,6 +171,71 @@
 
         return loadGrid();
     }
+
+    /* ---- the switcher: the open master, ‹ › to the previous / next one ---- */
+
+    function allTabs() { return Array.prototype.slice.call(document.querySelectorAll(".hrms-tab")); }
+
+    function syncSwitch() {
+        var tabs = allTabs();
+        var index = tabs.findIndex(function (t) { return t.dataset.tab === state.tab; });
+        var current = tabs[index];
+        var sw = document.querySelector("[data-org-switch]");
+        if (!sw || !current) { return; }
+        sw.querySelector("[data-org-switch-title]").textContent = current.firstChild ? current.firstChild.textContent.trim() : current.textContent.trim();
+        sw.querySelector("[data-org-switch-pos]").textContent = (index + 1) + " / " + tabs.length;
+        var badge = current.querySelector("[data-tab-count]");
+        var count = sw.querySelector("[data-org-switch-count]");
+        count.textContent = badge && !badge.hidden ? badge.textContent : "";
+        count.hidden = !count.textContent;
+        sw.querySelectorAll("[data-org-dot]").forEach(function (dot) {
+            dot.classList.toggle("is-active", dot.getAttribute("data-org-dot") === state.tab);
+        });
+        // the names of where the arrows go, for their tooltips
+        [-1, 1].forEach(function (step) {
+            var to = tabs[(index + step + tabs.length) % tabs.length];
+            var arrow = sw.querySelector('[data-org-step="' + step + '"]');
+            if (arrow && to) {
+                var name = to.firstChild ? to.firstChild.textContent.trim() : to.textContent.trim();
+                arrow.title = name;
+                arrow.setAttribute("aria-label", name);
+            }
+        });
+    }
+
+    function step(by) {
+        var tabs = allTabs();
+        var index = tabs.findIndex(function (t) { return t.dataset.tab === state.tab; });
+        var to = tabs[(index + by + tabs.length) % tabs.length];
+        if (to) { selectTab(to.dataset.tab, true); }
+    }
+
+    document.addEventListener("click", function (event) {
+        var arrow = event.target.closest("[data-org-step]");
+        if (arrow) { step(parseInt(arrow.getAttribute("data-org-step"), 10)); return; }
+        var dot = event.target.closest("[data-org-dot]");
+        if (dot) { selectTab(dot.getAttribute("data-org-dot"), true); return; }
+        // a master in the sidebar: switch in place, no page load
+        var link = event.target.closest(".hrms-sidebar [data-org-tab]");
+        if (link && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+            event.preventDefault();
+            if (link.getAttribute("data-org-tab") !== state.tab) { selectTab(link.getAttribute("data-org-tab"), true); }
+            return;
+        }
+    });
+
+    // ← / → move between masters (not while typing, nor with a dialog open)
+    document.addEventListener("keydown", function (event) {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") { return; }
+        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) { return; }
+        var t = event.target;
+        if (t.closest("input, textarea, select, [contenteditable], .modal.show, .hrms-tab, .dropdown-menu")) { return; }
+        if (document.querySelector(".modal.show")) { return; }
+        event.preventDefault();
+        var forward = event.key === "ArrowRight";
+        if (HRMS.isRtl) { forward = !forward; }
+        step(forward ? 1 : -1);
+    });
 
     document.addEventListener("click", function (event) {
         var tab = event.target.closest(".hrms-tab");
@@ -372,6 +441,11 @@
         });
 
         wireDuplicateCheck(container);
+
+        // long lists (e.g. the issuing authorities, db/75) get a search box
+        if (HRMS.searchable) {
+            container.querySelectorAll("select[data-searchable]").forEach(HRMS.searchable);
+        }
     }
 
     /** Inline uniqueness check as the user leaves the Code field. */
@@ -794,6 +868,7 @@
     if (initial) {
         state.singular = initial.dataset.singular || "";
     }
+    syncSwitch();
 
     loadGrid();
 })();

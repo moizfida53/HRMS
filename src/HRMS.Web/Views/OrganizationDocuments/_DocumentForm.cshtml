@@ -37,9 +37,20 @@
         </div>
     }
     <div class="col-sm-6">
-        <label class="form-label" for="od-authority">@L["od.issuing_authority"]</label>
-        <input type="text" class="form-control" id="od-authority" name="IssuingAuthority" maxlength="150" value="@d.IssuingAuthority"
-               placeholder="@L["od.issuing_authority_placeholder"]" />
+        <span class="form-label d-block">@L["od.issuing_authority"]</span>
+        @if (d.AuthorityName is not null)
+        {
+            @* set on the document type (Setup > Organization > Organization Documents) *@
+            <div class="od-authority od-authority--field" title="@L["od.authority_from_setup"]">
+                @Html.Icon("building", 15)
+                @if (d.AuthorityShortName is { } sn) { <span class="od-authority__short">@sn</span> }
+                <span class="od-authority__name">@OrgDocumentFormat.Name(L, d.AuthorityName, d.AuthorityNameAr)</span>
+            </div>
+        }
+        else
+        {
+            <div class="od-authority od-authority--field is-unset">@Html.Icon("info", 15)<span>@L["od.authority_not_set"]</span></div>
+        }
     </div>
     @if (d.HasIssueDate)
     {

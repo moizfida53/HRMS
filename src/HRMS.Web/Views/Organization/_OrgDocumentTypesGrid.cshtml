@@ -18,6 +18,7 @@
                     <tr>
                         @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "TypeName", "Document Type"))
                         @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "Category", "Category"))
+                        <th scope="col" class="col-p2">@L["od.issuing_authority"]</th>
                         <th scope="col" class="col-p3">@L["od.fields"]</th>
                         <th scope="col">@L["od.expiry_alerts"]</th>
                         @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "IsMandatory", "Requirement", "col-p2"))
@@ -43,6 +44,19 @@
                             </td>
                             <td data-label="@L.Tr("Category")">
                                 <span class="od-cat od-cat--@OrgDocumentFormat.CategoryKey(row.Category)">@Html.Icon(OrgDocumentFormat.CategoryIcon(row.Category), 13)@OrgDocumentFormat.CategoryLabel(L, row.Category)</span>
+                            </td>
+                            <td data-label="@L["od.issuing_authority"]" class="col-p2">
+                                @if (row.AuthorityName is null)
+                                {
+                                    <span class="hrms-muted hrms-text-sm">—</span>
+                                }
+                                else
+                                {
+                                    <span class="od-authority" title="@OrgDocumentFormat.Name(L, row.AuthorityName, row.AuthorityNameAr)">
+                                        @if (row.AuthorityShortName is { } sn) { <span class="od-authority__short">@sn</span> }
+                                        <span class="od-authority__name">@OrgDocumentFormat.Name(L, row.AuthorityName, row.AuthorityNameAr)</span>
+                                    </span>
+                                }
                             </td>
                             <td data-label="@L["od.fields"]" class="col-p3">
                                 <span class="od-fields">

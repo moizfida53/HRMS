@@ -5,6 +5,10 @@
     var picked = ExpiryAlert.Parse(t.AlertRules);
     // the offered alerts, plus any stored one that is not among them
     var choices = ExpiryAlert.Presets.Concat(picked).Distinct().OrderByDescending(r => r.DaysBefore).ToList();
+    var authorities = ViewData[HRMS.Web.Controllers.OrganizationController.IssuingAuthoritiesKey] as IReadOnlyList<IssuingAuthority> ?? Array.Empty<IssuingAuthority>();
+    string AuthorityText(IssuingAuthority a) =>
+        (L.IsArabic && !string.IsNullOrWhiteSpace(a.ArabicName) ? a.ArabicName! : a.AuthorityName)
+        + (string.IsNullOrWhiteSpace(a.ShortName) ? "" : " (" + a.ShortName + ")");
 }
 
 <form id="record-form" data-tab="@Model.Tab.Key" novalidate>
@@ -28,6 +32,28 @@
                 <div class="col-md-6">
                     <label class="form-label" for="f-ArabicName">@L["org.arabic_name"]</label>
                     <input class="form-control hrms-arabic" id="f-ArabicName" name="ArabicName" type="text" value="@t.ArabicName" maxlength="150" dir="rtl" lang="ar" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="f-IssuingAuthorityId">@Html.Icon("building", 14) @L["od.issuing_authority"]</label>
+                    <select class="form-select" id="f-IssuingAuthorityId" name="IssuingAuthorityId" data-searchable>
+                        <option value="">@L["od.authority_choose"]</option>
+                        <optgroup label="@L["od.authority_government"]">
+                            @foreach (var a in authorities.Where(a => a.IsGovernment))
+                            {
+                                <option value="@a.IssuingAuthorityId" selected="@(t.IssuingAuthorityId == a.IssuingAuthorityId)">@AuthorityText(a)</option>
+                            }
+                        </optgroup>
+                        @if (authorities.Any(a => !a.IsGovernment))
+                        {
+                            <optgroup label="@L["od.authority_other"]">
+                                @foreach (var a in authorities.Where(a => !a.IsGovernment))
+                                {
+                                    <option value="@a.IssuingAuthorityId" selected="@(t.IssuingAuthorityId == a.IssuingAuthorityId)">@AuthorityText(a)</option>
+                                }
+                            </optgroup>
+                        }
+                    </select>
+                    <span class="form-text">@L["od.authority_hint"]</span>
                 </div>
                 <div class="col-12">
                     <span class="form-label d-block">@L["od.category"]</span>

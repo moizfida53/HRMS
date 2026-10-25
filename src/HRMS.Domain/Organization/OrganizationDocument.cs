@@ -81,8 +81,27 @@ public sealed class OrgDocumentType
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Who issues it (Documents.IssuingAuthorities, db/75) - chosen here, not on each document.</summary>
+    public int? IssuingAuthorityId { get; set; }
+
     /// <summary>Companies that keep a current document of this type (LIST / GET).</summary>
     public int UsageCount { get; set; }
+
+    // ---- LIST / GET-only display columns ----
+    public string? AuthorityName { get; set; }
+    public string? AuthorityNameAr { get; set; }
+    public string? AuthorityShortName { get; set; }
+}
+
+/// <summary>A body that issues company documents - the Kuwait government authorities (db/75).</summary>
+public sealed class IssuingAuthority
+{
+    public int IssuingAuthorityId { get; set; }
+    public string AuthorityName { get; set; } = string.Empty;
+    public string? ArabicName { get; set; }
+    public string? ShortName { get; set; }
+    public bool IsGovernment { get; set; } = true;
+    public bool IsActive { get; set; } = true;
 }
 
 /// <summary>Workforce > Organizations: an active company and the health of its documents.</summary>
@@ -114,6 +133,10 @@ public sealed class OrgDocumentRow
     public bool HasIssueDate { get; set; }
     public bool HasExpiryDate { get; set; }
     public string? AlertRules { get; set; }
+    /// <summary>The type's issuing authority (db/75).</summary>
+    public string? AuthorityName { get; set; }
+    public string? AuthorityNameAr { get; set; }
+    public string? AuthorityShortName { get; set; }
 
     public long? OrgDocumentId { get; set; }
     public string? DocumentNumber { get; set; }

@@ -37,8 +37,32 @@ public sealed class OrgDocumentTypeRepository : MasterRepositoryBase<OrgDocument
             ? string.Join(",", ExpiryAlert.Parse(string.Join(",", picked)).Select(r => r.Code))
             : entity.AlertRules;
         parameters.Add("@AlertRules", string.IsNullOrEmpty(rules) ? null : rules, DbType.AnsiString, size: 60);
+        parameters.Add("@IssuingAuthorityId", entity.IssuingAuthorityId is > 0 ? entity.IssuingAuthorityId : null, DbType.Int32);
         parameters.Add("@SortOrder", entity.SortOrder, DbType.Int32);
         parameters.Add("@IsActive", entity.IsActive, DbType.Boolean);
+    }
+}
+
+/// <summary>The Kuwait government authorities that issue company documents (db/75).</summary>
+public interface IIssuingAuthorityRepository
+{
+    Task<IReadOnlyList<IssuingAuthority>> ListAsync(CancellationToken ct = default);
+}
+
+public sealed class IssuingAuthorityRepository : IIssuingAuthorityRepository
+{
+    private readonly ISqlExecutor _sql;
+
+    public IssuingAuthorityRepository(ISqlExecutor sql) => _sql = sql;
+
+    public Task<IReadOnlyList<IssuingAuthority>> ListAsync(CancellationToken ct = default)
+    {
+        var p = new DynamicParameters();
+        p.Add("@Action", "LIST", DbType.AnsiString, size: 10);
+        p.Add("@NewId", dbType: DbType.Int64, direction: ParameterDirection.Output);
+        p.Add("@ResultCode", dbType: DbType.AnsiString, direction: ParameterDirection.Output, size: 40);
+        p.Add("@ResultMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 400);
+        return _sql.QueryAsync<IssuingAuthority>(StoredProcedure.IssuingAuthorityManage, p, ct);
     }
 }
 

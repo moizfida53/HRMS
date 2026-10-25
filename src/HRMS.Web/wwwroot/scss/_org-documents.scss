@@ -560,3 +560,111 @@ $od-categories: (
   &__file { display: flex; align-items: center; gap: space("2"); margin-top: space("3");
     .btn { display: inline-flex; align-items: center; gap: space("1"); max-width: 100%; span { @include truncate; } } }
 }
+
+// the issuing authority (db/75): short name chip + name
+.od-authority {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  min-width: 0;
+  max-width: 100%;
+
+  &__short {
+    flex: 0 0 auto;
+    padding: 0 space("2");
+    border-radius: $radius-sm;
+    background: $navy-900;
+    color: $white;
+    font-size: .65rem;
+    font-weight: $fw-bold;
+    letter-spacing: .04em;
+  }
+  &__name { font-size: $fs-sm; color: $ink-700; @include truncate; }
+
+  // read-only on the document form
+  &--field {
+    display: flex;
+    min-height: 38px;
+    padding: space("2") space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius-sm;
+    background: $surface;
+    color: $ink-500;
+
+    &.is-unset { font-size: $fs-sm; font-style: italic; }
+  }
+}
+
+// ------------------------------------------- Setup > Organization switcher ----
+// The masters are in the sidebar (Setup > Organization); the page shows the one open
+// with arrows to the previous / next (also the ← / → keys), and a dot per master.
+.org-switch {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "prev current next" "dots dots dots";
+  align-items: center;
+  gap: space("2") space("3");
+  margin-bottom: space("4");
+  padding: space("3") space("4");
+  border: 1px solid $line-200;
+  border-radius: $radius-lg;
+  background: linear-gradient(120deg, #eef2ff 0%, $white 55%, #ecfeff 100%);
+  box-shadow: $shadow-xs;
+
+  &__arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid $line-200;
+    border-radius: 50%;
+    background: $white;
+    color: $navy-900;
+    @include motion(background-color, color, border-color, transform);
+    @include focus-ring;
+
+    &:hover { background: $navy-900; border-color: $navy-900; color: $white; }
+    &:active { transform: scale(.95); }
+
+    &[data-org-step="-1"] { grid-area: prev; }
+    &[data-org-step="1"] { grid-area: next; }
+
+    // the arrows point the way the page reads
+    [dir="rtl"] & svg { transform: scaleX(-1); }
+  }
+
+  &__current {
+    grid-area: current;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: space("1") space("3");
+    min-width: 0;
+    text-align: center;
+  }
+  &__title { font-family: $font-display; font-size: $fs-lg; font-weight: $fw-semibold; color: $navy-900; @include truncate; }
+  &__count {
+    padding: 1px space("2");
+    border-radius: $radius-pill;
+    background: $blue-100;
+    color: $blue-700;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+  }
+  &__pos { font-size: $fs-xs; color: $ink-500; font-variant-numeric: tabular-nums; }
+
+  &__dots { grid-area: dots; display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; }
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $line-300;
+    cursor: pointer;
+    @include motion(background-color, width);
+
+    &:hover { background: $blue-200; }
+    &.is-active { width: 22px; border-radius: $radius-pill; background: $blue-600; }
+  }
+}

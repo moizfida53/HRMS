@@ -30,6 +30,7 @@ public sealed class OrganizationController : Controller
     private readonly IDocumentTypeRepository _documentTypes;
     private readonly IDocumentSectionRepository _documentSections;
     private readonly IOrgDocumentTypeRepository _orgDocumentTypes;
+    private readonly IIssuingAuthorityRepository _issuingAuthorities;
     private readonly ILookupRepository _lookups;
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
@@ -47,6 +48,7 @@ public sealed class OrganizationController : Controller
         IDocumentTypeRepository documentTypes,
         IDocumentSectionRepository documentSections,
         IOrgDocumentTypeRepository orgDocumentTypes,
+        IIssuingAuthorityRepository issuingAuthorities,
         ILookupRepository lookups,
         ICurrentUser currentUser,
         ICompanyFilter companyFilter,
@@ -63,6 +65,7 @@ public sealed class OrganizationController : Controller
         _documentTypes = documentTypes;
         _documentSections = documentSections;
         _orgDocumentTypes = orgDocumentTypes;
+        _issuingAuthorities = issuingAuthorities;
         _lookups = lookups;
         _currentUser = currentUser;
         _companyFilter = companyFilter;
@@ -243,10 +246,7 @@ public sealed class OrganizationController : Controller
 
             OrganizationTabs.DocumentTypes => await DocumentTypeFormAsync(descriptor, id),
 
-            OrganizationTabs.OrgDocumentTypes => await FormAsync(
-                _orgDocumentTypes, descriptor, id,
-                () => new OrgDocumentType { AlertRules = "M3,M1,W1" },
-                []),
+            OrganizationTabs.OrgDocumentTypes => await OrgDocumentTypeFormAsync(descriptor, id),
 
             _ => NotFound()
         };
@@ -400,6 +400,40 @@ public sealed class OrganizationController : Controller
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)
             : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    /// <summary>The ViewData key of the issuing authorities on the organization document type form.</summary>
+    public const string IssuingAuthoritiesKey = "IssuingAuthorities";
+
+    /// <summary>The organization document type form: its issuing authority comes from Documents.IssuingAuthorities (db/75).</summary>
+    private async Task<IActionResult> OrgDocumentTypeFormAsync(OrgTab tab, long id)
+    {
+        var isNew = id <= 0;
+        var model = isNew ? new OrgDocumentType { AlertRules = "M3,M1,W1" } : await _orgDocumentTypes.GetByIdAsync(id, Ct);
+        if (model is null) return NotFound();
+
+        IReadOnlyList<IssuingAuthority> authorities = Array.Empty<IssuingAuthority>();
+        try
+        {
+            authorities = await _issuingAuthorities.ListAsync(Ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "The issuing authorities could not be read (run db/75).");
+        }
+
+        // active ones, plus the type's own if it was deactivated since
+        ViewData[IssuingAuthoritiesKey] = authorities
+            .Where(a => a.IsActive || a.IssuingAuthorityId == model.IssuingAuthorityId)
+            .ToList();
+
+        return PartialView(tab.FormPartial, new FormViewModel<OrgDocumentType>
+        {
+            Tab = tab,
+            Model = model,
+            IsNew = isNew,
+            Lookups = new Dictionary<string, IReadOnlyList<LookupItem>>(StringComparer.OrdinalIgnoreCase)
+        });
     }
 
     private static GridRequest WholeList(GridRequest request)

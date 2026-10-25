@@ -272,13 +272,27 @@
                     <span>@L["layout.setup"]</span>@Html.Icon("chevron-down", 14)
                 </button>
                 <div class="collapse hrms-nav-group__items @(openSetup ? "show" : null)" id="nav-setup">
-                    @* Organization: one entry - its masters (Companies, Branches, ... Employee Documents) are the page's tabs *@
+                    @* Organization: opens into its masters (Companies, Branches, ... Organization Documents);
+                       on the Organization page a click switches in place (organization.js) *@
                     @if (canOrganization)
                     {
-                        <a class="hrms-nav-link @(activeArea == "organization" ? "is-active" : null)"
-                           asp-controller="Organization" asp-action="Index">
-                            @Html.Icon("building")<span>@L["emp.organization"]</span>
-                        </a>
+                        var onOrganization = activeArea == "organization";
+                        var activeOrgTab = ViewData["ActiveTab"] as string;
+                        <button type="button" class="hrms-nav-link hrms-nav-parent @(onOrganization ? "is-open" : "collapsed")"
+                                data-bs-toggle="collapse" data-bs-target="#nav-sub-organization"
+                                aria-expanded="@(onOrganization ? "true" : "false")" aria-controls="nav-sub-organization">
+                            @Html.Icon("building")<span>@L["emp.organization"]</span>@Html.Icon("chevron-down", 14, "hrms-nav-parent__chev")
+                        </button>
+                        <div class="collapse hrms-nav-sub @(onOrganization ? "show" : null)" id="nav-sub-organization">
+                            @foreach (var orgTab in HRMS.Web.Models.Organization.OrganizationTabs.All)
+                            {
+                                var subActive = onOrganization && activeOrgTab == orgTab.Key;
+                                <a class="hrms-nav-link hrms-nav-sub__link @(subActive ? "is-active" : null)" data-org-tab="@orgTab.Key"
+                                   href="@(Context.Request.PathBase)/organization?tab=@orgTab.Key" aria-current="@(subActive ? "page" : null)">
+                                    <span>@L.Tr(orgTab.Title)</span>
+                                </a>
+                            }
+                        </div>
                     }
                     @* Payroll Settings - the payroll masters, opening into their pages *@
                     @if (canSettings && HRMS.Web.Models.Payroll.PayrollNav.Sections.FirstOrDefault(s => s.Key == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey) is { } settingsSection)
