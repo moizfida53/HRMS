@@ -20,7 +20,8 @@
 
    This script, the engine (Payroll.usp_PayrollRun_Calculate):
      * the default calendar also pays employees whose calendar was
-       deactivated or removed (before, nobody paid them);
+       deactivated or removed, or belongs to another company (before,
+       nobody paid them);
      * an employee is paid in ONE regular payroll per month: one already
        in another created regular payroll of the same month (Registered,
        Validation, Awaiting approval or Closed - e.g. moved to another
@@ -87,11 +88,12 @@ BEGIN
         LEFT JOIN [Core].[Countries]  AS n ON n.CountryId = e.NationalityCountryId
         WHERE  e.CompanyId = @CompanyId AND e.Deleted = 0 AND e.IsDeleted = 0
           /* db/80: the default calendar also pays an employee whose calendar was
-             deactivated or removed - nobody is left out of the monthly payroll */
+             deactivated or removed, or is another company's - nobody is left out */
           AND  (e.PayrollCalendarId = @CalendarId
                 OR (@DefaultCal = 1 AND (e.PayrollCalendarId IS NULL
                      OR NOT EXISTS (SELECT 1 FROM [Payroll].[PayrollCalendars] AS ec
-                                    WHERE ec.PayrollCalendarId = e.PayrollCalendarId AND ec.Deleted = 0 AND ec.IsActive = 1))))
+                                    WHERE ec.PayrollCalendarId = e.PayrollCalendarId AND ec.CompanyId = e.CompanyId
+                                      AND ec.Deleted = 0 AND ec.IsActive = 1))))
           AND  (e.HireDate IS NULL OR e.HireDate <= @End)
           AND  (e.TerminationDate IS NULL OR e.TerminationDate >= @Start)
           AND  NOT (e.EmploymentStatus IN (N'Terminated', N'Resigned') AND e.TerminationDate IS NULL)
