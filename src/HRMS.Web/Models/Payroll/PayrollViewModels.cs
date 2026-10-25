@@ -289,6 +289,8 @@ public sealed class CreateDraftsInput
     /// <summary>yyyy-MM</summary>
     public string? Month { get; set; }
     public string? RunType { get; set; }
+    /// <summary>MONTHLY (default) or WEEKLY (weekly and bi-weekly calendars, an exception).</summary>
+    public string? Frequency { get; set; }
     /// <summary>The drafts already made on the page (CSV of run ids) - kept, or discarded when no longer needed.</summary>
     public string? Drafts { get; set; }
     public string? Description { get; set; }

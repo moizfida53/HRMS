@@ -218,16 +218,61 @@ public sealed class PayrollController : Controller
     /// </summary>
     private sealed record PlanGroup(PayrollCalendar Calendar, int Employees, int Unassigned, PayrollPeriodRow? Period, string State, string? Regular);
 
-    private sealed record MonthPlan(IReadOnlyList<PlanGroup> Groups, int Unassigned, int OnInactive, bool HasDefault, bool CalendarsReady);
+    private sealed record MonthPlan(IReadOnlyList<PlanGroup> Groups, int Unassigned, int OnInactive, bool HasDefault, bool CalendarsReady,
+                                    bool HasWeekly, int OtherFrequencyEmployees, bool MonthlyToCreate);
+
+    /// <summary>Kuwait pays monthly: Create Payroll makes the monthly payrolls; weekly / bi-weekly
+    /// calendars (an exception set up in Payroll Settings) are made separately.</summary>
+    private const string FreqMonthly = "MONTHLY", FreqWeekly = "WEEKLY";
+
+    private static bool IsFrequency(PayrollCalendar c, string frequency) =>
+        frequency == FreqWeekly ? c.PayFrequency != "MONTHLY" : c.PayFrequency == "MONTHLY";
+
+    /// <summary>
+    /// A company with no active monthly calendar gets one when its first monthly payroll is
+    /// made: "Monthly Payroll", calendar months, cut-off and payment on the last day. It becomes
+    /// the default (employees without a calendar are paid by it) unless a monthly default exists.
+    /// </summary>
+    private async Task<SaveResult> CreateMonthlyCalendarAsync(int companyId, IReadOnlyList<PayrollCalendar> calendars)
+    {
+        var all = (await _calendars.ListAsync(new GridRequest { CompanyId = companyId, PageSize = 200 }, Ct)).Items;
+        var code = "MONTHLY";
+        for (var n = 2; all.Any(c => string.Equals(c.CalendarCode, code, StringComparison.OrdinalIgnoreCase)); n++) code = "MONTHLY" + n;
+        return await _calendars.SaveAsync(new PayrollCalendar
+        {
+            CompanyId = companyId,
+            CalendarCode = code,
+            CalendarName = "Monthly Payroll",
+            ArabicName = "الرواتب الشهرية",
+            PayFrequency = "MONTHLY",
+            // periods can be made from the start of last year (Create Payroll offers 12 months back)
+            FirstPeriodStartDate = new DateTime(DateTime.Today.Year - 1, 1, 1),
+            CutOffDay = 31,
+            PaymentDay = 31,
+            WorkingDaysBasis = "CALENDAR",
+            FixedDaysPerMonth = null,
+            Description = "Created by Create Payroll - Kuwait payroll is monthly.",
+            IsDefault = !calendars.Any(c => c.IsDefault && c.PayFrequency == "MONTHLY"),
+            IsActive = true
+        }, UserId, Ct);
+    }
 
     /// <summary>
     /// The payrolls of a company and month, worked out from each employee's payroll calendar
     /// (Employee.PayrollCalendarId; no calendar = the default calendar). With generate, a
     /// calendar that has no period in the month gets its periods of that year first.
     /// </summary>
-    private async Task<MonthPlan> BuildMonthPlanAsync(int companyId, DateTime month, string runType, bool generate)
+    private async Task<MonthPlan> BuildMonthPlanAsync(int companyId, DateTime month, string runType, bool generate, string frequency = FreqMonthly)
     {
         var calendars = (await _calendars.ListAsync(new GridRequest { CompanyId = companyId, IsActive = true, PageSize = 200 }, Ct)).Items;
+
+        // monthly by default: a company without a monthly calendar gets one (on Next)
+        var monthlyToCreate = frequency == FreqMonthly && !calendars.Any(c => c.PayFrequency == "MONTHLY");
+        if (monthlyToCreate && generate && (await CreateMonthlyCalendarAsync(companyId, calendars)).Success)
+        {
+            calendars = (await _calendars.ListAsync(new GridRequest { CompanyId = companyId, IsActive = true, PageSize = 200 }, Ct)).Items;
+            monthlyToCreate = false;
+        }
 
         IReadOnlyList<CalendarEmployeeCount> counts;
         var calendarsReady = true;
@@ -242,10 +287,16 @@ public sealed class PayrollController : Controller
             calendarsReady = false;
         }
 
-        var unassigned = counts.Where(c => c.PayrollCalendarId is null).Sum(c => c.EmployeeCount);
-        // employees on a calendar that has since been deactivated are paid by no payroll: say so
-        var onInactive = counts.Where(c => c.PayrollCalendarId is { } id && calendars.All(x => x.PayrollCalendarId != id)).Sum(c => c.EmployeeCount);
+        // no calendar, or one since deactivated: paid by the default calendar (db/80)
+        var unassigned = counts.Where(c => c.PayrollCalendarId is not { } id || calendars.All(x => x.PayrollCalendarId != id)).Sum(c => c.EmployeeCount);
+        var onInactive = 0;
         var defaultCal = calendars.FirstOrDefault(c => c.IsDefault);
+
+        // employees without a calendar go to the default one - or, before the monthly calendar
+        // exists, to the monthly payroll that will create it
+        // (the monthly calendar made on Next becomes the default)
+        var unassignedHere = monthlyToCreate ? unassigned
+            : defaultCal is not null && IsFrequency(defaultCal, frequency) ? unassigned : 0;
 
         int Employees(PayrollCalendar c) =>
             counts.Where(x => x.PayrollCalendarId == c.PayrollCalendarId).Sum(x => x.EmployeeCount)
@@ -256,8 +307,16 @@ public sealed class PayrollController : Controller
                 .Where(p => p.RunMonth.Year == month.Year && p.RunMonth.Month == month.Month)
                 .OrderBy(p => p.StartDate).ToList();
 
+        var hasWeekly = calendars.Any(c => c.PayFrequency != "MONTHLY");
+        var otherEmployees = calendars.Where(c => !IsFrequency(c, frequency)).Sum(Employees);
         var groups = new List<PlanGroup>();
-        foreach (var c in calendars.OrderByDescending(Employees).ThenBy(c => c.CalendarName, StringComparer.OrdinalIgnoreCase))
+        if (monthlyToCreate)
+        {
+            // shown as the payroll it will be: made with its calendar and period on Next
+            groups.Add(new PlanGroup(new PayrollCalendar { CalendarName = "Monthly Payroll", ArabicName = "الرواتب الشهرية", PayFrequency = "MONTHLY", IsDefault = defaultCal is null },
+                                     unassignedHere, unassignedHere, null, unassignedHere > 0 ? "generate" : "none", null));
+        }
+        foreach (var c in calendars.Where(c => IsFrequency(c, frequency)).OrderByDescending(Employees).ThenBy(c => c.CalendarName, StringComparer.OrdinalIgnoreCase))
         {
             var employees = Employees(c);
             var paysUnassigned = c.PayrollCalendarId == defaultCal?.PayrollCalendarId ? unassigned : 0;
@@ -310,7 +369,8 @@ public sealed class PayrollController : Controller
                 groups.Add(new PlanGroup(c, employees, paysUnassigned, p, next?.RegularRunCode is { Length: > 0 } ? "exists" : "ready", next?.RegularRunCode));
             }
         }
-        return new MonthPlan(groups, unassigned, onInactive, defaultCal is not null, calendarsReady);
+        return new MonthPlan(groups, unassignedHere, onInactive, defaultCal is not null || monthlyToCreate, calendarsReady,
+                             hasWeekly, otherEmployees, monthlyToCreate);
     }
 
     private bool MayCreateFor(int companyId) =>
@@ -323,7 +383,7 @@ public sealed class PayrollController : Controller
     /// employees are assigned to, with the period worked out (not chosen by the user).
     /// </summary>
     [HttpGet("create-plan")]
-    public async Task<IActionResult> CreatePlan(int companyId, string? month, string? type)
+    public async Task<IActionResult> CreatePlan(int companyId, string? month, string? type, string? frequency)
     {
         if (!Can(PermProcess)) return Forbid();
         if (!MayCreateFor(companyId)) return Forbid();
@@ -334,7 +394,8 @@ public sealed class PayrollController : Controller
         if (!months.Contains(selected)) { months.Add(selected); months.Sort(); }
         var runType = type == RunType.OffCycle ? RunType.OffCycle : RunType.Regular;
 
-        var plan = await BuildMonthPlanAsync(companyId, selected, runType, generate: false);
+        var freq = frequency == FreqWeekly ? FreqWeekly : FreqMonthly;
+        var plan = await BuildMonthPlanAsync(companyId, selected, runType, generate: false, freq);
 
         // the payroll number continues per company and month: the first new one gets NextSeq
         NextRunCode? code = null;
@@ -371,6 +432,9 @@ public sealed class PayrollController : Controller
             onInactive = plan.OnInactive,
             hasDefault = plan.HasDefault,
             calendarsReady = plan.CalendarsReady,
+            frequency = freq,
+            hasWeekly = plan.HasWeekly,
+            otherEmployees = plan.OtherFrequencyEmployees,
             nextSeq = code?.NextSeq ?? 1,
             nextCode = code?.RunCode
         });
@@ -399,7 +463,8 @@ public sealed class PayrollController : Controller
             if (await _runs.GetAsync(id, Ct) is { } r && r.Stage == RunStage.Draft && CanSee(r)) existing.Add(r);
         }
 
-        var plan = await BuildMonthPlanAsync(input.CompanyId, month, runType, generate: true);
+        var plan = await BuildMonthPlanAsync(input.CompanyId, month, runType, generate: true,
+                                             input.Frequency == FreqWeekly ? FreqWeekly : FreqMonthly);
         var targets = plan.Groups.Where(g => g.State == "ready" && g.Period is not null).ToList();
         if (targets.Count == 0)
         {

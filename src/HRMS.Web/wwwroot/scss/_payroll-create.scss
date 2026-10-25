@@ -94,6 +94,66 @@
   }
 }
 
+// Monthly (Kuwait standard) / Weekly - bi-weekly (exception): two pills
+.cr-freq {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: space("2");
+  margin-bottom: space("3");
+
+  &[hidden] { display: none; }
+
+  &__opt {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    padding: space("2") space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $white;
+    cursor: pointer;
+    @include motion(border-color, box-shadow, background-color);
+
+    input { position: absolute; opacity: 0; pointer-events: none; }
+
+    > span { display: flex; flex-direction: column; min-width: 0; }
+    strong { color: $ink-900; font-size: $fs-sm; }
+    small { color: $ink-500; font-size: $fs-xs; }
+
+    &::before {
+      content: "";
+      flex: 0 0 auto;
+      width: 14px;
+      height: 14px;
+      border: 2px solid $line-300;
+      border-radius: 50%;
+      background: $white;
+      @include motion(border-color, box-shadow);
+    }
+
+    &:hover { border-color: $blue-500; }
+    &:focus-within { @include focus-ring; }
+
+    &.is-selected {
+      border-color: $blue-600;
+      background: $blue-050;
+      box-shadow: inset 0 0 0 1px $blue-600;
+
+      &::before { border-color: $blue-600; box-shadow: inset 0 0 0 3px $white; background: $blue-600; }
+    }
+  }
+
+  @include cq-down("sm") { grid-template-columns: minmax(0, 1fr); }
+}
+
+.cr-plan__note {
+  margin-top: 2px;
+  color: $amber-700;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+}
+
 // calendar | period of the month | payroll number | state
 .cr-cal {
   display: grid;

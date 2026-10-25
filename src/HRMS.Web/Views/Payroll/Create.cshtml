@@ -21,6 +21,7 @@
 <div class="pr-stack" data-pr-page="create"
      data-resume="@resumeJson"
      data-month="@(first?.RunMonth.ToString("yyyy-MM", inv))"
+     data-frequency="@(first is not null && first.PayFrequency != "MONTHLY" ? "WEEKLY" : "MONTHLY")"
      data-urls-plan="@Url.Action("CreatePlan", "Payroll")"
      data-urls-payrolls="@Url.Action("Payrolls", "Payroll")"
      data-urls-create="@Url.Action("Create", "Payroll")"
@@ -125,12 +126,25 @@
                 @* the payrolls of the month, worked out - not chosen: each employee's assigned payroll
                    calendar and that calendar's pay period of the month (periods are generated when missing) *@
                 <section class="cr-plan mt-3" data-cr-plan aria-labelledby="cr-plan-title">
+                    @* Kuwait pays monthly; weekly / bi-weekly calendars (an exception set up in
+                       Payroll Settings) are made separately - offered only when one exists *@
+                    <div class="cr-freq" data-cr-freq role="radiogroup" aria-label="@L["pr.pay_frequency"]" hidden>
+                        <label class="cr-freq__opt">
+                            <input type="radio" name="cr-freq" value="MONTHLY" checked="@(first is null || first.PayFrequency == "MONTHLY")" />
+                            <span><strong>@L["pr.cr_freq_monthly"]</strong><small>@L["pr.cr_freq_monthly_hint"]</small></span>
+                        </label>
+                        <label class="cr-freq__opt">
+                            <input type="radio" name="cr-freq" value="WEEKLY" checked="@(first is not null && first.PayFrequency != "MONTHLY")" />
+                            <span><strong>@L["pr.cr_freq_weekly"]</strong><small>@L["pr.cr_freq_weekly_hint"]</small></span>
+                        </label>
+                    </div>
                     <div class="cr-plan__hero" data-cr-plan-hero>
                         <span class="cr-plan__icon" aria-hidden="true">@Html.Icon("calculator", 20)</span>
                         <div class="cr-plan__copy">
                             <h3 class="cr-plan__title" id="cr-plan-title" data-cr-plan-title>@L["pr.cr_payrolls_to_create"]</h3>
                             <span class="cr-plan__summary" data-cr-plan-summary></span>
                             <p class="cr-plan__hint mb-0">@L["pr.cr_plan_auto_hint"]</p>
+                            <p class="cr-plan__note mb-0" data-cr-freq-note hidden></p>
                         </div>
                     </div>
                     <details class="cr-plan__details" data-cr-plan-details>
@@ -249,6 +263,8 @@
      data-generate="@L["pr.cr_state_generate"]"
      data-closed="@L["pr.cr_state_closed"]"
      data-later="@L["pr.cr_state_later"]"
+     data-other-weekly="@L["pr.cr_other_weekly"]"
+     data-other-monthly="@L["pr.cr_other_monthly"]"
      data-month-closed="@L["pr.cr_month_closed"]"
      data-plan-title="@L["pr.cr_plan_title"]"
      data-summary-one="@L["pr.cr_summary_one"]"

@@ -855,6 +855,8 @@
         var runId = function () { var d = st.drafts[st.current]; return d ? String(d.runId) : ""; };
 
         var type = function () { var r = $('[data-cr-type] input:checked'); return r ? r.value : "REGULAR"; };
+        // monthly by default; weekly / bi-weekly calendars are an exception made separately
+        var freq = function () { var r = $('[data-cr-freq] input:checked'); return r ? r.value : "MONTHLY"; };
         var showError = function (key, on) { var e = $('[data-cr-error="' + key + '"]'); if (e) { e.hidden = !on; } };
         var descRequired = function () { return type() !== "REGULAR"; };
         var syncDesc = function () {
@@ -933,6 +935,13 @@
             showError("month", false);
             var monthText = el.month.options[el.month.selectedIndex] ? el.month.options[el.month.selectedIndex].text.split(" · ")[0] : "";
             el.title.textContent = fmt(T("plan-title"), monthText);
+            // the Monthly / Weekly choice only when the company has a weekly or bi-weekly calendar
+            var freqBox = $("[data-cr-freq]");
+            freqBox.hidden = !plan.hasWeekly && freq() === "MONTHLY";
+            $all("label", freqBox).forEach(function (l) { l.classList.toggle("is-selected", !!$("input:checked", l)); });
+            var note = $("[data-cr-freq-note]");
+            note.textContent = plan.otherEmployees > 0 ? fmt(T(freq() === "MONTHLY" ? "other-weekly" : "other-monthly"), plan.otherEmployees) : "";
+            note.hidden = !note.textContent;
 
             el.list.innerHTML = plan.groups.map(function (g) {
                 var meta = [g.frequency, g.employees === 1 ? T("one-employee") : fmt(T("employees"), g.employees)];
@@ -971,7 +980,7 @@
         var loadPlan = function () {
             el.list.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
             el.summary.textContent = "";
-            return HRMS.getJson(withQs(u("plan"), { companyId: el.company.value, month: el.month.value || page.getAttribute("data-month"), type: type() }))
+            return HRMS.getJson(withQs(u("plan"), { companyId: el.company.value, month: el.month.value || page.getAttribute("data-month"), type: type(), frequency: freq() }))
                 .then(renderPlan, fail);
         };
 
@@ -989,6 +998,7 @@
             loadPlan();
         });
         el.month.addEventListener("change", loadPlan);
+        $("[data-cr-freq]").addEventListener("change", loadPlan);
         $("[data-cr-type]").addEventListener("change", function () {
             $all("[data-cr-type] label").forEach(function (l) { l.classList.toggle("is-selected", !!$("input:checked", l)); });
             // a regular payroll skips the periods that already have one; an off-cycle one may take them
@@ -1013,7 +1023,7 @@
         // (generating missing periods), keeps the ones already made and discards the rest
         var saveDrafts = function () {
             var p = {
-                CompanyId: el.company.value, Month: el.month.value, RunType: type(), Description: el.desc.value.trim(),
+                CompanyId: el.company.value, Month: el.month.value, RunType: type(), Frequency: freq(), Description: el.desc.value.trim(),
                 Drafts: st.drafts.map(function (d) { return d.runId; }).join(",")
             };
             $all("[data-cr-scope]").forEach(function (s) { p[s.getAttribute("data-cr-scope")] = s.value; });

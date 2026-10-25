@@ -12,12 +12,21 @@
    calendar's period of the month - the periods of the month are
    generated when the calendar has none yet.
 
-   This script: the engine (Payroll.usp_PayrollRun_Calculate) pays an
-   employee in ONE regular payroll per month. An employee already in
-   another created regular payroll of the same month (Registered,
-   Validation, Awaiting approval or Closed - e.g. moved to another
-   calendar after his first payroll) is left out. Off-cycle payrolls are
-   not affected. Everything else is as in db/35.
+   Kuwait pays monthly: a company without a monthly calendar gets one
+   ("Monthly Payroll", the default) when its first monthly payroll is
+   made. Weekly / bi-weekly calendars are an exception set up in Payroll
+   Settings, and their payrolls are made separately (Create Payroll >
+   Weekly / bi-weekly).
+
+   This script, the engine (Payroll.usp_PayrollRun_Calculate):
+     * the default calendar also pays employees whose calendar was
+       deactivated or removed (before, nobody paid them);
+     * an employee is paid in ONE regular payroll per month: one already
+       in another created regular payroll of the same month (Registered,
+       Validation, Awaiting approval or Closed - e.g. moved to another
+       calendar after their first payroll) is left out. Off-cycle
+       payrolls are not affected.
+   Everything else is as in db/35.
    ===================================================================== */
 SET NOCOUNT ON;
 SET QUOTED_IDENTIFIER ON;
@@ -77,7 +86,12 @@ BEGIN
         FROM   [Employee].[Employees] AS e
         LEFT JOIN [Core].[Countries]  AS n ON n.CountryId = e.NationalityCountryId
         WHERE  e.CompanyId = @CompanyId AND e.Deleted = 0 AND e.IsDeleted = 0
-          AND  (e.PayrollCalendarId = @CalendarId OR (e.PayrollCalendarId IS NULL AND @DefaultCal = 1))
+          /* db/80: the default calendar also pays an employee whose calendar was
+             deactivated or removed - nobody is left out of the monthly payroll */
+          AND  (e.PayrollCalendarId = @CalendarId
+                OR (@DefaultCal = 1 AND (e.PayrollCalendarId IS NULL
+                     OR NOT EXISTS (SELECT 1 FROM [Payroll].[PayrollCalendars] AS ec
+                                    WHERE ec.PayrollCalendarId = e.PayrollCalendarId AND ec.Deleted = 0 AND ec.IsActive = 1))))
           AND  (e.HireDate IS NULL OR e.HireDate <= @End)
           AND  (e.TerminationDate IS NULL OR e.TerminationDate >= @Start)
           AND  NOT (e.EmploymentStatus IN (N'Terminated', N'Resigned') AND e.TerminationDate IS NULL)

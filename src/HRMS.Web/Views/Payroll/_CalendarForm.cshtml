@@ -1,4 +1,4 @@
-@using HRMS.Web.Models.Payroll
+﻿@using HRMS.Web.Models.Payroll
 @model CalendarFormModel
 @{
     var c = Model.Calendar;
@@ -48,6 +48,7 @@
                 <option value="BIWEEKLY" selected="@(c.PayFrequency == "BIWEEKLY")">@L["pr.bi_weekly"]</option>
                 <option value="WEEKLY" selected="@(c.PayFrequency == "WEEKLY")">@L["pr.weekly"]</option>
             </select>
+            <span class="form-text">@L["pr.cal_freq_kuwait_hint"]</span>
         </div>
         <div class="col-md-6">
             <label class="form-label" for="cal-start">@L["pr.first_period_starts"] <span class="req" aria-hidden="true">*</span></label>

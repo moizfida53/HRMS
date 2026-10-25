@@ -25,6 +25,13 @@ FROM  (VALUES
         ('pr.cr_nobody_to_pay', 'pr', N'No employee of this company is paid by an active payroll calendar.', N'لا يوجد موظف في هذه الشركة يُصرف له حسب تقويم رواتب نشط.', NULL),
         ('pr.cr_this_month', 'pr', N'this month', N'هذا الشهر', NULL),
         ('pr.cr_state_later', 'pr', N'Starts later', N'تبدأ لاحقاً', NULL),
+        ('pr.cr_freq_monthly', 'pr', N'Monthly payroll', N'الرواتب الشهرية', NULL),
+        ('pr.cr_freq_monthly_hint', 'pr', N'Kuwait standard - every monthly calendar', N'المعيار في الكويت - كل تقويم شهري', NULL),
+        ('pr.cr_freq_weekly', 'pr', N'Weekly / bi-weekly', N'أسبوعي / كل أسبوعين', NULL),
+        ('pr.cr_freq_weekly_hint', 'pr', N'Exception - made separately', N'استثناء - يُنشأ بشكل منفصل', NULL),
+        ('pr.cr_other_weekly', 'pr', N'{0} employees on weekly / bi-weekly calendars are paid separately - choose Weekly / bi-weekly above.', N'{0} موظف على تقاويم أسبوعية / كل أسبوعين يُصرف لهم بشكل منفصل - اختر أسبوعي / كل أسبوعين أعلاه.', NULL),
+        ('pr.cr_other_monthly', 'pr', N'{0} employees on monthly calendars are paid by the monthly payroll.', N'{0} موظف على تقاويم شهرية يُصرف لهم ضمن الرواتب الشهرية.', NULL),
+        ('pr.cal_freq_kuwait_hint', 'pr', N'Kuwait payroll is monthly. Choose Weekly or Bi-weekly only for an exception group - its payrolls are made separately.', N'الرواتب في الكويت شهرية. اختر أسبوعي أو كل أسبوعين فقط لمجموعة استثنائية - تُنشأ كشوفها بشكل منفصل.', NULL),
         ('pr.cr_month_closed', 'pr', N'The pay periods of {0} are closed - its payrolls are done. Choose Off-cycle for an extra payment.', N'فترات الصرف لشهر {0} مغلقة - تم إنجاز كشوفها. اختر خارج الدورة لصرف إضافي.', NULL)
       ) AS s (LabelKey, Module, EnglishText, ArabicText, SourceText)
 WHERE NOT EXISTS (SELECT 1 FROM [Core].[UiLabels] AS l WHERE l.LabelKey = s.LabelKey COLLATE DATABASE_DEFAULT AND l.Deleted = 0);
