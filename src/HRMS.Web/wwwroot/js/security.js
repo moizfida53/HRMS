@@ -22,6 +22,7 @@
 
     var HRMS = window.HRMS || (window.HRMS = {});
     var FLASH = "hrms-sec-flash";
+    var BLANK = "hrms-sec-blank";
     var ORDER = { R: 1, W: 2, F: 3 };
     var KEYS = ["R", "W", "F"];
 
@@ -103,9 +104,11 @@
 
         window.addEventListener("beforeunload", function (e) { if (isDirty()) { e.preventDefault(); e.returnValue = ""; } });
 
-        // the role to open: the one just saved (?open=, mapped by the server) or the first one
+        // after a save the editor starts clear (a new role); otherwise the role asked for
+        // (?open=, mapped by the server) or the first one
         var first = rolesPage.getAttribute("data-open");
-        if (first) { load(first); }
+        if (read(BLANK) && rolesPage.querySelector("[data-sec-new]")) { store(BLANK, null); load(""); }
+        else if (first) { load(first); }
         if (window.history && window.history.replaceState && /[?&]open=/.test(HRMS.pageUrl().search)) {
             window.history.replaceState(null, "", window.location.pathname);
         }
@@ -327,8 +330,9 @@
                     if (res && res.success) {
                         f.setAttribute("data-dirty", "false");
                         store(FLASH, res.message);
-                        // references differ on every request: the server maps this one back to its list
-                        HRMS.go(HRMS.pageUrl().pathname + "?open=" + encodeURIComponent(res.ref || current || ""));
+                        // the saved role shows in the list; the editor is cleared for the next one
+                        store(BLANK, "1");
+                        HRMS.go(HRMS.pageUrl().pathname);
                     } else {
                         HRMS.toast((res && res.message) || failed(), "error");
                     }

@@ -50,6 +50,13 @@
         <label class="form-label" for="lv-end">@L["lv.last_day"] <span class="req" aria-hidden="true">*</span></label>
         <input type="date" class="form-control" id="lv-end" name="EndDate" value="@Iso(q?.EndDate)" data-lv-end required />
     </div>
+    @* db/86: the day back at work - suggested (next working day), may be changed; no effect on the balance *@
+    <div class="col-sm-6">
+        <label class="form-label" for="lv-resume">@L["lv.resume_date"]</label>
+        <input type="date" class="form-control" id="lv-resume" name="ResumeDate" value="@Iso(q?.ResumeDate)" data-lv-resume
+               data-lv-resume-auto="@(q?.ResumeDate is null ? "1" : "0")" />
+        <span class="form-text">@L["lv.resume_date_hint"]</span>
+    </div>
     <div class="col-12" data-lv-half-wrap hidden>
         <div class="form-check form-switch">
             <input class="form-check-input" type="checkbox" role="switch" id="lv-half" name="HalfDay" value="true" data-lv-half checked="@(q?.HalfDay == true)" />
@@ -64,6 +71,18 @@
                 <div><span class="lv-preview__label">@L["lv.days_requested"]</span><strong data-lv-p="days">—</strong></div>
                 <div data-lv-p-balance><span class="lv-preview__label">@L["lv.available_now"]</span><strong data-lv-p="available">—</strong></div>
                 <div data-lv-p-balance><span class="lv-preview__label">@L["lv.left_after"]</span><strong data-lv-p="after">—</strong></div>
+            </div>
+            @* db/86: more days than the balance - the days over it are unpaid *@
+            <div class="lv-split" data-lv-p-split hidden>
+                <span class="lv-split__icon" aria-hidden="true">@Html.Icon("alert", 16)</span>
+                <div class="lv-split__body">
+                    <div class="lv-split__bar" aria-hidden="true"><span class="lv-split__paid" data-lv-p="paid-bar"></span><span class="lv-split__unpaid"></span></div>
+                    <div class="lv-split__figures">
+                        <span class="lv-split__chip is-paid">@L["lv.paid_days"] <strong data-lv-p="paid">—</strong></span>
+                        <span class="lv-split__chip is-unpaid">@L["lv.unpaid_days"] <strong data-lv-p="unpaid">—</strong></span>
+                    </div>
+                    <p class="lv-split__note">@L["lv.unpaid_note"]</p>
+                </div>
             </div>
             <ul class="lv-preview__problems" data-lv-p="problems"></ul>
         </div>

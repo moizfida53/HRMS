@@ -1,0 +1,112 @@
+@model LeaveSettlementModel
+@{
+    var q = Model.Request;
+    var s = Model.Settlement;
+    var mode = s.SettlementMode ?? LeaveSettlementMode.Payroll;
+    var locked = s.CashInPayroll;
+    var noPaid = s.PaidDays <= 0;
+    string Iso(DateTime? d) => d?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+    string Amount(decimal? v) => v?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) ?? "";
+}
+<input type="hidden" name="id" value="@q.LeaveRequestId" />
+<div class="lv-settle">
+    @* the leave and its days *@
+    <div class="lv-settle__head">
+        <div>
+            <strong>@LeaveFormat.Name(L, q.EmployeeName, q.EmployeeArabicName)</strong>
+            <span class="hrms-muted"> · @q.EmployeeNo</span>
+            <div class="hrms-muted hrms-text-sm">@q.RequestNo · @LeaveFormat.Name(L, q.TypeName, q.TypeArabicName) · @LeaveFormat.Period(L, q.StartDate, q.LastDay, q.HalfDay)</div>
+        </div>
+        <div class="lv-split__chips">
+            <span class="lv-split__chip is-paid">@L["lv.paid_days"] <strong>@LeaveFormat.Days(s.PaidDays)</strong></span>
+            @if (s.UnpaidDays > 0)
+            {
+                <span class="lv-split__chip is-unpaid">@L["lv.unpaid_days"] <strong>@LeaveFormat.Days(s.UnpaidDays)</strong></span>
+            }
+        </div>
+    </div>
+
+    <dl class="lv-settle__figures">
+        <div><dt>@L["lv.monthly_salary"]</dt><dd>@LeaveFormat.Kwd(s.MonthlySalary)</dd></div>
+        <div><dt>@L["lv.leave_salary_base"]</dt><dd>@LeaveFormat.Kwd(s.LeaveSalary)</dd></div>
+        <div><dt>@L["lv.daily_leave_salary"]</dt><dd>@LeaveFormat.Kwd(s.DailyLeaveRate)<small>@L["lv.divided_by_n", LeaveFormat.Days(s.Divisor)]</small></dd></div>
+        <div class="is-total"><dt>@L["lv.leave_salary_amount"]</dt><dd>@LeaveFormat.Kwd(s.SuggestedAmount)<small>@L["pr.kwd"]</small></dd></div>
+    </dl>
+    @if (s.MonthlySalary <= 0)
+    {
+        <p class="lv-settle__warn">@Html.Icon("alert", 15)<span>@L["lv.no_salary_found"]</span></p>
+    }
+
+    @* how the leave salary is paid *@
+    <fieldset class="lv-settle__choice" disabled="@(locked ? "disabled" : null)">
+        <legend class="form-label">@L["lv.how_paid"]</legend>
+        <div class="lv-settle__options">
+            <input type="radio" class="btn-check" name="mode" id="lv-st-payroll" value="@LeaveSettlementMode.Payroll" data-lv-st-mode checked="@(mode == LeaveSettlementMode.Payroll)" />
+            <label class="lv-settle__option" for="lv-st-payroll">
+                <span class="lv-settle__option-icon">@Html.Icon("calendar", 20)</span>
+                <span class="lv-settle__option-text">
+                    <strong>@L["lv.settle_payroll"]</strong>
+                    <span>@L["lv.settle_payroll_hint"]</span>
+                </span>
+            </label>
+            <input type="radio" class="btn-check" name="mode" id="lv-st-cash" value="@LeaveSettlementMode.Cash" data-lv-st-mode checked="@(mode == LeaveSettlementMode.Cash)" disabled="@(noPaid ? "disabled" : null)" />
+            <label class="lv-settle__option" for="lv-st-cash">
+                <span class="lv-settle__option-icon">@Html.Icon("wallet", 20)</span>
+                <span class="lv-settle__option-text">
+                    <strong>@L["lv.settle_cash"]</strong>
+                    <span>@(noPaid ? L["lv.no_paid_days"] : L["lv.settle_cash_hint"])</span>
+                </span>
+            </label>
+        </div>
+
+        <div class="row g-3 lv-settle__cash" data-lv-st-cash hidden>
+            <div class="col-sm-6">
+                <label class="form-label" for="lv-st-amount">@L["lv.cash_amount"] <span class="req" aria-hidden="true">*</span></label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="lv-st-amount" name="amount" min="0.001" step="0.001" inputmode="decimal"
+                           value="@Amount(s.SettlementMode == LeaveSettlementMode.Cash ? s.SettlementAmount : s.SuggestedAmount)"
+                           data-lv-st-amount data-suggested="@Amount(s.SuggestedAmount)" />
+                    <span class="input-group-text">@L["pr.kwd"]</span>
+                </div>
+                <button type="button" class="btn btn-link btn-sm p-0 mt-1" data-lv-st-reset>@L["lv.use_calculated", LeaveFormat.Kwd(s.SuggestedAmount)]</button>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label" for="lv-st-date">@L["lv.cash_paid_date"] <span class="req" aria-hidden="true">*</span></label>
+                <input type="date" class="form-control" id="lv-st-date" name="paidOn"
+                       value="@Iso(s.SettlementDate ?? DateTime.Today)" data-lv-st-date />
+                <span class="form-text">@L["lv.cash_paid_date_hint"]</span>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <label class="form-label" for="lv-st-remarks">@L["lv.remarks"]</label>
+            <textarea class="form-control" id="lv-st-remarks" name="remarks" rows="2" maxlength="500">@s.SettlementRemarks</textarea>
+        </div>
+    </fieldset>
+    @if (locked)
+    {
+        <p class="lv-settle__warn">@Html.Icon("lock", 15)<span>@L["lv.settlement_locked"]</span></p>
+    }
+
+    @* what the payroll does with this leave *@
+    <h3 class="lv-detail__sub">@L["lv.payroll_effect"]</h3>
+    @if (Model.Items.Count == 0)
+    {
+        <p class="hrms-muted hrms-text-sm mb-0" data-lv-st-none>@(s.UnpaidDays > 0 && s.MonthlySalary <= 0 ? L["lv.no_salary_found"] : L["lv.payroll_effect_none"])</p>
+    }
+    else
+    {
+        <ul class="lv-settle__items">
+            @foreach (var i in Model.Items)
+            {
+                <li class="@(i.Kind == "CASH" ? "is-cash" : "is-unpaid")">
+                    <span class="lv-settle__item-month">@L.Month(i.StartMonth.Month) @i.StartMonth.Year</span>
+                    <span class="lv-settle__item-name">@LeaveFormat.Name(L, i.ComponentName, i.ComponentArabicName)</span>
+                    <span class="lv-settle__item-amount">−@LeaveFormat.Kwd(i.Amount)</span>
+                    <span class="hrms-badge hrms-badge--@(i.InPayroll ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(i.InPayroll ? L["lv.in_payroll"] : L["lv.waiting_payroll"])</span>
+                </li>
+            }
+        </ul>
+    }
+    <p class="form-text mb-0">@L["lv.payroll_effect_hint"]</p>
+</div>

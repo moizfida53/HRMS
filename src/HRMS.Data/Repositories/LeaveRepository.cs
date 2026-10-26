@@ -81,6 +81,10 @@ public interface ILeaveRepository
     Task<SaveResult> DecideAsync(string action, long id, string? comment, int? expectedLevel, LeaveScope scope, CancellationToken ct = default);
     Task<SaveResult> CancelAsync(long id, string? comment, LeaveScope scope, CancellationToken ct = default);
     Task<SaveResult> ReturnAsync(long id, DateTime? returnDate, string? comment, LeaveScope scope, CancellationToken ct = default);
+    // db/86: the leave salary settlement (HR)
+    Task<LeaveSettlement?> SettlementAsync(long id, LeaveScope scope, CancellationToken ct = default);
+    Task<IReadOnlyList<LeavePayItem>> PayItemsAsync(long id, LeaveScope scope, CancellationToken ct = default);
+    Task<SaveResult> SettleAsync(LeaveSettlementInput input, LeaveScope scope, CancellationToken ct = default);
 
     // balances
     Task<PagedResult<LeaveBalance>> BalancesAsync(LeaveBalanceFilter filter, LeaveScope scope, CancellationToken ct = default);
@@ -256,6 +260,7 @@ public sealed class LeaveRepository : ILeaveRepository
     {
         var p = RequestParams("SAVE", input, scope);
         p.Add("@ApproveNow", input.ApproveNow, DbType.Boolean);
+        p.Add("@AcceptUnpaid", input.AcceptUnpaid, DbType.Boolean);
         p.Add("@DocumentPath", document?.Path, DbType.String, size: 400);
         p.Add("@DocumentName", Trim(document?.Name, 260), DbType.String, size: 260);
         p.Add("@DocumentType", Trim(document?.ContentType, 100), DbType.String, size: 100);
@@ -291,6 +296,32 @@ public sealed class LeaveRepository : ILeaveRepository
         p.Add("@Comment", Trim(comment, 500), DbType.String, size: 500);
         await _sql.ExecuteAsync(StoredProcedure.LeaveRequestManage, p, ct).ConfigureAwait(false);
         return Read(p, id);
+    }
+
+    public Task<LeaveSettlement?> SettlementAsync(long id, LeaveScope scope, CancellationToken ct = default)
+    {
+        var p = RequestEnvelope("SETTLEMENT", scope);
+        p.Add("@Id", id, DbType.Int64);
+        return _sql.QuerySingleOrDefaultAsync<LeaveSettlement>(StoredProcedure.LeaveRequestManage, p, ct);
+    }
+
+    public Task<IReadOnlyList<LeavePayItem>> PayItemsAsync(long id, LeaveScope scope, CancellationToken ct = default)
+    {
+        var p = RequestEnvelope("PAY_ITEMS", scope);
+        p.Add("@Id", id, DbType.Int64);
+        return _sql.QueryAsync<LeavePayItem>(StoredProcedure.LeaveRequestManage, p, ct);
+    }
+
+    public async Task<SaveResult> SettleAsync(LeaveSettlementInput input, LeaveScope scope, CancellationToken ct = default)
+    {
+        var p = RequestEnvelope("SETTLE", scope);
+        p.Add("@Id", input.Id, DbType.Int64);
+        p.Add("@SettlementMode", Trim(input.Mode, 10), DbType.AnsiString, size: 10);
+        p.Add("@SettlementAmount", input.Amount, DbType.Decimal, precision: 12, scale: 3);
+        p.Add("@SettlementDate", input.PaidOn, DbType.Date);
+        p.Add("@Comment", Trim(input.Remarks, 500), DbType.String, size: 500);
+        await _sql.ExecuteAsync(StoredProcedure.LeaveRequestManage, p, ct).ConfigureAwait(false);
+        return Read(p, input.Id);
     }
 
     // ----------------------------------------------------------- balances
@@ -368,6 +399,7 @@ public sealed class LeaveRepository : ILeaveRepository
         p.Add("@EndDate", i.EndDate, DbType.Date);
         p.Add("@HalfDay", i.HalfDay, DbType.Boolean);
         p.Add("@Reason", Trim(i.Reason, 500), DbType.String, size: 500);
+        p.Add("@ResumeDate", i.ResumeDate, DbType.Date);
         return p;
     }
 

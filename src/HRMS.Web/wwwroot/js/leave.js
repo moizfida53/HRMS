@@ -116,6 +116,7 @@
     var form = $("[data-lv-form]");
     var formBody = form ? $("[data-lv-form-body]", form) : null;
     var formChanged = null;   // called after a successful save (reload lists)
+    var lastPreview = null;   // the latest preview of the open form (paid / unpaid days)
 
     function openForm(mode, id, emp) {
         if (!form) { return; }
@@ -133,7 +134,9 @@
         var start = $("[data-lv-start]", formBody), end = $("[data-lv-end]", formBody);
         var halfWrap = $("[data-lv-half-wrap]", formBody), half = $("[data-lv-half]", formBody);
         var docWrap = $("[data-lv-doc-wrap]", formBody), preview = $("[data-lv-preview]", formBody);
+        var resume = $("[data-lv-resume]", formBody);
         var previewToken = 0;
+        lastPreview = null;
 
         if (emp && HRMS.searchable && !emp.disabled) { HRMS.searchable(emp); }
 
@@ -152,8 +155,10 @@
             if (!type.value || !start.value || !end.value || (emp && !emp.value)) { preview.hidden = true; return; }
             var fd = new FormData(form);
             fd.delete("document");
+            if (resumeIsAuto()) { fd.delete("ResumeDate"); }
             HRMS.post(sharedUrl("preview"), fd).then(function (res) {
                 if (mine !== previewToken) { return; }
+                lastPreview = res && res.ready ? res : null;
                 if (!res || !res.ready) { preview.hidden = true; return; }
                 preview.hidden = false;
                 preview.classList.toggle("has-problems", !res.ok);
@@ -166,6 +171,18 @@
                     after.textContent = fmt(res.after);
                     after.classList.toggle("is-neg", res.after < 0);
                 }
+                // more days than the balance: the days over it are unpaid (asked again on submit)
+                var unpaid = Number(res.unpaidDays || 0);
+                var split = $("[data-lv-p-split]", preview);
+                split.hidden = !(unpaid > 0);
+                if (unpaid > 0) {
+                    $('[data-lv-p="paid"]', split).textContent = fmt(res.paidDays);
+                    $('[data-lv-p="unpaid"]', split).textContent = fmt(unpaid);
+                    var total = Number(res.days) || 1;
+                    $('[data-lv-p="paid-bar"]', split).style.width = Math.max(0, Math.min(100, Number(res.paidDays) / total * 100)) + "%";
+                }
+                // the suggested day back at work (next working day), unless typed in
+                if (resume && resumeIsAuto() && res.resumeDate) { resume.value = res.resumeDate; }
                 var list = $('[data-lv-p="problems"]', preview);
                 list.innerHTML = "";
                 (res.problems || []).forEach(function (p) {
@@ -205,12 +222,42 @@
             syncType();
             runPreview();
         });
-        end.addEventListener("change", function () { syncType(); runPreview(); });
+        end.addEventListener("change", function () {
+            if (resume) { resume.min = end.value; }
+            syncType();
+            runPreview();
+        });
         if (half) { half.addEventListener("change", runPreview); }
+        if (resume) {
+            // typed in: kept (and checked); cleared: suggested again
+            resume.addEventListener("change", function () {
+                resume.setAttribute("data-lv-resume-auto", resume.value ? "0" : "1");
+                runPreview();
+            });
+            if (end.value) { resume.min = end.value; }
+        }
         formBody.addEventListener("input", clearErrors);
         if (start.value) { end.min = start.value; }
         syncType();
         runPreview();
+    }
+
+    function resumeIsAuto() {
+        var r = formBody ? $("[data-lv-resume]", formBody) : null;
+        return !r || r.getAttribute("data-lv-resume-auto") === "1";
+    }
+
+    /** The days over the balance are unpaid - the employee agrees before the request goes. */
+    function askUnpaid(p) {
+        var text = sharedText("unpaid-text");
+        return HRMS.confirm({
+            title: sharedText("unpaid-title"),
+            text: text.replace("{0}", fmt(p.paidDays)).replace("{1}", fmt(p.days)).replace("{2}", fmt(p.unpaidDays)),
+            name: HRMS.t("js.lv_split", "Paid {0} days · Unpaid {1} days", fmt(p.paidDays), fmt(p.unpaidDays)),
+            tone: "primary",
+            note: "",
+            ok: sharedText("unpaid-ok")
+        });
     }
 
     function fmt(n) {
@@ -231,19 +278,37 @@
                 HRMS.toast(HRMS.t("js.lv_fill_required", "Fill in the fields marked *."), "error");
                 return;
             }
-            busy(save, true);
-            HRMS.post(sharedUrl("save"), new FormData(form)).then(function (res) {
-                if (res && !res.success && res.errors) {
-                    Object.keys(res.errors).forEach(function (k) {
-                        var slot = $('[data-valmsg-for="' + k + '"]', formBody);
-                        if (slot) { slot.textContent = res.errors[k][0]; }
-                    });
-                }
-                if (answer(res)) {
-                    modal("lv-form-modal").hide();
-                    if (formChanged) { formChanged(); }
-                }
-            }).catch(oops).then(function () { busy(save, false); });
+            var send = function (acceptUnpaid) {
+                var fd = new FormData(form);
+                if (resumeIsAuto()) { fd.delete("ResumeDate"); }
+                if (acceptUnpaid) { fd.set("AcceptUnpaid", "true"); }
+                busy(save, true);
+                return HRMS.post(sharedUrl("save"), fd).then(function (res) {
+                    busy(save, false);
+                    // the balance changed since the preview: ask, then send again
+                    if (res && !res.success && res.errorCode === "UNPAID_CONFIRM" && !acceptUnpaid) {
+                        var p = lastPreview || {};
+                        return (p.unpaidDays > 0 ? askUnpaid(p) : HRMS.confirm({ title: sharedText("unpaid-title"), text: res.message, tone: "primary", note: "", ok: sharedText("unpaid-ok") }))
+                            .then(function (ok) { if (ok) { return send(true); } });
+                    }
+                    if (res && !res.success && res.errors) {
+                        Object.keys(res.errors).forEach(function (k) {
+                            var slot = $('[data-valmsg-for="' + k + '"]', formBody);
+                            if (slot) { slot.textContent = res.errors[k][0]; }
+                        });
+                    }
+                    if (answer(res)) {
+                        modal("lv-form-modal").hide();
+                        if (formChanged) { formChanged(); }
+                    }
+                }).catch(function (error) { busy(save, false); oops(error); });
+            };
+            // ask first - unless the dates have a problem the server refuses anyway
+            if (lastPreview && lastPreview.ok && Number(lastPreview.unpaidDays) > 0) {
+                askUnpaid(lastPreview).then(function (ok) { if (ok) { send(true); } });
+            } else {
+                send(false);
+            }
         });
     }
 
@@ -331,6 +396,58 @@
         });
     }
 
+    // db/86: leave salary settlement - with the monthly payroll, or in cash before the leave
+    var settleForm = $("[data-lv-settle-form]");
+    var settleBody = settleForm ? $("[data-lv-settle-body]", settleForm) : null;
+    function openSettle(id) {
+        if (!settleForm) { return; }
+        settleBody.innerHTML = loading();
+        $("[data-lv-settle-error]", settleForm).textContent = "";
+        $("[data-lv-settle-save]", settleForm).disabled = true;
+        modal("lv-settle-modal").show();
+        HRMS.getHtml(withQuery(sharedUrl("settlement"), { id: id })).then(function (html) {
+            settleBody.innerHTML = html;
+            var fieldset = $("fieldset", settleBody);
+            $("[data-lv-settle-save]", settleForm).disabled = !!(fieldset && fieldset.disabled);
+            var cash = $("[data-lv-st-cash]", settleBody), amount = $("[data-lv-st-amount]", settleBody);
+            var sync = function () {
+                var on = $("[data-lv-st-mode]:checked", settleBody);
+                cash.hidden = !(on && on.value === "CASH");
+            };
+            $all("[data-lv-st-mode]", settleBody).forEach(function (r) {
+                r.addEventListener("change", function () { sync(); if (!cash.hidden) { amount.focus(); } });
+            });
+            var reset = $("[data-lv-st-reset]", settleBody);
+            if (reset) { reset.addEventListener("click", function () { amount.value = amount.getAttribute("data-suggested"); amount.focus(); }); }
+            sync();
+        }).catch(function (error) { failed(settleBody, error); });
+    }
+    if (settleForm) {
+        settleForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+            var error = $("[data-lv-settle-error]", settleForm);
+            error.textContent = "";
+            var mode = $("[data-lv-st-mode]:checked", settleBody);
+            if (!mode) { return; }
+            if (mode.value === "CASH") {
+                var amount = $("[data-lv-st-amount]", settleBody), date = $("[data-lv-st-date]", settleBody);
+                if (!(Number(amount.value) > 0)) { error.textContent = HRMS.t("js.lv_cash_amount_needed", "Enter the amount paid in cash."); amount.focus(); return; }
+                if (!date.value) { error.textContent = HRMS.t("js.lv_cash_date_needed", "Enter the day the cash is paid."); date.focus(); return; }
+            }
+            var submit = $("[data-lv-settle-save]", settleForm);
+            busy(submit, true);
+            var fd = new FormData(settleForm);
+            if (mode.value !== "CASH") { fd.delete("amount"); fd.delete("paidOn"); }
+            HRMS.post(sharedUrl("settle"), fd).then(function (res) {
+                if (answer(res)) {
+                    modal("lv-settle-modal").hide();
+                    if (current) { openDetail(current.id); }
+                    refreshAll();
+                }
+            }).catch(oops).then(function () { busy(submit, false); });
+        });
+    }
+
     // the act buttons - in a list row or in the request popup
     document.addEventListener("click", function (event) {
         var b = event.target.closest("[data-lv-act]");
@@ -350,6 +467,7 @@
             openForm(b.getAttribute("data-mode") || "my", current.id);
             return;
         }
+        if (act === "settle") { openSettle(current.id); return; }
         if (act === "return") {
             var date = $("[data-lv-return-date]");
             date.value = new Date().toISOString().slice(0, 10);

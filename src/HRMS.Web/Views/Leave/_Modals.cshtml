@@ -9,6 +9,8 @@
      data-urls-reject="@Url.Action("Reject", "Leave")"
      data-urls-cancel="@Url.Action("Cancel", "Leave")"
      data-urls-return="@Url.Action("Return", "Leave")"
+     data-urls-settlement="@Url.Action("Settlement", "Leave")"
+     data-urls-settle="@Url.Action("Settle", "Leave")"
      data-urls-ledger="@Url.Action("Ledger", "Leave")"
      data-urls-adjust="@Url.Action("Adjust", "Leave")"
      data-urls-delete-entry="@Url.Action("DeleteEntry", "Leave")"
@@ -21,7 +23,10 @@
      data-text-cancel="@L["lv.cancel_request"]"
      data-text-cancel-hint="@L["lv.cancel_hint"]"
      data-text-comment="@L["lv.comment_optional"]"
-     data-text-reason="@L["lv.reason_required"]"></div>
+     data-text-reason="@L["lv.reason_required"]"
+     data-text-unpaid-title="@L["lv.unpaid_confirm_title"]"
+     data-text-unpaid-text="@L["lv.unpaid_confirm_text"]"
+     data-text-unpaid-ok="@L["lv.unpaid_confirm_ok"]"></div>
 
 @* ---- new / edit request: the body comes from the server ---- *@
 <div class="modal fade" id="lv-form-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-form-title">
@@ -116,3 +121,21 @@
     </div>
 </div>
 @Html.AntiForgeryToken()
+
+@* ---- db/86: leave salary settlement (HR) - the body comes from the server ---- *@
+<div class="modal fade" id="lv-settle-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-settle-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <form class="modal-content" data-lv-settle-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="lv-settle-title">@L["lv.settlement_title"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-lv-settle-body></div>
+            <div class="modal-footer">
+                <span class="field-validation-error me-auto" data-lv-settle-error></span>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="submit" class="btn btn-primary" data-lv-settle-save>@Html.Icon("check", 15)<span>@L["lv.save_settlement"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>

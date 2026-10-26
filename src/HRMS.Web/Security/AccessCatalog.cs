@@ -109,7 +109,9 @@ public static class AccessCatalog
             new("LV.REQUESTS", "sec.pg_leave_requests", "sec.pg_leave_requests_hint",
                 C("LEAVE_VIEW"), C("LEAVE_MANAGE"), No,
             [
-                new("LV.BALANCE_ADJUST", "sec.fn_leave_balance_adjust", "sec.fn_leave_balance_adjust_hint", No, C("LEAVE_BALANCE_ADJUST"), No)
+                new("LV.BALANCE_ADJUST", "sec.fn_leave_balance_adjust", "sec.fn_leave_balance_adjust_hint", No, C("LEAVE_BALANCE_ADJUST"), No),
+                // db/86: leave salary of an approved leave - in cash before the leave or with the monthly payroll
+                new("LV.SETTLE", "sec.fn_leave_settle", "sec.fn_leave_settle_hint", No, C("LEAVE_SETTLE"), No)
             ]),
             new("LV.SETTINGS", "sec.pg_leave_settings", "sec.pg_leave_settings_hint",
                 C("LEAVE_SETUP_VIEW"), C("LEAVE_SETUP_EDIT"), No)

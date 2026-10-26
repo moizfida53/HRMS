@@ -177,8 +177,26 @@ public sealed class LeaveRequest
     public string? CreatedByName { get; set; }
     public DateTime CreatedDate { get; set; }
     public long? SubmitterEmployeeId { get; set; }
+    // db/86
+    /// <summary>The days over the balance, taken unpaid (agreed by the employee).</summary>
+    public decimal UnpaidDays { get; set; }
+    /// <summary>Back at work - for reference only, no effect on the balance.</summary>
+    public DateTime? ResumeDate { get; set; }
+    public string? PayType { get; set; }
+    public string? BalanceMode { get; set; }
+    /// <summary>How the leave salary is paid: PAYROLL, CASH, or null (not settled: the monthly payroll).</summary>
+    public string? SettlementMode { get; set; }
+    public decimal? SettlementAmount { get; set; }
+    public decimal? SettlementDailyRate { get; set; }
+    public DateTime? SettlementDate { get; set; }
+    public string? SettlementRemarks { get; set; }
+    public long? SettledBy { get; set; }
+    public string? SettledByName { get; set; }
+    public DateTime? SettledDate { get; set; }
 
     public DateTime LastDay => ActualEndDate ?? EndDate;
+    public decimal PaidDays => PayType == "UNPAID" ? 0 : Days - UnpaidDays;
+    public bool IsCash => SettlementMode == LeaveSettlementMode.Cash;
     public bool IsPending => Status == LeaveStatus.Pending;
     public bool IsApproved => Status == LeaveStatus.Approved;
 }
@@ -194,6 +212,74 @@ public sealed class LeaveRequestInput
     public string? Reason { get; set; }
     /// <summary>HR with the final approval right: approve as it is saved.</summary>
     public bool ApproveNow { get; set; }
+    /// <summary>db/86: blank = the next working day after the leave.</summary>
+    public DateTime? ResumeDate { get; set; }
+    /// <summary>db/86: the days over the balance may be taken unpaid (the employee confirmed it).</summary>
+    public bool AcceptUnpaid { get; set; }
+}
+
+/// <summary>How an approved leave's salary is paid (db/86).</summary>
+public static class LeaveSettlementMode
+{
+    /// <summary>With the monthly payroll, as usual.</summary>
+    public const string Payroll = "PAYROLL";
+    /// <summary>In cash before the leave; the payroll of the leave month(s) recovers it.</summary>
+    public const string Cash = "CASH";
+}
+
+/// <summary>The figures of a leave's salary settlement (HR, db/86).</summary>
+public sealed class LeaveSettlement
+{
+    public long LeaveRequestId { get; set; }
+    public string RequestNo { get; set; } = string.Empty;
+    public string Status { get; set; } = LeaveStatus.Approved;
+    public DateTime StartDate { get; set; }
+    public DateTime LastDay { get; set; }
+    public decimal Days { get; set; }
+    public decimal PaidDays { get; set; }
+    public decimal UnpaidDays { get; set; }
+    public decimal MonthlySalary { get; set; }
+    /// <summary>The salary components that count for leave salary (else the monthly salary).</summary>
+    public decimal LeaveSalary { get; set; }
+    public decimal Divisor { get; set; }
+    public decimal DailyRate { get; set; }
+    public decimal DailyLeaveRate { get; set; }
+    /// <summary>Paid days x daily leave salary.</summary>
+    public decimal SuggestedAmount { get; set; }
+    /// <summary>Unpaid days x daily rate - deducted by the payroll.</summary>
+    public decimal UnpaidDeduction { get; set; }
+    public string? SettlementMode { get; set; }
+    public decimal? SettlementAmount { get; set; }
+    public decimal? SettlementDailyRate { get; set; }
+    public DateTime? SettlementDate { get; set; }
+    public string? SettlementRemarks { get; set; }
+    public string? SettledByName { get; set; }
+    public DateTime? SettledDate { get; set; }
+    /// <summary>A payroll has started to recover the cash: the settlement is fixed.</summary>
+    public bool CashInPayroll { get; set; }
+}
+
+/// <summary>A pay item a leave made: the unpaid days deduction or the cash recovery (db/86).</summary>
+public sealed class LeavePayItem
+{
+    public long EmployeePayItemId { get; set; }
+    /// <summary>UNPAID or CASH.</summary>
+    public string Kind { get; set; } = "UNPAID";
+    public string? ComponentName { get; set; }
+    public string? ComponentArabicName { get; set; }
+    public DateTime StartMonth { get; set; }
+    public decimal Amount { get; set; }
+    public string? Comment { get; set; }
+    public bool InPayroll { get; set; }
+}
+
+public sealed class LeaveSettlementInput
+{
+    public long Id { get; set; }
+    public string? Mode { get; set; }
+    public decimal? Amount { get; set; }
+    public DateTime? PaidOn { get; set; }
+    public string? Remarks { get; set; }
 }
 
 public sealed class LeaveHistoryEntry
@@ -230,6 +316,11 @@ public sealed class LeavePreview
     public decimal? Pending { get; set; }
     public decimal? Available { get; set; }
     public decimal? After { get; set; }
+    /// <summary>db/86: the days covered by the balance, and those over it (unpaid).</summary>
+    public decimal PaidDays { get; set; }
+    public decimal UnpaidDays { get; set; }
+    /// <summary>db/86: the suggested resume date (next working day).</summary>
+    public DateTime? ResumeDate { get; set; }
     /// <summary>Messages separated by "|".</summary>
     public string? Problems { get; set; }
 }

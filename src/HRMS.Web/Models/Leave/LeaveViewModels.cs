@@ -17,6 +17,8 @@ public sealed class LeaveRights
     public bool CanApproveOwn { get; init; }
     public bool CanSetupView { get; init; }
     public bool CanSetupEdit { get; init; }
+    /// <summary>db/86: settles the leave salary of an approved leave (cash before the leave or the payroll).</summary>
+    public bool CanSettle { get; init; }
     public long? UserId { get; init; }
     /// <summary>The employee the user is (My Leave).</summary>
     public long? EmployeeId { get; init; }
@@ -36,6 +38,16 @@ public sealed class LeaveRights
     public bool CanEdit(LeaveRequest r) => r.IsPending && (CanManage || r.EmployeeId == EmployeeId);
 
     public bool CanRecordReturn(LeaveRequest r) => r.IsApproved && CanManage;
+
+    public bool CanSettleRequest(LeaveRequest r) => r.IsApproved && CanSettle;
+}
+
+/// <summary>The leave salary settlement popup (db/86).</summary>
+public sealed class LeaveSettlementModel
+{
+    public required LeaveRequest Request { get; init; }
+    public required LeaveSettlement Settlement { get; init; }
+    public IReadOnlyList<LeavePayItem> Items { get; init; } = Array.Empty<LeavePayItem>();
 }
 
 public sealed class LeavePageModel
@@ -169,6 +181,17 @@ public static class LeaveFormat
     /// <summary>12, 2.5, 0.5 - no trailing zeros.</summary>
     public static string Days(decimal? days) => days is { } d ? d.ToString("0.##", Inv) : "—";
 
+    /// <summary>1,234.500 (KWD, three decimals).</summary>
+    public static string Kwd(decimal? amount) => amount is { } a ? a.ToString("#,0.000", Inv) : "—";
+
+    /// <summary>How the leave salary is paid (db/86).</summary>
+    public static string SettlementLabel(IUiText L, string? mode) => mode switch
+    {
+        LeaveSettlementMode.Cash => L["lv.settle_cash"],
+        LeaveSettlementMode.Payroll => L["lv.settle_payroll"],
+        _ => L["lv.settle_not_yet"]
+    };
+
     public static string DaysText(IUiText L, decimal days) =>
         days == 1 ? L["lv.1_day"] : L["lv.n_days", Days(days)];
 
@@ -224,6 +247,8 @@ public static class LeaveFormat
         "REJECTED" => L["lv.h_rejected"],
         "CANCELLED" => L["lv.h_cancelled"],
         "RETURNED" => L["lv.h_returned"],
+        "UNPAID" => L["lv.h_unpaid"],
+        "SETTLED" => L["lv.h_settled"],
         _ => code
     };
 

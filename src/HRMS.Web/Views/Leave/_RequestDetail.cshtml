@@ -35,7 +35,22 @@
             <span class="lv-detail__label">@L["lv.days"]</span>
             <span class="lv-detail__value">@LeaveFormat.DaysText(L, q.Days)</span>
             @if (q.PlannedDays != q.Days) { <span class="hrms-muted hrms-text-sm">@L["lv.planned_n", LeaveFormat.Days(q.PlannedDays)]</span> }
+            @if (q.UnpaidDays > 0)
+            {
+                <span class="lv-split__chips">
+                    <span class="lv-split__chip is-paid">@L["lv.paid_days"] <strong>@LeaveFormat.Days(q.Days - q.UnpaidDays)</strong></span>
+                    <span class="lv-split__chip is-unpaid">@L["lv.unpaid_days"] <strong>@LeaveFormat.Days(q.UnpaidDays)</strong></span>
+                </span>
+            }
         </div>
+        @if (q.ResumeDate is { } resume)
+        {
+            <div class="lv-detail__item">
+                <span class="lv-detail__label">@L["lv.resume_date"]</span>
+                <span class="lv-detail__value">@L.Date(resume)</span>
+                <span class="hrms-muted hrms-text-sm">@L.Tr(resume.DayOfWeek.ToString())</span>
+            </div>
+        }
         @if (b is not null && !b.IsUnlimited)
         {
             <div class="lv-detail__item">
@@ -60,6 +75,25 @@
                     <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Document", "Leave", new { id = q.LeaveRequestId })" target="_blank" rel="noopener">@Html.Icon("eye", 14)<span>@L["lv.open"]</span></a>
                     <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Document", "Leave", new { id = q.LeaveRequestId, download = true })">@Html.Icon("download", 14)<span>@L["emp.download"]</span></a>
                 </span>
+            </div>
+        }
+        @if (q.IsApproved && (q.SettlementMode is not null || r.CanSettle))
+        {
+            <div class="lv-detail__item lv-detail__item--wide">
+                <span class="lv-detail__label">@L["lv.leave_salary"]</span>
+                <span class="lv-detail__value">
+                    <span class="lv-settle-badge @(q.IsCash ? "is-cash" : q.SettlementMode is null ? "is-none" : "is-payroll")">
+                        @Html.Icon(q.IsCash ? "wallet" : "calendar", 14)<span>@LeaveFormat.SettlementLabel(L, q.SettlementMode)</span>
+                    </span>
+                    @if (q.IsCash)
+                    {
+                        <strong class="ms-1">@LeaveFormat.Kwd(q.SettlementAmount) @L["pr.kwd"]</strong>
+                    }
+                </span>
+                @if (q.IsCash && q.SettlementDate is { } paidOn)
+                {
+                    <span class="hrms-muted hrms-text-sm">@L["lv.cash_paid_on", L.Date(paidOn)]@(q.SettledByName is { Length: > 0 } sb ? " · " + sb : "")</span>
+                }
             </div>
         }
         @if (q.DecisionComment is { Length: > 0 } dc)
@@ -105,6 +139,10 @@
     @if (r.CanEdit(q))
     {
         <button type="button" class="btn btn-outline-secondary" data-lv-act="edit" data-mode="@(r.CanManage ? "hr" : "my")">@Html.Icon("edit", 15)<span>@L["common.edit"]</span></button>
+    }
+    @if (r.CanSettleRequest(q))
+    {
+        <button type="button" class="btn btn-outline-primary" data-lv-act="settle">@Html.Icon("wallet", 15)<span>@L["lv.settlement"]</span></button>
     }
     @if (r.CanRecordReturn(q))
     {

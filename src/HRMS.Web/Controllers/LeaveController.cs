@@ -28,6 +28,7 @@ public sealed class LeaveController : Controller
     internal const string PermApproveL1 = "LEAVE_APPROVE_L1";
     internal const string PermApproveL2 = "LEAVE_APPROVE_L2";
     internal const string PermApproveSelf = "LEAVE_APPROVE_SELF";
+    internal const string PermSettle = "LEAVE_SETTLE";
 
     private readonly ILeaveRepository _leave;
     private readonly ICurrentUser _currentUser;
@@ -61,6 +62,7 @@ public sealed class LeaveController : Controller
         CanApproveOwn = IsSysAdmin || Can(PermApproveSelf),
         CanSetupView = Can(PermSetupView) || Can(PermSetupEdit),
         CanSetupEdit = Can(PermSetupEdit),
+        CanSettle = Can(PermSettle),
         UserId = _currentUser.UserId,
         EmployeeId = _currentUser.EmployeeId
     };
@@ -75,6 +77,22 @@ public sealed class LeaveController : Controller
             CompanyIds = _companyFilter.Csv,
             UserId = _currentUser.UserId,
             IsHr = asHr && r.CanManage,
+            CanApproveL1 = r.CanApproveL1,
+            CanApproveL2 = r.CanApproveL2,
+            AllowSelf = r.CanApproveOwn
+        };
+    }
+
+    /// <summary>The settlement acts as HR in the user's companies (the right is LEAVE_SETTLE, not LEAVE_MANAGE).</summary>
+    private LeaveScope SettleScope()
+    {
+        var r = Rights;
+        return new LeaveScope
+        {
+            CompanyId = _currentUser.ActiveCompanyId,
+            CompanyIds = _companyFilter.Csv,
+            UserId = _currentUser.UserId,
+            IsHr = r.CanSettle,
             CanApproveL1 = r.CanApproveL1,
             CanApproveL2 = r.CanApproveL2,
             AllowSelf = r.CanApproveOwn
@@ -230,6 +248,10 @@ public sealed class LeaveController : Controller
             daysText = LeaveFormat.DaysText(_text, preview?.Days ?? 0),
             available = preview?.Available is { } a ? a - (preview.Pending ?? 0) : (decimal?)null,
             after = preview?.After,
+            // db/86: the days over the balance are unpaid; the suggested day back at work
+            paidDays = preview?.PaidDays,
+            unpaidDays = preview?.UnpaidDays ?? 0,
+            resumeDate = preview?.ResumeDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             problems
         });
     }
@@ -315,6 +337,32 @@ public sealed class LeaveController : Controller
     {
         if (!Can(PermManage)) return Denied();
         return Result(await _leave.ReturnAsync(id, returnDate, comment, Scope(), Ct));
+    }
+
+    /// <summary>db/86: the leave salary settlement popup - with the monthly payroll or in cash before the leave.</summary>
+    [HttpGet("settlement")]
+    public async Task<IActionResult> Settlement(long id)
+    {
+        var r = Rights;
+        if (!r.CanSettle) return Forbid();
+        var request = await _leave.GetAsync(id, Ct);
+        if (request is null || !CanSee(request, r)) return NotFound();
+        var scope = SettleScope();
+        var settlement = await _leave.SettlementAsync(id, scope, Ct);
+        if (settlement is null) return NotFound();
+        return PartialView("~/Views/Leave/_Settlement.cshtml", new LeaveSettlementModel
+        {
+            Request = request,
+            Settlement = settlement,
+            Items = await _leave.PayItemsAsync(id, scope, Ct)
+        });
+    }
+
+    [HttpPost("settle")]
+    public async Task<IActionResult> Settle(LeaveSettlementInput input)
+    {
+        if (!Can(PermSettle)) return Denied();
+        return Result(await _leave.SettleAsync(input, SettleScope(), Ct));
     }
 
     // =======================================================================
