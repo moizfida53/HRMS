@@ -7,7 +7,7 @@
         <span class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["lv.kpi_pending_in_total", Model.PendingTotal.ToString("N0")]</span></span>
     </button>
     <button type="button" class="hrms-card hrms-kpi lv-kpi" data-lv-kpi="ONLEAVE">
-        <span class="hrms-kpi__head"><span class="hrms-kpi__label">@L["lv.kpi_on_leave_today"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span></span>
+        <span class="hrms-kpi__head"><span class="hrms-kpi__label">@L["lv.kpi_currently_on_leave"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span></span>
         <span class="hrms-kpi__value">@Model.OnLeaveToday.ToString("N0")</span>
         <span class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["lv.kpi_employees"]</span></span>
     </button>
@@ -16,7 +16,7 @@
         <span class="hrms-kpi__value">@Model.StartingThisWeek.ToString("N0")</span>
         <span class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["lv.kpi_next_7_days"]</span></span>
     </button>
-    <button type="button" class="hrms-card hrms-kpi lv-kpi @(Model.DueBack > 0 ? "is-warn" : null)" data-lv-kpi="APPROVED">
+    <button type="button" class="hrms-card hrms-kpi lv-kpi @(Model.DueBack > 0 ? "is-warn" : null)" data-lv-kpi="DUEBACK">
         <span class="hrms-kpi__head"><span class="hrms-kpi__label">@L["lv.kpi_return_not_recorded"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("user-check", 16)</span></span>
         <span class="hrms-kpi__value">@Model.DueBack.ToString("N0")</span>
         <span class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["lv.kpi_ended_last_30_days"]</span></span>

@@ -13016,6 +13016,9 @@ html.hrms-embed .hrms-content {
 .lv-status-chip--approved {
   --chip: #16a34a;
 }
+.lv-status-chip--returned {
+  --chip: #1b4f91;
+}
 .lv-status-chip--rejected {
   --chip: #dc2626;
 }

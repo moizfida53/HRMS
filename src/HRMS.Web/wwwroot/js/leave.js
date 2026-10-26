@@ -621,7 +621,7 @@
             var k = event.target.closest("[data-lv-kpi]");
             if (!k) { return; }
             var value = k.getAttribute("data-lv-kpi");
-            if (!hasStatus(value)) { return; }
+            if (!hasStatus(value) && value !== "DUEBACK") { return; }
             var first = $("[data-lv-status]", chips);
             status.value = status.value === value ? (hasStatus("PENDING") ? "PENDING" : first.getAttribute("data-lv-status")) : value;
             markKpi();

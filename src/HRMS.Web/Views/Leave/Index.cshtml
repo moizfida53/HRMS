@@ -11,8 +11,8 @@
     {
         statuses.AddRange(new[]
         {
-            ("PENDING", L["lv.f_pending"]), ("ONLEAVE", L["lv.f_on_leave_today"]), ("UPCOMING", L["lv.f_upcoming"]),
-            ("APPROVED", L["lv.f_approved"]), ("REJECTED", L["lv.f_rejected"]), ("CANCELLED", L["lv.f_cancelled"]), ("ALL", L["lv.f_all"])
+            ("PENDING", L["lv.f_pending"]), ("ONLEAVE", L["lv.f_currently_on_leave"]), ("UPCOMING", L["lv.f_upcoming"]),
+            ("APPROVED", L["lv.f_approved"]), ("RETURNED", L["lv.status_returned"]), ("REJECTED", L["lv.f_rejected"]), ("CANCELLED", L["lv.f_cancelled"]), ("ALL", L["lv.f_all"])
         });
     }
     var currentStatus = statuses.Any(s => s.Value == Model.Status) ? Model.Status : statuses.FirstOrDefault().Value;

@@ -560,7 +560,12 @@ BEGIN
                               OR (r.ApprovalLevel = 2 AND @CanApproveL2 = 1)))
                      OR (@StatusFilter = 'ONLEAVE' AND r.Status = 'APPROVED' AND @Today BETWEEN r.StartDate AND ISNULL(r.ActualEndDate, r.EndDate))
                      OR (@StatusFilter = 'UPCOMING' AND r.Status = 'APPROVED' AND r.StartDate > @Today AND r.StartDate <= DATEADD(DAY, 7, @Today))   -- the next 7 days, as the "Starting soon" figure
-                     OR r.Status = @StatusFilter)
+                     /* db/86: a returned leave is no longer "approved" - it has its own filter */
+                     OR (@StatusFilter = 'APPROVED' AND r.Status = 'APPROVED' AND r.ActualReturnDate IS NULL)
+                     OR (@StatusFilter = 'RETURNED' AND r.Status = 'APPROVED' AND r.ActualReturnDate IS NOT NULL)
+                     OR (@StatusFilter = 'DUEBACK' AND r.Status = 'APPROVED' AND r.ActualReturnDate IS NULL
+                         AND ISNULL(r.ActualEndDate, r.EndDate) < @Today AND ISNULL(r.ActualEndDate, r.EndDate) >= DATEADD(DAY, -30, @Today))
+                     OR (@StatusFilter IN ('PENDING', 'REJECTED', 'CANCELLED') AND r.Status = @StatusFilter))
               AND   (@Search IS NULL OR r.RequestNo LIKE N'%' + @Search + N'%' OR e.FirstName LIKE N'%' + @Search + N'%'
                      OR e.LastName LIKE N'%' + @Search + N'%' OR e.EmployeeCode LIKE N'%' + @Search + N'%'
                      OR e.EmployeeNo LIKE N'%' + @Search + N'%' OR t.TypeName LIKE N'%' + @Search + N'%')

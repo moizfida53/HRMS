@@ -115,6 +115,7 @@
   &--mine, &--pending { --chip: #{$amber-600}; }
   &--onleave, &--upcoming { --chip: #{$blue-500}; }
   &--approved { --chip: #{$green-600}; }
+  &--returned { --chip: #{$blue-700}; }
   &--rejected { --chip: #{$red-600}; }
   &--cancelled, &--all { --chip: #{$ink-400}; }
 

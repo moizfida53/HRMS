@@ -1698,4 +1698,37 @@
 
         show(current);
     })();
+
+    /* ============================================ gross monthly salary === */
+
+    // Basic + Allowances shown in Gross Monthly as soon as a figure is typed or
+    // the field is left - before saving (the server works out the same sum)
+    (function initGross() {
+        var basic = document.getElementById("f-BasicSalary");
+        var allowances = document.getElementById("f-Allowances");
+        var gross = document.getElementById("f-GrossSalary");
+        if (!basic || !allowances || !gross) { return; }
+
+        var amount = function (input) {
+            var v = parseFloat(String(input.value).replace(/,/g, ""));
+            return isFinite(v) && v > 0 ? v : 0;
+        };
+        var update = function () {
+            if (basic.value === "" && allowances.value === "") { gross.value = "—"; return; }
+            var total = Math.round((amount(basic) + amount(allowances)) * 1000) / 1000;
+            gross.value = total.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+        };
+        // a figure left: show it with three decimals, like the stored one
+        var tidy = function (event) {
+            var input = event.target;
+            if (input.value !== "" && isFinite(parseFloat(input.value))) { input.value = parseFloat(input.value).toFixed(3); }
+            update();
+        };
+        [basic, allowances].forEach(function (input) {
+            input.addEventListener("input", update);
+            input.addEventListener("change", update);
+            input.addEventListener("blur", tidy);
+        });
+        update();
+    })();
 })();

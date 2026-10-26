@@ -118,7 +118,7 @@ public sealed class LeaveController : Controller
             Rights = r,
             Employees = r.CanView || r.CanManage ? await _leave.EmployeesAsync(Scope(), Ct) : Array.Empty<LeaveEmployeeOption>(),
             Types = await _leave.TypesAsync(Scope(), null, Ct),
-            Status = status is "PENDING" or "MINE" or "APPROVED" or "ONLEAVE" or "UPCOMING" or "REJECTED" or "CANCELLED" or "ALL"
+            Status = status is "PENDING" or "MINE" or "APPROVED" or "RETURNED" or "DUEBACK" or "ONLEAVE" or "UPCOMING" or "REJECTED" or "CANCELLED" or "ALL"
                 ? status : (r.AnyApproval ? "MINE" : "ALL"),
             ManyCompanies = ManyCompanies
         });
