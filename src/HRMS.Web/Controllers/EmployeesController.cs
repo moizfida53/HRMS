@@ -56,8 +56,10 @@ public sealed class EmployeesController : Controller
         IEmployeeAuditor auditor,
         IDateAlertRepository dateAlerts,
         IComplianceDocumentRepository complianceDocuments,
+        IEmployeeLeaveTermsRepository leaveTerms,
         ILogger<EmployeesController> logger)
     {
+        _leaveTerms = leaveTerms;
         _dateAlerts = dateAlerts;
         _complianceDocuments = complianceDocuments;
         _employees = employees;
@@ -76,6 +78,51 @@ public sealed class EmployeesController : Controller
 
     private readonly IDateAlertRepository _dateAlerts;
     private readonly IComplianceDocumentRepository _complianceDocuments;
+    private readonly IEmployeeLeaveTermsRepository _leaveTerms;
+
+    /// <summary>
+    /// The Employee fields of the Personal Info and Employment tabs (both post with one Save).
+    /// A tab the user may only read posts nothing (its fieldset is disabled), so on Save its
+    /// fields keep the values the database holds (db/82: a right per tab).
+    /// </summary>
+    private static readonly string[] PersonalFields =
+    [
+        "ArabicName", "Block", "BloodGroup", "BuildingNumber", "CompanyPhone", "CurrentResidenceCountryId", "DateOfBirth",
+        "EmergencyContactName", "EmergencyContactPhone", "EmergencyContactRelation", "EmployeeCode", "EmployeeNo", "Extension",
+        "FatherIsDeceased", "FatherMobileNumber", "FatherName", "FatherOccupation", "FirstName", "FlatNumber", "FloorNumber",
+        "Gender", "Landmark", "LastName", "MaritalStatus", "MiddleName", "MobileNumber", "NationalityCountryId", "Neighborhood",
+        "PaciNumber", "PersonalEmail", "Religion", "StreetName", "WorkEmail"
+    ];
+
+    private static readonly string[] EmploymentFields =
+    [
+        "Allowances", "BankName", "BasicSalary", "BranchId", "CompanyAssets", "CompanyId", "CostCenterId", "DepartmentId",
+        "DesignationId", "EmploymentStatus", "EmploymentType", "GradeId", "HireDate", "Iban", "NoticePeriodDays", "PositionId",
+        "ProbationEndDate", "ReportingManagerId", "SectionId", "TerminationDate", "WorkLocationId"
+    ];
+
+    private static void KeepStored(Employee model, Employee stored, IEnumerable<string> fields)
+    {
+        foreach (var name in fields)
+        {
+            var prop = typeof(Employee).GetProperty(name);
+            if (prop is { CanRead: true, CanWrite: true }) prop.SetValue(model, prop.GetValue(stored));
+        }
+    }
+
+    /// <summary>The employee's own annual leave (db/82); null when db/82 has not been run yet.</summary>
+    private async Task<EmployeeLeaveTerms?> TryGetLeaveTermsAsync(long employeeId)
+    {
+        try
+        {
+            return await _leaveTerms.GetAsync(employeeId, Ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Annual leave of employee {EmployeeId} could not be read (run db/82).", employeeId);
+            return null;
+        }
+    }
 
     private CancellationToken Ct => HttpContext.RequestAborted;
 
@@ -227,7 +274,8 @@ public sealed class EmployeesController : Controller
             PayrollCalendars = await LoadPayrollCalendarsAsync(lookups, payrollCalendar?.PayrollCalendarId),
             CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar(),
             CanManageDateAlerts = _currentUser.CanManageDateAlerts(),
-            DateAlertRules = await TryListDateAlertsAsync()
+            DateAlertRules = await TryListDateAlertsAsync(),
+            LeaveTerms = await TryGetLeaveTermsAsync(id)
         });
     }
 
@@ -374,14 +422,28 @@ public sealed class EmployeesController : Controller
     public async Task<IActionResult> Save()
     {
         var model = new Employee();
+        var valid = await TryUpdateModelAsync(model);
 
-        if (!await TryUpdateModelAsync(model))
+        // a new employee needs Create; an existing one the edit right of Personal Info or Employment
+        var access = Access;
+        if (model.EmployeeId > 0 ? !(access.Edit || access.EmploymentEdit) : !access.Create) return NoRight();
+
+        // a tab the user may only read keeps what the database holds
+        Employee? stored = null;
+        if (model.EmployeeId > 0 && !(access.Edit && access.EmploymentEdit))
+        {
+            stored = await _employees.GetByIdAsync(model.EmployeeId, Ct);
+            if (stored is null) return NotYours();
+            if (!access.Edit) KeepStored(model, stored, PersonalFields);
+            if (!access.EmploymentEdit) KeepStored(model, stored, EmploymentFields);
+            // validate the record as it will be saved (the read-only tab posted nothing)
+            ModelState.Clear();
+            valid = TryValidateModel(model);
+        }
+        if (!valid)
         {
             return Json(ActionResponse.Invalid(CollectErrors()));
         }
-
-        // a new employee needs Create, an existing one Edit (Personal info & employment)
-        if (model.EmployeeId > 0 ? !Access.Edit : !Access.Create) return NoRight();
 
         // the employee (when editing) and the company chosen must both be the user's
         if (!_currentUser.Allows(model.CompanyId) || (model.EmployeeId > 0 && !await OwnsEmployeeAsync(model.EmployeeId)))
@@ -391,7 +453,7 @@ public sealed class EmployeesController : Controller
 
         // ---- payroll calendar (db/60): required; once assigned only an administrator changes it
         var isNew = model.EmployeeId <= 0;
-        var before = isNew ? null : await _employees.GetByIdAsync(model.EmployeeId, Ct);
+        var before = isNew ? null : stored ?? await _employees.GetByIdAsync(model.EmployeeId, Ct);
         var current = isNew ? null : await TryGetPayrollCalendarAsync(model.EmployeeId);
         var reason = Request.HasFormContentType ? Request.Form["PayrollCalendarReason"].ToString().Trim() : string.Empty;
         var (calendarId, calendarError, errorField) = await CheckPayrollCalendarAsync(model, current?.PayrollCalendarId, reason);
@@ -437,6 +499,30 @@ public sealed class EmployeesController : Controller
                 _logger.LogWarning("Payroll calendar of employee {EmployeeId} not saved: {Code}.", employeeId, set.ErrorCode);
                 // the employee itself is saved (a new one must keep its id), so this is reported, not failed
                 message = $"{message} {set.Message}";
+            }
+        }
+
+        // annual leave (Employment Terms, db/82): blank = the Annual Leave type's days
+        if ((isNew ? access.Create : access.EmploymentEdit) && Request.HasFormContentType && Request.Form.ContainsKey("AnnualLeaveDays"))
+        {
+            var raw = Request.Form["AnnualLeaveDays"].ToString().Trim();
+            decimal? days = decimal.TryParse(raw, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var d) ? d : null;
+            if (raw.Length > 0 && days is null or < 0 or > 366)
+            {
+                message = $"{message} Annual leave must be a number of days between 0 and 366 - it was not saved.";
+            }
+            else
+            {
+                try
+                {
+                    var set = await _leaveTerms.SetAsync(employeeId, days, _currentUser.UserId, Ct);
+                    if (!set.Success) message = $"{message} {set.Message}";
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Annual leave of employee {EmployeeId} could not be saved (run db/82).", employeeId);
+                    message = $"{message} Annual leave could not be saved.";
+                }
             }
         }
 

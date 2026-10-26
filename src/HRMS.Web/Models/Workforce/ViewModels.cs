@@ -1,4 +1,4 @@
-using HRMS.Domain.Common;
+﻿using HRMS.Domain.Common;
 using HRMS.Domain.Workforce;
 
 namespace HRMS.Web.Models.Workforce;
@@ -169,6 +169,9 @@ public sealed class EmployeeProfileViewModel
 
     /// <summary>Null when the employee has no compliance record yet - a normal state, not an error.</summary>
     public EmployeeKuwaitCompliance? Compliance { get; init; }
+
+    /// <summary>The employee's own annual leave and the Annual Leave type's default (db/82); null before db/82.</summary>
+    public HRMS.Data.Repositories.EmployeeLeaveTerms? LeaveTerms { get; init; }
 
     public required bool IsNew { get; init; }
 

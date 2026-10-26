@@ -1,14 +1,17 @@
-namespace HRMS.Web.Security;
+﻿namespace HRMS.Web.Security;
 
 /// <summary>
 /// What the signed-in user may do on Workforce > Employees (Security > Create Roles,
-/// AccessCatalog "WF.*"): the list and each section of the profile - read-only or editable.
+/// AccessCatalog "WF.*"): the list and each tab of the profile - hidden, read-only or editable
+/// (db/82: Personal Info, Employment and Leave have their own rights like the other tabs;
+/// Edit = Personal Info edit).
 /// </summary>
 public sealed record EmployeeAccess(
     bool View, bool Create, bool Edit, bool Delete,
     bool ComplianceView, bool ComplianceEdit,
     bool DependentView, bool DependentEdit, bool DependentDelete,
-    bool DocumentView, bool DocumentUpload, bool DocumentDelete)
+    bool DocumentView, bool DocumentUpload, bool DocumentDelete,
+    bool PersonalView, bool EmploymentView, bool EmploymentEdit, bool LeaveView)
 {
     public const string PermView = "EMPLOYEE_VIEW";
     public const string PermCreate = "EMPLOYEE_CREATE";
@@ -22,6 +25,10 @@ public sealed record EmployeeAccess(
     public const string PermDocumentView = "EMPLOYEE_DOCUMENT_VIEW";
     public const string PermDocumentUpload = "EMPLOYEE_DOCUMENT_UPLOAD";
     public const string PermDocumentDelete = "EMPLOYEE_DOCUMENT_DELETE";
+    public const string PermPersonalView = "EMPLOYEE_PERSONAL_VIEW";
+    public const string PermEmploymentView = "EMPLOYEE_EMPLOYMENT_VIEW";
+    public const string PermEmploymentEdit = "EMPLOYEE_EMPLOYMENT_EDIT";
+    public const string PermLeaveView = "EMPLOYEE_LEAVE_VIEW";
 
     /// <summary>Change a payroll calendar once it is assigned to an employee (db/60) - administrators.</summary>
     public const string PermPayrollCalendarChange = "EMPLOYEE_PAYROLL_CALENDAR_CHANGE";
@@ -61,5 +68,9 @@ public static class EmployeeAccessExtensions
         u.HasPermission(Security.EmployeeAccess.PermDependentDelete),
         u.HasPermission(Security.EmployeeAccess.PermDocumentView) || u.HasPermission(Security.EmployeeAccess.PermDocumentUpload),
         u.HasPermission(Security.EmployeeAccess.PermDocumentUpload),
-        u.HasPermission(Security.EmployeeAccess.PermDocumentDelete));
+        u.HasPermission(Security.EmployeeAccess.PermDocumentDelete),
+        u.HasPermission(Security.EmployeeAccess.PermPersonalView) || u.HasPermission(Security.EmployeeAccess.PermEdit),
+        u.HasPermission(Security.EmployeeAccess.PermEmploymentView) || u.HasPermission(Security.EmployeeAccess.PermEmploymentEdit),
+        u.HasPermission(Security.EmployeeAccess.PermEmploymentEdit),
+        u.HasPermission(Security.EmployeeAccess.PermLeaveView));
 }

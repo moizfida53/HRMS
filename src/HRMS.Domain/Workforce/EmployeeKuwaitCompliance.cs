@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace HRMS.Domain.Workforce;
 
@@ -89,6 +89,20 @@ public sealed class EmployeeKuwaitCompliance
     [DataType(DataType.Date)]
     [Display(Name = "Work Permit Expiry")]
     public DateTime? WorkPermitExpiryDate { get; set; }
+
+    /// <summary>The salary on the work permit (Ministry of Labour) - may differ from the payroll salary (db/82).</summary>
+    [Range(0, 999999999)]
+    [Display(Name = "Work Permit Salary")]
+    public decimal? WorkPermitSalary { get; set; }
+
+    /// <summary>The designation (job title) on the work permit, in English and Arabic (db/82).</summary>
+    [StringLength(150)]
+    [Display(Name = "Designation (English)")]
+    public string? WorkPermitDesignation { get; set; }
+
+    [StringLength(150)]
+    [Display(Name = "Designation (Arabic)")]
+    public string? WorkPermitDesignationAr { get; set; }
 
     // ---------------------------------------------------------------
     // PACI civil address

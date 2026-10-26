@@ -18,15 +18,27 @@
     // Wizard mode (Add Employee, and the steps after the employee is created):
     // the very same sections as the tabs, shown one at a time with Previous / Next.
     var wizard = Model.Wizard;
-    var canSave = Model.IsNew ? acc.Create : acc.Edit;
+    // db/82: Personal Info and Employment have their own rights (hidden / read-only / editable) like the other tabs
+    var personalEdit = Model.IsNew ? acc.Create : acc.Edit;
+    var employmentEdit = Model.IsNew ? acc.Create : acc.EmploymentEdit;
+    var canSave = personalEdit || employmentEdit;
     // the wizard (Add Employee) walks every section; the tabs only offer the readable ones
+    var showPersonal = wizard || Model.IsNew || acc.PersonalView;
+    var showEmployment = wizard || Model.IsNew || acc.EmploymentView;
     var showCompliance = wizard || acc.ComplianceView;
     var showDependents = wizard || acc.DependentView;
     var showDocuments = wizard || acc.DocumentView;
     // Civil ID / Passport / Residency / Work Permit images inside their Kuwait Compliance sections (db/71)
     var showComplianceImages = !Model.IsNew && !wizard && acc.ComplianceView && acc.DocumentView;
     // Leave (db/68): balances and latest requests - HR with leave access, or the employee themself
-    var showLeave = !Model.IsNew && !wizard && (CurrentUser.CanOpen("leave:balances") || (CurrentUser.EmployeeId is { } meId && meId == e.EmployeeId));
+    var showLeave = !Model.IsNew && !wizard
+        && ((acc.LeaveView && CurrentUser.CanOpen("leave:balances")) || (CurrentUser.EmployeeId is { } meId && meId == e.EmployeeId));
+    // the tab asked for, or the first one this user may see
+    var visibleTabs = new (string Key, bool On)[] {
+        ("personal", showPersonal), ("employment", showEmployment), ("compliance", showCompliance),
+        ("dependents", showDependents), ("documents", showDocuments), ("leave", showLeave) };
+    var activeTab = visibleTabs.Any(t => t.On && t.Key == Model.ActiveTab) ? Model.ActiveTab
+        : visibleTabs.FirstOrDefault(t => t.On).Key ?? "personal";
     var wizardTabs = new[] {
         ("personal", "Personal Info"), ("employment", "Employment"),
         ("compliance", "Kuwait Compliance"), ("dependents", "Dependents"),
@@ -126,26 +138,32 @@
 
 @* -------------------------------------------------------------- tabs === *@
 <ul class="nav nav-tabs hrms-profile-tabs @(wizard ? "d-none" : null)" id="profile-tabs" role="tablist">
+    @if (showPersonal)
+    {
     <li class="nav-item" role="presentation">
-        <button class="nav-link @(Model.ActiveTab == "personal" ? "active" : null)" id="tab-personal-btn"
+        <button class="nav-link @(activeTab == "personal" ? "active" : null)" id="tab-personal-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-personal" type="button" role="tab"
-                aria-controls="tab-personal" aria-selected="@(Model.ActiveTab == "personal" ? "true" : "false")">
+                aria-controls="tab-personal" aria-selected="@(activeTab == "personal" ? "true" : "false")">
             @Html.Icon("user", 15)<span>@L["emp.personal_info"]</span>
         </button>
     </li>
+    }
+    @if (showEmployment)
+    {
     <li class="nav-item" role="presentation">
-        <button class="nav-link @(Model.ActiveTab == "employment" ? "active" : null)" id="tab-employment-btn"
+        <button class="nav-link @(activeTab == "employment" ? "active" : null)" id="tab-employment-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-employment" type="button" role="tab"
-                aria-controls="tab-employment" aria-selected="@(Model.ActiveTab == "employment" ? "true" : "false")">
+                aria-controls="tab-employment" aria-selected="@(activeTab == "employment" ? "true" : "false")">
             @Html.Icon("briefcase", 15)<span>@L["emp.employment"]</span>
         </button>
     </li>
+    }
     @if (showCompliance)
     {
     <li class="nav-item" role="presentation">
-        <button class="nav-link @(Model.ActiveTab == "compliance" ? "active" : null)" id="tab-compliance-btn"
+        <button class="nav-link @(activeTab == "compliance" ? "active" : null)" id="tab-compliance-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-compliance" type="button" role="tab"
-                aria-controls="tab-compliance" aria-selected="@(Model.ActiveTab == "compliance" ? "true" : "false")"
+                aria-controls="tab-compliance" aria-selected="@(activeTab == "compliance" ? "true" : "false")"
                 disabled="@(Model.IsNew && !wizard ? "disabled" : null)"
                 title="@(Model.IsNew ? L["emp.save_employee_first"] : null)">
             @Html.Icon("shield", 15)<span>@L["common.kuwait_compliance"]</span>
@@ -155,9 +173,9 @@
     @if (showDependents)
     {
     <li class="nav-item" role="presentation">
-        <button class="nav-link @(Model.ActiveTab == "dependents" ? "active" : null)" id="tab-dependents-btn"
+        <button class="nav-link @(activeTab == "dependents" ? "active" : null)" id="tab-dependents-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-dependents" type="button" role="tab"
-                aria-controls="tab-dependents" aria-selected="@(Model.ActiveTab == "dependents" ? "true" : "false")"
+                aria-controls="tab-dependents" aria-selected="@(activeTab == "dependents" ? "true" : "false")"
                 disabled="@(Model.IsNew && !wizard ? "disabled" : null)"
                 title="@(Model.IsNew ? L["emp.save_employee_first"] : null)">
             @Html.Icon("heart", 15)<span>@L["emp.dependents"]</span>
@@ -167,9 +185,9 @@
     @if (showDocuments)
     {
     <li class="nav-item" role="presentation">
-        <button class="nav-link @(Model.ActiveTab == "documents" ? "active" : null)" id="tab-documents-btn"
+        <button class="nav-link @(activeTab == "documents" ? "active" : null)" id="tab-documents-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-documents" type="button" role="tab"
-                aria-controls="tab-documents" aria-selected="@(Model.ActiveTab == "documents" ? "true" : "false")"
+                aria-controls="tab-documents" aria-selected="@(activeTab == "documents" ? "true" : "false")"
                 disabled="@(Model.IsNew && !wizard ? "disabled" : null)"
                 title="@(Model.IsNew ? L["emp.save_employee_first"] : null)">
             @Html.Icon("folder", 15)<span>@L["emp.documents"]</span>
@@ -179,9 +197,9 @@
     @if (showLeave)
     {
     <li class="nav-item" role="presentation">
-        <button class="nav-link @(Model.ActiveTab == "leave" ? "active" : null)" id="tab-leave-btn"
+        <button class="nav-link @(activeTab == "leave" ? "active" : null)" id="tab-leave-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-leave" type="button" role="tab"
-                aria-controls="tab-leave" aria-selected="@(Model.ActiveTab == "leave" ? "true" : "false")">
+                aria-controls="tab-leave" aria-selected="@(activeTab == "leave" ? "true" : "false")">
             @Html.Icon("calendar", 15)<span>@L["layout.leave"]</span>
         </button>
     </li>
@@ -197,11 +215,15 @@
        plugin needs .tab-pane elements to stay plain siblings, and a
        Kuwait Compliance <form> lives in its own pane a few lines down. *@
 
-    <div class="tab-pane fade @(Model.ActiveTab == "personal" ? "show active" : null)" id="tab-personal" role="tabpanel" aria-labelledby="tab-personal-btn">
-        <fieldset class="hrms-ro-fieldset" disabled="@(!canSave)">
+    @* the employee's id posts with Save whichever of the two tabs below this user may edit *@
+    <input type="hidden" form="employee-form" name="EmployeeId" value="@e.EmployeeId" />
+
+    @if (showPersonal)
+    {
+    <div class="tab-pane fade @(activeTab == "personal" ? "show active" : null)" id="tab-personal" role="tabpanel" aria-labelledby="tab-personal-btn">
+        <fieldset class="hrms-ro-fieldset" disabled="@(!personalEdit)">
         <div class="hrms-card"><div class="p-3 p-md-4">
 
-            <input type="hidden" form="employee-form" name="EmployeeId" value="@e.EmployeeId" />
 
             <div class="accordion hrms-accordion" id="acc-personal">
 
@@ -518,9 +540,12 @@
         </div></div>
         </fieldset>
     </div>
+    }
 
-    <div class="tab-pane fade @(Model.ActiveTab == "employment" ? "show active" : null)" id="tab-employment" role="tabpanel" aria-labelledby="tab-employment-btn">
-        <fieldset class="hrms-ro-fieldset" disabled="@(!canSave)">
+    @if (showEmployment)
+    {
+    <div class="tab-pane fade @(activeTab == "employment" ? "show active" : null)" id="tab-employment" role="tabpanel" aria-labelledby="tab-employment-btn">
+        <fieldset class="hrms-ro-fieldset" disabled="@(!employmentEdit)">
         <div class="hrms-card"><div class="p-3 p-md-4">
 
             <div class="accordion hrms-accordion" id="acc-employment">
@@ -776,6 +801,22 @@
                                value="@e.NoticePeriodDays" min="0" max="365" />
                         <span class="field-validation-error" data-valmsg-for="NoticePeriodDays"></span>
                     </div>
+                    @* db/82: the employee's own annual leave (an individual agreement); blank = the Annual Leave type's days *@
+                    <div class="col-md-4">
+                        <label class="form-label" for="f-AnnualLeaveDays">@L["emp.annual_leave_days"]</label>
+                        <div class="input-group">
+                            <input class="form-control" id="f-AnnualLeaveDays" form="employee-form" name="AnnualLeaveDays" type="number"
+                                   value="@(Model.LeaveTerms?.AnnualLeaveDays?.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))"
+                                   min="0" max="366" step="0.5" inputmode="decimal"
+                                   placeholder="@(Model.LeaveTerms?.DefaultAnnualLeaveDays?.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))"
+                                   aria-describedby="f-AnnualLeaveDays-hint" />
+                            <span class="input-group-text">@L["emp.days_per_year"]</span>
+                        </div>
+                        <span class="form-text" id="f-AnnualLeaveDays-hint">@(Model.LeaveTerms?.DefaultAnnualLeaveDays is { } dflt
+                            ? L["emp.annual_leave_hint_default", dflt.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)]
+                            : L["emp.annual_leave_hint"])</span>
+                        <span class="field-validation-error" data-valmsg-for="AnnualLeaveDays"></span>
+                    </div>
                     <div class="col-md-5">
                         <label class="form-label" for="f-CompanyAssets">@L["emp.company_assets"]</label>
                         <input class="form-control" id="f-CompanyAssets" form="employee-form" name="CompanyAssets" type="text"
@@ -844,10 +885,11 @@
         </div></div>
         </fieldset>
     </div>
+    }
 
     @if (showCompliance)
     {
-    <div class="tab-pane fade @(Model.ActiveTab == "compliance" ? "show active" : null)" id="tab-compliance" role="tabpanel" aria-labelledby="tab-compliance-btn">
+    <div class="tab-pane fade @(activeTab == "compliance" ? "show active" : null)" id="tab-compliance" role="tabpanel" aria-labelledby="tab-compliance-btn">
         <div class="hrms-card"><div class="p-3 p-md-4">
         @if (Model.IsNew)
         {
@@ -1049,6 +1091,29 @@
                                    value="@c?.WorkPermitExpiryDate?.ToString("yyyy-MM-dd")" />
                             <span class="field-validation-error" data-valmsg-for="WorkPermitExpiryDate"></span>
                         </div>
+                        @* db/82: the salary and job title registered on the work permit (Ministry of Labour) *@
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-WorkPermitSalary">@L["emp.work_permit_salary"]</label>
+                            <div class="input-group">
+                                <input class="form-control pr-input-money" id="f-WorkPermitSalary" name="WorkPermitSalary" type="number"
+                                       value="@(c?.WorkPermitSalary?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))"
+                                       min="0" step="0.001" inputmode="decimal" placeholder="0.000" />
+                                <span class="input-group-text">@L["pr.kwd"]</span>
+                            </div>
+                            <span class="field-validation-error" data-valmsg-for="WorkPermitSalary"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-WorkPermitDesignation">@L["emp.work_permit_designation_en"]</label>
+                            <input class="form-control" id="f-WorkPermitDesignation" name="WorkPermitDesignation" type="text"
+                                   value="@c?.WorkPermitDesignation" maxlength="150" dir="ltr" />
+                            <span class="field-validation-error" data-valmsg-for="WorkPermitDesignation"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="f-WorkPermitDesignationAr">@L["emp.work_permit_designation_ar"]</label>
+                            <input class="form-control" id="f-WorkPermitDesignationAr" name="WorkPermitDesignationAr" type="text"
+                                   value="@c?.WorkPermitDesignationAr" maxlength="150" dir="rtl" lang="ar" />
+                            <span class="field-validation-error" data-valmsg-for="WorkPermitDesignationAr"></span>
+                        </div>
                     </div>
                         </div>
                     </div>
@@ -1137,7 +1202,7 @@
 
     @if (showDependents)
     {
-    <div class="tab-pane fade @(Model.ActiveTab == "dependents" ? "show active" : null)" id="tab-dependents" role="tabpanel" aria-labelledby="tab-dependents-btn">
+    <div class="tab-pane fade @(activeTab == "dependents" ? "show active" : null)" id="tab-dependents" role="tabpanel" aria-labelledby="tab-dependents-btn">
         @if (Model.IsNew)
         {
             <div class="hrms-card"><div class="p-3 p-md-4">
@@ -1155,7 +1220,7 @@
 
     @if (showDocuments)
     {
-    <div class="tab-pane fade @(Model.ActiveTab == "documents" ? "show active" : null)" id="tab-documents" role="tabpanel" aria-labelledby="tab-documents-btn">
+    <div class="tab-pane fade @(activeTab == "documents" ? "show active" : null)" id="tab-documents" role="tabpanel" aria-labelledby="tab-documents-btn">
         @if (Model.IsNew)
         {
             <div class="hrms-card"><div class="p-3 p-md-4">
@@ -1180,7 +1245,7 @@
 
     @if (showLeave)
     {
-    <div class="tab-pane fade @(Model.ActiveTab == "leave" ? "show active" : null)" id="tab-leave" role="tabpanel" aria-labelledby="tab-leave-btn">
+    <div class="tab-pane fade @(activeTab == "leave" ? "show active" : null)" id="tab-leave" role="tabpanel" aria-labelledby="tab-leave-btn">
         @if (CurrentUser.HasPermission("LEAVE_MANAGE"))
         {
             <div class="d-flex justify-content-end mb-3">

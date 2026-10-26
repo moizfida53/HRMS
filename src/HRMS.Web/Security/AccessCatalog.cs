@@ -88,10 +88,13 @@ public static class AccessCatalog
             new("WF.EMPLOYEES", "sec.pg_employees", "sec.pg_employees_hint",
                 C("EMPLOYEE_VIEW"), C("EMPLOYEE_CREATE"), C("EMPLOYEE_DELETE"),
             [
-                new("WF.PERSONAL", "sec.fn_personal", "sec.fn_personal_hint", No, C("EMPLOYEE_EDIT"), No),
+                // one row per profile tab: None hides the tab, Read shows it read-only, Write lets it be edited (db/82)
+                new("WF.PERSONAL", "sec.fn_personal_tab", "sec.fn_tab_hint", C("EMPLOYEE_PERSONAL_VIEW"), C("EMPLOYEE_EDIT"), No),
+                new("WF.EMPLOYMENT", "sec.fn_employment_tab", "sec.fn_tab_hint", C("EMPLOYEE_EMPLOYMENT_VIEW"), C("EMPLOYEE_EMPLOYMENT_EDIT"), No),
                 new("WF.COMPLIANCE", "sec.fn_compliance", null, C("EMPLOYEE_COMPLIANCE_VIEW"), C("EMPLOYEE_COMPLIANCE_EDIT"), No),
                 new("WF.DEPENDENTS", "sec.fn_dependents", null, C("EMPLOYEE_DEPENDENT_VIEW"), C("EMPLOYEE_DEPENDENT_EDIT"), C("EMPLOYEE_DEPENDENT_DELETE")),
                 new("WF.DOCUMENTS", "sec.fn_documents", "sec.fn_documents_hint", C("EMPLOYEE_DOCUMENT_VIEW"), C("EMPLOYEE_DOCUMENT_UPLOAD"), C("EMPLOYEE_DOCUMENT_DELETE")),
+                new("WF.LEAVE_TAB", "sec.fn_leave_tab", "sec.fn_leave_tab_hint", C("EMPLOYEE_LEAVE_VIEW"), No, No),
                 // db/60: the first assignment comes with Create / Edit; changing it afterwards is this right
                 new("WF.PAYROLL_CALENDAR", "sec.fn_payroll_calendar", "sec.fn_payroll_calendar_hint", No, C("EMPLOYEE_PAYROLL_CALENDAR_CHANGE"), No),
                 // db/65: the bell next to each date field (alerts for every employee)

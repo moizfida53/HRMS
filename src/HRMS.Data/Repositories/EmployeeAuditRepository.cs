@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using HRMS.Data.Abstractions;
 using HRMS.Data.Infrastructure;
@@ -106,5 +106,44 @@ public sealed class EmployeePayrollCalendarRepository : IEmployeePayrollCalendar
         var p = PayrollRunRepository.Envelope("COUNTS");
         p.Add("@CompanyId", companyId, DbType.Int32);
         return _sql.QueryAsync<CalendarEmployeeCount>(StoredProcedure.EmployeePayrollCalendarManage, p, cancellationToken);
+    }
+}
+
+/// <summary>An employee's own annual leave (Employment Terms, db/82): blank = the Annual Leave type's days.</summary>
+public sealed class EmployeeLeaveTerms
+{
+    public long EmployeeId { get; init; }
+    public decimal? AnnualLeaveDays { get; init; }
+    /// <summary>Days per year of the company's Annual Leave type (Leave > Settings) - used when the employee has none.</summary>
+    public decimal? DefaultAnnualLeaveDays { get; init; }
+}
+
+public interface IEmployeeLeaveTermsRepository
+{
+    Task<EmployeeLeaveTerms?> GetAsync(long employeeId, CancellationToken cancellationToken = default);
+    Task<SaveResult> SetAsync(long employeeId, decimal? annualLeaveDays, long? userId, CancellationToken cancellationToken = default);
+}
+
+public sealed class EmployeeLeaveTermsRepository : IEmployeeLeaveTermsRepository
+{
+    private readonly ISqlExecutor _sql;
+
+    public EmployeeLeaveTermsRepository(ISqlExecutor sql) => _sql = sql;
+
+    public Task<EmployeeLeaveTerms?> GetAsync(long employeeId, CancellationToken cancellationToken = default)
+    {
+        var p = PayrollRunRepository.Envelope("GET");
+        p.Add("@Id", employeeId, DbType.Int64);
+        return _sql.QuerySingleOrDefaultAsync<EmployeeLeaveTerms>(StoredProcedure.EmployeeLeaveTermsManage, p, cancellationToken);
+    }
+
+    public async Task<SaveResult> SetAsync(long employeeId, decimal? annualLeaveDays, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = PayrollRunRepository.Envelope("SET");
+        p.Add("@Id", employeeId, DbType.Int64);
+        p.Add("@AnnualLeaveDays", annualLeaveDays, DbType.Decimal, precision: 6, scale: 2);
+        p.Add("@UserId", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.EmployeeLeaveTermsManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, employeeId);
     }
 }

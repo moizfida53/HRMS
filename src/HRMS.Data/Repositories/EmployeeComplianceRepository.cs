@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using HRMS.Data.Abstractions;
 using HRMS.Data.Infrastructure;
@@ -74,6 +74,9 @@ public sealed class EmployeeComplianceRepository : IEmployeeComplianceRepository
         parameters.Add("@MolFileNumber", NullIfEmpty(entity.MolFileNumber), DbType.String, size: 50);
         parameters.Add("@WorkPermitNumber", NullIfEmpty(entity.WorkPermitNumber), DbType.String, size: 50);
         parameters.Add("@WorkPermitExpiryDate", entity.WorkPermitExpiryDate, DbType.Date);
+        parameters.Add("@WorkPermitSalary", entity.WorkPermitSalary, DbType.Decimal, precision: 12, scale: 3);
+        parameters.Add("@WorkPermitDesignation", NullIfEmpty(entity.WorkPermitDesignation), DbType.String, size: 150);
+        parameters.Add("@WorkPermitDesignationAr", NullIfEmpty(entity.WorkPermitDesignationAr), DbType.String, size: 150);
 
         parameters.Add("@PaciNumber", NullIfEmpty(entity.PaciNumber), DbType.String, size: 20);
         parameters.Add("@PaciAddress", NullIfEmpty(entity.PaciAddress), DbType.String, size: 300);

@@ -1,4 +1,4 @@
-using HRMS.Data.Abstractions;
+﻿using HRMS.Data.Abstractions;
 using HRMS.Data.Infrastructure;
 using HRMS.Data.Repositories;
 using Microsoft.Extensions.Configuration;
@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<IIssuingAuthorityRepository, IssuingAuthorityRepository>();
         services.AddScoped<IEmployeeAuditRepository, EmployeeAuditRepository>();
         services.AddScoped<IEmployeePayrollCalendarRepository, EmployeePayrollCalendarRepository>();
+        services.AddScoped<IEmployeeLeaveTermsRepository, EmployeeLeaveTermsRepository>();
 
         // ---- Dashboard ----
         services.AddScoped<IDashboardRepository, DashboardRepository>();

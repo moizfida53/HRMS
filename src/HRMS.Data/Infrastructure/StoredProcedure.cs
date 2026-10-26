@@ -1,4 +1,4 @@
-namespace HRMS.Data.Infrastructure;
+﻿namespace HRMS.Data.Infrastructure;
 
 /// <summary>
 /// Every stored procedure the application is allowed to call, named once.
@@ -44,6 +44,7 @@ public static class StoredProcedure
 
     /// <summary>Each employee's payroll calendar (db/60): GET / SET (logged) / COUNTS per calendar.</summary>
     public const string EmployeePayrollCalendarManage = "Employee.usp_EmployeePayrollCalendar_Manage";
+    public const string EmployeeLeaveTermsManage = "Employee.usp_EmployeeLeaveTerms_Manage";
 
     /// <summary>1:many child list of the employee record, scoped by @EmployeeId - no company-wide paging.</summary>
     public const string EmployeeDependentManage = "Employee.usp_EmployeeDependent_Manage";
