@@ -559,7 +559,7 @@ BEGIN
                          AND ((r.ApprovalLevel = 1 AND (r.ManagerUserId = @UserId OR @CanApproveL1 = 1))
                               OR (r.ApprovalLevel = 2 AND @CanApproveL2 = 1)))
                      OR (@StatusFilter = 'ONLEAVE' AND r.Status = 'APPROVED' AND @Today BETWEEN r.StartDate AND ISNULL(r.ActualEndDate, r.EndDate))
-                     OR (@StatusFilter = 'UPCOMING' AND r.Status = 'APPROVED' AND r.StartDate > @Today)
+                     OR (@StatusFilter = 'UPCOMING' AND r.Status = 'APPROVED' AND r.StartDate > @Today AND r.StartDate <= DATEADD(DAY, 7, @Today))   -- the next 7 days, as the "Starting soon" figure
                      OR r.Status = @StatusFilter)
               AND   (@Search IS NULL OR r.RequestNo LIKE N'%' + @Search + N'%' OR e.FirstName LIKE N'%' + @Search + N'%'
                      OR e.LastName LIKE N'%' + @Search + N'%' OR e.EmployeeCode LIKE N'%' + @Search + N'%'
