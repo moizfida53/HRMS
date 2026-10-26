@@ -48,8 +48,6 @@ public sealed class LeaveSettlementModel
     public required LeaveRequest Request { get; init; }
     public required LeaveSettlement Settlement { get; init; }
     public IReadOnlyList<LeavePayItem> Items { get; init; } = Array.Empty<LeavePayItem>();
-    /// <summary>Inside the request popup: the employee and dates are already shown above.</summary>
-    public bool Embedded { get; init; }
 }
 
 public sealed class LeavePageModel
@@ -90,8 +88,6 @@ public sealed class LeaveRequestDetailModel
     public required LeaveRights Rights { get; init; }
     public IReadOnlyList<LeaveHistoryEntry> History { get; init; } = Array.Empty<LeaveHistoryEntry>();
     public LeaveBalance? Balance { get; init; }
-    /// <summary>db/86: the leave salary settlement, shown in the popup (HR with LEAVE_SETTLE, approved leave).</summary>
-    public LeaveSettlementModel? Settlement { get; init; }
 }
 
 public sealed class LeaveBalancesPageModel

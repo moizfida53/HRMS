@@ -9,6 +9,7 @@
      data-urls-reject="@Url.Action("Reject", "Leave")"
      data-urls-cancel="@Url.Action("Cancel", "Leave")"
      data-urls-return="@Url.Action("Return", "Leave")"
+     data-urls-settlement="@Url.Action("Settlement", "Leave")"
      data-urls-settle="@Url.Action("Settle", "Leave")"
      data-urls-ledger="@Url.Action("Ledger", "Leave")"
      data-urls-adjust="@Url.Action("Adjust", "Leave")"
@@ -46,7 +47,7 @@
 
 @* ---- one request ---- *@
 <div class="modal fade" id="lv-detail-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-detail-title">
-    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content" data-lv-detail-body></div>
     </div>
 </div>
@@ -120,3 +121,16 @@
     </div>
 </div>
 @Html.AntiForgeryToken()
+
+@* ---- db/86: leave salary settlement (row menu) - the form comes from the server ---- *@
+<div class="modal fade" id="lv-settle-modal" tabindex="-1" aria-hidden="true" aria-labelledby="lv-settle-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="lv-settle-title">@Html.Icon("wallet", 18)<span class="ms-2">@L["lv.settlement_title"]</span></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="lv-settle-slot" data-lv-settle-body></div>
+        </div>
+    </div>
+</div>

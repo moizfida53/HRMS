@@ -529,7 +529,7 @@
   }
 }
 
-.modal-body:has(> .lv-detail__grid), [data-lv-detail], [data-lv-ledger-of], [data-lv-settle-body], [data-lv-form-body] { container-type: inline-size; container-name: content; }
+.modal-body:has(> .lv-detail__grid), [data-lv-detail], [data-lv-ledger-of], [data-lv-settle-body], [data-lv-form-body], .lv-dv { container-type: inline-size; container-name: content; }
 
 // approval route: manager -> HR
 .lv-steps {
@@ -590,6 +590,209 @@
   &__comment { font-size: $fs-sm; color: $ink-600; font-style: italic; overflow-wrap: anywhere; }
 }
 
+// ------------------------------------------------------ request popup ----
+// header with the type's colour; "at a glance" band (from -> to -> back at
+// work, then the day figures); two cards side by side: details and history
+.lv-dv__head {
+  gap: space("3");
+  align-items: center;
+  border-top: 4px solid var(--lv-color, #{$blue-600});
+}
+.lv-dv__icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-md;
+  background: color-mix(in srgb, var(--lv-color, #{$blue-600}) 14%, #{$white});
+  color: var(--lv-color, #{$blue-600});
+}
+.lv-dv__title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lv-dv__sub { display: flex; flex-wrap: wrap; align-items: center; gap: space("2"); font-size: $fs-sm; color: $ink-500; }
+
+.lv-dv {
+  display: flex;
+  flex-direction: column;
+  gap: space("3");
+  background: $line-100;
+}
+
+.lv-dv__label { @include label-caps; font-size: $fs-xs; color: $ink-500; }
+
+.lv-dv__glance {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: space("3");
+  padding: space("3");
+  border: 1px solid $line-200;
+  border-radius: $radius-lg;
+  background: $white;
+  box-shadow: $shadow-xs;
+
+  @include cq-down("md") { grid-template-columns: minmax(0, 1fr); }
+}
+
+.lv-dv__period {
+  display: flex;
+  align-items: stretch;
+  gap: space("2");
+  min-width: 0;
+}
+.lv-dv__date {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: space("2") space("3");
+  border-radius: $radius;
+  background: $blue-050;
+
+  strong { font-size: $fs-md; color: $ink-900; white-space: nowrap; }
+  small { font-size: $fs-xs; color: $ink-500; @include truncate; }
+
+  &--back { background: $green-050; strong { color: $green-700; } }
+}
+.lv-dv__arrow { display: grid; place-items: center; color: $ink-400; }
+[dir="rtl"] .lv-dv__arrow svg { transform: scaleX(-1); }
+
+.lv-dv__figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: space("2");
+}
+.lv-dv__fig {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: space("2") space("3");
+  border: 1px solid $line-200;
+  border-radius: $radius;
+
+  strong { font-size: $fs-lg; line-height: 1.2; font-variant-numeric: tabular-nums; color: $ink-900; }
+  small { font-size: $fs-xs; color: $ink-500; @include truncate; }
+
+  &.is-paid { border-color: color.adjust($green-600, $alpha: -0.65); strong { color: $green-700; } }
+  &.is-unpaid { border-color: color.adjust($amber-600, $alpha: -0.5); background: $amber-050; strong { color: $amber-700; } }
+  &.is-zero strong { color: $ink-400; }
+}
+
+@include cq-down("sm") {
+  .lv-dv__period { flex-direction: column; }
+  .lv-dv__arrow { display: none; }
+  .lv-dv__figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.lv-dv__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: space("3");
+  align-items: start;
+
+  @include cq-down("sm") { grid-template-columns: minmax(0, 1fr); }
+}
+
+.lv-dv__card {
+  min-width: 0;
+  padding: space("3") space("4");
+  border: 1px solid $line-200;
+  border-radius: $radius-lg;
+  background: $white;
+  box-shadow: $shadow-xs;
+
+  .lv-steps { margin-bottom: space("3"); }
+}
+.lv-dv__card-title {
+  margin: 0 0 space("2");
+  @include label-caps;
+  font-size: $fs-xs;
+  color: $ink-500;
+}
+
+// label | value rows
+.lv-dv__list {
+  margin: 0;
+
+  > div {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: space("2");
+    padding: space("2") 0;
+    border-top: 1px solid $line-100;
+    &:first-child { border-top: 0; padding-top: 0; }
+  }
+  dt { font-size: $fs-sm; font-weight: $fw-medium; color: $ink-500; }
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px space("2");
+    margin: 0;
+    min-width: 0;
+    font-size: $fs-sm;
+    color: $ink-800;
+    small { flex-basis: 100%; font-size: $fs-xs; color: $ink-500; }
+  }
+
+  @include cq-down("xs") {
+    > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  }
+}
+.lv-dv__text { white-space: pre-line; overflow-wrap: anywhere; }
+.lv-dv__money { font-variant-numeric: tabular-nums; }
+.lv-dv__doc { justify-content: space-between; }
+.lv-dv__doc-name { display: inline-flex; align-items: center; gap: space("1"); min-width: 0; span { @include truncate; } }
+.lv-dv__doc-links { display: inline-flex; gap: space("3"); a { font-weight: $fw-medium; } }
+
+// history: compact vertical list with a coloured dot per action
+.lv-dv__history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 0 0 space("3") space("4");
+
+    // the line down to the next entry
+    &::after {
+      content: "";
+      position: absolute;
+      inset-inline-start: 4px;
+      top: 14px;
+      bottom: 2px;
+      width: 2px;
+      background: $line-200;
+    }
+    &:last-child { padding-bottom: 0; &::after { display: none; } }
+
+    &::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: 0;
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid $blue-600;
+      background: $white;
+    }
+    &.is-approved::before, &.is-manager_approved::before, &.is-returned::before { border-color: $green-600; background: $green-050; }
+    &.is-rejected::before, &.is-cancelled::before { border-color: $red-600; background: $red-050; }
+    &.is-unpaid::before, &.is-settled::before { border-color: $amber-600; background: $amber-050; }
+  }
+}
+.lv-dv__history-row { display: flex; justify-content: space-between; gap: space("2"); }
+.lv-dv__history-what { font-size: $fs-sm; font-weight: $fw-semibold; color: $ink-800; }
+.lv-dv__history-row time { flex: 0 0 auto; font-size: $fs-xs; color: $ink-500; }
+.lv-dv__history-by { font-size: $fs-xs; color: $ink-500; }
+.lv-dv__history-note { font-size: $fs-xs; color: $ink-600; font-style: italic; overflow-wrap: anywhere; }
+
 // row menu (three dots): cancel the request, mark the return
 .lv-more {
   display: inline-block;
@@ -614,73 +817,8 @@
   }
 }
 
-// what happened to a request, left to right on one line (wraps on a phone)
-.lv-timeline {
-  display: flex;
-  gap: 0;
-  margin: 0;
-  padding: 0 0 space("2");
-  list-style: none;
-  overflow-x: auto;
-  @include thin-scrollbar;
-
-  &__step {
-    position: relative;
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 150px;
-    max-width: 240px;
-    padding: space("4") space("4") 0 0;
-
-    // the line to the next step
-    &::after {
-      content: "";
-      position: absolute;
-      top: 5px;
-      inset-inline: 12px 0;
-      height: 2px;
-      background: $line-200;
-    }
-    &:last-child::after { display: none; }
-  }
-
-  &__dot {
-    position: absolute;
-    top: 0;
-    inset-inline-start: 0;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid $blue-600;
-    background: $white;
-  }
-  &__step--approved &__dot, &__step--manager_approved &__dot, &__step--returned &__dot { border-color: $green-600; background: $green-050; }
-  &__step--rejected &__dot, &__step--cancelled &__dot { border-color: $red-600; background: $red-050; }
-  &__step--unpaid &__dot, &__step--settled &__dot { border-color: $amber-600; background: $amber-050; }
-
-  &__what { font-weight: $fw-semibold; color: $ink-800; font-size: $fs-sm; }
-  &__meta { font-size: $fs-xs; color: $ink-500; }
-  &__comment { font-size: $fs-xs; color: $ink-600; font-style: italic; @include clamp-lines(2); }
-
-  @include cq-down("sm") {
-    flex-wrap: wrap;
-    row-gap: space("3");
-    &__step { min-width: 0; flex: 1 1 45%; }
-  }
-}
-
-// the settlement inside the request popup
-.lv-detail__settle {
-  margin-top: space("4");
-  padding: space("4");
-  border: 1px solid $line-200;
-  border-radius: $radius-lg;
-  background: color.adjust($blue-050, $lightness: 1%);
-
-  .lv-detail__sub { margin-top: 0; }
-}
+.lv-settle-slot { display: flex; flex-direction: column; min-height: 0; }
+.lv-settle-form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; > .modal-body { overflow-y: auto; } }
 
 .lv-settle__actions {
   display: flex;

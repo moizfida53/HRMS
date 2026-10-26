@@ -1,0 +1,15 @@
+@model LeaveSettlementModel
+@* The settlement popup's body and buttons (loaded from the row menu) - a new form each time. *@
+<form class="lv-settle-form" data-lv-settle-form novalidate>
+    <div class="modal-body">
+        @await Html.PartialAsync("~/Views/Leave/_Settlement.cshtml", Model)
+    </div>
+    <div class="modal-footer lv-settle__actions">
+        <span class="field-validation-error" data-lv-settle-error></span>
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+        @if (!Model.Settlement.CashInPayroll)
+        {
+            <button type="submit" class="btn btn-primary" data-lv-settle-save>@Html.Icon("check", 15)<span>@L["lv.save_settlement"]</span></button>
+        }
+    </div>
+</form>

@@ -3,7 +3,8 @@
    ---------------------------------------------------------------------
    Run after 87. Safe to re-run. Labels only (English + Arabic): the page
    renamed to Leave Management, the leave / paid / unpaid days columns and
-   the row menu (cancel the request, mark the return).
+   the row menu (settlement, cancel the request, mark the return) and
+   the request popup.
    ===================================================================== */
 SET NOCOUNT ON;
 GO
@@ -15,7 +16,9 @@ FROM  (VALUES
         ('lv.leave_days', 'lv', N'Leave days', N'أيام الإجازة', NULL),
         ('lv.more_actions', 'lv', N'More actions', N'إجراءات أخرى', NULL),
         ('lv.more_actions_named', 'lv', N'More actions for {0}', N'إجراءات أخرى لـ {0}', NULL),
-        ('lv.mark_return', 'lv', N'Mark return', N'تسجيل العودة للعمل', NULL)
+        ('lv.mark_return', 'lv', N'Mark return', N'تسجيل العودة للعمل', NULL),
+        ('lv.details', 'lv', N'Details', N'التفاصيل', NULL),
+        ('lv.back_at_work', 'lv', N'Back at work', N'العودة للعمل', NULL)
       ) AS s (LabelKey, Module, EnglishText, ArabicText, SourceText)
 WHERE NOT EXISTS (SELECT 1 FROM [Core].[UiLabels] AS l WHERE l.LabelKey = s.LabelKey COLLATE DATABASE_DEFAULT AND l.Deleted = 0);
 

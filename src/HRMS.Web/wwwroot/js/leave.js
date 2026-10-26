@@ -323,7 +323,6 @@
         modal("lv-detail-modal").show();
         HRMS.getHtml(withQuery(sharedUrl("detail"), { id: id })).then(function (html) {
             detailBody.innerHTML = html;
-            wireSettle(detailBody);
         }).catch(function (error) { failed(detailBody, error); });
     }
 
@@ -397,8 +396,18 @@
         });
     }
 
-    // db/86: leave salary settlement (inside the request popup) - with the monthly
-    // payroll, or in cash before the leave
+    // db/86: leave salary settlement (row menu) - with the monthly payroll, or in
+    // cash before the leave
+    var settleSlot = $("[data-lv-settle-body]");
+    function openSettle(id) {
+        if (!settleSlot) { return; }
+        settleSlot.innerHTML = '<div class="modal-body">' + loading() + "</div>";
+        modal("lv-settle-modal").show();
+        HRMS.getHtml(withQuery(sharedUrl("settlement"), { id: id })).then(function (html) {
+            settleSlot.innerHTML = html;
+            wireSettle(settleSlot);
+        }).catch(function (error) { failed(settleSlot, error); });
+    }
     function wireSettle(root) {
         var f = $("[data-lv-settle-form]", root);
         if (!f) { return; }
@@ -430,7 +439,7 @@
             if (mode.value !== "CASH") { fd.delete("amount"); fd.delete("paidOn"); }
             HRMS.post(sharedUrl("settle"), fd).then(function (res) {
                 if (answer(res)) {
-                    if (current) { openDetail(current.id); }
+                    modal("lv-settle-modal").hide();
                     refreshAll();
                 }
             }).catch(oops).then(function () { busy(submit, false); });
@@ -456,6 +465,7 @@
             openForm(b.getAttribute("data-mode") || "my", current.id);
             return;
         }
+        if (act === "settle") { openSettle(current.id); return; }
         if (act === "return") {
             var date = $("[data-lv-return-date]");
             date.value = new Date().toISOString().slice(0, 10);

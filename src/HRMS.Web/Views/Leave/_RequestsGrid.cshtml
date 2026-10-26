@@ -38,6 +38,7 @@ else
                     var emp = LeaveFormat.Name(L, q.EmployeeName, q.EmployeeArabicName);
                     var canCancel = r.CanCancel(q);
                     var canReturn = r.CanRecordReturn(q);
+                    var canSettle = r.CanSettleRequest(q);
                     <tr data-lv-row="@q.LeaveRequestId" data-level="@q.ApprovalLevel" data-start="@q.StartDate.ToString("yyyy-MM-dd")" class="lv-row lv-row--@q.Status.ToLowerInvariant()">
                         @if (!my)
                         {
@@ -69,12 +70,16 @@ else
                             <button type="button" class="btn-icon" data-lv-act="view" title="@L["lv.view"]" aria-label="@L["lv.view_named", q.RequestNo]">@Html.Icon("eye", 15)</button>
                             @* more actions: cancel the request, mark the return to work *@
                             <div class="dropdown lv-more">
-                                <button type="button" class="btn-icon" data-bs-toggle="dropdown" aria-expanded="false" disabled="@(canCancel || canReturn ? null : "disabled")"
+                                <button type="button" class="btn-icon" data-bs-toggle="dropdown" aria-expanded="false" disabled="@(canCancel || canReturn || canSettle ? null : "disabled")"
                                         data-bs-popper-config='{"strategy":"fixed"}' title="@L["lv.more_actions"]" aria-label="@L["lv.more_actions_named", q.RequestNo]">@Html.Icon("more", 15)</button>
                                 <ul class="dropdown-menu dropdown-menu-end lv-more__menu">
                                     @if (canReturn)
                                     {
                                         <li><button type="button" class="dropdown-item" data-lv-act="return">@Html.Icon("user-check", 15)<span>@L["lv.mark_return"]</span></button></li>
+                                    }
+                                    @if (canSettle)
+                                    {
+                                        <li><button type="button" class="dropdown-item" data-lv-act="settle">@Html.Icon("wallet", 15)<span>@L["lv.settlement"]</span></button></li>
                                     }
                                     @if (canCancel)
                                     {
