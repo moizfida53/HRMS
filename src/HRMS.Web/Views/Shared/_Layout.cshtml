@@ -190,7 +190,7 @@
                     @if (canLeave)
                     {
                         <a class="hrms-nav-link @(openLeave && leavePage == "requests" ? "is-active" : null)" asp-controller="Leave" asp-action="Index">
-                            @Html.Icon("calendar")<span>@L["lv.leave_requests"]</span>
+                            @Html.Icon("calendar")<span>@L["lv.leave_management"]</span>
                         </a>
                     }
                     @if (canLeaveBalances)

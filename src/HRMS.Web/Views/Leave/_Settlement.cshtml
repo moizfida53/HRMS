@@ -10,7 +10,9 @@
 }
 <input type="hidden" name="id" value="@q.LeaveRequestId" />
 <div class="lv-settle">
-    @* the leave and its days *@
+    @* the leave and its days (already shown above when inside the request popup) *@
+    @if (!Model.Embedded)
+    {
     <div class="lv-settle__head">
         <div>
             <strong>@LeaveFormat.Name(L, q.EmployeeName, q.EmployeeArabicName)</strong>
@@ -25,6 +27,7 @@
             }
         </div>
     </div>
+    }
 
     <dl class="lv-settle__figures">
         <div><dt>@L["lv.monthly_salary"]</dt><dd>@LeaveFormat.Kwd(s.MonthlySalary)</dd></div>

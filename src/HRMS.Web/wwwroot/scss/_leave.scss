@@ -72,8 +72,74 @@
 }
 
 // ------------------------------------------------------------- the lists ----
+// ------------------------------------------------- status buttons ----
+// the request status as a row of buttons (one always chosen); scrolls sideways
+// on a phone instead of wrapping into many lines
+.lv-status-bar {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.lv-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space("2");
+
+  @include cq-down("sm") {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: space("1");
+    @include thin-scrollbar;
+  }
+}
+
+.lv-status-chip {
+  --chip: #{$blue-600};
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  padding: 6px space("3");
+  border: 1px solid $line-300;
+  border-radius: $radius-pill;
+  background: $white;
+  color: $ink-700;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+  white-space: nowrap;
+  cursor: pointer;
+  @include motion(background-color, border-color, color, box-shadow);
+
+  &::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--chip); opacity: .55; }
+
+  &--mine, &--pending { --chip: #{$amber-600}; }
+  &--onleave, &--upcoming { --chip: #{$blue-500}; }
+  &--approved { --chip: #{$green-600}; }
+  &--rejected { --chip: #{$red-600}; }
+  &--cancelled, &--all { --chip: #{$ink-400}; }
+
+  &:hover { border-color: var(--chip); color: $ink-900; }
+  &:focus-visible { @include focus-ring; }
+
+  &.is-active {
+    border-color: var(--chip);
+    background: var(--chip);
+    color: $white;
+    box-shadow: $shadow-xs;
+    &::before { background: $white; opacity: 1; }
+  }
+}
+
 .lv-table {
   .lv-row { cursor: pointer; }
+
+  // leave / paid / unpaid days
+  .lv-num { font-variant-numeric: tabular-nums; }
+  .lv-num--paid { color: $green-700; }
+  .lv-num--unpaid { color: $amber-700; font-weight: $fw-semibold; }
+  .lv-num--zero { color: $ink-400; }
+
+  .hrms-table__actions { white-space: nowrap; }
   .lv-row--cancelled td, .lv-row--rejected td { color: $ink-400; }
   tr.is-inactive td, tr.is-past td { color: $ink-400; }
   tr.is-inactive .lv-swatch { opacity: .45; }
@@ -522,6 +588,110 @@
 
   &__what { font-weight: $fw-semibold; color: $ink-800; }
   &__comment { font-size: $fs-sm; color: $ink-600; font-style: italic; overflow-wrap: anywhere; }
+}
+
+// row menu (three dots): cancel the request, mark the return
+.lv-more {
+  display: inline-block;
+
+  .btn-icon:disabled { opacity: .35; cursor: default; }
+
+  &__menu {
+    min-width: 190px;
+    padding: space("1");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    box-shadow: $shadow-md;
+    font-size: $fs-sm;
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: space("2");
+      padding: space("2") space("3");
+      border-radius: $radius-sm;
+    }
+  }
+}
+
+// what happened to a request, left to right on one line (wraps on a phone)
+.lv-timeline {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0 0 space("2");
+  list-style: none;
+  overflow-x: auto;
+  @include thin-scrollbar;
+
+  &__step {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 150px;
+    max-width: 240px;
+    padding: space("4") space("4") 0 0;
+
+    // the line to the next step
+    &::after {
+      content: "";
+      position: absolute;
+      top: 5px;
+      inset-inline: 12px 0;
+      height: 2px;
+      background: $line-200;
+    }
+    &:last-child::after { display: none; }
+  }
+
+  &__dot {
+    position: absolute;
+    top: 0;
+    inset-inline-start: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid $blue-600;
+    background: $white;
+  }
+  &__step--approved &__dot, &__step--manager_approved &__dot, &__step--returned &__dot { border-color: $green-600; background: $green-050; }
+  &__step--rejected &__dot, &__step--cancelled &__dot { border-color: $red-600; background: $red-050; }
+  &__step--unpaid &__dot, &__step--settled &__dot { border-color: $amber-600; background: $amber-050; }
+
+  &__what { font-weight: $fw-semibold; color: $ink-800; font-size: $fs-sm; }
+  &__meta { font-size: $fs-xs; color: $ink-500; }
+  &__comment { font-size: $fs-xs; color: $ink-600; font-style: italic; @include clamp-lines(2); }
+
+  @include cq-down("sm") {
+    flex-wrap: wrap;
+    row-gap: space("3");
+    &__step { min-width: 0; flex: 1 1 45%; }
+  }
+}
+
+// the settlement inside the request popup
+.lv-detail__settle {
+  margin-top: space("4");
+  padding: space("4");
+  border: 1px solid $line-200;
+  border-radius: $radius-lg;
+  background: color.adjust($blue-050, $lightness: 1%);
+
+  .lv-detail__sub { margin-top: 0; }
+}
+
+.lv-settle__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space("2");
+  margin-top: space("3");
+
+  .field-validation-error { margin-inline-end: auto; }
+  @include cq-down("sm") { .btn { flex: 1 1 100%; justify-content: center; } }
 }
 
 // -------------------------------------------------------- balance cards ----

@@ -12938,8 +12938,131 @@ html.hrms-embed .hrms-content {
   }
 }
 
+.lv-status-bar {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.lv-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+@container content (max-width: 639.98px) {
+  .lv-status-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: #d0d5dd transparent;
+  }
+  .lv-status-chips::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .lv-status-chips::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .lv-status-chips::-webkit-scrollbar-thumb {
+    background-color: #d0d5dd;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .lv-status-chips::-webkit-scrollbar-thumb:hover {
+    background-color: #b4bcc8;
+  }
+}
+
+.lv-status-chip {
+  --chip: #1d5fbf;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 6px 0.75rem;
+  border: 1px solid #d0d5dd;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #344054;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lv-status-chip {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+.lv-status-chip::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--chip);
+  opacity: 0.55;
+}
+.lv-status-chip--mine, .lv-status-chip--pending {
+  --chip: #d97706;
+}
+.lv-status-chip--onleave, .lv-status-chip--upcoming {
+  --chip: #3373d6;
+}
+.lv-status-chip--approved {
+  --chip: #16a34a;
+}
+.lv-status-chip--rejected {
+  --chip: #dc2626;
+}
+.lv-status-chip--cancelled, .lv-status-chip--all {
+  --chip: #98a2b3;
+}
+.lv-status-chip:hover {
+  border-color: var(--chip);
+  color: #101828;
+}
+.lv-status-chip:focus-visible:focus {
+  outline: none;
+}
+.lv-status-chip:focus-visible:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(29, 95, 191, 0.28);
+  border-color: #1d5fbf;
+}
+.lv-status-chip.is-active {
+  border-color: var(--chip);
+  background: var(--chip);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+.lv-status-chip.is-active::before {
+  background: #ffffff;
+  opacity: 1;
+}
+
 .lv-table .lv-row {
   cursor: pointer;
+}
+.lv-table .lv-num {
+  font-variant-numeric: tabular-nums;
+}
+.lv-table .lv-num--paid {
+  color: #0b7a3b;
+}
+.lv-table .lv-num--unpaid {
+  color: #b54708;
+  font-weight: 600;
+}
+.lv-table .lv-num--zero {
+  color: #98a2b3;
+}
+.lv-table .hrms-table__actions {
+  white-space: nowrap;
 }
 .lv-table .lv-row--cancelled td, .lv-table .lv-row--rejected td {
   color: #98a2b3;
@@ -13613,6 +13736,157 @@ html.hrms-embed .hrms-content {
   color: #475467;
   font-style: italic;
   overflow-wrap: anywhere;
+}
+
+.lv-more {
+  display: inline-block;
+}
+.lv-more .btn-icon:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.lv-more__menu {
+  min-width: 190px;
+  padding: 0.25rem;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+  font-size: 0.8rem;
+}
+.lv-more__menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 5px;
+}
+
+.lv-timeline {
+  display: flex;
+  gap: 0;
+  margin: 0;
+  padding: 0 0 0.5rem;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d0d5dd transparent;
+}
+.lv-timeline::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.lv-timeline::-webkit-scrollbar-track {
+  background: transparent;
+}
+.lv-timeline::-webkit-scrollbar-thumb {
+  background-color: #d0d5dd;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.lv-timeline::-webkit-scrollbar-thumb:hover {
+  background-color: #b4bcc8;
+}
+.lv-timeline__step {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+  max-width: 240px;
+  padding: 1rem 1rem 0 0;
+}
+.lv-timeline__step::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  inset-inline: 12px 0;
+  height: 2px;
+  background: #e4e7ec;
+}
+.lv-timeline__step:last-child::after {
+  display: none;
+}
+.lv-timeline__dot {
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #1d5fbf;
+  background: #ffffff;
+}
+.lv-timeline__step--approved .lv-timeline__dot, .lv-timeline__step--manager_approved .lv-timeline__dot, .lv-timeline__step--returned .lv-timeline__dot {
+  border-color: #16a34a;
+  background: #ecfdf3;
+}
+.lv-timeline__step--rejected .lv-timeline__dot, .lv-timeline__step--cancelled .lv-timeline__dot {
+  border-color: #dc2626;
+  background: #fef3f2;
+}
+.lv-timeline__step--unpaid .lv-timeline__dot, .lv-timeline__step--settled .lv-timeline__dot {
+  border-color: #d97706;
+  background: #fffaeb;
+}
+.lv-timeline__what {
+  font-weight: 600;
+  color: #1d2939;
+  font-size: 0.8rem;
+}
+.lv-timeline__meta {
+  font-size: 0.725rem;
+  color: #667085;
+}
+.lv-timeline__comment {
+  font-size: 0.725rem;
+  color: #475467;
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@container content (max-width: 639.98px) {
+  .lv-timeline {
+    flex-wrap: wrap;
+    row-gap: 0.75rem;
+  }
+  .lv-timeline__step {
+    min-width: 0;
+    flex: 1 1 45%;
+  }
+}
+
+.lv-detail__settle {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  background: rgb(96.6352941176%, 97.9294117647%, 99.4823529412%);
+}
+.lv-detail__settle .lv-detail__sub {
+  margin-top: 0;
+}
+
+.lv-settle__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.lv-settle__actions .field-validation-error {
+  margin-inline-end: auto;
+}
+@container content (max-width: 639.98px) {
+  .lv-settle__actions .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
 }
 
 .lv-cards {

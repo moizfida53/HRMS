@@ -323,6 +323,7 @@
         modal("lv-detail-modal").show();
         HRMS.getHtml(withQuery(sharedUrl("detail"), { id: id })).then(function (html) {
             detailBody.innerHTML = html;
+            wireSettle(detailBody);
         }).catch(function (error) { failed(detailBody, error); });
     }
 
@@ -396,51 +397,39 @@
         });
     }
 
-    // db/86: leave salary settlement - with the monthly payroll, or in cash before the leave
-    var settleForm = $("[data-lv-settle-form]");
-    var settleBody = settleForm ? $("[data-lv-settle-body]", settleForm) : null;
-    function openSettle(id) {
-        if (!settleForm) { return; }
-        settleBody.innerHTML = loading();
-        $("[data-lv-settle-error]", settleForm).textContent = "";
-        $("[data-lv-settle-save]", settleForm).disabled = true;
-        modal("lv-settle-modal").show();
-        HRMS.getHtml(withQuery(sharedUrl("settlement"), { id: id })).then(function (html) {
-            settleBody.innerHTML = html;
-            var fieldset = $("fieldset", settleBody);
-            $("[data-lv-settle-save]", settleForm).disabled = !!(fieldset && fieldset.disabled);
-            var cash = $("[data-lv-st-cash]", settleBody), amount = $("[data-lv-st-amount]", settleBody);
-            var sync = function () {
-                var on = $("[data-lv-st-mode]:checked", settleBody);
-                cash.hidden = !(on && on.value === "CASH");
-            };
-            $all("[data-lv-st-mode]", settleBody).forEach(function (r) {
-                r.addEventListener("change", function () { sync(); if (!cash.hidden) { amount.focus(); } });
-            });
-            var reset = $("[data-lv-st-reset]", settleBody);
-            if (reset) { reset.addEventListener("click", function () { amount.value = amount.getAttribute("data-suggested"); amount.focus(); }); }
-            sync();
-        }).catch(function (error) { failed(settleBody, error); });
-    }
-    if (settleForm) {
-        settleForm.addEventListener("submit", function (event) {
+    // db/86: leave salary settlement (inside the request popup) - with the monthly
+    // payroll, or in cash before the leave
+    function wireSettle(root) {
+        var f = $("[data-lv-settle-form]", root);
+        if (!f) { return; }
+        var cash = $("[data-lv-st-cash]", f), amount = $("[data-lv-st-amount]", f);
+        var sync = function () {
+            var on = $("[data-lv-st-mode]:checked", f);
+            cash.hidden = !(on && on.value === "CASH");
+        };
+        $all("[data-lv-st-mode]", f).forEach(function (r) {
+            r.addEventListener("change", function () { sync(); if (!cash.hidden) { amount.focus(); } });
+        });
+        var reset = $("[data-lv-st-reset]", f);
+        if (reset) { reset.addEventListener("click", function () { amount.value = amount.getAttribute("data-suggested"); amount.focus(); }); }
+        sync();
+        f.addEventListener("submit", function (event) {
             event.preventDefault();
-            var error = $("[data-lv-settle-error]", settleForm);
+            var error = $("[data-lv-settle-error]", f);
             error.textContent = "";
-            var mode = $("[data-lv-st-mode]:checked", settleBody);
+            var mode = $("[data-lv-st-mode]:checked", f);
             if (!mode) { return; }
             if (mode.value === "CASH") {
-                var amount = $("[data-lv-st-amount]", settleBody), date = $("[data-lv-st-date]", settleBody);
+                var date = $("[data-lv-st-date]", f);
                 if (!(Number(amount.value) > 0)) { error.textContent = HRMS.t("js.lv_cash_amount_needed", "Enter the amount paid in cash."); amount.focus(); return; }
                 if (!date.value) { error.textContent = HRMS.t("js.lv_cash_date_needed", "Enter the day the cash is paid."); date.focus(); return; }
             }
-            var submit = $("[data-lv-settle-save]", settleForm);
+            var submit = $("[data-lv-settle-save]", f);
             busy(submit, true);
-            var fd = new FormData(settleForm);
+            var fd = new FormData(f);
             if (mode.value !== "CASH") { fd.delete("amount"); fd.delete("paidOn"); }
             HRMS.post(sharedUrl("settle"), fd).then(function (res) {
                 if (answer(res)) {
-                    modal("lv-settle-modal").hide();
                     if (current) { openDetail(current.id); }
                     refreshAll();
                 }
@@ -456,7 +445,7 @@
         var row = b.closest("[data-lv-row]");
         var detail = b.closest(".modal-content") ? $("[data-lv-detail]", b.closest(".modal-content")) : null;
         if (row) {
-            current = { id: row.getAttribute("data-lv-row"), level: row.getAttribute("data-level") };
+            current = { id: row.getAttribute("data-lv-row"), level: row.getAttribute("data-level"), start: row.getAttribute("data-start") };
         } else if (detail) {
             current = { id: detail.getAttribute("data-lv-detail"), level: detail.getAttribute("data-level"), start: detail.getAttribute("data-start") };
         }
@@ -467,7 +456,6 @@
             openForm(b.getAttribute("data-mode") || "my", current.id);
             return;
         }
-        if (act === "settle") { openSettle(current.id); return; }
         if (act === "return") {
             var date = $("[data-lv-return-date]");
             date.value = new Date().toISOString().slice(0, 10);
@@ -594,19 +582,38 @@
                 markKpi();
             }).catch(function () { kpiSlot.innerHTML = ""; });
         };
+        var chips = $("[data-lv-status-chips]", page);
+        var hasStatus = function (value) { return !!(chips && $('[data-lv-status="' + value + '"]', chips)); };
         var markKpi = function () {
             $all("[data-lv-kpi]", kpiSlot).forEach(function (k) {
                 var on = k.getAttribute("data-lv-kpi") === status.value;
                 k.classList.toggle("is-active", on);
                 k.setAttribute("aria-pressed", on ? "true" : "false");
             });
+            if (chips) {
+                $all("[data-lv-status]", chips).forEach(function (c) {
+                    var on = c.getAttribute("data-lv-status") === status.value;
+                    c.classList.toggle("is-active", on);
+                    c.setAttribute("aria-pressed", on ? "true" : "false");
+                });
+            }
         };
+        // the status buttons: one is always chosen
+        if (chips) {
+            chips.addEventListener("click", function (event) {
+                var c = event.target.closest("[data-lv-status]");
+                if (!c || c.getAttribute("data-lv-status") === status.value) { return; }
+                status.value = c.getAttribute("data-lv-status");
+                status.dispatchEvent(new Event("change"));
+            });
+        }
         kpiSlot.addEventListener("click", function (event) {
             var k = event.target.closest("[data-lv-kpi]");
             if (!k) { return; }
             var value = k.getAttribute("data-lv-kpi");
-            if (!$('option[value="' + value + '"]', status)) { return; }
-            status.value = status.value === value ? (status.querySelector('option[value="PENDING"]') ? "PENDING" : status.options[0].value) : value;
+            if (!hasStatus(value)) { return; }
+            var first = $("[data-lv-status]", chips);
+            status.value = status.value === value ? (hasStatus("PENDING") ? "PENDING" : first.getAttribute("data-lv-status")) : value;
             markKpi();
             requests.first();
         });

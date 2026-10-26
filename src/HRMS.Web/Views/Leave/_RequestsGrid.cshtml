@@ -23,7 +23,9 @@ else
                     @if (!my) { <th scope="col">@L["lv.employee"]</th> }
                     <th scope="col">@L["lv.leave_type"]</th>
                     <th scope="col">@L["lv.dates"]</th>
-                    <th scope="col" class="pr-money">@L["lv.days"]</th>
+                    <th scope="col" class="pr-money">@L["lv.leave_days"]</th>
+                    <th scope="col" class="pr-money">@L["lv.paid_days"]</th>
+                    <th scope="col" class="pr-money">@L["lv.unpaid_days"]</th>
                     <th scope="col">@L["common.status"]</th>
                     <th scope="col" class="col-p3">@L["lv.request_no"]</th>
                     <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
@@ -34,7 +36,9 @@ else
                 {
                     var type = LeaveFormat.Name(L, q.TypeName, q.TypeArabicName);
                     var emp = LeaveFormat.Name(L, q.EmployeeName, q.EmployeeArabicName);
-                    <tr data-lv-row="@q.LeaveRequestId" data-level="@q.ApprovalLevel" class="lv-row lv-row--@q.Status.ToLowerInvariant()">
+                    var canCancel = r.CanCancel(q);
+                    var canReturn = r.CanRecordReturn(q);
+                    <tr data-lv-row="@q.LeaveRequestId" data-level="@q.ApprovalLevel" data-start="@q.StartDate.ToString("yyyy-MM-dd")" class="lv-row lv-row--@q.Status.ToLowerInvariant()">
                         @if (!my)
                         {
                             <td data-label="@L["lv.employee"]" class="hrms-nowrap"><span class="lv-cell">
@@ -49,7 +53,9 @@ else
                             @LeaveFormat.Period(L, q.StartDate, q.LastDay, q.HalfDay)
                             @if (q.ActualReturnDate is { } back) { <span class="pr-emp-sub">@L["lv.back_on", L.Date(back)]</span> }
                         </span></td>
-                        <td data-label="@L["lv.days"]" class="pr-money">@LeaveFormat.Days(q.Days)</td>
+                        <td data-label="@L["lv.leave_days"]" class="pr-money"><strong>@LeaveFormat.Days(q.Days)</strong></td>
+                        <td data-label="@L["lv.paid_days"]" class="pr-money lv-num lv-num--paid">@LeaveFormat.Days(q.PaidDays)</td>
+                        <td data-label="@L["lv.unpaid_days"]" class="pr-money lv-num @(q.Days - q.PaidDays > 0 ? "lv-num--unpaid" : "lv-num--zero")">@LeaveFormat.Days(q.Days - q.PaidDays)</td>
                         <td data-label="@L["common.status"]">
                             <span class="hrms-badge hrms-badge--@LeaveStatus.Badge(q.Status)"><span class="hrms-badge__dot"></span>@LeaveFormat.StatusLabel(L, q)</span>
                         </td>
@@ -61,6 +67,21 @@ else
                                 <button type="button" class="btn-icon btn-icon--danger" data-lv-act="reject" title="@L["lv.reject"]" aria-label="@L["lv.reject_named", emp]">@Html.Icon("x-circle", 15)</button>
                             }
                             <button type="button" class="btn-icon" data-lv-act="view" title="@L["lv.view"]" aria-label="@L["lv.view_named", q.RequestNo]">@Html.Icon("eye", 15)</button>
+                            @* more actions: cancel the request, mark the return to work *@
+                            <div class="dropdown lv-more">
+                                <button type="button" class="btn-icon" data-bs-toggle="dropdown" aria-expanded="false" disabled="@(canCancel || canReturn ? null : "disabled")"
+                                        data-bs-popper-config='{"strategy":"fixed"}' title="@L["lv.more_actions"]" aria-label="@L["lv.more_actions_named", q.RequestNo]">@Html.Icon("more", 15)</button>
+                                <ul class="dropdown-menu dropdown-menu-end lv-more__menu">
+                                    @if (canReturn)
+                                    {
+                                        <li><button type="button" class="dropdown-item" data-lv-act="return">@Html.Icon("user-check", 15)<span>@L["lv.mark_return"]</span></button></li>
+                                    }
+                                    @if (canCancel)
+                                    {
+                                        <li><button type="button" class="dropdown-item text-danger" data-lv-act="cancel">@Html.Icon("x-circle", 15)<span>@L["lv.cancel_request"]</span></button></li>
+                                    }
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                 }

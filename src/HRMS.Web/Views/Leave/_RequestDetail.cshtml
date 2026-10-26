@@ -120,16 +120,36 @@
             </li>
         </ol>
     }
-    <ul class="lv-history">
+    @* what happened, left to right on one line *@
+    <ol class="lv-timeline">
         @foreach (var h in Model.History)
         {
-            <li>
-                <span class="lv-history__what">@LeaveFormat.HistoryLabel(L, h.ActionCode)</span>
-                <span class="hrms-muted hrms-text-sm">@(h.ActionByName ?? "—") · <span title="@L["dash.utc_suffix", L.Date(h.ActionDate) + " " + h.ActionDate.ToString("HH:mm")]">@L.Date(h.ActionDate)</span></span>
-                @if (!string.IsNullOrWhiteSpace(h.Comment)) { <span class="lv-history__comment">@h.Comment</span> }
+            <li class="lv-timeline__step lv-timeline__step--@h.ActionCode.ToLowerInvariant()" title="@h.Comment">
+                <span class="lv-timeline__dot" aria-hidden="true"></span>
+                <span class="lv-timeline__what">@LeaveFormat.HistoryLabel(L, h.ActionCode)</span>
+                <span class="lv-timeline__meta">@(h.ActionByName ?? "—") · <span title="@L["dash.utc_suffix", L.Date(h.ActionDate) + " " + h.ActionDate.ToString("HH:mm")]">@L.Date(h.ActionDate)</span></span>
+                @if (!string.IsNullOrWhiteSpace(h.Comment)) { <span class="lv-timeline__comment">@h.Comment</span> }
             </li>
         }
-    </ul>
+    </ol>
+
+    @* db/86: the leave salary settlement, right here *@
+    @if (Model.Settlement is { } settlement)
+    {
+        <section class="lv-detail__settle" aria-labelledby="lv-settle-head">
+            <h3 class="lv-detail__sub" id="lv-settle-head">@L["lv.settlement_title"]</h3>
+            <form data-lv-settle-form novalidate>
+                @await Html.PartialAsync("~/Views/Leave/_Settlement.cshtml", settlement)
+                <div class="lv-settle__actions">
+                    <span class="field-validation-error" data-lv-settle-error></span>
+                    @if (!settlement.Settlement.CashInPayroll)
+                    {
+                        <button type="submit" class="btn btn-primary" data-lv-settle-save>@Html.Icon("check", 15)<span>@L["lv.save_settlement"]</span></button>
+                    }
+                </div>
+            </form>
+        </section>
+    }
 </div>
 <div class="modal-footer lv-detail__actions">
     @if (r.CanCancel(q))
@@ -139,10 +159,6 @@
     @if (r.CanEdit(q))
     {
         <button type="button" class="btn btn-outline-secondary" data-lv-act="edit" data-mode="@(r.CanManage ? "hr" : "my")">@Html.Icon("edit", 15)<span>@L["common.edit"]</span></button>
-    }
-    @if (r.CanSettleRequest(q))
-    {
-        <button type="button" class="btn btn-outline-primary" data-lv-act="settle">@Html.Icon("wallet", 15)<span>@L["lv.settlement"]</span></button>
     }
     @if (r.CanRecordReturn(q))
     {

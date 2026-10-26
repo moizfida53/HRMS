@@ -298,12 +298,27 @@ public sealed class LeaveController : Controller
         var request = await _leave.GetAsync(id, Ct);
         if (request is null || !CanSee(request, r)) return NotFound();
         var balances = await _leave.EmployeeBalancesAsync(request.EmployeeId, request.StartDate, null, Ct);
+
+        // db/86: HR settles the leave salary right in the popup
+        LeaveSettlementModel? settlement = null;
+        if (r.CanSettleRequest(request) && await _leave.SettlementAsync(id, SettleScope(), Ct) is { } figures)
+        {
+            settlement = new LeaveSettlementModel
+            {
+                Request = request,
+                Settlement = figures,
+                Items = await _leave.PayItemsAsync(id, SettleScope(), Ct),
+                Embedded = true
+            };
+        }
+
         return PartialView("~/Views/Leave/_RequestDetail.cshtml", new LeaveRequestDetailModel
         {
             Request = request,
             Rights = r,
             History = await _leave.HistoryAsync(id, Ct),
-            Balance = balances.FirstOrDefault(b => b.LeaveTypeId == request.LeaveTypeId)
+            Balance = balances.FirstOrDefault(b => b.LeaveTypeId == request.LeaveTypeId),
+            Settlement = settlement
         });
     }
 
@@ -337,25 +352,6 @@ public sealed class LeaveController : Controller
     {
         if (!Can(PermManage)) return Denied();
         return Result(await _leave.ReturnAsync(id, returnDate, comment, Scope(), Ct));
-    }
-
-    /// <summary>db/86: the leave salary settlement popup - with the monthly payroll or in cash before the leave.</summary>
-    [HttpGet("settlement")]
-    public async Task<IActionResult> Settlement(long id)
-    {
-        var r = Rights;
-        if (!r.CanSettle) return Forbid();
-        var request = await _leave.GetAsync(id, Ct);
-        if (request is null || !CanSee(request, r)) return NotFound();
-        var scope = SettleScope();
-        var settlement = await _leave.SettlementAsync(id, scope, Ct);
-        if (settlement is null) return NotFound();
-        return PartialView("~/Views/Leave/_Settlement.cshtml", new LeaveSettlementModel
-        {
-            Request = request,
-            Settlement = settlement,
-            Items = await _leave.PayItemsAsync(id, scope, Ct)
-        });
     }
 
     [HttpPost("settle")]
