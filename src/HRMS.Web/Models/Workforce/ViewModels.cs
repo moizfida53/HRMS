@@ -173,6 +173,9 @@ public sealed class EmployeeProfileViewModel
     /// <summary>The employee's own annual leave and the Annual Leave type's default (db/82); null before db/82.</summary>
     public HRMS.Data.Repositories.EmployeeLeaveTerms? LeaveTerms { get; init; }
 
+    /// <summary>The assets the employee holds (db/84); null = the user may not open Assets.</summary>
+    public IReadOnlyList<HRMS.Domain.Assets.AssetRow>? Assets { get; init; }
+
     public required bool IsNew { get; init; }
 
     public string ActiveTab { get; init; } = "personal";

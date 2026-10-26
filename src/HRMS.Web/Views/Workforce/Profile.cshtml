@@ -824,6 +824,33 @@
                         <span class="form-text">@L["emp.separate_items_with_commas"]</span>
                         <span class="field-validation-error" data-valmsg-for="CompanyAssets"></span>
                     </div>
+                    @* db/84: the assets this employee holds on Workforce > Assets *@
+                    @if (Model.Assets is { } held)
+                    {
+                        <div class="col-12">
+                            <span class="form-label d-block">@Html.Icon("box", 14) @L["as.profile_title"]</span>
+                            @if (held.Count == 0)
+                            {
+                                <p class="form-text mb-0">@L["as.profile_none"]</p>
+                            }
+                            else
+                            {
+                                <ul class="as-held">
+                                    @foreach (var h in held)
+                                    {
+                                        <li class="as-held__item as-expiry--@h.ExpiryState.ToLowerInvariant()">
+                                            <span class="as-icon as-icon--@AssetFormat.Key(h.Icon)" aria-hidden="true">@Html.Icon(AssetFormat.Icon(h.Icon), 14)</span>
+                                            <span class="as-held__text">
+                                                <strong>@(h.Title.Length > 0 ? h.Title : AssetFormat.Name(L, h.TypeName, h.TypeArabicName))</strong>
+                                                <span>@h.AssetCode@(string.IsNullOrWhiteSpace(h.SerialNumber) ? "" : " · " + h.SerialNumber)@(h.ExpiryDate is { } ex ? " · " + L.Date(ex) : "")</span>
+                                            </span>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                            <a class="hrms-text-sm" href="/assets">@L["as.profile_open"] @Html.Icon("chevron-right", 12)</a>
+                        </div>
+                    }
                 </div>
                         </div>
                     </div>

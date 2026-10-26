@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Html;
+﻿using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace HRMS.Web.Helpers;
@@ -71,6 +71,14 @@ public static class IconHelper
         ["grip"]      = """<circle cx="9" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="1.3" fill="currentColor" stroke="none"/>""",
         ["eye-off"]   = """<path d="M4 4l16 16"/><path d="M9.9 5.2A9.9 9.9 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.3 4.2"/><path d="M6.5 7.3A17 17 0 0 0 2 12s3.6 7 10 7a9.8 9.8 0 0 0 4.2-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>""",
         ["lock"]      = """<rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>""",
+        // db/84 Assets: the asset type icons
+        ["car"]       = """<path d="M5 16.5h14"/><path d="M4 16.5v-3.2l1.8-4.6A2 2 0 0 1 7.7 7.4h8.6a2 2 0 0 1 1.9 1.3l1.8 4.6v3.2"/><path d="M4 13.3h16"/><circle cx="7.5" cy="16.8" r="1.7"/><circle cx="16.5" cy="16.8" r="1.7"/>""",
+        ["bike"]      = """<circle cx="5.5" cy="16" r="3"/><circle cx="18.5" cy="16" r="3"/><path d="M5.5 16l3.5-6h5l4.5 6"/><path d="M9 10l3 6h2"/><path d="M14 10l-1.2-3H11"/><path d="M16 7.5h2.5"/>""",
+        ["smartphone"] = """<rect x="6.5" y="2.5" width="11" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>""",
+        ["laptop"]    = """<rect x="4.5" y="5" width="15" height="10" rx="1.4"/><path d="M2.5 18.5h19"/><path d="M4 15l-1.5 3.5M20 15l1.5 3.5"/>""",
+        ["tablet"]    = """<rect x="4.5" y="3" width="15" height="18" rx="2"/><path d="M11 18h2"/>""",
+        ["tool"]      = """<path d="M14.5 6.5a4 4 0 0 0 5 5l-8.8 8.8a2 2 0 0 1-2.9-2.9z"/><path d="M14.5 6.5l3-3a4 4 0 0 1 2 2l-3 3"/>""",
+        ["box"]       = """<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5"/><path d="M12 12v9"/>""",
         ["key"]       = """<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3"/><path d="M16.5 6.5l2.5 2.5"/><path d="M14 9l2 2"/>""",
         ["user-check"] = """<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 11l2 2 4-4"/>""",
         ["globe"]     = """<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>""",

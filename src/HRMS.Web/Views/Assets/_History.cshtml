@@ -1,0 +1,33 @@
+@model AssetHistoryModel
+@{
+    var a = Model.Asset;
+}
+<div class="as-history">
+    <div class="as-history__head">
+        <span class="as-icon as-icon--tile as-icon--@AssetFormat.Key(a.Icon)" aria-hidden="true">@Html.Icon(AssetFormat.Icon(a.Icon), 18)</span>
+        <div>
+            <strong>@(a.Title.Length > 0 ? a.Title : AssetFormat.Name(L, a.TypeName, a.TypeArabicName))</strong>
+            <span class="as-cell__meta"><span class="hrms-code-chip">@a.AssetCode</span>@AssetFormat.Name(L, a.TypeName, a.TypeArabicName)@(string.IsNullOrWhiteSpace(a.SerialNumber) ? "" : " · " + a.SerialNumber)</span>
+        </div>
+    </div>
+    @if (Model.Entries.Count == 0)
+    {
+        <p class="hrms-muted mb-0">@L["as.history_none"]</p>
+    }
+    else
+    {
+        <ol class="as-timeline">
+            @foreach (var h in Model.Entries)
+            {
+                <li class="as-timeline__item @(h.ToDate is null ? "is-current" : null)">
+                    <span class="as-timeline__dot" aria-hidden="true"></span>
+                    <div class="as-timeline__body">
+                        <strong>@AssetFormat.Name(L, h.EmployeeName, h.EmployeeArabicName)</strong> <span class="hrms-muted">@h.EmployeeNo</span>
+                        <span class="as-timeline__dates">@L.Date(h.FromDate) – @(h.ToDate is { } to ? L.Date(to) : L["as.now"])</span>
+                        @if (!string.IsNullOrWhiteSpace(h.Remarks)) { <span class="as-timeline__note">@h.Remarks</span> }
+                    </div>
+                </li>
+            }
+        </ol>
+    }
+</div>

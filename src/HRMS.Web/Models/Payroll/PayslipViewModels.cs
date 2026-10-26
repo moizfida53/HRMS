@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using HRMS.Domain.Common;
 using HRMS.Domain.Payroll;
@@ -138,6 +138,20 @@ public sealed class MyPayslipsModel
 }
 
 /// <summary>One payslip, ready to print (English, Arabic or both).</summary>
+/// <summary>
+/// The salary and designation a printed payslip shows: as per the employment contract (the
+/// payroll), as per the government (the work permit, Kuwait Compliance), or both. The earnings
+/// and deductions are always the payroll's own lines - what was actually paid.
+/// </summary>
+public static class PayslipBasis
+{
+    public const string Contract = "contract";
+    public const string Government = "gov";
+    public const string Both = "both";
+
+    public static string Normalize(string? basis) => basis switch { Government => Government, Both => Both, _ => Contract };
+}
+
 public sealed class PayslipDocumentModel
 {
     public required Payslip Slip { get; init; }
@@ -152,6 +166,14 @@ public sealed class PayslipDocumentModel
     public string? SlipRef { get; init; }
     /// <summary>The text of a label key in English and in Arabic.</summary>
     public required Func<string, object?[], (string En, string Ar)> Both { get; init; }
+
+    /// <summary>Which salary / designation the employee block shows: the contract's, the work permit's (government), or both.</summary>
+    public string Basis { get; init; } = PayslipBasis.Contract;
+    public decimal? WorkPermitSalary { get; init; }
+    public string? WorkPermitDesignation { get; init; }
+    public string? WorkPermitDesignationAr { get; init; }
+    public bool ShowContract => Basis != PayslipBasis.Government;
+    public bool ShowGovernment => Basis != PayslipBasis.Contract;
 
     public bool ShowEnglish => Template != PayslipTemplate.Arabic;
     public bool ShowArabic => Template != PayslipTemplate.English;

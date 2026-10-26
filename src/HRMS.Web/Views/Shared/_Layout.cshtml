@@ -1,4 +1,4 @@
-@inject ICurrentUser CurrentUser
+﻿@inject ICurrentUser CurrentUser
 @inject ICompanyFilter CompanyFilter
 @inject HRMS.Web.Services.IPayrollNavCounts PayrollNavCounts
 @inject Microsoft.Extensions.Options.IOptions<AuthenticationPolicyOptions> AuthPolicy
@@ -86,7 +86,7 @@
             // collapsible and start collapsed. The one
             // exception is the group holding the current page, which opens so
             // you can see where you are.
-            var openWorkforce = activeArea == "workforce" || activeArea == "organizations";
+            var openWorkforce = activeArea is "workforce" or "organizations" or "assets";
             // Payroll Settings is a payroll page (ActiveArea "payroll") shown under Setup.
             var onPayrollSettings = activeArea == "payroll" && (ViewData["PayrollSection"] as string) == HRMS.Web.Models.Payroll.PayrollNav.SettingsKey;
             var openSetup = activeArea == "organization" || onPayrollSettings;
@@ -99,6 +99,7 @@
             var canEmployees = CurrentUser.CanOpen("employees");
             var canOrganization = CurrentUser.CanOpen("organization");
             var canOrgDocuments = CurrentUser.CanOpen("organizations");
+            var canAssets = CurrentUser.CanOpen("assets");
             var canSettings = CurrentUser.CanOpen("payroll:settings");
             var canRoles = CurrentUser.CanOpen("security:roles");
             var canUsers = CurrentUser.CanOpen("security:users");
@@ -133,7 +134,7 @@
                 </a>
             }
 
-            @if (canEmployees || canOrgDocuments)
+            @if (canEmployees || canOrgDocuments || canAssets)
             {
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle @(openWorkforce ? null : "collapsed")" data-bs-toggle="collapse"
@@ -154,6 +155,14 @@
                     <a class="hrms-nav-link @(activeArea == "organizations" ? "is-active" : null)"
                        asp-controller="OrganizationDocuments" asp-action="Index">
                         @Html.Icon("building")<span>@L["od.nav_organizations"]</span>
+                    </a>
+                    }
+                    @* db/84: company cars, motor bikes, phones ... and who uses them *@
+                    @if (canAssets)
+                    {
+                    <a class="hrms-nav-link @(activeArea == "assets" ? "is-active" : null)"
+                       asp-controller="Assets" asp-action="Index">
+                        @Html.Icon("box")<span>@L["as.nav_assets"]</span>
                     </a>
                     }
                     <a class="hrms-nav-link is-disabled" aria-disabled="true" title="@L["layout.open_an_employee_s_profile_for_their_kuwait_comp"]">

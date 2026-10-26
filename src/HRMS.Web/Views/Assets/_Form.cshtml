@@ -1,0 +1,137 @@
+@model AssetFormModel
+@{
+    // Workforce > Assets (db/84): one asset - type, details, dates and who uses it
+    var a = Model.Asset;
+    var isNew = a is null;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string D(DateTime? d) => d?.ToString("yyyy-MM-dd", inv) ?? "";
+    var typeId = Model.TypeId;
+}
+<input type="hidden" name="AssetId" value="@(a?.AssetId ?? 0)" />
+
+<div class="as-form">
+    <fieldset class="hrms-fieldset">
+        <legend>@L["as.asset_type"] <span class="req" aria-hidden="true">*</span></legend>
+        <div class="as-typepick" role="radiogroup" aria-label="@L["as.asset_type"]">
+            @foreach (var t in Model.Types)
+            {
+                <input type="radio" class="btn-check" name="AssetTypeId" id="as-t-@t.AssetTypeId" value="@t.AssetTypeId" autocomplete="off"
+                       checked="@(typeId == t.AssetTypeId)" required data-has-expiry="@(t.HasExpiryDate ? "1" : "0")"
+                       data-expiry-label="@AssetFormat.Name(L, t.ExpiryLabel, t.ExpiryLabelAr)" />
+                <label class="as-typepick__opt" for="as-t-@t.AssetTypeId">
+                    <span class="as-icon as-icon--@AssetFormat.Key(t.Icon)" aria-hidden="true">@Html.Icon(AssetFormat.Icon(t.Icon), 16)</span>
+                    <span>@AssetFormat.Name(L, t.TypeName, t.ArabicName)</span>
+                </label>
+            }
+        </div>
+        @if (Model.Types.Count == 0)
+        {
+            <p class="form-text mb-0">@L["as.no_types"]</p>
+        }
+        <span class="field-validation-error" data-valmsg-for="AssetTypeId"></span>
+    </fieldset>
+
+    <fieldset class="hrms-fieldset">
+        <legend>@L["as.details"]</legend>
+        <div class="row g-3">
+            @if (isNew && Model.Companies.Count > 1)
+            {
+                <div class="col-md-6">
+                    <label class="form-label" for="as-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="as-company" name="CompanyId" required data-as-company>
+                        @foreach (var c in Model.Companies)
+                        {
+                            <option value="@c.Id" selected="@(c.Id == Model.CompanyId)">@c.Text</option>
+                        }
+                    </select>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" name="CompanyId" value="@(a?.CompanyId ?? Model.CompanyId)" data-as-company />
+            }
+            <div class="col-md-6">
+                <label class="form-label" for="as-code">@L["as.code"]</label>
+                <input class="form-control" id="as-code" name="AssetCode" type="text" maxlength="30" value="@a?.AssetCode" placeholder="@L["as.code_auto"]" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="as-brand">@L["as.brand"] <span class="req" aria-hidden="true">*</span></label>
+                <input class="form-control" id="as-brand" name="Brand" type="text" maxlength="100" value="@a?.Brand" placeholder="@L["as.brand_placeholder"]" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="as-model">@L["as.model"]</label>
+                <input class="form-control" id="as-model" name="Model" type="text" maxlength="100" value="@a?.Model" placeholder="@L["as.model_placeholder"]" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="as-color">@L["as.color"]</label>
+                <input class="form-control" id="as-color" name="Color" type="text" maxlength="50" value="@a?.Color" list="as-colors" />
+                <datalist id="as-colors">
+                    @foreach (var c in new[] { "White", "Black", "Silver", "Grey", "Red", "Blue", "Navy", "Green", "Yellow", "Orange", "Brown", "Beige", "Gold" })
+                    {
+                        <option value="@c"></option>
+                    }
+                </datalist>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="as-serial">@L["as.serial"]</label>
+                <input class="form-control" id="as-serial" name="SerialNumber" type="text" maxlength="100" value="@a?.SerialNumber" placeholder="@L["as.serial_placeholder"]" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="as-cost">@L["as.purchase_cost"]</label>
+                <div class="input-group">
+                    <input class="form-control pr-input-money" id="as-cost" name="PurchaseCost" type="number" min="0" step="0.001" inputmode="decimal"
+                           value="@(a?.PurchaseCost?.ToString("0.000", inv))" placeholder="0.000" />
+                    <span class="input-group-text">@L["pr.kwd"]</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label" for="as-purchase">@L["as.purchase_date"]</label>
+                <input class="form-control" id="as-purchase" name="PurchaseDate" type="date" value="@D(a?.PurchaseDate)" data-as-purchase />
+            </div>
+            <div class="col-md-6" data-as-expiry-box>
+                <label class="form-label" for="as-expiry">@Html.Icon("bell", 13) <span data-as-expiry-label>@L["as.expiry_date"]</span></label>
+                <input class="form-control" id="as-expiry" name="ExpiryDate" type="date" value="@D(a?.ExpiryDate)" data-as-expiry />
+                <span class="form-text">@L["as.expiry_hint"]</span>
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="hrms-fieldset as-assign" data-as-assign>
+        <legend>@Html.Icon("user-check", 15) @L["as.assigned_to"]</legend>
+        <div class="row g-3">
+            <div class="col-md-7">
+                <label class="form-label" for="as-employee">@L["as.employee"]</label>
+                <select class="form-select" id="as-employee" name="EmployeeId" data-as-employee data-searchable>
+                    <option value="">@L["as.nobody_available"]</option>
+                    @foreach (var e in Model.Employees)
+                    {
+                        <option value="@e.Id" data-company="@e.ParentId" selected="@(a?.AssignedEmployeeId == e.Id)">@e.Text@(string.IsNullOrWhiteSpace(e.Code) ? "" : " · " + e.Code)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label" for="as-since">@L["as.assigned_date"]</label>
+                <input class="form-control" id="as-since" name="AssignedDate" type="date" value="@D(a?.AssignedDate)" />
+            </div>
+            <div class="col-12" data-as-remarks hidden>
+                <label class="form-label" for="as-remarks">@L["as.handover_remarks"]</label>
+                <input class="form-control" id="as-remarks" name="Remarks" type="text" maxlength="300" placeholder="@L["as.handover_placeholder"]" />
+            </div>
+        </div>
+        @if (a?.AssignedEmployeeId is not null)
+        {
+            <p class="form-text mb-0" data-as-original="@a.AssignedEmployeeId">@L["as.change_holder_hint"]</p>
+        }
+    </fieldset>
+
+    <fieldset class="hrms-fieldset">
+        <legend>@L["as.notes"]</legend>
+        <textarea class="form-control" name="Notes" rows="2" maxlength="500">@a?.Notes</textarea>
+        <div class="form-check form-switch mt-3">
+            <input class="form-check-input" type="checkbox" role="switch" id="as-active" name="IsActive" value="true" checked="@(a?.IsActive ?? true)" />
+            <input type="hidden" name="IsActive" value="false" />
+            <label class="form-check-label" for="as-active">@L["as.in_service"]</label>
+        </div>
+        <span class="form-text">@L["as.in_service_hint"]</span>
+    </fieldset>
+</div>

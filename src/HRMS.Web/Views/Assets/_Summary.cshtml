@@ -1,0 +1,51 @@
+@model AssetsPageModel
+@{
+    // the figures (each one a status filter) and one chip per asset type
+    var first = Model.Summary.FirstOrDefault();
+    (string Key, string Label, string Icon, int Value, string Tone)[] figures =
+    [
+        ("", L["as.kpi_total"], "box", first?.TotalCount ?? 0, ""),
+        ("ASSIGNED", L["as.kpi_assigned"], "user-check", first?.AssignedCount ?? 0, ""),
+        ("AVAILABLE", L["as.kpi_available"], "inbox", first?.AvailableCount ?? 0, ""),
+        ("EXPIRING", L["as.kpi_expiring"], "bell", first?.ExpiringCount ?? 0, (first?.ExpiringCount ?? 0) > 0 ? "is-warn" : ""),
+        ("EXPIRED", L["as.kpi_expired"], "alert", first?.ExpiredCount ?? 0, (first?.ExpiredCount ?? 0) > 0 ? "is-bad" : "")
+    ];
+    var total = first?.TotalCount ?? 0;
+}
+<section class="as-kpis" aria-label="@L["as.key_figures"]" role="group">
+    @foreach (var f in figures)
+    {
+        var on = (Model.Status ?? "") == f.Key;
+        <button type="button" class="hrms-card as-kpi @f.Tone @(on ? "is-active" : null)" data-as-status="@f.Key" aria-pressed="@(on ? "true" : "false")">
+            <span class="as-kpi__icon" aria-hidden="true">@Html.Icon(f.Icon, 16)</span>
+            <span class="as-kpi__value">@f.Value.ToString("N0")</span>
+            <span class="as-kpi__label">@f.Label</span>
+        </button>
+    }
+</section>
+
+<nav class="as-types" aria-label="@L["as.types"]">
+    <button type="button" class="as-type @(Model.TypeId is null or 0 ? "is-active" : null)" data-as-type="" aria-pressed="@(Model.TypeId is null or 0 ? "true" : "false")">
+        <span class="as-icon as-icon--all" aria-hidden="true">@Html.Icon("grid", 14)</span>
+        <span class="as-type__name">@L["as.all_types"]</span>
+        <span class="as-type__count">@total.ToString("N0")</span>
+    </button>
+    @foreach (var t in Model.Summary)
+    {
+        var on = Model.TypeId == t.AssetTypeId;
+        <button type="button" class="as-type @(on ? "is-active" : null)" data-as-type="@t.AssetTypeId" aria-pressed="@(on ? "true" : "false")">
+            <span class="as-icon as-icon--@AssetFormat.Key(t.Icon)" aria-hidden="true">@Html.Icon(AssetFormat.Icon(t.Icon), 14)</span>
+            <span class="as-type__name">@AssetFormat.Name(L, t.TypeName, t.TypeArabicName)</span>
+            <span class="as-type__count">@t.TypeCount.ToString("N0")</span>
+        </button>
+    }
+    @if ((first?.RetiredCount ?? 0) > 0)
+    {
+        <button type="button" class="as-type as-type--retired @(Model.Status == "RETIRED" ? "is-active" : null)" data-as-status="RETIRED"
+                aria-pressed="@(Model.Status == "RETIRED" ? "true" : "false")">
+            <span class="as-icon as-icon--retired" aria-hidden="true">@Html.Icon("power", 14)</span>
+            <span class="as-type__name">@L["as.st_retired"]</span>
+            <span class="as-type__count">@first!.RetiredCount.ToString("N0")</span>
+        </button>
+    }
+</nav>

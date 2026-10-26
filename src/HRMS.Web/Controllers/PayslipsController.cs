@@ -1,6 +1,7 @@
-using HRMS.Data.Repositories;
+﻿using HRMS.Data.Repositories;
 using HRMS.Domain.Common;
 using HRMS.Domain.Payroll;
+using HRMS.Domain.Workforce;
 using HRMS.Web.Localization;
 using HRMS.Web.Models.Organization;
 using HRMS.Web.Models.Payroll;
@@ -32,11 +33,13 @@ public sealed class PayslipsController : Controller
     private readonly LabelStore _labels;
     private readonly IOptionsMonitor<PayslipEmailOptions> _email;
     private readonly IRefProtector _refs;
+    private readonly IEmployeeComplianceRepository _compliance;
 
     public PayslipsController(IPayslipRepository payslips, IPayrollRunRepository runs, ILookupRepository lookups, ICurrentUser currentUser,
                               ICompanyFilter companyFilter, LabelStore labels, IOptionsMonitor<PayslipEmailOptions> email,
-                              IRefProtector refs)
+                              IRefProtector refs, IEmployeeComplianceRepository compliance)
     {
+        _compliance = compliance;
         _payslips = payslips;
         _runs = runs;
         _lookups = lookups;
@@ -126,7 +129,7 @@ public sealed class PayslipsController : Controller
 
     /// <summary>One employee's payslip in one payroll, ready to print (?lang=both|en|ar previews another language).</summary>
     [HttpGet("view/{slipRef}")]
-    public async Task<IActionResult> Slip(string slipRef, string? lang)
+    public async Task<IActionResult> Slip(string slipRef, string? lang, string? basis)
     {
         var rights = Rights;
         if (!rights.CanView) return Forbid();
@@ -137,7 +140,8 @@ public sealed class PayslipsController : Controller
         if (slip is null) return NotFound();
 
         return await Document(slip, LangTemplate(lang) ?? slip.Template, isSelf: false, rights.CanGenerate,
-                              Url.Action(nameof(Employees), new { @ref = _refs.Protect(RefPurpose.PayslipRun, runId) }), slipRef);
+                              Url.Action(nameof(Employees), new { @ref = _refs.Protect(RefPurpose.PayslipRun, runId) }), slipRef,
+                              PayslipBasis.Normalize(basis));
     }
 
     /// <summary>My Payslips: the signed-in employee's own payslips (closed payrolls, generated).</summary>
@@ -171,7 +175,9 @@ public sealed class PayslipsController : Controller
         if (slip is null) return NotFound();
 
         await _payslips.MarkViewedAsync(runId, emp, Ct);
-        return await Document(slip, LangTemplate(lang) ?? slip.Template, isSelf: true, canGenerate: false, Url.Action(nameof(My)), null);
+        // the employee's own payslip shows the contract (the HR print chooses contract / government / both)
+        return await Document(slip, LangTemplate(lang) ?? slip.Template, isSelf: true, canGenerate: false, Url.Action(nameof(My)), null,
+                              PayslipBasis.Contract);
     }
 
     // =======================================================================
@@ -360,9 +366,17 @@ public sealed class PayslipsController : Controller
         });
     }
 
-    private async Task<IActionResult> Document(Payslip slip, string? template, bool isSelf, bool canGenerate, string? backUrl, string? slipRef)
+    private async Task<IActionResult> Document(Payslip slip, string? template, bool isSelf, bool canGenerate, string? backUrl, string? slipRef,
+                                                string basis)
     {
         await _labels.RefreshIfStaleAsync(Ct);
+        // government: the salary and designation on the work permit (Kuwait Compliance, db/82)
+        EmployeeKuwaitCompliance? permit = null;
+        if (basis != PayslipBasis.Contract)
+        {
+            try { permit = await _compliance.GetAsync(slip.EmployeeId, Ct); }
+            catch (Exception) { permit = null; }   // db/82 not run yet: shown as not recorded
+        }
         return View("~/Views/Payslips/Payslip.cshtml", new PayslipDocumentModel
         {
             Slip = slip,
@@ -372,6 +386,10 @@ public sealed class PayslipsController : Controller
             CanGenerate = canGenerate,
             BackUrl = backUrl,
             SlipRef = slipRef,
+            Basis = basis,
+            WorkPermitSalary = permit?.WorkPermitSalary,
+            WorkPermitDesignation = permit?.WorkPermitDesignation,
+            WorkPermitDesignationAr = permit?.WorkPermitDesignationAr,
             Both = (key, args) => (
                 LabelStore.SafeFormat(_labels.Find(key, arabic: false) ?? key, args),
                 LabelStore.SafeFormat(_labels.Find(key, arabic: true) ?? _labels.Find(key, arabic: false) ?? key, args))

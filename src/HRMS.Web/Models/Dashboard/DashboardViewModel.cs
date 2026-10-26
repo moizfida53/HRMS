@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.Json;
 using HRMS.Domain.Dashboard;
 
@@ -18,6 +18,9 @@ public sealed class DashboardViewModel
 
     /// <summary>Company documents whose expiry date reached an alert (db/73); null = not shown.</summary>
     public IReadOnlyList<HRMS.Domain.Organization.OrgDocumentDue>? OrgDocumentAlerts { get; init; }
+
+    /// <summary>Assets whose expiry date reached an alert of their type (db/84); null = the user may not open Assets.</summary>
+    public IReadOnlyList<HRMS.Domain.Assets.AssetDue>? AssetAlerts { get; init; }
 
     /// <summary>Employee dates that have reached one of their field's alerts, soonest (or most overdue) first.</summary>
     public IReadOnlyList<HRMS.Domain.Workforce.DateAlertDue> DateAlerts { get; init; } = Array.Empty<HRMS.Domain.Workforce.DateAlertDue>();

@@ -57,8 +57,10 @@ public sealed class EmployeesController : Controller
         IDateAlertRepository dateAlerts,
         IComplianceDocumentRepository complianceDocuments,
         IEmployeeLeaveTermsRepository leaveTerms,
+        IAssetRepository assets,
         ILogger<EmployeesController> logger)
     {
+        _assets = assets;
         _leaveTerms = leaveTerms;
         _dateAlerts = dateAlerts;
         _complianceDocuments = complianceDocuments;
@@ -79,6 +81,22 @@ public sealed class EmployeesController : Controller
     private readonly IDateAlertRepository _dateAlerts;
     private readonly IComplianceDocumentRepository _complianceDocuments;
     private readonly IEmployeeLeaveTermsRepository _leaveTerms;
+    private readonly IAssetRepository _assets;
+
+    /// <summary>The assets the employee holds (Workforce > Assets, db/84) - for users who may open Assets.</summary>
+    private async Task<IReadOnlyList<HRMS.Domain.Assets.AssetRow>?> TryGetAssetsAsync(long employeeId)
+    {
+        if (!_currentUser.CanOpen("assets")) return null;
+        try
+        {
+            return await _assets.EmployeeAsync(employeeId, new AssetScope(_currentUser.ActiveCompanyId, null, _currentUser.UserId), Ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "The assets of employee {EmployeeId} could not be read (run db/84).", employeeId);
+            return null;
+        }
+    }
 
     /// <summary>
     /// The Employee fields of the Personal Info and Employment tabs (both post with one Save).
@@ -275,7 +293,8 @@ public sealed class EmployeesController : Controller
             CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar(),
             CanManageDateAlerts = _currentUser.CanManageDateAlerts(),
             DateAlertRules = await TryListDateAlertsAsync(),
-            LeaveTerms = await TryGetLeaveTermsAsync(id)
+            LeaveTerms = await TryGetLeaveTermsAsync(id),
+            Assets = await TryGetAssetsAsync(id)
         });
     }
 

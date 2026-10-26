@@ -1,6 +1,7 @@
 ﻿using HRMS.Data.Infrastructure;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Common;
+using HRMS.Domain.Assets;
 using HRMS.Domain.Organization;
 using HRMS.Web.Models.Organization;
 using HRMS.Web.Security;
@@ -31,6 +32,7 @@ public sealed class OrganizationController : Controller
     private readonly IDocumentSectionRepository _documentSections;
     private readonly IOrgDocumentTypeRepository _orgDocumentTypes;
     private readonly IIssuingAuthorityRepository _issuingAuthorities;
+    private readonly IAssetTypeRepository _assetTypes;
     private readonly ILookupRepository _lookups;
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
@@ -49,6 +51,7 @@ public sealed class OrganizationController : Controller
         IDocumentSectionRepository documentSections,
         IOrgDocumentTypeRepository orgDocumentTypes,
         IIssuingAuthorityRepository issuingAuthorities,
+        IAssetTypeRepository assetTypes,
         ILookupRepository lookups,
         ICurrentUser currentUser,
         ICompanyFilter companyFilter,
@@ -66,6 +69,7 @@ public sealed class OrganizationController : Controller
         _documentSections = documentSections;
         _orgDocumentTypes = orgDocumentTypes;
         _issuingAuthorities = issuingAuthorities;
+        _assetTypes = assetTypes;
         _lookups = lookups;
         _currentUser = currentUser;
         _companyFilter = companyFilter;
@@ -145,6 +149,7 @@ public sealed class OrganizationController : Controller
         await Count(OrganizationTabs.CostCenters, _costCenters);
         await Count(OrganizationTabs.DocumentTypes, _documentTypes);
         await Count(OrganizationTabs.OrgDocumentTypes, _orgDocumentTypes);
+        await Count(OrganizationTabs.AssetTypes, _assetTypes);
         return counts;
     }
 
@@ -186,6 +191,7 @@ public sealed class OrganizationController : Controller
             // every type on one page, so whole sections can be dragged into order
             OrganizationTabs.DocumentTypes => GridAsync(_documentTypes, descriptor, WholeList(request)),
             OrganizationTabs.OrgDocumentTypes => GridAsync(_orgDocumentTypes, descriptor, request),
+            OrganizationTabs.AssetTypes => GridAsync(_assetTypes, descriptor, request),
             _ => GridAsync(_companies, OrganizationTabs.All[0], request)
         };
     }
@@ -248,6 +254,11 @@ public sealed class OrganizationController : Controller
 
             OrganizationTabs.OrgDocumentTypes => await OrgDocumentTypeFormAsync(descriptor, id),
 
+            OrganizationTabs.AssetTypes => await FormAsync(
+                _assetTypes, descriptor, id,
+                () => new AssetType { AlertRules = "M1,W2,D0" },
+                []),
+
             _ => NotFound()
         };
     }
@@ -271,6 +282,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.CostCenters  => SaveAsync<CostCenter>(_costCenters),
             OrganizationTabs.DocumentTypes => SaveAsync<DocumentType>(_documentTypes),
             OrganizationTabs.OrgDocumentTypes => SaveAsync<OrgDocumentType>(_orgDocumentTypes),
+            OrganizationTabs.AssetTypes => SaveAsync<AssetType>(_assetTypes),
             _ => Task.FromResult<IActionResult>(BadRequest())
         };
 
@@ -289,6 +301,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.CostCenters  => GuardedAsync(_costCenters, id, ct => _costCenters.DeleteAsync(id, _currentUser.UserId, ct)),
             OrganizationTabs.DocumentTypes => GuardedAsync(_documentTypes, id, ct => _documentTypes.DeleteAsync(id, _currentUser.UserId, ct)),
             OrganizationTabs.OrgDocumentTypes => GuardedAsync(_orgDocumentTypes, id, ct => _orgDocumentTypes.DeleteAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.AssetTypes => GuardedAsync(_assetTypes, id, ct => _assetTypes.DeleteAsync(id, _currentUser.UserId, ct)),
             _ => Task.FromResult<IActionResult>(BadRequest())
         };
 
@@ -307,6 +320,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.CostCenters  => GuardedAsync(_costCenters, id, ct => _costCenters.ToggleActiveAsync(id, _currentUser.UserId, ct)),
             OrganizationTabs.DocumentTypes => GuardedAsync(_documentTypes, id, ct => _documentTypes.ToggleActiveAsync(id, _currentUser.UserId, ct)),
             OrganizationTabs.OrgDocumentTypes => GuardedAsync(_orgDocumentTypes, id, ct => _orgDocumentTypes.ToggleActiveAsync(id, _currentUser.UserId, ct)),
+            OrganizationTabs.AssetTypes => GuardedAsync(_assetTypes, id, ct => _assetTypes.ToggleActiveAsync(id, _currentUser.UserId, ct)),
             _ => Task.FromResult<IActionResult>(BadRequest())
         };
 
@@ -579,6 +593,7 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.CostCenters => "CostCenterId",
             OrganizationTabs.DocumentTypes => "DocumentTypeId",
             OrganizationTabs.OrgDocumentTypes => "OrgDocumentTypeId",
+            OrganizationTabs.AssetTypes => "AssetTypeId",
             _ => null
         };
         return key is not null && Request.HasFormContentType && long.TryParse(Request.Form[key], out var v) && v > 0;

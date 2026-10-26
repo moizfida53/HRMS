@@ -1,4 +1,4 @@
-@model HRMS.Web.Models.Dashboard.DashboardViewModel
+﻿@model HRMS.Web.Models.Dashboard.DashboardViewModel
 @using HRMS.Web.Models.Dashboard
 @inject ICurrentUser CurrentUser
 @{
@@ -297,6 +297,52 @@
                             <button type="button" class="hrms-dalerts__more" data-dalerts-toggle aria-expanded="false"
                                     data-text-more="@L["dash.alert_show_all", orgAlerts.Count]" data-text-less="@L["dash.alert_show_less"]">
                                 @L["dash.alert_show_all", orgAlerts.Count]
+                            </button>
+                        }
+                    }
+                </div>
+            }
+            @if (Model.AssetAlerts is { } assetAlerts)
+            {
+                @* db/84: assets whose expiry date (registration, warranty ...) reached an alert set on their type *@
+                const int assetShown = 5;
+                <div class="hrms-dalerts hrms-dalerts--assets" data-dalerts>
+                    <div class="hrms-dalerts__head">
+                        <span class="hrms-dalerts__title">@Html.Icon("box", 14)<span>@L["as.dash_title"]</span></span>
+                        <span class="hrms-dalerts__total">@assetAlerts.Count.ToString("N0")</span>
+                    </div>
+                    @if (assetAlerts.Count == 0)
+                    {
+                        <p class="hrms-dalerts__empty">@L["as.dash_none"]</p>
+                    }
+                    else
+                    {
+                        <ul class="hrms-dalerts__list">
+                            @for (var i = 0; i < assetAlerts.Count; i++)
+                            {
+                                var aa = assetAlerts[i];
+                                var tone = aa.DaysLeft < 0 ? "is-critical" : aa.DaysLeft <= 7 ? "is-serious" : aa.DaysLeft <= 30 ? "is-warning" : "is-info";
+                                var what = string.Join(" ", new[] { aa.Brand, aa.Model }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                                var label = AssetFormat.Name(L, aa.ExpiryLabel, aa.ExpiryLabelAr);
+                                <li class="hrms-dalerts__item @tone" hidden="@(i >= assetShown)" data-dalert-more="@(i >= assetShown ? "true" : null)">
+                                    <span class="hrms-dalerts__icon" aria-hidden="true">@Html.Icon(aa.DaysLeft < 0 ? "alert" : AssetFormat.Icon(aa.Icon), 15)</span>
+                                    <span class="hrms-dalerts__body">
+                                        <span class="hrms-dalerts__name">@(what.Length > 0 ? what : AssetFormat.Name(L, aa.TypeName, aa.TypeArabicName)) <span class="hrms-muted">· @aa.AssetCode</span></span>
+                                        <span class="hrms-dalerts__meta">
+                                            @(label.Length > 0 ? label + " · " : "")@L.Date(aa.ExpiryDate)@(aa.EmployeeName is { Length: > 0 } holder ? " · " + holder : "")
+                                        </span>
+                                    </span>
+                                    <span class="hrms-dalerts__due">@AssetFormat.Due(L, aa.DaysLeft)</span>
+                                    <a class="btn-icon hrms-dalerts__view" href="/assets?status=@(aa.DaysLeft < 0 ? "EXPIRED" : "EXPIRING")"
+                                       title="@L["as.dash_open"]" aria-label="@L["as.dash_open"]">@Html.Icon("chevron-right", 16)</a>
+                                </li>
+                            }
+                        </ul>
+                        @if (assetAlerts.Count > assetShown)
+                        {
+                            <button type="button" class="hrms-dalerts__more" data-dalerts-toggle aria-expanded="false"
+                                    data-text-more="@L["dash.alert_show_all", assetAlerts.Count]" data-text-less="@L["dash.alert_show_less"]">
+                                @L["dash.alert_show_all", assetAlerts.Count]
                             </button>
                         }
                     }

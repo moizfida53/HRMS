@@ -75,6 +75,8 @@ public static class StoredProcedure
     public const string ComplianceDocumentManage = "Kuwait.usp_ComplianceDocument_Manage";
     public const string OrgDocumentTypeManage = "Documents.usp_OrgDocumentType_Manage";
     public const string OrgDocumentManage = "Documents.usp_OrgDocument_Manage";
+    public const string AssetTypeManage = "Assets.usp_AssetType_Manage";
+    public const string AssetManage = "Assets.usp_Asset_Manage";
     public const string IssuingAuthorityManage = "Documents.usp_IssuingAuthority_Manage";
 
     // ---- Dashboard (landing page) ----

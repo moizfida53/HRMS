@@ -1,4 +1,4 @@
-namespace HRMS.Web.Models.Organization;
+﻿namespace HRMS.Web.Models.Organization;
 
 /// <summary>
 /// Everything the UI needs to know about one Organization Setup tab.
@@ -27,6 +27,7 @@ public static class OrganizationTabs
     public const string CostCenters  = "cost-centers";
     public const string DocumentTypes = "employee-documents";
     public const string OrgDocumentTypes = "organization-documents";
+    public const string AssetTypes = "asset-types";
 
     public static readonly IReadOnlyList<OrgTab> All =
     [
@@ -70,7 +71,12 @@ public static class OrganizationTabs
         // db/73: group-wide; each company keeps them on Workforce > Organizations, with alerts on the expiry date
         new(OrgDocumentTypes, "Organization Documents", "Organization document type",
             "Legal and compliance documents each company keeps, and the alerts on their expiry date",
-            "shield", "_OrgDocumentTypesGrid", "_OrgDocumentTypeForm", "ORGDOCUMENTTYPE")
+            "shield", "_OrgDocumentTypesGrid", "_OrgDocumentTypeForm", "ORGDOCUMENTTYPE"),
+
+        // db/84: group-wide; the assets themselves are on Workforce > Assets, with alerts on the expiry date
+        new(AssetTypes, "Asset Types", "Asset type",
+            "Kinds of company asset - cars, motor bikes, phones - and the alerts on their expiry date",
+            "box", "_AssetTypesGrid", "_AssetTypeForm", "ASSETTYPE")
     ];
 
     private static readonly Dictionary<string, OrgTab> Index =

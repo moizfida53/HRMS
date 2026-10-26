@@ -1,4 +1,4 @@
-@using System.Globalization
+﻿@using System.Globalization
 @using Microsoft.AspNetCore.Html
 @model PayslipDocumentModel
 @{
@@ -58,6 +58,12 @@
     // The employee always sees the final payslip of a closed payroll; only HR sees "not generated / outdated".
     var watermark = !s.IsClosed || (!Model.IsSelf && draftReason is not null);
     var currentLang = Model.Template switch { PayslipTemplate.English => "en", PayslipTemplate.Arabic => "ar", _ => "both" };
+    // contract / government (work permit) / both: the designation and salary of the employee block
+    var basis = Model.Basis;
+    var permitDesignation = string.IsNullOrWhiteSpace(Model.WorkPermitDesignation) && string.IsNullOrWhiteSpace(Model.WorkPermitDesignationAr)
+        ? Data("—", null)
+        : Data(string.IsNullOrWhiteSpace(Model.WorkPermitDesignation) ? Model.WorkPermitDesignationAr : Model.WorkPermitDesignation, Model.WorkPermitDesignationAr);
+    string Link(string l, string b) => $"?lang={l}&basis={b}";
 }
 
 @if (!Model.IsSelf && draftReason is not null)
@@ -137,7 +143,22 @@
             <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_employee_no")</span><span class="ps-doc__value">@s.EmployeeNo</span></div>
             <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_civil_id")</span><span class="ps-doc__value ps-doc__mono">@PayslipFormat.MaskCivilId(s.CivilIdNumber)</span></div>
             <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_department")</span><span class="ps-doc__value">@(s.DepartmentName ?? "—")</span></div>
-            <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_designation")</span><span class="ps-doc__value">@designation</span></div>
+            @if (Model.ShowContract)
+            {
+                <div class="ps-doc__field"><span class="ps-doc__label">@T(Model.ShowGovernment ? "ps.doc_designation_contract" : "ps.doc_designation")</span><span class="ps-doc__value">@designation</span></div>
+            }
+            @if (Model.ShowGovernment)
+            {
+                <div class="ps-doc__field"><span class="ps-doc__label">@T(Model.ShowContract ? "ps.doc_designation_gov" : "ps.doc_designation")</span><span class="ps-doc__value">@permitDesignation</span></div>
+            }
+            @if (Model.ShowContract)
+            {
+                <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_salary_contract")</span><span class="ps-doc__value ps-doc__mono">KWD @M(s.SalaryTotal)</span></div>
+            }
+            @if (Model.ShowGovernment)
+            {
+                <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_salary_gov")</span><span class="ps-doc__value ps-doc__mono">@(Model.WorkPermitSalary is { } wp ? "KWD " + M(wp) : "—")</span></div>
+            }
             <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_bank")</span><span class="ps-doc__value ps-doc__mono">@(s.BankName is not null ? s.BankName + " · " : "")@PayslipFormat.MaskIban(s.Iban)</span></div>
             <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_period")</span><span class="ps-doc__value">@D(s.StartDate) – @D(s.EndDate)</span></div>
             <div class="ps-doc__field"><span class="ps-doc__label">@T("ps.doc_paid_days")</span><span class="ps-doc__value">@s.PaidDays.ToString(inv) / @s.PeriodDays.ToString(inv)</span></div>
@@ -212,10 +233,22 @@
 @Html.AntiForgeryToken()
 
 @section PageActions {
+    @if (!Model.IsSelf)
+    {
+        @* the salary / designation shown: as per the contract, the government (work permit), or both *@
+        <div class="btn-group ps-lang ps-basis" role="group" aria-label="@L["ps.basis"]">
+            <a class="btn btn-outline-secondary @(basis == PayslipBasis.Contract ? "active" : null)" href="@Link(currentLang, PayslipBasis.Contract)"
+               aria-current="@(basis == PayslipBasis.Contract ? "true" : null)" title="@L["ps.basis_contract_hint"]">@L["ps.basis_contract"]</a>
+            <a class="btn btn-outline-secondary @(basis == PayslipBasis.Government ? "active" : null)" href="@Link(currentLang, PayslipBasis.Government)"
+               aria-current="@(basis == PayslipBasis.Government ? "true" : null)" title="@L["ps.basis_gov_hint"]">@L["ps.basis_gov"]</a>
+            <a class="btn btn-outline-secondary @(basis == PayslipBasis.Both ? "active" : null)" href="@Link(currentLang, PayslipBasis.Both)"
+               aria-current="@(basis == PayslipBasis.Both ? "true" : null)">@L["ps.basis_both"]</a>
+        </div>
+    }
     <div class="btn-group ps-lang" role="group" aria-label="@L["ps.language"]">
-        <a class="btn btn-outline-secondary @(currentLang == "both" ? "active" : null)" href="?lang=both" aria-current="@(currentLang == "both" ? "true" : null)">@L["ps.lang_both"]</a>
-        <a class="btn btn-outline-secondary @(currentLang == "en" ? "active" : null)" href="?lang=en" aria-current="@(currentLang == "en" ? "true" : null)">EN</a>
-        <a class="btn btn-outline-secondary @(currentLang == "ar" ? "active" : null)" href="?lang=ar" aria-current="@(currentLang == "ar" ? "true" : null)">ع</a>
+        <a class="btn btn-outline-secondary @(currentLang == "both" ? "active" : null)" href="@Link("both", basis)" aria-current="@(currentLang == "both" ? "true" : null)">@L["ps.lang_both"]</a>
+        <a class="btn btn-outline-secondary @(currentLang == "en" ? "active" : null)" href="@Link("en", basis)" aria-current="@(currentLang == "en" ? "true" : null)">EN</a>
+        <a class="btn btn-outline-secondary @(currentLang == "ar" ? "active" : null)" href="@Link("ar", basis)" aria-current="@(currentLang == "ar" ? "true" : null)">ع</a>
     </div>
     <button type="button" class="btn btn-primary" data-ps-print>@Html.Icon("printer", 15)<span>@L["ps.print_save_pdf"]</span></button>
 }

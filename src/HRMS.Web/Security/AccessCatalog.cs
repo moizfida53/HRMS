@@ -100,7 +100,9 @@ public static class AccessCatalog
                 // db/65: the bell next to each date field (alerts for every employee)
                 new("WF.DATE_ALERTS", "sec.fn_date_alerts", "sec.fn_date_alerts_hint", No, C("EMPLOYEE_DATE_ALERTS"), No)
             ]),
-            new("WF.AUDIT", "sec.pg_audit_report", "sec.pg_audit_report_hint", C("AUDIT_REPORT_VIEW"), No, No)
+            new("WF.AUDIT", "sec.pg_audit_report", "sec.pg_audit_report_hint", C("AUDIT_REPORT_VIEW"), No, No),
+            // db/84: Workforce > Assets - Read sees the assets, Write adds / changes / assigns / returns, Full also deletes
+            new("WF.ASSETS", "sec.pg_assets", "sec.pg_assets_hint", C("ASSET_VIEW"), C("ASSET_EDIT"), C("ASSET_DELETE"))
         ]),
         new("LV", "sec.mod_leave", "calendar",
         [
@@ -234,6 +236,7 @@ public static class AccessCatalog
         ["audit"] = ["AUDIT_REPORT_VIEW"],
         ["organization"] = ["ORGANIZATION_VIEW"],
         ["organizations"] = ["ORG_DOCUMENT_VIEW", "ORG_DOCUMENT_EDIT"],
+        ["assets"] = ["ASSET_VIEW", "ASSET_EDIT"],
         ["payroll:dashboard"] = ["PAYROLL_DASHBOARD_VIEW"],
         ["payroll:processing"] = ["PAYROLL_RUN_VIEW", "PAYROLL_CALENDAR_VIEW"],
         ["payroll:payitems"] = ["PAYROLL_ITEM_VIEW"],

@@ -21,12 +21,14 @@ public sealed class DashboardController : Controller
     private readonly IDateAlertRepository _dateAlerts;
     private readonly ILeaveRepository _leave;
     private readonly IOrganizationDocumentRepository _orgDocuments;
+    private readonly IAssetRepository _assets;
     private readonly ILogger<DashboardController> _logger;
 
     public DashboardController(IDashboardRepository dashboard, ICurrentUser currentUser, ICompanyFilter companyFilter,
         IDateAlertRepository dateAlerts, ILeaveRepository leave, IOrganizationDocumentRepository orgDocuments,
-        ILogger<DashboardController> logger)
+        IAssetRepository assets, ILogger<DashboardController> logger)
     {
+        _assets = assets;
         _leave = leave;
         _orgDocuments = orgDocuments;
         _dateAlerts = dateAlerts;
@@ -103,10 +105,26 @@ public sealed class DashboardController : Controller
             }
         }
 
+        // assets whose expiry date reached an alert of their type (db/84)
+        IReadOnlyList<HRMS.Domain.Assets.AssetDue>? assetAlerts = null;
+        if (_currentUser.CanOpen("assets"))
+        {
+            try
+            {
+                assetAlerts = await _assets.DueAsync(
+                    new AssetScope(_currentUser.ActiveCompanyId, _companyFilter.Csv, _currentUser.UserId), HttpContext.RequestAborted);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "The asset alerts could not be read (run db/84).");
+            }
+        }
+
         return View("~/Views/Dashboard/Index.cshtml", new DashboardViewModel
         {
             Data = data,
             OrgDocumentAlerts = orgAlerts,
+            AssetAlerts = assetAlerts,
             Leave = leave,
             ShowDateAlerts = showDateAlerts,
             DateAlerts = dateAlerts,

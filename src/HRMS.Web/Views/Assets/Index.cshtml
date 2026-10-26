@@ -1,0 +1,76 @@
+@model AssetsPageModel
+@{
+    ViewData["Title"] = "Assets";
+    ViewData["ActiveArea"] = "assets";
+    ViewData["Subtitle"] = L["as.page_subtitle"];
+}
+<div class="as-page" data-as-page
+     data-urls-summary="@Url.Action("Summary", "Assets")"
+     data-urls-grid="@Url.Action("Grid", "Assets")"
+     data-urls-form="@Url.Action("Form", "Assets")"
+     data-urls-save="@Url.Action("Save", "Assets")"
+     data-urls-return="@Url.Action("Return", "Assets")"
+     data-urls-delete="@Url.Action("Delete", "Assets")"
+     data-urls-history="@Url.Action("History", "Assets")"
+     data-type="@Model.TypeId" data-status="@Model.Status"
+     data-text-add="@L["as.add_asset"]" data-text-edit="@L["as.edit_asset"]" data-text-assign="@L["as.assign_asset"]"
+     data-text-history="@L["as.history_of"]">
+
+    <div data-as-summary>
+        @await Html.PartialAsync("~/Views/Assets/_Summary.cshtml", Model)
+    </div>
+
+    <div class="hrms-card as-list">
+        <div class="as-toolbar">
+            <div class="hrms-search as-toolbar__search">
+                @Html.Icon("search", 15)
+                <input type="search" class="form-control" placeholder="@L["as.search_placeholder"]" aria-label="@L["as.search_placeholder"]" data-as-search />
+            </div>
+            <span class="as-toolbar__count" data-as-count aria-live="polite"></span>
+        </div>
+        <div data-as-grid aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </div>
+</div>
+
+@* ---- add / change / assign: the body comes from the server ---- *@
+<div class="modal fade" id="as-form-modal" tabindex="-1" aria-hidden="true" aria-labelledby="as-form-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <form class="modal-content" data-as-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="as-form-title" data-as-form-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-as-form-body></div>
+            <div class="modal-footer">
+                <span class="field-validation-error me-auto" data-as-form-error></span>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="submit" class="btn btn-primary" data-as-save>@Html.Icon("check", 15)<span>@L["common.save_changes"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ---- who held it ---- *@
+<div class="modal fade" id="as-history-modal" tabindex="-1" aria-hidden="true" aria-labelledby="as-history-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="as-history-title" data-as-history-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-as-history-body></div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button></div>
+        </div>
+    </div>
+</div>
+@Html.AntiForgeryToken()
+
+@section PageActions {
+    @if (Model.Rights.CanEdit)
+    {
+        <button type="button" class="btn btn-primary" data-as-add>@Html.Icon("plus", 15)<span>@L["as.add_asset"]</span></button>
+    }
+}
+@section Scripts {
+    <script src="~/js/assets.js" asp-append-version="true"></script>
+}

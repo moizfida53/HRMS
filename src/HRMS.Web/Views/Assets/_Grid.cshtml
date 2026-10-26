@@ -1,0 +1,148 @@
+@model AssetGridModel
+@{
+    // the colour as a swatch when it names one
+    static string? Swatch(string? color) => (color ?? "").Trim().ToLowerInvariant() switch
+    {
+        "white" or "pearl white" or "أبيض" => "#ffffff",
+        "black" or "أسود" => "#111827",
+        "silver" or "فضي" => "#c0c4cc",
+        "grey" or "gray" or "رمادي" => "#6b7280",
+        "red" or "أحمر" => "#dc2626",
+        "maroon" or "عنابي" => "#7f1d1d",
+        "blue" or "أزرق" => "#2563eb",
+        "navy" or "navy blue" or "كحلي" => "#1e3a8a",
+        "green" or "أخضر" => "#16a34a",
+        "yellow" or "أصفر" => "#eab308",
+        "orange" or "برتقالي" => "#ea580c",
+        "brown" or "بني" => "#78350f",
+        "beige" or "بيج" => "#d6c7a1",
+        "gold" or "ذهبي" => "#c9a227",
+        "purple" or "بنفسجي" => "#7c3aed",
+        "pink" or "وردي" => "#ec4899",
+        _ => null
+    };
+}
+<span hidden data-as-total="@Model.Total"></span>
+@if (Model.Rows.Count == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("box", 26)</span>
+        <p class="hrms-empty__title">@(Model.Filtered ? L["as.none_match"] : L["as.none_yet"])</p>
+        @if (!Model.Filtered && Model.Rights.CanEdit)
+        {
+            <p class="hrms-empty__text">@L["as.none_yet_text"]</p>
+            <button type="button" class="btn btn-primary" data-as-add>@Html.Icon("plus", 15)<span>@L["as.add_asset"]</span></button>
+        }
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table as-table">
+            <caption class="hrms-sr-only">@L["as.page_subtitle"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["as.asset"]</th>
+                    <th scope="col" class="col-p3">@L["as.color"]</th>
+                    <th scope="col">@L["as.assigned_to"]</th>
+                    <th scope="col" class="col-p2">@L["as.purchase_date"]</th>
+                    <th scope="col">@L["as.expiry_date"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model.Rows)
+                {
+                    var (css, text) = AssetFormat.State(L, a);
+                    var title = a.Title.Length > 0 ? a.Title : AssetFormat.Name(L, a.TypeName, a.TypeArabicName);
+                    var holder = AssetFormat.Name(L, a.EmployeeName, a.EmployeeArabicName);
+                    var swatch = Swatch(a.Color);
+                    <tr data-as-row="@a.AssetId" data-name="@($"{a.AssetCode} · {title}")" data-holder="@holder" class="@(!a.IsActive ? "is-retired" : null)">
+                        <td data-label="@L["as.asset"]">
+                            <span class="as-cell">
+                                <span class="as-icon as-icon--tile as-icon--@AssetFormat.Key(a.Icon)" aria-hidden="true">@Html.Icon(AssetFormat.Icon(a.Icon), 18)</span>
+                                <span class="as-cell__text">
+                                    <span class="hrms-table__primary">@title</span>
+                                    <span class="as-cell__meta">
+                                        <span class="hrms-code-chip">@a.AssetCode</span>
+                                        <span>@AssetFormat.Name(L, a.TypeName, a.TypeArabicName)</span>
+                                        @if (!string.IsNullOrWhiteSpace(a.SerialNumber)) { <span class="as-serial">@a.SerialNumber</span> }
+                                    </span>
+                                </span>
+                            </span>
+                        </td>
+                        <td data-label="@L["as.color"]" class="col-p3">
+                            @if (string.IsNullOrWhiteSpace(a.Color))
+                            {
+                                <span class="hrms-muted">—</span>
+                            }
+                            else
+                            {
+                                <span class="as-color"><span class="as-color__dot @(swatch is null ? "is-unknown" : null)" style="@(swatch is null ? null : "--as-swatch:" + swatch)" aria-hidden="true"></span>@a.Color</span>
+                            }
+                        </td>
+                        <td data-label="@L["as.assigned_to"]">
+                            @if (a.AssignedEmployeeId is null)
+                            {
+                                <span class="hrms-muted hrms-text-sm">@L["as.nobody"]</span>
+                            }
+                            else
+                            {
+                                <span class="as-holder">
+                                    <span class="as-holder__avatar" aria-hidden="true">@(holder.Length > 0 ? holder[..1].ToUpperInvariant() : "?")</span>
+                                    <span class="as-holder__text">
+                                        <span class="as-holder__name">@holder</span>
+                                        <span class="as-holder__meta">@a.EmployeeNo@(a.AssignedDate is { } since ? " · " + L["as.since", L.Date(since)] : "")</span>
+                                    </span>
+                                </span>
+                            }
+                        </td>
+                        <td data-label="@L["as.purchase_date"]" class="col-p2 hrms-nowrap">@(a.PurchaseDate is { } pd ? L.Date(pd) : "—")</td>
+                        <td data-label="@L["as.expiry_date"]">
+                            @if (!a.HasExpiryDate || a.ExpiryDate is null)
+                            {
+                                <span class="hrms-muted">—</span>
+                            }
+                            else
+                            {
+                                <span class="as-expiry as-expiry--@a.ExpiryState.ToLowerInvariant()">
+                                    <span class="as-expiry__date">@L.Date(a.ExpiryDate.Value)</span>
+                                    <span class="as-expiry__meta">@AssetFormat.Name(L, a.ExpiryLabel, a.ExpiryLabelAr)@(a.ExpiryState is "EXPIRING" or "EXPIRED" ? " · " + AssetFormat.Due(L, a.DaysLeft) : "")</span>
+                                </span>
+                            }
+                        </td>
+                        <td data-label="@L["common.status"]"><span class="hrms-badge hrms-badge--@css"><span class="hrms-badge__dot"></span>@text</span></td>
+                        <td class="hrms-table__actions">
+                            @if (Model.Rights.CanEdit)
+                            {
+                                <button type="button" class="btn-icon" data-as-act="edit" title="@L["common.edit"]" aria-label="@L["common.edit_named", title]">@Html.Icon("edit", 15)</button>
+                                @if (a.IsActive && a.AssignedEmployeeId is null)
+                                {
+                                    <button type="button" class="btn-icon btn-icon--success" data-as-act="assign" title="@L["as.assign"]" aria-label="@L["as.assign_named", title]">@Html.Icon("user-check", 15)</button>
+                                }
+                                else if (a.AssignedEmployeeId is not null)
+                                {
+                                    <button type="button" class="btn-icon" data-as-act="return" title="@L["as.return"]" aria-label="@L["as.return_named", title]">@Html.Icon("undo", 15)</button>
+                                }
+                            }
+                            <button type="button" class="btn-icon" data-as-act="history" title="@L["as.history"]" aria-label="@L["as.history_named", title]">@Html.Icon("history", 15)</button>
+                            @if (Model.Rights.CanDelete)
+                            {
+                                <button type="button" class="btn-icon btn-icon--danger" data-as-act="delete" title="@L["common.delete"]" aria-label="@L["common.delete_named", title]">@Html.Icon("trash", 15)</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="as-pager" aria-label="@L["common.pagination"]">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-as-goto="@(Model.PageNumber - 1)" disabled="@(Model.PageNumber <= 1)">@Html.Icon("chevron-left", 14)</button>
+            <span>@L["as.page_of", Model.PageNumber, Model.TotalPages]</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-as-goto="@(Model.PageNumber + 1)" disabled="@(Model.PageNumber >= Model.TotalPages)">@Html.Icon("chevron-right", 14)</button>
+        </nav>
+    }
+}

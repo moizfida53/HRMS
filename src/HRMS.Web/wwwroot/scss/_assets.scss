@@ -1,0 +1,396 @@
+// ============================================================================
+// Assets (db/84) - Workforce > Assets, Setup > Organization > Asset Types
+// ----------------------------------------------------------------------------
+// Each asset type carries a colour and an icon (--as-c / --as-bg): cars blue,
+// motor bikes orange, phones violet, laptops teal, tablets indigo, keys
+// amber, tools green, other grey. The figures on top are status filters, the
+// chips below them type filters. The list stacks into cards below 820px of
+// content width, like every hrms-table.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ------------------------------------------------------------ type colour ----
+.as-icon {
+  --as-c: #{$ink-600};
+  --as-bg: #{$line-100};
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: $radius-sm;
+  color: var(--as-c);
+  background: var(--as-bg);
+
+  &--car    { --as-c: #{$blue-700};   --as-bg: #{$blue-100}; }
+  &--bike   { --as-c: #c2410c;        --as-bg: #ffedd5; }
+  &--phone  { --as-c: #{$purple-700}; --as-bg: #{$purple-050}; }
+  &--laptop { --as-c: #0f766e;        --as-bg: #ccfbf1; }
+  &--tablet { --as-c: #4338ca;        --as-bg: #e0e7ff; }
+  &--key    { --as-c: #{$amber-700};  --as-bg: #{$amber-050}; }
+  &--tool   { --as-c: #{$green-700};  --as-bg: #{$green-050}; }
+  &--all    { --as-c: #{$navy-800};   --as-bg: #{$blue-050}; }
+  &--retired { --as-c: #{$ink-500};   --as-bg: #{$line-100}; }
+
+  // the larger tile in lists
+  &--tile {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--as-c) 18%, transparent);
+  }
+}
+
+// -------------------------------------------------------------- the page ----
+.as-page { display: flex; flex-direction: column; gap: space("4"); min-width: 0; }
+
+// the figures: each one filters the list by status
+.as-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: space("3");
+
+  @include cq-down("lg") { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @include cq-down("sm") { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.as-kpi {
+  --k-c: #{$blue-700};
+  --k-bg: #{$blue-050};
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "icon value" "icon label";
+  align-items: center;
+  column-gap: space("3");
+  padding: space("3") space("4");
+  border: 1px solid $line-200;
+  text-align: start;
+  cursor: pointer;
+  @include motion(border-color, box-shadow, transform);
+
+  &:hover { border-color: var(--k-c); box-shadow: $shadow-sm; }
+  &:focus-visible { @include focus-ring; }
+
+  &__icon {
+    grid-area: icon;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: $radius;
+    color: var(--k-c);
+    background: var(--k-bg);
+  }
+  &__value { grid-area: value; font-size: $fs-xl; font-weight: $fw-bold; color: $ink-900; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  &__label { grid-area: label; font-size: $fs-xs; color: $ink-500; font-weight: $fw-semibold; text-transform: uppercase; letter-spacing: .03em; }
+
+  &.is-warn { --k-c: #{$amber-700}; --k-bg: #{$amber-050}; }
+  &.is-bad  { --k-c: #{$red-700};   --k-bg: #{$red-050}; }
+  &.is-warn .as-kpi__value { color: $amber-700; }
+  &.is-bad .as-kpi__value { color: $red-700; }
+
+  &.is-active {
+    border-color: var(--k-c);
+    box-shadow: inset 0 0 0 1px var(--k-c), $shadow-sm;
+    background: color-mix(in srgb, var(--k-bg) 55%, #{$white});
+  }
+}
+
+// the type chips
+.as-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space("2");
+}
+
+.as-type {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  padding: 5px space("3") 5px 5px;
+  border: 1px solid $line-200;
+  border-radius: $radius-pill;
+  background: $white;
+  color: $ink-700;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  cursor: pointer;
+  @include motion(border-color, background-color, color);
+
+  .as-icon { width: 24px; height: 24px; border-radius: 50%; }
+
+  &__count {
+    min-width: 22px;
+    padding: 0 6px;
+    border-radius: $radius-pill;
+    background: $line-100;
+    color: $ink-600;
+    font-size: $fs-xs;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &:hover { border-color: $blue-500; color: $blue-700; }
+  &:focus-visible { @include focus-ring; }
+
+  &.is-active {
+    border-color: $blue-600;
+    background: $blue-050;
+    color: $blue-700;
+    .as-type__count { background: $blue-600; color: $white; }
+  }
+
+  &--retired { color: $ink-500; }
+}
+
+// ---------------------------------------------------------------- list ----
+.as-list { overflow: hidden; }
+
+.as-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: space("3");
+  padding: space("3") space("4");
+  border-bottom: 1px solid $line-200;
+
+  &__search { flex: 1 1 280px; max-width: 420px; }
+  &__count { color: $ink-500; font-size: $fs-sm; font-weight: $fw-semibold; }
+}
+
+.as-table {
+  tr.is-retired td { opacity: .6; }
+}
+
+.as-cell {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  min-width: 0;
+
+  &__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px space("2");
+    color: $ink-500;
+    font-size: $fs-xs;
+  }
+}
+
+.as-serial { font-family: $font-mono, monospace; letter-spacing: .02em; color: $ink-600; }
+
+.as-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: $fs-sm;
+
+  &__dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--as-swatch, transparent);
+    box-shadow: inset 0 0 0 1px rgba($ink-900, .2);
+
+    &.is-unknown { background: repeating-linear-gradient(45deg, $line-200 0 3px, $white 3px 6px); }
+  }
+}
+
+.as-holder {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  min-width: 0;
+
+  &__avatar {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $blue-500, $navy-800);
+    color: $white;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+  }
+  &__text { display: flex; flex-direction: column; min-width: 0; }
+  &__name { font-weight: $fw-semibold; color: $ink-800; @include truncate; }
+  &__meta { color: $ink-500; font-size: $fs-xs; }
+}
+
+.as-expiry {
+  display: inline-flex;
+  flex-direction: column;
+  padding-inline-start: space("2");
+  border-inline-start: 3px solid $green-600;
+
+  &__date { font-weight: $fw-semibold; color: $ink-800; font-variant-numeric: tabular-nums; }
+  &__meta { color: $ink-500; font-size: $fs-xs; }
+
+  &--expiring { border-color: $amber-600; .as-expiry__meta { color: $amber-700; font-weight: $fw-semibold; } }
+  &--expired  { border-color: $red-600;   .as-expiry__date, .as-expiry__meta { color: $red-700; } .as-expiry__meta { font-weight: $fw-semibold; } }
+}
+
+.as-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: space("2");
+  padding: space("3") space("4");
+  border-top: 1px solid $line-200;
+  color: $ink-600;
+  font-size: $fs-sm;
+}
+
+// ---------------------------------------------------------------- form ----
+.as-typepick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: space("2");
+
+  &__opt {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    padding: space("2") space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $white;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $ink-700;
+    cursor: pointer;
+    @include motion(border-color, background-color, box-shadow);
+
+    &:hover { border-color: $blue-500; }
+  }
+
+  .btn-check:checked + &__opt { border-color: $blue-600; background: $blue-050; color: $blue-700; box-shadow: inset 0 0 0 1px $blue-600; }
+  .btn-check:focus-visible + &__opt { @include focus-ring; }
+}
+
+.as-assign {
+  @include motion(box-shadow, background-color);
+  border-radius: $radius;
+
+  &.is-highlight { background: $green-050; box-shadow: 0 0 0 2px rgba($green-600, .35); padding: space("3"); }
+}
+
+// asset type form: the icon picker; the expiry names and alerts only with an expiry date
+.as-iconpick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space("2");
+
+  &__opt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    height: auto;
+    padding: 6px space("3") 6px 6px;
+    border-radius: $radius-pill;
+    border: 1px solid transparent;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    cursor: pointer;
+  }
+
+  .btn-check:checked + .as-iconpick__opt { border-color: var(--as-c); box-shadow: 0 0 0 2px color-mix(in srgb, var(--as-c) 25%, transparent); }
+  .btn-check:focus-visible + .as-iconpick__opt { @include focus-ring; }
+}
+
+.as-type-form:has(#f-HasExpiryDate:not(:checked)) .as-expiry-labels { opacity: .4; pointer-events: none; }
+
+.as-typecell { display: inline-flex; align-items: center; gap: space("3"); }
+
+// ------------------------------------------------------------- history ----
+.as-history__head {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  margin-bottom: space("4");
+  padding-bottom: space("3");
+  border-bottom: 1px solid $line-200;
+
+  > div { display: flex; flex-direction: column; gap: 2px; }
+}
+
+.as-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: space("3");
+    padding-bottom: space("4");
+
+    &:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: 8px;
+      top: 16px;
+      bottom: 0;
+      width: 2px;
+      background: $line-200;
+    }
+  }
+
+  &__dot {
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border-radius: 50%;
+    border: 3px solid $line-300;
+    background: $white;
+  }
+  .is-current &__dot { border-color: $green-600; box-shadow: 0 0 0 3px $green-050; }
+
+  &__body { display: flex; flex-direction: column; gap: 2px; }
+  &__dates { color: $ink-600; font-size: $fs-sm; font-variant-numeric: tabular-nums; }
+  &__note { color: $ink-500; font-size: $fs-xs; font-style: italic; }
+}
+
+// ------------------------------------------------- employee profile list ----
+.as-held {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: space("2");
+  margin: 0 0 space("2");
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    padding: space("2") space("3");
+    border: 1px solid $line-200;
+    border-inline-start-width: 3px;
+    border-radius: $radius;
+    background: $white;
+
+    &.as-expiry--expiring { border-inline-start-color: $amber-600; }
+    &.as-expiry--expired { border-inline-start-color: $red-600; }
+  }
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    font-size: $fs-sm;
+
+    span { color: $ink-500; font-size: $fs-xs; }
+  }
+}
