@@ -45,8 +45,8 @@ public static class AssetFormat
         !a.IsActive ? ("muted", L["as.st_retired"])
         : a.ExpiryState == "EXPIRED" ? ("danger", L["as.st_expired"])
         : a.ExpiryState == "EXPIRING" ? ("warning", L["as.st_expiring"])
-        : a.AssignedEmployeeId is not null ? ("success", L["as.st_assigned"])
-        : ("info", L["as.st_available"]);
+        : a.AssignedEmployeeId is not null ? ("success", L["as.assigned"])
+        : ("info", L["as.not_assigned"]);
 
     public static string Due(IUiText L, int? days) => days switch
     {

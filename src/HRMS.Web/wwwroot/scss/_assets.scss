@@ -100,10 +100,81 @@
 }
 
 // the type chips
+// the figures and the type chips: their own spacing inside the summary slot
+[data-as-summary] {
+  display: flex;
+  flex-direction: column;
+  gap: space("4");
+  min-width: 0;
+}
+
+// the type chips on one line; more than fit scroll sideways (wheel, swipe or the
+// arrows, which show only when there is more that way) with a fade at the cut edge
+.as-types-scroller {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+
+  &__arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid $line-200;
+    border-radius: 50%;
+    background: $white;
+    color: $ink-700;
+    box-shadow: $shadow-sm;
+    transform: translateY(-50%);
+    cursor: pointer;
+    @include motion(background-color, color, border-color);
+
+    &.is-prev { inset-inline-start: 0; }
+    &.is-next { inset-inline-end: 0; }
+    &:hover { border-color: $blue-500; color: $blue-700; background: $blue-050; }
+    &:focus-visible { @include focus-ring; }
+    &[hidden] { display: none; }
+  }
+  [dir="rtl"] & &__arrow svg { transform: scaleX(-1); }
+
+  // the fade under each arrow
+  &::before, &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    width: 56px;
+    pointer-events: none;
+    opacity: 0;
+    @include motion(opacity);
+  }
+  &::before { inset-inline-start: 0; background: linear-gradient(to right, $surface, rgba($surface, 0)); }
+  &::after { inset-inline-end: 0; background: linear-gradient(to left, $surface, rgba($surface, 0)); }
+  [dir="rtl"] &::before { background: linear-gradient(to left, $surface, rgba($surface, 0)); }
+  [dir="rtl"] &::after { background: linear-gradient(to right, $surface, rgba($surface, 0)); }
+  &.can-prev::before, &.can-next::after { opacity: 1; }
+}
+
 .as-types {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: space("2");
+  min-width: 0;
+  padding: 2px;                 // room for the focus ring
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;        // the arrows replace the scrollbar
+  &::-webkit-scrollbar { display: none; }
+
+  > .as-type { flex: 0 0 auto; white-space: nowrap; }
+
+  @media (prefers-reduced-motion: reduce) { scroll-behavior: auto; }
 }
 
 .as-type {

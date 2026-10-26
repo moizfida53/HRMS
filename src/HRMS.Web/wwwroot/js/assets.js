@@ -45,13 +45,49 @@
     }
 
     function loadSummary() {
-        return HRMS.getHtml(url("summary", { type: state.type, status: state.status })).then(function (html) { summarySlot.innerHTML = html; }).catch(function () { });
+        return HRMS.getHtml(url("summary", { type: state.type, status: state.status })).then(function (html) {
+            var keep = $("[data-as-types]", summarySlot);
+            var left = keep ? keep.scrollLeft : 0;
+            summarySlot.innerHTML = html;
+            var types = $("[data-as-types]", summarySlot);
+            if (types) { types.style.scrollBehavior = "auto"; types.scrollLeft = left; types.style.scrollBehavior = ""; }
+            syncScroller();
+        }).catch(function () { });
+    }
+
+    /* the type chips scroll sideways: arrows (and a fade) only on a side with more */
+    function syncScroller() {
+        var box = $("[data-as-scroller]", summarySlot), types = $("[data-as-types]", summarySlot);
+        if (!box || !types) { return; }
+        var max = types.scrollWidth - types.clientWidth;
+        var pos = Math.abs(types.scrollLeft);            // negative in right-to-left
+        var canPrev = max > 2 && pos > 2, canNext = max > 2 && pos < max - 2;
+        $("[data-as-scroll='-1']", box).hidden = !canPrev;
+        $("[data-as-scroll='1']", box).hidden = !canNext;
+        box.classList.toggle("can-prev", canPrev);
+        box.classList.toggle("can-next", canNext);
+    }
+    summarySlot.addEventListener("scroll", function (event) {
+        if (event.target.matches && event.target.matches("[data-as-types]")) { syncScroller(); }
+    }, true);
+    window.addEventListener("resize", HRMS.debounce(syncScroller, 120));
+    // the active type in view
+    function showActiveType() {
+        var types = $("[data-as-types]", summarySlot), on = types ? $(".as-type.is-active", types) : null;
+        if (on && on.scrollIntoView) { on.scrollIntoView({ block: "nearest", inline: "nearest" }); }
     }
 
     function refresh() { loadSummary(); return loadGrid(); }
 
     // the figures (status) and the type chips filter the list; a second click clears
     summarySlot.addEventListener("click", function (event) {
+        var arrow = event.target.closest("[data-as-scroll]");
+        if (arrow) {
+            var types = $("[data-as-types]", summarySlot);
+            var dir = parseInt(arrow.getAttribute("data-as-scroll"), 10) * (document.documentElement.dir === "rtl" ? -1 : 1);
+            types.scrollBy({ left: dir * Math.max(160, types.clientWidth * 0.7) });
+            return;
+        }
         var st = event.target.closest("[data-as-status]");
         var ty = event.target.closest("[data-as-type]");
         if (st) {
@@ -233,5 +269,8 @@
         HRMS.getHtml(url("history", { id: id })).then(function (html) { slot.innerHTML = html; }).catch(function (error) { slot.textContent = error.message; });
     }
 
+    syncScroller();
+    showActiveType();
+    window.setTimeout(syncScroller, 300);
     loadGrid();
 })();

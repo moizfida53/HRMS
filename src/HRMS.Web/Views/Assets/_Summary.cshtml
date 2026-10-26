@@ -4,9 +4,9 @@
     var first = Model.Summary.FirstOrDefault();
     (string Key, string Label, string Icon, int Value, string Tone)[] figures =
     [
-        ("", L["as.kpi_total"], "box", first?.TotalCount ?? 0, ""),
-        ("ASSIGNED", L["as.kpi_assigned"], "user-check", first?.AssignedCount ?? 0, ""),
-        ("AVAILABLE", L["as.kpi_available"], "inbox", first?.AvailableCount ?? 0, ""),
+        ("", L["as.in_use"], "box", first?.TotalCount ?? 0, ""),
+        ("ASSIGNED", L["as.assigned"], "user-check", first?.AssignedCount ?? 0, ""),
+        ("AVAILABLE", L["as.not_assigned"], "inbox", first?.AvailableCount ?? 0, ""),
         ("EXPIRING", L["as.kpi_expiring"], "bell", first?.ExpiringCount ?? 0, (first?.ExpiringCount ?? 0) > 0 ? "is-warn" : ""),
         ("EXPIRED", L["as.kpi_expired"], "alert", first?.ExpiredCount ?? 0, (first?.ExpiredCount ?? 0) > 0 ? "is-bad" : "")
     ];
@@ -24,7 +24,10 @@
     }
 </section>
 
-<nav class="as-types" aria-label="@L["as.types"]">
+@* the types scroll sideways when there are more than fit; the arrows show only then *@
+<div class="as-types-scroller" data-as-scroller>
+    <button type="button" class="as-types-scroller__arrow is-prev" data-as-scroll="-1" aria-label="@L["as.scroll_back"]" hidden>@Html.Icon("chevron-left", 16)</button>
+<nav class="as-types" aria-label="@L["as.types"]" data-as-types>
     <button type="button" class="as-type @(Model.TypeId is null or 0 ? "is-active" : null)" data-as-type="" aria-pressed="@(Model.TypeId is null or 0 ? "true" : "false")">
         <span class="as-icon as-icon--all" aria-hidden="true">@Html.Icon("grid", 14)</span>
         <span class="as-type__name">@L["as.all_types"]</span>
@@ -49,3 +52,5 @@
         </button>
     }
 </nav>
+    <button type="button" class="as-types-scroller__arrow is-next" data-as-scroll="1" aria-label="@L["as.scroll_more"]" hidden>@Html.Icon("chevron-right", 16)</button>
+</div>
