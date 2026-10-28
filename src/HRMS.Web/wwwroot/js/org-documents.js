@@ -29,6 +29,27 @@
     var current = null;     // the company open on the right
     var filter = "";
 
+    /* ------------------------------------------- company list height -- */
+    // The company list is pinned while the documents scroll and scrolls on its own. Its
+    // height is the room actually left below its top edge in the window - at the top of the
+    // page that is less (the figures above take space), so the last company is always
+    // reachable by scrolling the list, without scrolling the page to its end first.
+    (function fitCompanyList() {
+        var aside = companiesSlot && companiesSlot.closest(".od-layout__companies");
+        if (!aside) { return; }
+        var pending = false;
+        function fit() {
+            pending = false;
+            if (getComputedStyle(aside).position !== "sticky") { aside.style.maxHeight = ""; return; }   // phone: a row
+            var top = Math.max(aside.getBoundingClientRect().top, 0);
+            aside.style.maxHeight = Math.max(window.innerHeight - top - 16, 200) + "px";
+        }
+        function soon() { if (!pending) { pending = true; window.requestAnimationFrame(fit); } }
+        window.addEventListener("scroll", soon, { passive: true });
+        window.addEventListener("resize", soon);
+        fit();
+    })();
+
     /* ------------------------------------------------------ companies -- */
 
     function markCompany() {
