@@ -50,7 +50,7 @@
     {
         <div class="od-layout">
             <aside class="od-layout__companies" aria-label="@L["od.companies"]">
-                <h2 class="od-side-title">@L["od.companies"]</h2>
+                <h2 class="od-side-title">@L["od.companies"] <span class="od-side-title__count">@Model.Companies.Count</span></h2>
                 <div data-od-companies>
                     @await Html.PartialAsync("~/Views/OrganizationDocuments/_CompanyList.cshtml", new OrgCompanyListModel { Companies = Model.Companies })
                 </div>

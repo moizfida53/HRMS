@@ -186,7 +186,25 @@ $od-categories: (
   &__docs { min-width: 0; @include motion(opacity); &.is-loading { opacity: .5; pointer-events: none; } }
 }
 
-.od-side-title { @include label-caps; margin: 0 0 space("2"); color: $ink-500; font-size: $fs-xs; }
+.od-side-title {
+  @include label-caps;
+  display: flex;
+  align-items: center;
+  gap: space("2");
+  margin: 0 0 space("2");
+  color: $ink-500;
+  font-size: $fs-xs;
+
+  // how many companies the list holds (it scrolls when they do not fit)
+  &__count {
+    padding: 0 7px;
+    border-radius: $radius-pill;
+    background: $blue-050;
+    color: $blue-700;
+    font-weight: $fw-bold;
+    letter-spacing: 0;
+  }
+}
 
 .od-colist {
   display: flex;

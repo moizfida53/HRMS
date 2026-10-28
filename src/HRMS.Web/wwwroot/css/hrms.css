@@ -4174,9 +4174,20 @@ html.hrms-dragging * {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #98a2b3;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0 0 0.5rem;
   color: #667085;
   font-size: 0.725rem;
+}
+.od-side-title__count {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #f2f7fd;
+  color: #1b4f91;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .od-colist {

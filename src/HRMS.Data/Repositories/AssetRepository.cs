@@ -9,13 +9,34 @@ using HRMS.Domain.Organization;
 namespace HRMS.Data.Repositories;
 
 /// <summary>Setup > Organization > Asset Types: the kinds of company asset (db/84).</summary>
-public interface IAssetTypeRepository : IMasterRepository<AssetType> { }
+public interface IAssetTypeRepository : IMasterRepository<AssetType>
+{
+    /// <summary>db/100: the types in their new sequence (dragged on Organization > Asset Types).</summary>
+    Task<SaveResult> ReorderAsync(IReadOnlyList<int> orderedIds, long? userId, CancellationToken cancellationToken = default);
+}
 
 public sealed class AssetTypeRepository : MasterRepositoryBase<AssetType>, IAssetTypeRepository
 {
     public AssetTypeRepository(ISqlExecutor sql) : base(sql) { }
 
     protected override string ProcedureName => StoredProcedure.AssetTypeManage;
+
+    public async Task<SaveResult> ReorderAsync(IReadOnlyList<int> orderedIds, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = new DynamicParameters();
+        p.Add("@Ids", string.Join(",", orderedIds), DbType.String, size: -1);
+        p.Add("@UserId", userId, DbType.Int64);
+        p.Add("@NewId", dbType: DbType.Int64, direction: ParameterDirection.Output);
+        p.Add("@ResultCode", dbType: DbType.AnsiString, direction: ParameterDirection.Output, size: 40);
+        p.Add("@ResultMessage", dbType: DbType.String, direction: ParameterDirection.Output, size: 400);
+        await Sql.ExecuteAsync(StoredProcedure.AssetTypeReorder, p, cancellationToken).ConfigureAwait(false);
+
+        var code = p.Get<string?>("@ResultCode") ?? ResultCode.Success;
+        var message = p.Get<string?>("@ResultMessage") ?? string.Empty;
+        return code == ResultCode.Success
+            ? SaveResult.Ok(p.Get<long?>("@NewId") ?? 0, message)
+            : SaveResult.Fail(string.IsNullOrWhiteSpace(message) ? "The operation could not be completed." : message, code);
+    }
 
     protected override IReadOnlySet<string> SortableColumns { get; } =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "TypeName", "IsActive", "UsageCount", "SortOrder" };

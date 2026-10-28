@@ -192,7 +192,8 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.DocumentTypes => GridAsync(_documentTypes, descriptor, WholeList(request)),
             // db/99: every type on one page too, so rows can be dragged into their sequence
             OrganizationTabs.OrgDocumentTypes => GridAsync(_orgDocumentTypes, descriptor, WholeList(request)),
-            OrganizationTabs.AssetTypes => GridAsync(_assetTypes, descriptor, request),
+            // db/100: every type on one page too, so rows can be dragged into their sequence
+            OrganizationTabs.AssetTypes => GridAsync(_assetTypes, descriptor, WholeList(request)),
             _ => GridAsync(_companies, OrganizationTabs.All[0], request)
         };
     }
@@ -435,6 +436,26 @@ public sealed class OrganizationController : Controller
         }
 
         var result = await _orgDocumentTypes.ReorderAsync(ordered, _currentUser.UserId, Ct);
+        return Json(result.Success
+            ? ActionResponse.Ok(result.Id, result.Message)
+            : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    /// <summary>db/100: the drag on the Asset Types grid - every type in its new sequence.</summary>
+    [HttpPost("asset-type-order")]
+    public async Task<IActionResult> ReorderAssetTypes([FromForm] int[]? ids)
+    {
+        if (!CanWrite(OrganizationTabs.AssetTypes, isNew: false)) return NoRight();
+        // asset types are group-wide: not for a user pinned to one company
+        if (_currentUser.ActiveCompanyId is not null) return NoRight();
+
+        var ordered = (ids ?? []).Where(id => id > 0).Distinct().ToList();
+        if (ordered.Count == 0 || ordered.Count > 500)
+        {
+            return Json(ActionResponse.Failed("The new order could not be read.", "VALIDATION"));
+        }
+
+        var result = await _assetTypes.ReorderAsync(ordered, _currentUser.UserId, Ct);
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)
             : ActionResponse.Failed(result.Message, result.ErrorCode));
