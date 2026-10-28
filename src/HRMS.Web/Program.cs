@@ -203,18 +203,10 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPayrollNavCounts, PayrollNavCounts>();
 builder.Services.AddScoped<IEmployeeAuditor, EmployeeAuditor>();          // employee Audit Report (db/60)
 
-// Pages and JSON go out compressed (Brotli, else Gzip) - also over HTTPS, where the default
-// leaves them uncompressed. The employee profile's HTML shrinks to roughly a tenth.
-builder.Services.AddResponseCompression(options =>
-{
-    options.EnableForHttps = true;
-    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
-    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
-});
-builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(
-    o => o.Level = System.IO.Compression.CompressionLevel.Fastest);
-builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(
-    o => o.Level = System.IO.Compression.CompressionLevel.Fastest);
+// Compression stays off over HTTPS (the default) for now: enabling it (EnableForHttps)
+// shrinks the employee profile from ~180 KB to ~37 KB, but was turned off on request
+// because of the BREACH attack on compressed HTTPS pages.
+builder.Services.AddResponseCompression();
 
 var app = builder.Build();
 
