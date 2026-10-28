@@ -259,6 +259,9 @@ public sealed class EmployeesController : Controller
             page = await _employees.ListAsync(request, Ct);
         }
 
+        // the list procedure returns no Arabic name: read them (db/102) for the Arabic display and the search
+        await TryFillArabicNamesAsync(page.Items);
+
         return PartialView(ViewsRoot + "_EmployeesGrid.cshtml", new EmployeeGridViewModel
         {
             Page = page,
@@ -1327,6 +1330,23 @@ public sealed class EmployeesController : Controller
         {
             _logger.LogWarning(ex, "Employee completeness could not be read (run db/95).");
             return new Dictionary<long, EmployeeCompleteness>();
+        }
+    }
+
+    private async Task TryFillArabicNamesAsync(IReadOnlyList<Employee> rows)
+    {
+        if (rows.Count == 0) return;
+        try
+        {
+            var names = await _employees.ArabicNamesAsync(rows.Select(e => e.EmployeeId), Ct);
+            foreach (var e in rows)
+            {
+                if (names.TryGetValue(e.EmployeeId, out var arabic)) e.ArabicName = arabic;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "The employees' Arabic names could not be read (run db/102).");
         }
     }
 
