@@ -16,5 +16,3 @@ src/HRMS.Web/wwwroot/uploads/
 HRMS_Import_Questions.xlsx
 db/tools/import_hrms_data/*.json
 
-# the server database connection (written by Set-DatabaseConnection.cmd) - holds the password
-dbsettings.json

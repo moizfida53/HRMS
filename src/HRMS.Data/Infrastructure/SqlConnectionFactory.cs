@@ -49,9 +49,8 @@ public sealed class SqlConnectionFactory : IDbConnectionFactory
         if (!settings.IsConfigured)
         {
             throw new InvalidOperationException(
-                "The database connection is not set up. Fill in dbsettings.json next to the application " +
-                "(run Set-DatabaseConnection.cmd there), or set the ConnectionStrings__SqlServerConnectionString " +
-                "environment variable.");
+                "The database connection is not set up. Set ConnectionStrings:SqlServerConnectionString " +
+                "in appsettings.json (next to the application).");
         }
 
         var builder = new SqlConnectionStringBuilder(settings.ConnectionString)

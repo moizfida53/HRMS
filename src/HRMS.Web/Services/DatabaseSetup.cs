@@ -4,18 +4,10 @@ using Microsoft.Extensions.Options;
 
 namespace HRMS.Web.Services;
 
-/// <summary>Where a server's database connection is kept (Program.cs loads it).</summary>
-public static class DatabaseSetup
-{
-    /// <summary>Next to HRMS.Web.dll; written by Set-DatabaseConnection.cmd, never published.</summary>
-    public const string SettingsFile = "dbsettings.json";
-}
-
 /// <summary>
 /// While no connection string is configured, every request (static files aside) gets a
-/// page saying how to set it up, instead of a startup failure or a server error. It
-/// shows the file to fill in and the helper script; it never shows or accepts a password.
-/// As soon as dbsettings.json is saved (it is re-read on change) the site works.
+/// page saying where to set it (appsettings.json), instead of a startup failure or a
+/// server error. As soon as appsettings.json is saved (it is re-read on change) the site works.
 /// </summary>
 public sealed class DatabaseSetupMiddleware
 {
@@ -48,7 +40,6 @@ public sealed class DatabaseSetupMiddleware
         // the folder only to someone on the server itself (a remote visitor learns nothing about the machine)
         var local = context.Connection.RemoteIpAddress is { } ip && (IPAddress.IsLoopback(ip) || ip.Equals(context.Connection.LocalIpAddress));
         var folder = local ? WebUtility.HtmlEncode(_environment.ContentRootPath) : "the application folder on the server";
-        var file = DatabaseSetup.SettingsFile;
 
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         context.Response.ContentType = "text/html; charset=utf-8";
@@ -79,21 +70,15 @@ public sealed class DatabaseSetupMiddleware
               <h1>The database connection is not set up yet</h1>
               <p>HRMS is installed but does not know which SQL Server database to use.</p>
               <ol>
-                <li>On the server, open the folder <code>{{folder}}</code>.</li>
-                <li>Double-click <code>Set-DatabaseConnection.cmd</code> (or right-click it - Run as administrator).
-                    It asks for the SQL Server, the database and the sign-in, tests them and saves <code>{{file}}</code>.</li>
-                <li>Refresh this page - no restart is needed.</li>
+                <li>On the server, open <code>appsettings.json</code> in the folder <code>{{folder}}</code> (Notepad is fine).</li>
+                <li>Fill in <code>SqlServerConnectionString</code>:
+            <pre>"ConnectionStrings": {
+              "SqlServerConnectionString": "Server=SQLSERVER;Database=HRMS_Kuwait;User Id=hrms_app;Password=YourPassword;"
+            }</pre></li>
+                <li>Save the file and refresh this page - no restart is needed.</li>
               </ol>
-              <p>Or copy <code>dbsettings.template.json</code> to <code>{{file}}</code> in that folder and fill it in:</p>
-              <pre>{
-              "ConnectionStrings": {
-                "SqlServerConnectionString": "Server=SQLSERVER;Database=HRMS_Kuwait;User Id=hrms_app;Password=...;"
-              },
-              "Database": {
-                "TrustServerCertificate": true
-              }
-            }</pre>
-              <p class="note">Publishing the project again never overwrites <code>{{file}}</code> - set it up once per server.</p>
+              <p class="note">Set it in Visual Studio before publishing and every publish carries it - otherwise a new publish
+                 replaces appsettings.json and it is set again here.</p>
             </main></body></html>
             """);
     }

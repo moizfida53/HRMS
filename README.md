@@ -184,27 +184,20 @@ dotnet user-secrets set "Database:ConnectionString" \
   "Server=.;Database=HRMS_Kuwait;User Id=hrms_app;Password=YourPassword;Encrypt=True;TrustServerCertificate=True"
 ```
 
-**Server (after publishing)** — `dbsettings.json` next to `HRMS.Web.dll`:
+**Server** — the connection string, password included, is in `appsettings.json`:
 
-1. Publish and copy the output to the server as usual.
-2. In that folder, double-click **`Set-DatabaseConnection.cmd`**. It asks for the
-   SQL Server, the database and the sign-in (SQL user or Windows / app pool),
-   tests the connection and writes `dbsettings.json`. Run it again to change it.
-   (Or copy `dbsettings.template.json` to `dbsettings.json` and fill it in.)
-3. Refresh the site - `dbsettings.json` is re-read when it changes, no restart.
-
-Until it is set, every page shows "The database connection is not set up yet"
-with these steps (instead of failing to start). A publish never includes or
-overwrites `dbsettings.json` - keep "Delete all existing files prior to publish"
-unticked in the publish profile. The file holds the password: keep it readable
-by Administrators and the app pool account only.
-
-An environment variable still wins over the file:
-
+```json
+"ConnectionStrings": {
+  "SqlServerConnectionString": "Server=SQLSERVER;Database=HRMS_Kuwait;User Id=hrms_app;Password=YourPassword;"
+}
 ```
-ConnectionStrings__SqlServerConnectionString=Server=...;Database=HRMS_Kuwait;User Id=hrms_app;Password=...;
-Database__TrustServerCertificate=true
-```
+
+Set it in Visual Studio before publishing (every publish then carries it), or
+edit `appsettings.json` in the site folder on the server after publishing and
+save - it is re-read, no restart. While it is empty, every page says where to
+set it. `Database:TrustServerCertificate` is true (the SQL Server's own
+certificate is accepted); set it to false only with a certificate from a
+trusted authority.
 
 The lockout policy is configured in `appsettings.json` under `Authentication`
 and can be overridden per environment the same way:

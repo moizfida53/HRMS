@@ -20,25 +20,10 @@ var builder = WebApplication.CreateBuilder(args);
 // it is loaded last, after User Secrets, so it wins if both are present -
 // convenient when several developers share one checkout but each points at
 // their own SQL Server instance. Entirely optional: its absence is silent.
-// ---------------------------------------------------------------------------
-// Server database settings: dbsettings.json, next to the application
-// ---------------------------------------------------------------------------
-// The one file to fill in on a server after publishing - Set-DatabaseConnection.cmd
-// (published with the app) asks for the server, database and sign-in, tests them and
-// writes it. Never published or overwritten by a publish (HRMS.Web.csproj); git-ignored.
-// Re-read when it changes: no restart needed. See dbsettings.template.json.
-builder.Configuration.AddJsonFile(
-    DatabaseSetup.SettingsFile,
-    optional: true,
-    reloadOnChange: true);
-
 builder.Configuration.AddJsonFile(
     $"appsettings.{builder.Environment.EnvironmentName}.local.json",
     optional: true,
     reloadOnChange: true);
-
-// environment variables still win over the files above (e.g. ConnectionStrings__SqlServerConnectionString)
-builder.Configuration.AddEnvironmentVariables();
 
 // ---------------------------------------------------------------------------
 // MVC
@@ -252,7 +237,7 @@ else
 }
 
 app.UseHttpsRedirection();
-// no database connection set up yet: every page explains how (dbsettings.json) - Services/DatabaseSetup.cs
+// no database connection set up yet: every page explains where to set it (appsettings.json) - Services/DatabaseSetup.cs
 app.UseMiddleware<DatabaseSetupMiddleware>();
 app.UseSecurityHeaders();          // see Security/SecurityHeadersMiddleware.cs
 app.UseResponseCompression();

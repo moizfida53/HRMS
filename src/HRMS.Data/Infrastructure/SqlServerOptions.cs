@@ -36,7 +36,7 @@ public sealed class SqlServerOptions
     // missing connection string at startup.
     // Not [Required]: a missing connection string no longer stops the site from starting -
     // every page then shows the "Database connection not set up" page instead
-    // (HRMS.Web DatabaseSetupMiddleware), which says which file to fill in (dbsettings.json).
+    // (HRMS.Web DatabaseSetupMiddleware), which says where to set it (appsettings.json).
     public string ConnectionString { get; set; } = string.Empty;
 
     /// <summary>True once a connection string is configured.</summary>
