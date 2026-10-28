@@ -16549,6 +16549,112 @@ html.hrms-embed .hrms-content {
   }
 }
 
+.emp-missing {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  border-inline-start: 4px solid #d97706;
+  border-radius: 8px;
+  background: #fffaeb;
+  color: #b54708;
+}
+.emp-missing[hidden] {
+  display: none;
+}
+.emp-missing__icon {
+  display: inline-flex;
+  flex: none;
+  margin-top: 1px;
+}
+.emp-missing__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.5rem;
+  row-gap: 0.25rem;
+  min-width: 0;
+}
+.emp-missing__body strong {
+  font-weight: 600;
+}
+.emp-missing__hint {
+  font-size: 0.8rem;
+  color: rgb(86.3031434796%, 33.8537192655%, 3.8145035792%);
+}
+.emp-missing__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  flex-basis: 100%;
+  margin-top: 0.25rem;
+}
+.emp-missing__chip {
+  padding: 2px 0.75rem;
+  border: 1px solid rgba(217, 119, 6, 0.45);
+  border-radius: 999px;
+  background: #fff;
+  color: #b54708;
+  font-size: 0.725rem;
+  font-weight: 500;
+  line-height: 1.6;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.emp-missing__chip:hover {
+  background: rgba(217, 119, 6, 0.12);
+  border-color: #d97706;
+}
+.emp-missing__chip:focus-visible:focus {
+  outline: none;
+}
+.emp-missing__chip:focus-visible:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.28);
+  border-color: #d97706;
+}
+@container content (max-width: 639.98px) {
+  .emp-missing {
+    padding: 0.5rem 0.75rem;
+  }
+  .emp-missing__hint {
+    flex-basis: 100%;
+  }
+}
+
+.emp-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-inline-start: 0.5rem;
+  padding: 1px 7px 1px 5px;
+  border: 1px solid rgba(217, 119, 6, 0.4);
+  border-radius: 999px;
+  background: #fffaeb;
+  color: #b54708;
+  font-size: 0.725rem;
+  font-weight: 600;
+  line-height: 1.5;
+  vertical-align: middle;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.emp-flag:hover {
+  border-color: #d97706;
+  color: #b54708;
+  background: rgba(217, 119, 6, 0.15);
+}
+.emp-flag:focus-visible:focus {
+  outline: none;
+}
+.emp-flag:focus-visible:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.28);
+  border-color: #d97706;
+}
+
 .hrms-muted {
   color: #667085 !important;
 }

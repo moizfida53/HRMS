@@ -39,6 +39,15 @@
                                 <a class="hrms-table__primary" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId">
                                     @row.FullName
                                 </a>
+                                @if (Model.Missing.TryGetValue(row.EmployeeId, out var gap))
+                                {
+                                    var gapNames = string.Join(", ", gap.MissingFields.Select(k => L.Tr(EmployeeGridViewModel.MandatoryFieldNames.GetValueOrDefault(k, k))));
+                                    var gapText = gap.MissingCount == 1 ? L["emp.missing_one"].ToString() : L["emp.missing_many", gap.MissingCount].ToString();
+                                    <a class="emp-flag" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId"
+                                       title="@gapText: @gapNames" aria-label="@gapText: @gapNames">
+                                        @Html.Icon("alert", 13)<span class="emp-flag__count">@gap.MissingCount</span>
+                                    </a>
+                                }
                             </td>
                             <td data-label="@L.Tr("Department")" class="hrms-muted">@(string.IsNullOrWhiteSpace(row.DepartmentName) ? "—" : row.DepartmentName)</td>
                             <td data-label="@L.Tr("Designation")" class="hrms-muted">@(string.IsNullOrWhiteSpace(row.DesignationName) ? "—" : row.DesignationName)</td>

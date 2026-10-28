@@ -38,6 +38,9 @@ public abstract class MasterRepositoryBase<T> : IMasterRepository<T> where T : c
 
     protected MasterRepositoryBase(ISqlExecutor sql) => _sql = sql;
 
+    /// <summary>For a repository's own extra procedures beyond the master envelope.</summary>
+    protected ISqlExecutor Sql => _sql;
+
     /// <summary>The single multi-action procedure backing this master.</summary>
     protected abstract string ProcedureName { get; }
 

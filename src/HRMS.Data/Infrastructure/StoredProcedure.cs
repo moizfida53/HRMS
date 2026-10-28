@@ -36,6 +36,9 @@ public static class StoredProcedure
     /// <summary>Full LIST/GET/INSERT/UPDATE/DELETE/TOGGLE envelope, same shape as every other master.</summary>
     public const string EmployeeManage = "Employee.usp_Employee_Manage";
 
+    /// <summary>The mandatory details each saved employee is missing (db/95) - a flag on the Employees list.</summary>
+    public const string EmployeeCompleteness = "Employee.usp_EmployeeCompleteness";
+
     /// <summary>1:1 child of the employee record - GET/UPSERT only, no paging or delete of its own.</summary>
     public const string EmployeeComplianceManage = "Kuwait.usp_EmployeeCompliance_Manage";
 

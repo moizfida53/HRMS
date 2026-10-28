@@ -366,7 +366,8 @@
             var fields = Array.prototype.slice.call(document.querySelectorAll(
                 '[form="employee-form"][required], #employee-form [required], #compliance-form [required]'));
             return fields.filter(function (f) {
-                if (f.disabled || f.type === "hidden" || f.closest("[hidden]")) { return false; }
+                // a read-only tab (disabled fieldset) or a hidden field never blocks the save
+                if (f.matches(":disabled") || f.type === "hidden" || f.closest("[hidden]")) { return false; }
                 return !String(f.value || "").trim();
             });
         }
@@ -374,6 +375,51 @@
             var label = field.id ? document.querySelector('label[for="' + field.id + '"]') : null;
             var text = label ? label.textContent : (field.getAttribute("aria-label") || field.name);
             return text.replace(/\*/g, "").replace(/\s+/g, " ").trim();
+        }
+
+        // Required once the employee exists: residency, sponsor and work permit only for a
+        // non-Kuwaiti employee - follows the nationality chosen on Personal Info.
+        var nationality = document.getElementById("f-NationalityCountryId");
+        function syncNonKuwaiti() {
+            var mirror = document.querySelector("[data-nationality-mirror]");
+            if (mirror && nationality) { mirror.value = nationality.value; }
+            if (!document.querySelector("[data-must-fill]")) { return; }
+            var opt = nationality && nationality.options[nationality.selectedIndex];
+            var code = opt ? (opt.getAttribute("data-code") || "") : "";
+            var kuwaiti = code === "KW" || code === "KWT";
+            document.querySelectorAll('[data-must-fill="nonkw"]').forEach(function (f) {
+                f.required = !kuwaiti;
+                if (kuwaiti) { f.classList.remove("is-invalid"); }
+            });
+            document.querySelectorAll('[data-must-star="nonkw"]').forEach(function (star) { star.hidden = kuwaiti; });
+        }
+        if (nationality) { nationality.addEventListener("change", function () { syncNonKuwaiti(); refreshMissing(); }); }
+
+        // the banner over the tabs: which required details are still empty (chips go to the field)
+        var banner = document.querySelector("[data-must-banner]");
+        function refreshMissing() {
+            if (!banner) { return; }
+            var missing = missingRequired();
+            banner.hidden = missing.length === 0;
+            var count = banner.querySelector("[data-must-count]");
+            count.textContent = missing.length === 1
+                ? count.getAttribute("data-text-one")
+                : (count.getAttribute("data-text-many") || "{0}").replace("{0}", missing.length);
+            var chips = banner.querySelector("[data-must-chips]");
+            chips.innerHTML = "";
+            missing.forEach(function (f) {
+                var chip = document.createElement("button");
+                chip.type = "button";
+                chip.className = "emp-missing__chip";
+                chip.textContent = labelOf(f);
+                chip.addEventListener("click", function () { revealField(f); });
+                chips.appendChild(chip);
+            });
+        }
+        if (banner) {
+            var refreshSoon = HRMS.debounce(refreshMissing, 250);
+            document.addEventListener("input", refreshSoon);
+            document.addEventListener("change", refreshSoon);
         }
 
         function clearErrors(form) {
@@ -469,6 +515,9 @@
         // Save Changes (next to the employee's name): one click saves every section the
         // user may edit - Personal Info / Employment, then Kuwait Compliance.
         var saveAllButton = document.querySelector("[data-save-all]");
+        syncNonKuwaiti();
+        refreshMissing();
+
         function saveAll() {
             // nothing is saved while a mandatory field is empty: say which, then go to the first
             var missing = missingRequired();
@@ -496,17 +545,21 @@
             var doCompliance = saveAllButton.dataset.saveCompliance === "true" && complianceForm && complianceDirty;
             var options = { quiet: true, button: saveAllButton };
 
+            // an existing employee: Kuwait Compliance goes first, the employee's save checks that its
+            // mandatory details are stored; a new one has no compliance record to save yet
+            var idField = document.querySelector('[name="EmployeeId"][form="employee-form"]');
+            var existing = Boolean(idField && idField.value && idField.value !== "0");
             var chain = Promise.resolve(true);
-            if (doEmployee) { chain = chain.then(function () { return saveEmployee(options); }); }
+            if (doEmployee && !existing) { chain = chain.then(function () { return saveEmployee(options); }); }
             if (doCompliance) {
-                chain = chain.then(function (ok) {
-                    if (!ok) { return false; }
+                chain = chain.then(function () {
                     return saveCompliance(options).then(function (saved) {
                         if (!saved) { document.dispatchEvent(new CustomEvent("profile:show-tab", { detail: { tab: "compliance" } })); }
                         return saved;
                     });
                 });
             }
+            if (doEmployee && existing) { chain = chain.then(function (ok) { return ok && saveEmployee(options); }); }
             chain.then(function (ok) {
                 if (!ok) { return; }
                 if (!doEmployee && !doCompliance) { HRMS.toast(HRMS.t("js.nothing_to_save", "There are no changes to save."), "info"); return; }

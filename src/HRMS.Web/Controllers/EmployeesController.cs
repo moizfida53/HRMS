@@ -196,7 +196,8 @@ public sealed class EmployeesController : Controller
         return PartialView(ViewsRoot + "_EmployeesGrid.cshtml", new EmployeeGridViewModel
         {
             Page = page,
-            Request = request
+            Request = request,
+            Missing = await TryGetCompletenessAsync(page.Items.Select(e => e.EmployeeId))
         });
     }
 
@@ -464,6 +465,28 @@ public sealed class EmployeesController : Controller
             return Json(ActionResponse.Invalid(CollectErrors()));
         }
 
+        // once created, the Employment details are mandatory (the wizard may still leave them blank)
+        if (model.EmployeeId > 0 && access.EmploymentEdit && !IsWizardPost())
+        {
+            var missing = new Dictionary<string, string[]>();
+            if (model.HireDate is null) missing[nameof(Employee.HireDate)] = [Required];
+            if (model.NoticePeriodDays is null) missing[nameof(Employee.NoticePeriodDays)] = [Required];
+            if (Request.HasFormContentType && string.IsNullOrWhiteSpace(Request.Form["AnnualLeaveDays"]))
+                missing["AnnualLeaveDays"] = [Required];
+            if (model.BasicSalary is null or <= 0) missing[nameof(Employee.BasicSalary)] = [Required];
+            if (string.IsNullOrWhiteSpace(model.BankName)) missing[nameof(Employee.BankName)] = [Required];
+            if (string.IsNullOrWhiteSpace(model.Iban)) missing[nameof(Employee.Iban)] = [Required];
+            if (missing.Count > 0) return Json(ActionResponse.Invalid(missing));
+
+            // the Kuwait Compliance tab is saved first (when changed), so the stored record must be complete too
+            if (access.ComplianceEdit)
+            {
+                var storedCompliance = await _compliance.GetAsync(model.EmployeeId, Ct) ?? new EmployeeKuwaitCompliance { EmployeeId = model.EmployeeId };
+                var gaps = ComplianceMissing(storedCompliance, model.NationalityCountryId is { } nat ? await IsKuwaitiCountryAsync(nat) : false);
+                if (gaps.Count > 0) return Json(ActionResponse.Invalid(gaps));
+            }
+        }
+
         // the employee (when editing) and the company chosen must both be the user's
         if (!_currentUser.Allows(model.CompanyId) || (model.EmployeeId > 0 && !await OwnsEmployeeAsync(model.EmployeeId)))
         {
@@ -616,6 +639,17 @@ public sealed class EmployeesController : Controller
         if (!await OwnsEmployeeAsync(model.EmployeeId))
         {
             return NotYours();
+        }
+
+        // once created, the identity documents are mandatory; residency, sponsor and work permit
+        // only for a non-Kuwaiti (the wizard may still leave them blank)
+        // the nationality chosen on Personal Info in the same save counts (it is saved after this tab)
+        var kuwaiti = Access.Edit && int.TryParse(Request.Form["_NationalityCountryId"], out var nationalityId)
+            ? await IsKuwaitiCountryAsync(nationalityId)
+            : await IsKuwaitiAsync(model.EmployeeId);
+        if (!IsWizardPost() && ComplianceMissing(model, kuwaiti) is { Count: > 0 } missing)
+        {
+            return Json(ActionResponse.Invalid(missing));
         }
 
         var (code, message) = await _compliance.UpsertAsync(model, _currentUser.UserId, Ct);
@@ -961,6 +995,60 @@ public sealed class EmployeesController : Controller
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)
             : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    private const string Required = "This field is required.";
+
+    /// <summary>The add-employee wizard posts _wizard=1: there the mandatory details may still be blank.</summary>
+    private bool IsWizardPost() =>
+        Request.HasFormContentType && Request.Form["_wizard"].ToString() == "1";
+
+    /// <summary>A Kuwaiti national needs no residency, sponsor or work permit.</summary>
+    private async Task<bool> IsKuwaitiAsync(long employeeId) =>
+        await _employees.GetByIdAsync(employeeId, Ct) is { NationalityCountryId: { } countryId } && await IsKuwaitiCountryAsync(countryId);
+
+    private async Task<bool> IsKuwaitiCountryAsync(int countryId)
+    {
+        var countries = await _lookups.GetAsync(LookupType.Country, includeInactive: true, cancellationToken: Ct);
+        return countries.FirstOrDefault(c => c.Id == countryId)?.Code is { } code
+            && (code.Equals("KW", StringComparison.OrdinalIgnoreCase) || code.Equals("KWT", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>The Kuwait Compliance details mandatory once the employee exists (same rules as db/95).</summary>
+    private static Dictionary<string, string[]> ComplianceMissing(EmployeeKuwaitCompliance k, bool kuwaiti)
+    {
+        var missing = new Dictionary<string, string[]>();
+        void Need(bool empty, string field) { if (empty) missing[field] = [Required]; }
+        Need(string.IsNullOrWhiteSpace(k.CivilIdNumber), nameof(k.CivilIdNumber));
+        Need(k.CivilIdExpiryDate is null, nameof(k.CivilIdExpiryDate));
+        Need(string.IsNullOrWhiteSpace(k.PassportNumber), nameof(k.PassportNumber));
+        Need(k.PassportCountryId is null, nameof(k.PassportCountryId));
+        Need(k.PassportExpiryDate is null, nameof(k.PassportExpiryDate));
+        if (!kuwaiti)
+        {
+            Need(string.IsNullOrWhiteSpace(k.ResidencyNumber), nameof(k.ResidencyNumber));
+            Need(string.IsNullOrWhiteSpace(k.ResidencyType), nameof(k.ResidencyType));
+            Need(k.ResidencyExpiryDate is null, nameof(k.ResidencyExpiryDate));
+            Need(string.IsNullOrWhiteSpace(k.SponsorName), nameof(k.SponsorName));
+            Need(k.WorkPermitSalary is null or <= 0, nameof(k.WorkPermitSalary));
+            Need(string.IsNullOrWhiteSpace(k.WorkPermitDesignation), nameof(k.WorkPermitDesignation));
+            Need(string.IsNullOrWhiteSpace(k.WorkPermitDesignationAr), nameof(k.WorkPermitDesignationAr));
+        }
+        return missing;
+    }
+
+    /// <summary>The details each saved employee must have (db/95) - a flag on the Employees list.</summary>
+    private async Task<IReadOnlyDictionary<long, EmployeeCompleteness>> TryGetCompletenessAsync(IEnumerable<long> ids)
+    {
+        try
+        {
+            return await _employees.CompletenessAsync(ids, Ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Employee completeness could not be read (run db/95).");
+            return new Dictionary<long, EmployeeCompleteness>();
+        }
     }
 
     private Dictionary<string, string[]> CollectErrors() =>

@@ -16,6 +16,32 @@ public sealed class EmployeeGridViewModel
 
     public required GridRequest Request { get; init; }
 
+    /// <summary>Employees on this page missing a mandatory detail (db/95); absent = complete.</summary>
+    public IReadOnlyDictionary<long, EmployeeCompleteness> Missing { get; init; } = new Dictionary<long, EmployeeCompleteness>();
+
+    /// <summary>The English label of each mandatory field key (translated in the view).</summary>
+    public static readonly IReadOnlyDictionary<string, string> MandatoryFieldNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["HireDate"] = "Hire Date",
+        ["NoticePeriodDays"] = "Notice Period",
+        ["AnnualLeaveDays"] = "Annual Leave",
+        ["BasicSalary"] = "Basic Salary",
+        ["BankName"] = "Bank Name",
+        ["Iban"] = "IBAN",
+        ["CivilIdNumber"] = "Civil ID Number",
+        ["CivilIdExpiryDate"] = "Civil ID Expiry",
+        ["PassportNumber"] = "Passport Number",
+        ["PassportCountryId"] = "Passport Issuing Country",
+        ["PassportExpiryDate"] = "Passport Expiry",
+        ["ResidencyNumber"] = "Residency Number",
+        ["ResidencyType"] = "Residence Type",
+        ["ResidencyExpiryDate"] = "Residency Expiry",
+        ["SponsorName"] = "Sponsor Name",
+        ["WorkPermitSalary"] = "Work Permit Salary",
+        ["WorkPermitDesignation"] = "Designation (English)",
+        ["WorkPermitDesignationAr"] = "Designation (Arabic)",
+    };
+
     public int TotalCount => Page.TotalCount;
     public int PageNumber => Page.PageNumber;
     public int PageSize => Page.PageSize;

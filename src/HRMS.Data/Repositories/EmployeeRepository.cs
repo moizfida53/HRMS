@@ -8,6 +8,8 @@ namespace HRMS.Data.Repositories;
 
 public interface IEmployeeRepository : IMasterRepository<Employee>
 {
+    /// <summary>The mandatory details each of these employees is missing (db/95); complete employees are left out.</summary>
+    Task<IReadOnlyDictionary<long, EmployeeCompleteness>> CompletenessAsync(IEnumerable<long> employeeIds, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -32,6 +34,19 @@ public sealed class EmployeeRepository : MasterRepositoryBase<Employee>, IEmploy
     protected override string DefaultSortColumn => "FullName";
 
     protected override long GetKey(Employee entity) => entity.EmployeeId;
+
+    public async Task<IReadOnlyDictionary<long, EmployeeCompleteness>> CompletenessAsync(
+        IEnumerable<long> employeeIds, CancellationToken cancellationToken = default)
+    {
+        var ids = string.Join(',', employeeIds.Where(id => id > 0).Distinct());
+        if (ids.Length == 0) return new Dictionary<long, EmployeeCompleteness>();
+
+        var parameters = new DynamicParameters();
+        parameters.Add("@EmployeeIds", ids, DbType.String, size: -1);
+        var rows = await Sql.QueryAsync<EmployeeCompleteness>(StoredProcedure.EmployeeCompleteness, parameters, cancellationToken)
+            .ConfigureAwait(false);
+        return rows.Where(r => r.MissingCount > 0).ToDictionary(r => r.EmployeeId);
+    }
 
     protected override void AddEntityParameters(DynamicParameters parameters, Employee entity)
     {
