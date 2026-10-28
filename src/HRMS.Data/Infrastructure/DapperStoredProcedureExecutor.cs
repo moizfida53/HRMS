@@ -137,6 +137,7 @@ public sealed partial class DapperStoredProcedureExecutor : ISqlExecutor
             var result = await operation(connection, command).ConfigureAwait(false);
 
             stopwatch.Stop();
+            SqlCallLog.Current?.Add(procedureName, stopwatch.Elapsed.TotalMilliseconds);
             if (stopwatch.ElapsedMilliseconds > 1000)
             {
                 _logger.LogWarning(

@@ -336,7 +336,7 @@ public sealed class EmployeesController : Controller
             : Has(EmployeeProfileData.Assets) ? Task.FromResult<IReadOnlyList<HRMS.Domain.Assets.AssetRow>?>(data!.Many<HRMS.Domain.Assets.AssetRow>(EmployeeProfileData.Assets))
             : TryGetAssetsAsync(id);
         await Task.WhenAll(employeeTask, complianceTask, lookupsTask, payrollCalendarTask, calendarsTask, alertsTask, leaveTermsTask, assetsTask);
-        Response.Headers["Server-Timing"] = $"db;desc=\"profile data ({(data is null ? "separate calls" : "one call")})\";dur={clock.ElapsedMilliseconds}";
+        Response.Headers["Server-Timing"] = $"profile;desc=\"profile data ({(data is null ? "separate calls" : "one call")})\";dur={clock.ElapsedMilliseconds}";
 
         var employee = employeeTask.Result;
 

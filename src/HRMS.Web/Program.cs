@@ -210,6 +210,12 @@ builder.Services.AddResponseCompression();
 
 var app = builder.Build();
 
+// where each request's time goes (Server-Timing header + a log line per slow page)
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Diagnostics:ServerTiming"))
+{
+    app.UseMiddleware<ServerTimingMiddleware>();
+}
+
 if (app.Configuration.GetValue<bool>("Authentication:SimplePassword"))
 {
     app.Logger.LogWarning(
