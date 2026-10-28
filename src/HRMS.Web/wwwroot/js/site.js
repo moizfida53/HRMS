@@ -416,6 +416,145 @@
         try { var f = JSON.parse(raw); if (f && f.m) { HRMS.toast(f.m, f.t); } } catch (e) { /* ignore */ }
     });
 
+    /* ------------------------------------------------------ please wait -- */
+    // Every server call (fetch) and every page change puts up "Please wait" over the page,
+    // so nothing can be clicked twice while the server works. It only appears when the
+    // wait is noticeable (> 350 ms) and, once shown, stays long enough not to flicker.
+    // fetch(url, { hrmsQuiet: true }) opts a background call out.
+    var busy = (function () {
+        var SHOW_AFTER = 350, MIN_VISIBLE = 400, SLOW_AFTER = 8000;
+        var count = 0, el = null, showTimer = 0, slowTimer = 0, shownAt = 0, navigating = false;
+
+        function build() {
+            if (el) { return el; }
+            el = document.createElement("div");
+            el.className = "hrms-wait";
+            el.setAttribute("role", "status");
+            el.setAttribute("aria-live", "polite");
+            el.hidden = true;
+            el.innerHTML =
+                '<div class="hrms-wait__card">' +
+                '<div class="hrms-wait__spinner" aria-hidden="true"><span class="hrms-wait__ring"></span><span class="hrms-wait__mark">HR</span></div>' +
+                '<div class="hrms-wait__text"><strong class="hrms-wait__title"></strong><span class="hrms-wait__dots" aria-hidden="true"><i></i><i></i><i></i></span></div>' +
+                '<p class="hrms-wait__sub"></p>' +
+                '<div class="hrms-wait__bar" aria-hidden="true"><span></span></div>' +
+                '</div>';
+            el.querySelector(".hrms-wait__title").textContent = HRMS.t("js.please_wait", "Please wait");
+            document.body.appendChild(el);
+            return el;
+        }
+
+        function show() {
+            var o = build();
+            o.querySelector(".hrms-wait__sub").textContent = navigating
+                ? HRMS.t("js.wait_loading_page", "Loading the page…")
+                : HRMS.t("js.wait_loading_data", "Getting your data…");
+            if (!o.hidden) { return; }
+            o.hidden = false;
+            o.classList.remove("is-slow");
+            shownAt = Date.now();
+            document.documentElement.classList.add("hrms-is-waiting");
+            document.body.setAttribute("aria-busy", "true");
+            window.clearTimeout(slowTimer);
+            slowTimer = window.setTimeout(function () {
+                o.classList.add("is-slow");
+                o.querySelector(".hrms-wait__sub").textContent = HRMS.t("js.wait_slow", "Still working - the connection is slow…");
+            }, SLOW_AFTER);
+        }
+
+        function hide() {
+            window.clearTimeout(showTimer);
+            window.clearTimeout(slowTimer);
+            showTimer = 0;
+            if (!el || el.hidden) { return; }
+            var left = MIN_VISIBLE - (Date.now() - shownAt);
+            if (left > 0) {
+                showTimer = window.setTimeout(function () { if (count === 0 && !navigating) { hide(); } }, left);
+                return;
+            }
+            el.hidden = true;
+            document.documentElement.classList.remove("hrms-is-waiting");
+            document.body.removeAttribute("aria-busy");
+        }
+
+        function schedule(delay) {
+            if (showTimer || (el && !el.hidden)) { if (el && !el.hidden) { show(); } return; }
+            showTimer = window.setTimeout(function () { showTimer = 0; if (count > 0 || navigating) { show(); } }, delay);
+        }
+
+        // keys reach a text box (typing goes on), but nothing is submitted or clicked while waiting
+        document.addEventListener("keydown", function (event) {
+            if (!el || el.hidden) { return; }
+            var t = event.target;
+            var typing = t && (t.isContentEditable || /^(TEXTAREA)$/.test(t.tagName) ||
+                (t.tagName === "INPUT" && !/^(button|submit|reset|checkbox|radio|file|image)$/i.test(t.type)));
+            if (typing && event.key !== "Enter") { return; }
+            if (event.key === "Tab" || event.key === "Shift" || event.key === "Control" || event.key === "Alt") { return; }
+            event.preventDefault();
+            event.stopPropagation();
+        }, true);
+
+        return {
+            start: function () { count++; schedule(SHOW_AFTER); },
+            end: function () { count = Math.max(0, count - 1); if (count === 0 && !navigating) { hide(); } },
+            navigate: function () {
+                navigating = true;
+                schedule(150);
+                // a link that turned out to be a file download never leaves the page
+                window.setTimeout(function () { navigating = false; if (count === 0) { hide(); } }, 20000);
+            },
+            reset: function () { navigating = false; hide(); }
+        };
+    })();
+    HRMS.busy = busy;
+
+    if (window.fetch && !window.fetch.hrmsWrapped) {
+        var nativeFetch = window.fetch.bind(window);
+        window.fetch = function (input, init) {
+            if (init && init.hrmsQuiet) { return nativeFetch(input, init); }
+            busy.start();
+            var done = false;
+            function end() { if (!done) { done = true; busy.end(); } }
+            return nativeFetch(input, init).then(function (response) {
+                // the body is still downloading: wait for it before taking "Please wait" down
+                if (!response.body || !response.clone) { end(); return response; }
+                var copy = response.clone();
+                copy.arrayBuffer().then(end, end);
+                return response;
+            }, function (error) { end(); throw error; });
+        };
+        window.fetch.hrmsWrapped = true;
+    }
+
+    // page changes: links, GET/POST forms that really leave the page, HRMS.go
+    // checked after every handler has run (a page script may cancel the click / submit itself)
+    function leavesPage(a, event) {
+        if (!a || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) { return false; }
+        if (a.target && a.target !== "_self") { return false; }
+        if (a.hasAttribute("download") || a.hasAttribute("data-bs-toggle") || a.hasAttribute("data-no-wait")) { return false; }
+        var href = a.getAttribute("href") || "";
+        if (!href || href.charAt(0) === "#" || /^(javascript|mailto|tel):/i.test(href)) { return false; }
+        var u;
+        try { u = new URL(a.href, window.location.href); } catch (e) { return false; }
+        if (u.origin !== window.location.origin) { return false; }
+        if (u.pathname === window.location.pathname && u.search === window.location.search && u.hash) { return false; }
+        return !/(export|download|excel|csv|pdf|print|file)/i.test(u.pathname + u.search);
+    }
+    document.addEventListener("click", function (event) {
+        var a = event.target.closest && event.target.closest("a[href]");
+        if (a) { window.setTimeout(function () { if (leavesPage(a, event)) { busy.navigate(); } }, 0); }
+    });
+    document.addEventListener("submit", function (event) {
+        var form = event.target;
+        window.setTimeout(function () {
+            if (event.defaultPrevented || !(form instanceof HTMLFormElement) || form.target === "_blank" || form.hasAttribute("data-no-wait")) { return; }
+            if (/(export|download|excel|csv|pdf|print)/i.test(form.getAttribute("action") || "")) { return; }
+            busy.navigate();
+        }, 0);
+    });
+    // back / forward from the browser's page cache: nothing is loading any more
+    window.addEventListener("pageshow", function (event) { if (event.persisted) { busy.reset(); } });
+
     /* ------------------------------------------------- anti-forgery token -- */
 
     HRMS.antiForgeryToken = function () {
@@ -497,7 +636,7 @@
     HRMS.go = function (url, newTab) {
         var u = new URL(url, window.location.href);
         if (!HRMS.isGuardedUrl(u.href)) {
-            if (newTab) { window.open(u.href, "_blank", "noopener"); } else { window.location.href = u.href; }
+            if (newTab) { window.open(u.href, "_blank", "noopener"); } else { busy.navigate(); window.location.href = u.href; }
             return;
         }
         var form = document.createElement("form");
@@ -513,6 +652,7 @@
             form.appendChild(input);
         });
         document.body.appendChild(form);
+        if (!newTab) { busy.navigate(); }
         form.submit();
         window.setTimeout(function () { form.remove(); }, 0);
     };
@@ -577,7 +717,35 @@
         });
     };
 
+    // panels a page fetched together in one call (HRMS.primeHtml): the first getHtml of each
+    // is answered from that call; later ones (a refresh after a change) go to the server
+    var primed = {};
+
+    /** Fetches several panels in ONE POST to bundleUrl (answer: { url: html }); any panel
+     *  the answer leaves out is fetched on its own when asked for. */
+    HRMS.primeHtml = function (bundleUrl, urls) {
+        urls = (urls || []).filter(Boolean);
+        if (!urls.length) { return; }
+        var body = new FormData();
+        urls.forEach(function (u) { body.append("url", u); });
+        var all = HRMS.post(bundleUrl, body).catch(function () { return {}; });
+        urls.forEach(function (u) {
+            primed[u] = all.then(function (panels) {
+                return panels && typeof panels[u] === "string" ? panels[u] : fetchHtml(u);
+            });
+        });
+    };
+
     HRMS.getHtml = function (url) {
+        if (Object.prototype.hasOwnProperty.call(primed, url)) {
+            var ready = primed[url];
+            delete primed[url];
+            return ready;
+        }
+        return fetchHtml(url);
+    };
+
+    function fetchHtml(url) {
         return fetch(url, {
             credentials: "same-origin",
             headers: { "Accept": "text/html", "X-Requested-With": "XMLHttpRequest" }
@@ -587,7 +755,7 @@
             }
             return response.text();
         });
-    };
+    }
 
     /** POST (anti-forgery token included) and return the HTML of a panel - for panels that
      *  name a record, so its reference travels in the request body, never in the address. */

@@ -7,7 +7,11 @@ using HRMS.Web.Models.Organization;
 using HRMS.Web.Models.Workforce;
 using HRMS.Web.Security;
 using HRMS.Web.Services;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 
 namespace HRMS.Web.Controllers;
 
@@ -180,7 +184,7 @@ public sealed class EmployeesController : Controller
     public IActionResult Index() => Access.View ? View(ViewsRoot + "Index.cshtml") : Forbid();
 
     [HttpGet("grid")]
-    public async Task<IActionResult> Grid([FromQuery] GridRequest request)
+    public async Task<IActionResult> Grid([FromQuery] GridRequest request, [FromQuery] bool all = false)
     {
         if (!Access.View) return Forbid();
         // Scope the list to the user's active company once they have one,
@@ -191,12 +195,34 @@ public sealed class EmployeesController : Controller
         // Top-bar company filter (cookie) - always from the server, never the query string.
         request.CompanyIds = _companyFilter.Csv;
 
-        var page = await _employees.ListAsync(request, Ct);
+        // all=true: every employee in one response - the page then searches, sorts and pages
+        // in the browser, with no further calls (the procedure returns 200 rows per call)
+        PagedResult<Employee> page;
+        if (all)
+        {
+            request.Search = null;
+            request.IsActive = null;
+            request.PageSize = 200;
+            var items = new List<Employee>();
+            for (request.PageNumber = 1; request.PageNumber <= 500; request.PageNumber++)
+            {
+                var chunk = await _employees.ListAsync(request, Ct);
+                items.AddRange(chunk.Items);
+                if (chunk.Items.Count == 0 || items.Count >= chunk.TotalCount) break;
+            }
+            page = new PagedResult<Employee> { Items = items, TotalCount = items.Count, PageNumber = 1, PageSize = Math.Max(items.Count, 1) };
+            request.PageNumber = 1;
+        }
+        else
+        {
+            page = await _employees.ListAsync(request, Ct);
+        }
 
         return PartialView(ViewsRoot + "_EmployeesGrid.cshtml", new EmployeeGridViewModel
         {
             Page = page,
             Request = request,
+            ClientSide = all,
             Missing = await TryGetCompletenessAsync(page.Items.Select(e => e.EmployeeId))
         });
     }
@@ -673,6 +699,52 @@ public sealed class EmployeesController : Controller
     // Employees list fetches _EmployeesGrid.cshtml, and reloads it after
     // every add/edit/delete rather than manipulating rows in place.
     // =======================================================================
+
+    /// <summary>
+    /// The profile's panels in ONE call when the page opens (Dependents, Documents, the Kuwait
+    /// Compliance images and thumbnails) instead of one call each. Takes the panels' own
+    /// addresses; a panel that cannot be given here is left out and the page fetches it itself.
+    /// </summary>
+    [HttpPost("panels")]
+    public async Task<IActionResult> Panels([FromForm(Name = "url")] string[]? urls)
+    {
+        var panels = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var url in (urls ?? []).Distinct().Take(10))
+        {
+            var m = PanelUrl.Match(url ?? "");
+            if (!m.Success || !long.TryParse(m.Groups["id"].Value, out var id)) continue;
+            IActionResult result = m.Groups["kind"].Value switch
+            {
+                "dependents/" when m.Groups["rest"].Value == "grid" => await DependentsGrid(id),
+                "documents/" when m.Groups["rest"].Value == "grid" =>
+                    await DocumentsGrid(id, string.Equals(m.Groups["q"].Value, "exceptCompliance=true", StringComparison.OrdinalIgnoreCase)),
+                "documents/" when m.Groups["rest"].Value == "compliance" => await ComplianceDocuments(id),
+                "documents/" when m.Groups["rest"].Value == "compliance/thumbs" => await ComplianceThumbnails(id),
+                _ => NotFound()
+            };
+            if (await RenderPartialAsync(result) is { } html) panels[url!] = html;
+        }
+        return Json(panels);
+    }
+
+    private static readonly Regex PanelUrl = new(
+        @"^/employees/(?<kind>dependents/|documents/)(?<id>\d+)/(?<rest>grid|compliance|compliance/thumbs)(?:\?(?<q>[A-Za-z=]+))?$",
+        RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+
+    /// <summary>The HTML of a partial view result (null for anything else: forbidden, not found).</summary>
+    private async Task<string?> RenderPartialAsync(IActionResult result)
+    {
+        if (result is not PartialViewResult partial || partial.ViewName is null) return null;
+        var engine = HttpContext.RequestServices.GetRequiredService<ICompositeViewEngine>();
+        var found = engine.GetView(executingFilePath: null, viewPath: partial.ViewName, isMainPage: false);
+        if (!found.Success) return null;
+
+        await using var writer = new StringWriter();
+        var viewData = new ViewDataDictionary(partial.ViewData ?? ViewData) { Model = partial.Model };
+        var context = new ViewContext(ControllerContext, found.View, viewData, TempData, writer, new HtmlHelperOptions());
+        await found.View.RenderAsync(context);
+        return writer.ToString();
+    }
 
     [HttpGet("dependents/{employeeId:long}/grid")]
     public async Task<IActionResult> DependentsGrid(long employeeId)

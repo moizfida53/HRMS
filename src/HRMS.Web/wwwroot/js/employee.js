@@ -18,6 +18,10 @@
 
     /* ======================================================= list grid === */
 
+    // Every employee is fetched ONCE when the page opens (grid?all=true). Search, the status
+    // filter, sorting, paging and export then run in the browser with no server call; only
+    // a change (activate / deactivate, delete) goes to the server, and the row held here is
+    // updated from the answer - the list is never fetched again.
     (function initGrid() {
         var slot = document.getElementById("grid-slot");
         if (!slot) { return; }
@@ -28,57 +32,26 @@
             toggle: slot.dataset.toggleUrl
         };
 
-        var state = {
-            search: "",
-            status: "",
-            page: 1,
-            sortColumn: "",
-            sortDirection: "ASC"
-        };
+        var state = { search: "", status: "", page: 1, pageSize: 25, sortColumn: "", sortDirection: "ASC" };
+        var rows = [];          // { id, tr, code, name, hire, status, active, text } - every employee
+        var view = [];          // the rows the search / filter / sort leave, in order
+        var ui = {};            // the grid's parts, found once after the load
 
         var confirmModal = null;
         var pendingDelete = null;
-        var requestToken = 0;
+        var collator = new Intl.Collator(document.documentElement.lang || undefined, { numeric: true, sensitivity: "base" });
 
-        function buildGridUrl() {
-            var params = new URLSearchParams();
-            params.set("PageNumber", state.page);
-
-            if (state.search) { params.set("Search", state.search); }
-            if (state.status) { params.set("IsActive", state.status); }
-            if (state.sortColumn) {
-                params.set("SortColumn", state.sortColumn);
-                params.set("SortDirection", state.sortDirection);
-            }
-
-            return urls.grid + "?" + params.toString();
-        }
-
-        function loadGrid(options) {
-            options = options || {};
-            var token = ++requestToken;
-
+        function loadGrid() {
             slot.classList.add("is-loading");
             slot.setAttribute("aria-busy", "true");
 
-            return HRMS.getHtml(buildGridUrl())
+            return HRMS.getHtml(urls.grid + (urls.grid.indexOf("?") < 0 ? "?" : "&") + "all=true")
                 .then(function (html) {
-                    if (token !== requestToken) { return; }
-
-                    slot.innerHTML = '<div class="hrms-spinner" aria-hidden="true"></div>' + html;
-
-                    if (options.focusSearch) {
-                        var search = slot.querySelector("[data-grid-search]");
-                        if (search) {
-                            search.focus();
-                            var value = search.value;
-                            search.value = "";
-                            search.value = value;
-                        }
-                    }
+                    slot.innerHTML = html;
+                    capture();
+                    render();
                 })
                 .catch(function (error) {
-                    if (token !== requestToken) { return; }
                     slot.innerHTML =
                         '<div class="hrms-card"><div class="hrms-empty">' +
                         '<p class="hrms-empty__title">' + HRMS.escape(HRMS.t("js.panel_load_failed", "This panel could not be loaded")) + '</p>' +
@@ -88,20 +61,162 @@
                     slot.querySelector(".hrms-empty__text").textContent = error.message;
                 })
                 .finally(function () {
-                    if (token !== requestToken) { return; }
                     slot.classList.remove("is-loading");
                     slot.setAttribute("aria-busy", "false");
                 });
         }
 
-        var runSearch = HRMS.debounce(function () {
-            state.page = 1;
-            loadGrid({ focusSearch: true });
-        }, 300);
+        // the rows the server rendered become the data the page works on
+        function capture() {
+            ui = {
+                tbody: slot.querySelector(".hrms-table tbody"),
+                tableWrap: slot.querySelector(".hrms-table-wrap"),
+                count: slot.querySelector("[data-grid-count]"),
+                pager: slot.querySelector("[data-client-pager]"),
+                empty: slot.querySelector("[data-client-empty]"),
+                caption: slot.querySelector(".hrms-table caption"),
+                search: slot.querySelector("[data-grid-search]"),
+                statusSelect: slot.querySelector("[data-grid-status]")
+            };
+            rows = ui.tbody ? Array.prototype.map.call(ui.tbody.rows, function (tr) {
+                return {
+                    id: tr.dataset.id,
+                    tr: tr,
+                    code: tr.dataset.code || "",
+                    name: tr.dataset.name || "",
+                    hire: tr.dataset.hire || "",
+                    status: tr.dataset.status || "",
+                    active: tr.dataset.active === "true",
+                    text: tr.dataset.search || (tr.dataset.name || "").toLowerCase()
+                };
+            }) : [];
+            if (ui.search) { ui.search.value = state.search; }
+            if (ui.statusSelect) { ui.statusSelect.value = state.status; }
+        }
+
+        var sorters = {
+            EmployeeCode: function (r) { return r.code; },
+            FullName: function (r) { return r.name; },
+            HireDate: function (r) { return r.hire; },
+            EmploymentStatus: function (r) { return r.status; }
+        };
+
+        function render() {
+            if (!ui.tbody) { updateCount(rows.length); return; }   // no employees at all: the server's empty state stays
+
+            var words = state.search.toLowerCase().split(/\s+/).filter(Boolean);
+            view = rows.filter(function (r) {
+                if (state.status === "true" && !r.active) { return false; }
+                if (state.status === "false" && r.active) { return false; }
+                return words.every(function (w) { return r.text.indexOf(w) >= 0; });
+            });
+
+            var key = sorters[state.sortColumn];
+            if (key) {
+                var dir = state.sortDirection === "DESC" ? -1 : 1;
+                view.sort(function (a, b) {
+                    var x = key(a), y = key(b);
+                    if (!x && y) { return 1; }            // blanks last, either direction
+                    if (x && !y) { return -1; }
+                    return dir * collator.compare(x, y) || collator.compare(a.name, b.name);
+                });
+            }
+
+            var pages = Math.max(1, Math.ceil(view.length / state.pageSize));
+            if (state.page > pages) { state.page = pages; }
+            var first = (state.page - 1) * state.pageSize;
+            var slice = view.slice(first, first + state.pageSize);
+
+            var frag = document.createDocumentFragment();
+            slice.forEach(function (r) { frag.appendChild(r.tr); });
+            ui.tbody.replaceChildren(frag);
+
+            var none = view.length === 0;
+            if (ui.tableWrap) { ui.tableWrap.hidden = none; }
+            if (ui.empty) { ui.empty.hidden = !none; }
+            if (ui.caption) { ui.caption.textContent = HRMS.t("js.page_of", "Page {0} of {1}", state.page, pages); }
+
+            updateCount(view.length);
+            renderSortHeaders();
+            renderPager(first, slice.length, pages);
+        }
+
+        function updateCount(n) {
+            if (!ui.count) { return; }
+            var text = n === 1 ? ui.count.getAttribute("data-text-one")
+                : (ui.count.getAttribute("data-text-many") || "{0}").replace("{0}", n.toLocaleString());
+            HRMS.setCountText(ui.count, text);
+        }
+
+        function renderSortHeaders() {
+            slot.querySelectorAll("[data-sort]").forEach(function (btn) {
+                var on = btn.dataset.sort === state.sortColumn;
+                var desc = on && state.sortDirection === "DESC";
+                btn.classList.toggle("is-sorted", on);
+                btn.classList.toggle("is-sorted-desc", desc);
+                btn.dataset.direction = on && !desc ? "DESC" : "ASC";
+                var th = btn.closest("th");
+                if (th) { th.setAttribute("aria-sort", on ? (desc ? "descending" : "ascending") : "none"); }
+            });
+        }
+
+        function renderPager(first, shown, pages) {
+            var pager = ui.pager;
+            if (!pager) { return; }
+            Array.prototype.slice.call(pager.children).forEach(function (child) { if (child.tagName !== "TEMPLATE") { child.remove(); } });
+            pager.hidden = view.length === 0;
+            if (!view.length) { return; }
+
+            var range = document.createElement("span");
+            range.className = "hrms-muted hrms-text-sm hrms-numeric";
+            range.textContent = (pager.dataset.textRange || "{0}-{1} of {2}")
+                .replace("{0}", (first + 1).toLocaleString())
+                .replace("{1}", (first + shown).toLocaleString())
+                .replace("{2}", view.length.toLocaleString());
+            pager.appendChild(range);
+            if (pages <= 1) { return; }
+
+            var nav = document.createElement("nav");
+            nav.className = "hrms-pagination";
+            nav.setAttribute("aria-label", pager.dataset.textNav || "Pagination");
+
+            function button(page, html, label, disabled, current) {
+                var b = document.createElement("button");
+                b.type = "button";
+                b.className = "hrms-pagination__btn" + (current ? " is-active" : "");
+                b.dataset.page = page;
+                b.disabled = !!disabled;
+                b.setAttribute("aria-label", label);
+                if (current) { b.setAttribute("aria-current", "page"); }
+                b.innerHTML = html;
+                nav.appendChild(b);
+            }
+            function icon(name) { var t = pager.querySelector("[data-icon-" + name + "]"); return t ? t.innerHTML : (name === "prev" ? "&lsaquo;" : "&rsaquo;"); }
+            var pageLabel = pager.dataset.textPage || "Page {0}";
+
+            button(state.page - 1, icon("prev"), pager.dataset.textPrev || "Previous", state.page <= 1, false);
+            var last = -2;
+            for (var p = 1; p <= pages; p++) {
+                if (!(p === 1 || p === pages || Math.abs(p - state.page) <= 1)) { continue; }
+                if (last >= 0 && p - last > 1) {
+                    var gap = document.createElement("span");
+                    gap.className = "hrms-pagination__ellipsis";
+                    gap.setAttribute("aria-hidden", "true");
+                    gap.textContent = "…";
+                    nav.appendChild(gap);
+                }
+                button(p, String(p), pageLabel.replace("{0}", p), false, p === state.page);
+                last = p;
+            }
+            button(state.page + 1, icon("next"), pager.dataset.textNext || "Next", state.page >= pages, false);
+            pager.appendChild(nav);
+        }
+
+        var runSearch = HRMS.debounce(function () { state.page = 1; render(); }, 120);
 
         slot.addEventListener("input", function (event) {
             if (event.target.matches("[data-grid-search]")) {
-                state.search = event.target.value;
+                state.search = event.target.value.trim();
                 runSearch();
             }
         });
@@ -110,7 +225,7 @@
             if (event.target.matches("[data-grid-status]")) {
                 state.status = event.target.value;
                 state.page = 1;
-                loadGrid();
+                render();
             }
         });
 
@@ -118,17 +233,17 @@
             var sort = event.target.closest("[data-sort]");
             if (sort) {
                 state.sortColumn = sort.dataset.sort;
-                state.sortDirection = sort.dataset.direction;
+                state.sortDirection = sort.dataset.direction || "ASC";
                 state.page = 1;
-                loadGrid();
+                render();
                 return;
             }
 
             var page = event.target.closest("[data-page]");
             if (page && !page.disabled) {
                 state.page = parseInt(page.dataset.page, 10) || 1;
-                loadGrid();
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                render();
+                slot.scrollIntoView({ block: "start", behavior: "smooth" });
                 return;
             }
 
@@ -140,7 +255,7 @@
             switch (action.dataset.action) {
                 case "toggle":
                     event.preventDefault();
-                    toggleRecord(row.dataset.id);
+                    toggleRecord(row.dataset.id, action);
                     break;
 
                 case "delete":
@@ -153,7 +268,9 @@
                     state.search = "";
                     state.status = "";
                     state.page = 1;
-                    loadGrid({ focusSearch: true });
+                    if (ui.search) { ui.search.value = ""; ui.search.focus(); }
+                    if (ui.statusSelect) { ui.statusSelect.value = ""; }
+                    render();
                     break;
 
                 case "reload":
@@ -167,18 +284,33 @@
         if (exportButton) {
             exportButton.addEventListener("click", function (event) {
                 event.preventDefault();
-                exportVisibleRows();
+                exportRows();
             });
         }
 
-        function toggleRecord(id) {
+        function findRow(id) {
+            for (var i = 0; i < rows.length; i++) { if (rows[i].id === String(id)) { return rows[i]; } }
+            return null;
+        }
+
+        function toggleRecord(id, button) {
             var body = new FormData();
             body.append("id", id);
 
             HRMS.post(urls.toggle, body)
                 .then(function (result) {
                     HRMS.toast(result.message, result.success ? "success" : "error");
-                    if (result.success) { loadGrid(); }
+                    if (!result.success) { return; }
+                    // the row held in the page changes; nothing is fetched again
+                    var r = findRow(id);
+                    if (!r) { return; }
+                    r.active = !r.active;
+                    r.tr.dataset.active = String(r.active);
+                    if (button) {
+                        button.title = r.active ? button.dataset.textOn : button.dataset.textOff;
+                        button.setAttribute("aria-label", r.active ? button.dataset.ariaOn : button.dataset.ariaOff);
+                    }
+                    render();
                 })
                 .catch(function (error) { HRMS.toast(error.message, "error"); });
         }
@@ -199,8 +331,9 @@
                 if (!pendingDelete) { return; }
 
                 var button = this;
+                var id = pendingDelete;
                 var body = new FormData();
-                body.append("id", pendingDelete);
+                body.append("id", id);
 
                 button.disabled = true;
 
@@ -208,7 +341,10 @@
                     .then(function (result) {
                         confirmModal.hide();
                         HRMS.toast(result.message, result.success ? "success" : "error");
-                        if (result.success) { changed(); if (loaded) { loadGrid(); } }
+                        if (!result.success) { return; }
+                        rows = rows.filter(function (r) { return r.id !== String(id); });
+                        if (!rows.length) { loadGrid(); return; }     // the last one: the server's "no employees yet"
+                        render();
                     })
                     .catch(function (error) { HRMS.toast(error.message, "error"); })
                     .finally(function () {
@@ -218,30 +354,34 @@
             });
         }
 
-        function exportVisibleRows() {
+        // every row the search / filter leave (all pages), in the order shown
+        function exportRows() {
             var table = slot.querySelector(".hrms-table");
-            if (!table) {
+            if (!table || !view.length) {
                 HRMS.toast(HRMS.t("js.nothing_to_export", "There is nothing to export."), "info");
                 return;
             }
 
-            var rows = [];
-
+            var out = [];
             var headers = Array.prototype.slice
                 .call(table.querySelectorAll("thead th"))
                 .map(function (th) { return th.textContent.trim(); })
                 .filter(function (text) { return text && text !== HRMS.t("js.actions", "Actions"); });
-            rows.push(headers);
+            out.push(headers);
 
-            table.querySelectorAll("tbody tr").forEach(function (tr) {
+            view.forEach(function (r) {
                 var cells = Array.prototype.slice
-                    .call(tr.querySelectorAll("td"))
+                    .call(r.tr.querySelectorAll("td"))
                     .filter(function (td) { return !td.classList.contains("hrms-table__actions"); })
-                    .map(function (td) { return td.textContent.replace(/\s+/g, " ").trim(); });
-                rows.push(cells);
+                    .map(function (td) {
+                        var copy = td.cloneNode(true);
+                        copy.querySelectorAll(".emp-flag").forEach(function (f) { f.remove(); });
+                        return copy.textContent.replace(/\s+/g, " ").trim();
+                    });
+                out.push(cells);
             });
 
-            var csv = rows.map(function (row) {
+            var csv = out.map(function (row) {
                 return row.map(function (cell) {
                     if (/^[=+\-@\t\r]/.test(cell)) { cell = "'" + cell; }
                     return '"' + cell.replace(/"/g, '""') + '"';
@@ -257,7 +397,7 @@
             document.body.removeChild(link);
             URL.revokeObjectURL(link.href);
 
-            HRMS.toast(HRMS.t("js.exported_rows", "Exported {0} rows from this page.", rows.length - 1), "success");
+            HRMS.toast(HRMS.t("js.exported_employees", "Exported {0} employees.", view.length), "success");
         }
 
         loadGrid();
@@ -607,6 +747,23 @@
     // Dependents tab on the Profile page: a small grid-slot (same AJAX-fetch-
     // and-swap pattern as the Employees list grid above) plus one static
     // Add/Edit modal reused for both, and one confirm modal for delete.
+    /* ============================================ profile panels: one call === */
+    // Dependents, Documents and the Kuwait Compliance images / thumbnails come in ONE call
+    // when the profile opens; each panel's script below then gets its HTML from it.
+    (function primeProfilePanels() {
+        var form = document.getElementById("employee-form");
+        if (!form) { return; }
+        var urls = [
+            document.querySelector("#dependents-slot[data-grid-url]"),
+            document.querySelector("#documents-slot[data-grid-url]"),
+            document.querySelector("[data-kcd-host][data-kcd-url]"),
+            document.querySelector("#compliance-form[data-kct-url]")
+        ].map(function (el) {
+            return el && (el.dataset.gridUrl || el.dataset.kcdUrl || el.dataset.kctUrl);
+        }).filter(function (u) { return u && !/\/0\//.test(u); });
+        HRMS.primeHtml("/employees/panels", urls);
+    })();
+
     (function initDependents() {
         var slot = document.getElementById("dependents-slot");
         if (!slot) { return; }

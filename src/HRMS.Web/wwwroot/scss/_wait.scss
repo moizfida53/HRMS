@@ -1,0 +1,154 @@
+// ============================================================================
+// "Please wait" - over the whole page while the server works (site.js: busy)
+// ----------------------------------------------------------------------------
+// A dimmed, softly blurred backdrop takes every click; a small card in the
+// middle carries a spinning ring around the HR mark, the message and an
+// indeterminate bar. After 8 s the card says the connection is slow.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+.hrms-wait {
+  position: fixed;
+  inset: 0;
+  z-index: $z-toast - 2;            // over modals and the sidebar, under toasts
+  display: grid;
+  place-items: center;
+  padding: space("4");
+  background: rgba($ink-900, .34);
+  backdrop-filter: blur(3px) saturate(.9);
+  -webkit-backdrop-filter: blur(3px) saturate(.9);
+  cursor: progress;
+  animation: hrms-wait-in .18s ease-out both;
+
+  &[hidden] { display: none; }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: space("2");
+    width: min(280px, 100%);
+    padding: space("6") space("6") space("5");
+    border: 1px solid rgba(#fff, .6);
+    border-radius: $radius-xl;
+    background: rgba(#fff, .97);
+    box-shadow: $shadow-lg, 0 0 0 6px rgba(#fff, .12);
+    text-align: center;
+    animation: hrms-wait-pop .24s cubic-bezier(.2, .9, .3, 1.2) both;
+  }
+
+  &__spinner {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: space("2");
+  }
+
+  &__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba($blue-500, 0) 0deg, rgba($blue-500, .15) 90deg, $blue-600 300deg, $blue-500 360deg);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+    animation: hrms-wait-spin .9s linear infinite;
+  }
+
+  &__mark {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, $blue-600, $blue-700);
+    box-shadow: 0 4px 10px rgba($blue-700, .35);
+    color: #fff;
+    font-size: .8rem;
+    font-weight: $fw-bold;
+    letter-spacing: .04em;
+    animation: hrms-wait-breathe 1.8s ease-in-out infinite;
+  }
+
+  &__text {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    color: $ink-900;
+    font-size: $fs-lg;
+  }
+
+  &__title { font-weight: $fw-semibold; }
+
+  &__dots {
+    display: inline-flex;
+    gap: 3px;
+    margin-inline-start: 2px;
+
+    i {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: $blue-600;
+      animation: hrms-wait-dot 1.2s ease-in-out infinite;
+
+      &:nth-child(2) { animation-delay: .15s; }
+      &:nth-child(3) { animation-delay: .3s; }
+    }
+  }
+
+  &__sub {
+    margin: 0;
+    min-height: 1.2em;
+    color: $ink-500;
+    font-size: $fs-sm;
+  }
+
+  &__bar {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    margin-top: space("3");
+    overflow: hidden;
+    border-radius: $radius-pill;
+    background: $blue-100;
+
+    span {
+      position: absolute;
+      inset-block: 0;
+      width: 40%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, $blue-500, $blue-600);
+      animation: hrms-wait-bar 1.3s ease-in-out infinite;
+    }
+  }
+
+  &.is-slow &__sub { color: $amber-700; }
+  &.is-slow &__bar { background: $amber-050; }
+  &.is-slow &__bar span { background: linear-gradient(90deg, $amber-600, $amber-700); }
+
+  @media (prefers-reduced-motion: reduce) {
+    &, &__card { animation: none; }
+    &__ring { animation-duration: 2.4s; }
+    &__mark, &__dots i, &__bar span { animation: none; }
+    &__bar span { width: 100%; opacity: .5; }
+  }
+}
+
+// nothing under the overlay scrolls or reacts while it is up
+html.hrms-is-waiting,
+html.hrms-is-waiting body { overflow: hidden; }
+
+[dir="rtl"] .hrms-wait__bar span { animation-name: hrms-wait-bar-rtl; }
+
+@keyframes hrms-wait-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes hrms-wait-pop { from { opacity: 0; transform: translateY(6px) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes hrms-wait-spin { to { transform: rotate(360deg); } }
+@keyframes hrms-wait-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(.92); } }
+@keyframes hrms-wait-dot { 0%, 80%, 100% { opacity: .25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+@keyframes hrms-wait-bar { 0% { left: -40%; } 100% { left: 100%; } }
+@keyframes hrms-wait-bar-rtl { 0% { right: -40%; } 100% { right: 100%; } }

@@ -16,6 +16,17 @@ public sealed class EmployeeGridViewModel
 
     public required GridRequest Request { get; init; }
 
+    /// <summary>Every employee is in the page: search, sort and paging happen in the browser (employee.js).</summary>
+    public bool ClientSide { get; init; }
+
+    /// <summary>The same grid as if a filter were set - for the "nothing matches" state the browser shows.</summary>
+    public EmployeeGridViewModel AsFiltered() => new()
+    {
+        Page = Page,
+        Request = new GridRequest { Search = "*" },
+        Missing = Missing
+    };
+
     /// <summary>Employees on this page missing a mandatory detail (db/95); absent = complete.</summary>
     public IReadOnlyDictionary<long, EmployeeCompleteness> Missing { get; init; } = new Dictionary<long, EmployeeCompleteness>();
 

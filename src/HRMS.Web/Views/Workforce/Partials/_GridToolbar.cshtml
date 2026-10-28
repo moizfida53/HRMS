@@ -22,7 +22,7 @@
         </select>
     </div>
 
-    <div class="hrms-card__count">
+    <div class="hrms-card__count" data-grid-count data-text-one="@L["emp.one_employee"]" data-text-many="@L["emp.n_employees", "{0}"]">
         @(Model.TotalCount == 1 ? L["emp.one_employee"] : L["emp.n_employees", Model.TotalCount.ToString("N0")])
     </div>
 </div>

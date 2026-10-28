@@ -33,7 +33,9 @@
                 <tbody>
                     @foreach (var row in Model.Page.Items)
                     {
-                        <tr data-id="@row.EmployeeId" data-name="@row.FullName" data-active="@row.IsActive.ToString().ToLowerInvariant()">
+                        <tr data-id="@row.EmployeeId" data-name="@row.FullName" data-active="@row.IsActive.ToString().ToLowerInvariant()"
+                            data-code="@row.EmployeeCode" data-hire="@row.HireDate?.ToString("yyyy-MM-dd")" data-status="@row.EmploymentStatus"
+                            data-search="@(string.Join(" ", new[] { row.EmployeeCode, row.EmployeeNo, row.FullName, row.ArabicName, row.DepartmentName, row.DesignationName, row.WorkEmail, row.MobileNumber, row.EmploymentStatus }.Where(x => !string.IsNullOrWhiteSpace(x))).ToLowerInvariant())">
                             <td data-label="@L.Tr("Code")"><span class="hrms-code-chip">@(string.IsNullOrWhiteSpace(row.EmployeeCode) ? "—" : row.EmployeeCode)</span></td>
                             <td data-label="@L.Tr("Employee")">
                                 <a class="hrms-table__primary" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId">
@@ -80,6 +82,8 @@
                                 @if (canDelete)
                                 {
                                     <button type="button" class="btn-icon btn-icon--success" data-action="toggle"
+                                            data-text-on="@L["common.deactivate"]" data-text-off="@L["common.activate"]"
+                                            data-aria-on="@L["common.deactivate_named", row.FullName]" data-aria-off="@L["common.activate_named", row.FullName]"
                                             title="@(row.IsActive ? L["common.deactivate"] : L["common.activate"])"
                                             aria-label="@(row.IsActive ? L["common.deactivate_named", row.FullName] : L["common.activate_named", row.FullName])">@Html.Icon("power", 15)</button>
                                     <button type="button" class="btn-icon btn-icon--danger" data-action="delete"
@@ -92,6 +96,20 @@
             </table>
         </div>
 
-        @await Html.PartialAsync("~/Views/Workforce/Partials/_Pagination.cshtml", EmployeePaginationModel.From(Model))
+        @if (Model.ClientSide)
+        {
+            @* filled by employee.js: the browser holds every row *@
+            <div data-client-empty hidden>@await Html.PartialAsync("~/Views/Workforce/Partials/_EmptyState.cshtml", Model.AsFiltered())</div>
+            <div class="hrms-card__footer" data-client-pager
+                 data-text-range="@L["common.showing_range", "{0}", "{1}", "{2}"]" data-text-page="@L["common.page_n", "{0}"]"
+                 data-text-prev="@L["common.previous_page"]" data-text-next="@L["common.next_page"]" data-text-nav="@L["common.pagination"]">
+                <template data-icon-prev>@Html.Icon("chevron-left", 14)</template>
+                <template data-icon-next>@Html.Icon("chevron-right", 14)</template>
+            </div>
+        }
+        else
+        {
+            @await Html.PartialAsync("~/Views/Workforce/Partials/_Pagination.cshtml", EmployeePaginationModel.From(Model))
+        }
     }
 </div>

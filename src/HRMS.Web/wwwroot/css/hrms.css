@@ -16655,6 +16655,209 @@ html.hrms-embed .hrms-content {
   border-color: #d97706;
 }
 
+.hrms-wait {
+  position: fixed;
+  inset: 0;
+  z-index: 1078;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(16, 24, 40, 0.34);
+  backdrop-filter: blur(3px) saturate(0.9);
+  -webkit-backdrop-filter: blur(3px) saturate(0.9);
+  cursor: progress;
+  animation: hrms-wait-in 0.18s ease-out both;
+}
+.hrms-wait[hidden] {
+  display: none;
+}
+.hrms-wait__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: min(280px, 100%);
+  padding: 1.5rem 1.5rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.12), 0 4px 8px rgba(16, 24, 40, 0.05), 0 0 0 6px rgba(255, 255, 255, 0.12);
+  text-align: center;
+  animation: hrms-wait-pop 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.hrms-wait__spinner {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 0.5rem;
+}
+.hrms-wait__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(51, 115, 214, 0) 0deg, rgba(51, 115, 214, 0.15) 90deg, #1d5fbf 300deg, #3373d6 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  animation: hrms-wait-spin 0.9s linear infinite;
+}
+.hrms-wait__mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1d5fbf, #1b4f91);
+  box-shadow: 0 4px 10px rgba(27, 79, 145, 0.35);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  animation: hrms-wait-breathe 1.8s ease-in-out infinite;
+}
+.hrms-wait__text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  color: #101828;
+  font-size: 1.05rem;
+}
+.hrms-wait__title {
+  font-weight: 600;
+}
+.hrms-wait__dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-inline-start: 2px;
+}
+.hrms-wait__dots i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #1d5fbf;
+  animation: hrms-wait-dot 1.2s ease-in-out infinite;
+}
+.hrms-wait__dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.hrms-wait__dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.hrms-wait__sub {
+  margin: 0;
+  min-height: 1.2em;
+  color: #667085;
+  font-size: 0.8rem;
+}
+.hrms-wait__bar {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  margin-top: 0.75rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e4edfb;
+}
+.hrms-wait__bar span {
+  position: absolute;
+  inset-block: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3373d6, #1d5fbf);
+  animation: hrms-wait-bar 1.3s ease-in-out infinite;
+}
+.hrms-wait.is-slow .hrms-wait__sub {
+  color: #b54708;
+}
+.hrms-wait.is-slow .hrms-wait__bar {
+  background: #fffaeb;
+}
+.hrms-wait.is-slow .hrms-wait__bar span {
+  background: linear-gradient(90deg, #d97706, #b54708);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hrms-wait, .hrms-wait__card {
+    animation: none;
+  }
+  .hrms-wait__ring {
+    animation-duration: 2.4s;
+  }
+  .hrms-wait__mark, .hrms-wait__dots i, .hrms-wait__bar span {
+    animation: none;
+  }
+  .hrms-wait__bar span {
+    width: 100%;
+    opacity: 0.5;
+  }
+}
+
+html.hrms-is-waiting,
+html.hrms-is-waiting body {
+  overflow: hidden;
+}
+
+[dir=rtl] .hrms-wait__bar span {
+  animation-name: hrms-wait-bar-rtl;
+}
+
+@keyframes hrms-wait-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes hrms-wait-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hrms-wait-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes hrms-wait-breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+}
+@keyframes hrms-wait-dot {
+  0%, 80%, 100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+@keyframes hrms-wait-bar {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+@keyframes hrms-wait-bar-rtl {
+  0% {
+    right: -40%;
+  }
+  100% {
+    right: 100%;
+  }
+}
 .hrms-muted {
   color: #667085 !important;
 }
