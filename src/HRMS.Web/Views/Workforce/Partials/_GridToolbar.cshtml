@@ -19,6 +19,12 @@
             <option value="" selected="@(active is null)">@L["common.all_statuses"]</option>
             <option value="true" selected="@(active == true)">@L["common.active_only"]</option>
             <option value="false" selected="@(active == false)">@L["common.inactive_only"]</option>
+            @if (Model.ShowLeave)
+            {
+                @* db/98: filtered in the browser (employee.js) *@
+                <option value="leave30">@L["emp.f_leave_over_30"]</option>
+                <option value="leave60">@L["emp.f_leave_over_60"]</option>
+            }
         </select>
     </div>
 

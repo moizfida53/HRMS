@@ -5113,6 +5113,27 @@ html.hrms-dragging * {
     grid-column: 1/-1;
   }
 }
+.hrms-dash__kpis--six {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+@container content (max-width: 1099.98px) {
+  .hrms-dash__kpis--six {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .hrms-dash__kpis--six > *,
+  .hrms-dash__kpis--six > :nth-child(4):nth-last-child(2),
+  .hrms-dash__kpis--six > :nth-child(5):nth-last-child(1) {
+    grid-column: span 1;
+  }
+}
+@container content (max-width: 559.98px) {
+  .hrms-dash__kpis--six {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hrms-dash__kpis--six > :nth-child(odd):last-child {
+    grid-column: span 1;
+  }
+}
 .hrms-dash__row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5133,6 +5154,45 @@ html.hrms-dragging * {
 .hrms-dash-month .form-select {
   min-width: 170px;
   font-weight: 600;
+}
+
+.hrms-kpi--link {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.hrms-kpi--link:hover, .hrms-kpi--link:focus-visible {
+  border-color: #c7dbf7;
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
+  color: inherit;
+  transform: translateY(-1px);
+}
+.hrms-kpi--link:focus-visible:focus {
+  outline: none;
+}
+.hrms-kpi--link:focus-visible:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(29, 95, 191, 0.28);
+  border-color: #1d5fbf;
+}
+.hrms-kpi--link .hrms-kpi__go {
+  display: inline-flex;
+  margin-inline-start: auto;
+  color: #1d5fbf;
+}
+[dir=rtl] .hrms-kpi--link .hrms-kpi__go svg {
+  transform: scaleX(-1);
+}
+.hrms-kpi--link.is-alert {
+  border-color: rgba(217, 119, 6, 0.45);
+  background: linear-gradient(180deg, #fffaeb, #fff 70%);
+}
+.hrms-kpi--link.is-alert .hrms-kpi__icon {
+  background: rgba(217, 119, 6, 0.15);
+  color: #b54708;
+}
+.hrms-kpi--link.is-alert .hrms-kpi__value {
+  color: #b54708;
 }
 
 .hrms-kpi {
@@ -14477,6 +14537,56 @@ html.hrms-embed .hrms-content {
   visibility: hidden;
 }
 
+.lv-eliminate {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-inline-start: 4px solid #dc2626;
+  border-radius: 8px;
+  background: #fef3f2;
+}
+.lv-eliminate__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  color: #b42318;
+}
+.lv-eliminate__head p {
+  color: #344054;
+}
+.lv-eliminate__icon {
+  display: inline-flex;
+  margin-top: 2px;
+}
+.lv-eliminate .form-control {
+  background: #fff;
+}
+
+.lv-paid {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.725rem;
+  font-weight: 500;
+}
+.lv-paid--cash {
+  background: #ecfdf3;
+  color: #0b7a3b;
+}
+.lv-paid--payroll {
+  background: #f2f7fd;
+  color: #1b4f91;
+}
+.lv-paid--none {
+  background: #fffaeb;
+  color: #b54708;
+}
+
 .cr-plan {
   padding: 1rem;
   border: 1px solid #e4e7ec;
@@ -16653,6 +16763,46 @@ html.hrms-embed .hrms-content {
   outline: none;
   box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.28);
   border-color: #d97706;
+}
+
+.emp-leave-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-inline-start: 0.5rem;
+  padding: 1px 7px 1px 5px;
+  border: 1px solid rgba(217, 119, 6, 0.4);
+  border-radius: 999px;
+  background: #fffaeb;
+  color: #b54708;
+  font-size: 0.725rem;
+  font-weight: 600;
+  line-height: 1.5;
+  vertical-align: middle;
+  white-space: nowrap;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.emp-leave-chip:hover {
+  border-color: #d97706;
+  background: rgba(217, 119, 6, 0.15);
+}
+.emp-leave-chip:focus-visible:focus {
+  outline: none;
+}
+.emp-leave-chip:focus-visible:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.28);
+  border-color: #d97706;
+}
+.emp-leave-chip.is-high {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: #fef3f2;
+  color: #b42318;
+}
+.emp-leave-chip.is-high:hover {
+  border-color: #dc2626;
+  background: rgba(220, 38, 38, 0.15);
 }
 
 .hrms-wait {

@@ -19,6 +19,11 @@ public sealed class EmployeeGridViewModel
     /// <summary>Every employee is in the page: search, sort and paging happen in the browser (employee.js).</summary>
     public bool ClientSide { get; init; }
 
+    /// <summary>db/98: the annual leave balance (left to take) of each employee - for users who see leave balances.</summary>
+    public IReadOnlyDictionary<long, HRMS.Domain.Leave.AnnualLeaveBalance> Leave { get; init; } = new Dictionary<long, HRMS.Domain.Leave.AnnualLeaveBalance>();
+    public bool ShowLeave { get; init; }
+    public bool CanEliminateLeave { get; init; }
+
     /// <summary>The same grid as if a filter were set - for the "nothing matches" state the browser shows.</summary>
     public EmployeeGridViewModel AsFiltered() => new()
     {

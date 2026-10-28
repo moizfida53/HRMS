@@ -78,7 +78,7 @@
 <div class="hrms-dash">
 
     @* ------------------------------------------------------------ KPIs *@
-    <section class="hrms-dash__kpis" aria-label="@L["dash.key_figures"]">
+    <section class="hrms-dash__kpis@(Model.LeaveOver30 is not null ? " hrms-dash__kpis--six" : null)" aria-label="@L["dash.key_figures"]">
         @foreach (var t in tiles)
         {
             <div class="hrms-card hrms-kpi">
@@ -102,6 +102,22 @@
                     <span class="hrms-kpi__note">@t.Note</span>
                 </div>
             </div>
+        }
+        @* db/98: annual leave balances over 30 days - opens the Employees list filtered to them *@
+        @if (Model.LeaveOver30 is { } over30)
+        {
+            <a class="hrms-card hrms-kpi hrms-kpi--link@(over30 > 0 ? " is-alert" : null)" href="/employees?leave=30"
+               title="@L["dash.leave_over_30_open"]">
+                <div class="hrms-kpi__head">
+                    <span class="hrms-kpi__label">@L["dash.leave_over_30"]</span>
+                    <span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span>
+                </div>
+                <div class="hrms-kpi__value">@over30.ToString("N0")</div>
+                <div class="hrms-kpi__foot">
+                    <span class="hrms-kpi__note">@L["dash.leave_over_30_note"]</span>
+                    <span class="hrms-kpi__go" aria-hidden="true">@Html.Icon("chevron-right", 14)</span>
+                </div>
+            </a>
         }
     </section>
 

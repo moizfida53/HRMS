@@ -33,14 +33,26 @@
                 <tbody>
                     @foreach (var row in Model.Page.Items)
                     {
+                        var leave = Model.Leave.TryGetValue(row.EmployeeId, out var lb) ? lb : null;
                         <tr data-id="@row.EmployeeId" data-name="@row.FullName" data-active="@row.IsActive.ToString().ToLowerInvariant()"
                             data-code="@row.EmployeeCode" data-hire="@row.HireDate?.ToString("yyyy-MM-dd")" data-status="@row.EmploymentStatus"
+                            data-leave="@(leave?.Balance.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                             data-search="@(string.Join(" ", new[] { row.EmployeeCode, row.EmployeeNo, row.FullName, row.ArabicName, row.DepartmentName, row.DesignationName, row.WorkEmail, row.MobileNumber, row.EmploymentStatus }.Where(x => !string.IsNullOrWhiteSpace(x))).ToLowerInvariant())">
                             <td data-label="@L.Tr("Code")"><span class="hrms-code-chip">@(string.IsNullOrWhiteSpace(row.EmployeeCode) ? "—" : row.EmployeeCode)</span></td>
                             <td data-label="@L.Tr("Employee")">
                                 <a class="hrms-table__primary" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId">
                                     @row.FullName
                                 </a>
+                                @* db/98: an annual leave balance over 30 days (amber), over 60 (red - may be eliminated) *@
+                                @if (leave is { } big && big.Balance > HRMS.Domain.Leave.LeaveElimination.FlagOver)
+                                {
+                                    var over60 = big.Balance > HRMS.Domain.Leave.LeaveElimination.EliminateOver;
+                                    var balText = HRMS.Web.Models.Leave.LeaveFormat.Days(big.Balance);
+                                    <button type="button" class="emp-leave-chip@(over60 ? " is-high" : null)" data-lv-ledger="@row.EmployeeId" data-category="ANNUAL"
+                                            title="@L["emp.leave_balance_title", balText]" aria-label="@L["emp.leave_balance_title", balText]">
+                                        @Html.Icon("calendar", 12)<span>@balText</span>
+                                    </button>
+                                }
                                 @if (Model.Missing.TryGetValue(row.EmployeeId, out var gap))
                                 {
                                     var gapNames = string.Join(", ", gap.MissingFields.Select(k => L.Tr(EmployeeGridViewModel.MandatoryFieldNames.GetValueOrDefault(k, k))));
@@ -74,6 +86,14 @@
                                         @if (canPassport)
                                         {
                                             <li><button type="button" class="dropdown-item" data-passport-open="@row.EmployeeId">@Html.Icon("swap", 15)<span>@L["emp.act_passport_inout"]</span></button></li>
+                                        }
+                                        @if (Model.ShowLeave && leave is not null)
+                                        {
+                                            <li><button type="button" class="dropdown-item" data-lv-ledger="@row.EmployeeId" data-category="ANNUAL">@Html.Icon("history", 15)<span>@L["emp.act_leave_transactions"]</span></button></li>
+                                            @if (Model.CanEliminateLeave && leave.Balance > HRMS.Domain.Leave.LeaveElimination.EliminateOver)
+                                            {
+                                                <li><button type="button" class="dropdown-item is-danger" data-lv-ledger="@row.EmployeeId" data-category="ANNUAL" data-lv-focus-eliminate>@Html.Icon("x-circle", 15)<span>@L["emp.act_eliminate_leave"]</span></button></li>
+                                            }
                                         }
                                         <li><hr class="dropdown-divider" /></li>
                                         <li><a class="dropdown-item" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId" asp-route-tab="personal">@Html.Icon("user", 15)<span>@L["emp.act_general"]</span></a></li>

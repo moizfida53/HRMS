@@ -372,6 +372,30 @@ public sealed class LeaveLedgerLine
     public DateTime CreatedDate { get; set; }
     public string? RequestNo { get; set; }
     public string? Status { get; set; }
+    /// <summary>db/98: a leave's salary - CASH (paid before the leave) / PAYROLL; null = not settled yet.</summary>
+    public string? SettlementMode { get; set; }
+    public decimal? SettlementAmount { get; set; }
+}
+
+/// <summary>An employee's annual leave balance (db/98, ANNUAL): left to take = Available - Pending.</summary>
+public sealed class AnnualLeaveBalance
+{
+    public long EmployeeId { get; set; }
+    public int LeaveTypeId { get; set; }
+    public decimal Available { get; set; }
+    public decimal Pending { get; set; }
+    public decimal Balance { get; set; }
+}
+
+/// <summary>The rule for large annual balances (db/98): over 30 is flagged, over 60 may be eliminated down to 30.</summary>
+public static class LeaveElimination
+{
+    public const decimal FlagOver = 30m;
+    public const decimal EliminateOver = 60m;
+    public const decimal MinRemaining = 30m;
+
+    /// <summary>The most days that may be eliminated from a balance (0 when it may not be).</summary>
+    public static decimal MaxDays(decimal balance) => balance > EliminateOver ? balance - MinRemaining : 0m;
 }
 
 public sealed class LeaveEmployeeOption

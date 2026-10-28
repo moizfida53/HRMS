@@ -499,19 +499,32 @@
     var ledgerOf = null;
     var ledgerChanged = false;
 
-    function openLedger(emp, type) {
+    function openLedger(emp, type, category) {
         if (!ledgerBody) { return; }
         ledgerOf = { emp: emp, type: type };
         ledgerBody.innerHTML = '<div class="modal-body">' + loading() + "</div>";
         modal("lv-ledger-modal").show();
-        return HRMS.getHtml(withQuery(sharedUrl("ledger"), { emp: emp, type: type })).then(function (html) {
+        return HRMS.getHtml(withQuery(sharedUrl("ledger"), { emp: emp, type: type || 0, category: category || null })).then(function (html) {
             ledgerBody.innerHTML = html;
+            // opened by category: the leave type the server chose
+            var of = $("[data-lv-ledger-of]", ledgerBody);
+            if (of) { ledgerOf.type = of.getAttribute("data-type"); }
         }).catch(function (error) { failed(ledgerBody, error); });
     }
     document.addEventListener("click", function (event) {
         var b = event.target.closest("[data-lv-ledger]");
         if (!b) { return; }
-        openLedger(b.getAttribute("data-lv-ledger"), b.getAttribute("data-type"));
+        var focusEliminate = b.hasAttribute("data-lv-focus-eliminate");
+        var opened = openLedger(b.getAttribute("data-lv-ledger"), b.getAttribute("data-type"), b.getAttribute("data-category"));
+        if (focusEliminate && opened) {
+            opened.then(function () {
+                // after the popup has taken focus itself
+                window.setTimeout(function () {
+                    var f = $("[data-lv-eliminate-form]", ledgerBody);
+                    if (f) { f.scrollIntoView({ block: "center" }); f.elements.days.focus(); }
+                }, 400);
+            });
+        }
     });
     if (ledgerBody) {
         ledgerBody.addEventListener("submit", function (event) {
@@ -534,6 +547,59 @@
             HRMS.post(sharedUrl("adjust"), fd).then(function (res) {
                 if (answer(res)) { ledgerChanged = true; openLedger(ledgerOf.emp, ledgerOf.type); }
             }).catch(oops).then(function () { busy(submit, false); });
+        });
+        // db/98: eliminate days off a balance over 60 (30 always remain) - asks first
+        function fmtDays(n) { return (Math.round(n * 100) / 100).toLocaleString(); }
+        ledgerBody.addEventListener("input", function (event) {
+            var f = event.target.closest("[data-lv-eliminate-form]");
+            if (!f) { return; }
+            $("[data-lv-eliminate-error]", f).textContent = "";
+            if (event.target.name !== "days") { return; }
+            var bal = Number(f.getAttribute("data-balance")) || 0;
+            var d = Number(event.target.value) || 0;
+            $("[data-lv-elim-after]", f).textContent = fmtDays(bal - Math.max(0, d));
+        });
+        ledgerBody.addEventListener("submit", function (event) {
+            var f = event.target.closest("[data-lv-eliminate-form]");
+            if (!f) { return; }
+            event.preventDefault();
+            var error = $("[data-lv-eliminate-error]", f);
+            error.textContent = "";
+            var max = Number(f.getAttribute("data-max")) || 0;
+            var bal = Number(f.getAttribute("data-balance")) || 0;
+            var days = Number(f.elements.days.value);
+            if (!f.elements.days.value || !(days > 0) || days > max) {
+                error.textContent = HRMS.t("js.lv_eliminate_days", "Enter the days to eliminate (at most {0}).", fmtDays(max));
+                f.elements.days.focus();
+                return;
+            }
+            if (!f.elements.remarks.value.trim()) {
+                error.textContent = HRMS.t("js.lv_eliminate_remarks", "Enter the remarks.");
+                f.elements.remarks.focus();
+                return;
+            }
+            var submit = $("button[type=submit]", f);
+            HRMS.confirm({
+                title: HRMS.t("js.lv_eliminate_confirm", "Eliminate {0} days?", fmtDays(days)),
+                text: HRMS.t("js.lv_eliminate_confirm_text", "The balance goes from {0} to {1} days. This is kept in the leave transactions.", fmtDays(bal), fmtDays(bal - days)),
+                name: f.elements.remarks.value.trim(),
+                tone: "danger",
+                note: "",
+                ok: HRMS.t("js.lv_eliminate_ok", "Eliminate")
+            }).then(function (ok) {
+                if (!ok) { return; }
+                var fd = new FormData(f);
+                fd.append("emp", ledgerOf.emp);
+                fd.append("type", ledgerOf.type);
+                busy(submit, true);
+                return HRMS.post(sharedUrl("eliminate"), fd).then(function (res) {
+                    if (answer(res)) {
+                        ledgerChanged = true;
+                        document.dispatchEvent(new CustomEvent("hrms:leave-eliminated", { detail: { emp: ledgerOf.emp } }));
+                        openLedger(ledgerOf.emp, ledgerOf.type);
+                    }
+                }).catch(oops).then(function () { busy(submit, false); });
+            });
         });
         ledgerBody.addEventListener("click", function (event) {
             var b = event.target.closest("[data-lv-entry-delete]");

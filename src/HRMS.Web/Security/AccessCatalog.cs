@@ -113,7 +113,9 @@ public static class AccessCatalog
             [
                 new("LV.BALANCE_ADJUST", "sec.fn_leave_balance_adjust", "sec.fn_leave_balance_adjust_hint", No, C("LEAVE_BALANCE_ADJUST"), No),
                 // db/86: leave salary of an approved leave - in cash before the leave or with the monthly payroll
-                new("LV.SETTLE", "sec.fn_leave_settle", "sec.fn_leave_settle_hint", No, C("LEAVE_SETTLE"), No)
+                new("LV.SETTLE", "sec.fn_leave_settle", "sec.fn_leave_settle_hint", No, C("LEAVE_SETTLE"), No),
+                // db/98: force days off an annual balance over 60 days (30 always remain)
+                new("LV.ELIMINATE", "sec.fn_leave_eliminate", "sec.fn_leave_eliminate_hint", No, C("LEAVE_ELIMINATE"), No)
             ]),
             new("LV.SETTINGS", "sec.pg_leave_settings", "sec.pg_leave_settings_hint",
                 C("LEAVE_SETUP_VIEW"), C("LEAVE_SETUP_EDIT"), No)

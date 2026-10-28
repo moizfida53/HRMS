@@ -29,6 +29,7 @@ public sealed class LeaveController : Controller
     internal const string PermApproveL2 = "LEAVE_APPROVE_L2";
     internal const string PermApproveSelf = "LEAVE_APPROVE_SELF";
     internal const string PermSettle = "LEAVE_SETTLE";
+    internal const string PermEliminate = "LEAVE_ELIMINATE";
 
     private readonly ILeaveRepository _leave;
     private readonly ICurrentUser _currentUser;
@@ -63,6 +64,7 @@ public sealed class LeaveController : Controller
         CanSetupView = Can(PermSetupView) || Can(PermSetupEdit),
         CanSetupEdit = Can(PermSetupEdit),
         CanSettle = Can(PermSettle),
+        CanEliminate = Can(PermEliminate),
         UserId = _currentUser.UserId,
         EmployeeId = _currentUser.EmployeeId
     };
@@ -425,20 +427,27 @@ public sealed class LeaveController : Controller
     }
 
     [HttpGet("ledger")]
-    public async Task<IActionResult> Ledger(long emp, int type)
+    public async Task<IActionResult> Ledger(long emp, int type, string? category = null)
     {
         var r = Rights;
         var self = emp == _currentUser.EmployeeId;
         if (!r.CanView && !self) return Forbid();
         var scope = self && !r.CanView ? null : Scope();
         var balances = await _leave.EmployeeBalancesAsync(emp, DateTime.Today, scope, Ct);
-        var balance = balances.FirstOrDefault(b => b.LeaveTypeId == type);
+        // type 0 + category: the employee's leave of that category (the Employees list opens ANNUAL)
+        var balance = type > 0
+            ? balances.FirstOrDefault(b => b.LeaveTypeId == type)
+            : balances.FirstOrDefault(b => string.Equals(b.Category, category, StringComparison.OrdinalIgnoreCase));
         if (balance is null) return NotFound();
+        var left = (balance.Available ?? 0) - balance.Pending;
         return PartialView("~/Views/Leave/_Ledger.cshtml", new LeaveLedgerModel
         {
             Balance = balance,
-            Lines = await _leave.LedgerAsync(emp, type, scope, Ct),
-            CanAdjust = r.CanAdjust && !self
+            Lines = await _leave.LedgerAsync(emp, balance.LeaveTypeId, scope, Ct),
+            CanAdjust = r.CanAdjust && !self,
+            // db/98: a large annual balance - over 60 days, down to 30 at the least
+            EliminateMax = r.CanEliminate && !self && balance.Category == "ANNUAL" && balance.Available is not null
+                ? LeaveElimination.MaxDays(left) : 0m
         });
     }
 
@@ -448,6 +457,15 @@ public sealed class LeaveController : Controller
         if (!Can(PermAdjust)) return Denied();
         if (emp == _currentUser.EmployeeId && !IsSysAdmin) return Json(ActionResponse.Failed("You cannot adjust your own balance.", "FORBIDDEN"));
         return Result(await _leave.AdjustAsync(emp, type, entryType == "OPENING" ? "OPENING" : "ADJUST", entryDate, days, comment, Scope(), Ct));
+    }
+
+    /// <summary>db/98: forces days off an annual balance over 60 days (30 always remain), with remarks.</summary>
+    [HttpPost("eliminate")]
+    public async Task<IActionResult> Eliminate(long emp, int type, decimal? days, string? remarks)
+    {
+        if (!Can(PermEliminate)) return Denied();
+        if (emp == _currentUser.EmployeeId && !IsSysAdmin) return Json(ActionResponse.Failed("You cannot eliminate your own leave.", "FORBIDDEN"));
+        return Result(await _leave.EliminateAsync(emp, type, days, remarks, Scope(), Ct));
     }
 
     [HttpPost("delete-entry")]

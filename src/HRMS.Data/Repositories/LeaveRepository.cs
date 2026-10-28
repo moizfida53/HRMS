@@ -90,6 +90,10 @@ public interface ILeaveRepository
     Task<PagedResult<LeaveBalance>> BalancesAsync(LeaveBalanceFilter filter, LeaveScope scope, CancellationToken ct = default);
     Task<IReadOnlyList<LeaveBalance>> EmployeeBalancesAsync(long employeeId, DateTime? asOf, LeaveScope? scope, CancellationToken ct = default);
     Task<IReadOnlyList<LeaveLedgerLine>> LedgerAsync(long employeeId, int leaveTypeId, LeaveScope? scope, CancellationToken ct = default);
+    /// <summary>db/98: each employee's annual leave balance; minDays = only those over it.</summary>
+    Task<IReadOnlyList<AnnualLeaveBalance>> AnnualBalancesAsync(decimal? minDays, LeaveScope scope, CancellationToken ct = default);
+    /// <summary>db/98: forces days off an annual balance over 60 days (30 always remain), with remarks.</summary>
+    Task<SaveResult> EliminateAsync(long employeeId, int leaveTypeId, decimal? days, string? remarks, LeaveScope scope, CancellationToken ct = default);
     Task<SaveResult> AdjustAsync(long employeeId, int leaveTypeId, string entryType, DateTime? entryDate, decimal? days, string? comment,
                                  LeaveScope scope, CancellationToken ct = default);
     Task<SaveResult> DeleteEntryAsync(long entryId, LeaveScope scope, CancellationToken ct = default);
@@ -363,6 +367,24 @@ public sealed class LeaveRepository : ILeaveRepository
         p.Add("@LeaveTypeId", leaveTypeId, DbType.Int32);
         p.Add("@SelfOnly", scope is null, DbType.Boolean);
         return _sql.QueryAsync<LeaveLedgerLine>(StoredProcedure.LeaveBalanceManage, p, ct);
+    }
+
+    public Task<IReadOnlyList<AnnualLeaveBalance>> AnnualBalancesAsync(decimal? minDays, LeaveScope scope, CancellationToken ct = default)
+    {
+        var p = Envelope("ANNUAL", scope);
+        p.Add("@MinDays", minDays, DbType.Decimal, precision: 7, scale: 2);
+        return _sql.QueryAsync<AnnualLeaveBalance>(StoredProcedure.LeaveBalanceManage, p, ct);
+    }
+
+    public async Task<SaveResult> EliminateAsync(long employeeId, int leaveTypeId, decimal? days, string? remarks, LeaveScope scope, CancellationToken ct = default)
+    {
+        var p = Envelope("ELIMINATE", scope);
+        p.Add("@EmployeeId", employeeId, DbType.Int64);
+        p.Add("@LeaveTypeId", leaveTypeId, DbType.Int32);
+        p.Add("@Days", days, DbType.Decimal, precision: 7, scale: 2);
+        p.Add("@Comment", Trim(remarks, 500), DbType.String, size: 500);
+        await _sql.ExecuteAsync(StoredProcedure.LeaveBalanceManage, p, ct).ConfigureAwait(false);
+        return Read(p, 0);
     }
 
     public async Task<SaveResult> AdjustAsync(long employeeId, int leaveTypeId, string entryType, DateTime? entryDate, decimal? days, string? comment,

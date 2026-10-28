@@ -90,6 +90,26 @@ public sealed class DashboardController : Controller
             }
         }
 
+        // db/98: annual leave balances over 30 days - for users who see balances and may open the employees
+        int? leaveOver30 = null;
+        if (_currentUser.CanOpen("leave:balances") && _currentUser.EmployeeAccess().View)
+        {
+            try
+            {
+                var over = await _leave.AnnualBalancesAsync(HRMS.Domain.Leave.LeaveElimination.FlagOver, new LeaveScope
+                {
+                    CompanyId = _currentUser.ActiveCompanyId,
+                    CompanyIds = _companyFilter.Csv,
+                    UserId = _currentUser.UserId
+                }, HttpContext.RequestAborted);
+                leaveOver30 = over.Select(b => b.EmployeeId).Distinct().Count();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "The leave balances over 30 days could not be read (run db/98).");
+            }
+        }
+
         // company documents whose expiry date reached an alert (db/73) - for users who may open them
         IReadOnlyList<HRMS.Domain.Organization.OrgDocumentDue>? orgAlerts = null;
         if (_currentUser.CanOpen("organizations"))
@@ -126,6 +146,7 @@ public sealed class DashboardController : Controller
             OrgDocumentAlerts = orgAlerts,
             AssetAlerts = assetAlerts,
             Leave = leave,
+            LeaveOver30 = leaveOver30,
             ShowDateAlerts = showDateAlerts,
             DateAlerts = dateAlerts,
             CompanyLabel = await _companyFilter.GetLabelAsync(HttpContext.RequestAborted),

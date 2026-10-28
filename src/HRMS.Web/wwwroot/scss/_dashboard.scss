@@ -1,3 +1,4 @@
+@use "sass:color";
 // ============================================================================
 // HRMS Kuwait - Dashboard (landing page)
 // ----------------------------------------------------------------------------
@@ -40,6 +41,24 @@
       > :nth-child(4):nth-last-child(2) { grid-column: span 1; }
       > :nth-child(odd):last-child { grid-column: 1 / -1; }
     }
+    // db/98: six tiles (the leave balance tile) - 6 / 3 + 3 / 2 + 2 + 2
+    &--six {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+
+      @container content (max-width: 1099.98px) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+
+        > *,
+        > :nth-child(4):nth-last-child(2),
+        > :nth-child(5):nth-last-child(1) { grid-column: span 1; }
+      }
+
+      @container content (max-width: 559.98px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        > :nth-child(odd):last-child { grid-column: span 1; }
+      }
+    }
   }
 
   &__row {
@@ -64,6 +83,37 @@
 }
 
 // --------------------------------------------------------------- KPI tile ---
+// a tile that opens a list (db/98: leave balances over 30 days)
+.hrms-kpi--link {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+
+  &:hover, &:focus-visible {
+    border-color: $blue-200;
+    box-shadow: $shadow-md;
+    color: inherit;
+    transform: translateY(-1px);
+  }
+  &:focus-visible { @include focus-ring; }
+
+  .hrms-kpi__go {
+    display: inline-flex;
+    margin-inline-start: auto;
+    color: $blue-600;
+
+    [dir="rtl"] & svg { transform: scaleX(-1); }
+  }
+
+  &.is-alert {
+    border-color: color.adjust($amber-600, $alpha: -0.55);
+    background: linear-gradient(180deg, $amber-050, #fff 70%);
+
+    .hrms-kpi__icon { background: color.adjust($amber-600, $alpha: -0.85); color: $amber-700; }
+    .hrms-kpi__value { color: $amber-700; }
+  }
+}
+
 .hrms-kpi {
   display: flex;
   flex-direction: column;

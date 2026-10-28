@@ -63,9 +63,11 @@ public sealed class EmployeesController : Controller
         IEmployeeLeaveTermsRepository leaveTerms,
         IAssetRepository assets,
         IEmployeeProfileRepository profile,
+        ILeaveRepository leave,
         ILogger<EmployeesController> logger)
     {
         _profile = profile;
+        _leave = leave;
         _assets = assets;
         _leaveTerms = leaveTerms;
         _dateAlerts = dateAlerts;
@@ -89,6 +91,30 @@ public sealed class EmployeesController : Controller
     private readonly IEmployeeLeaveTermsRepository _leaveTerms;
     private readonly IAssetRepository _assets;
     private readonly IEmployeeProfileRepository _profile;
+    private readonly ILeaveRepository _leave;
+
+    /// <summary>The list shows annual leave balances to users who may see leave balances (db/98).</summary>
+    private bool ShowLeave => _currentUser.CanOpen("leave:balances");
+
+    private async Task<IReadOnlyDictionary<long, HRMS.Domain.Leave.AnnualLeaveBalance>> TryGetAnnualLeaveAsync()
+    {
+        if (!ShowLeave) return new Dictionary<long, HRMS.Domain.Leave.AnnualLeaveBalance>();
+        try
+        {
+            var rows = await _leave.AnnualBalancesAsync(null, new LeaveScope
+            {
+                CompanyId = _currentUser.ActiveCompanyId,
+                CompanyIds = _companyFilter.Csv,
+                UserId = _currentUser.UserId
+            }, Ct);
+            return rows.GroupBy(r => r.EmployeeId).ToDictionary(g => g.Key, g => g.First());
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Annual leave balances could not be read for the Employees list (run db/98).");
+            return new Dictionary<long, HRMS.Domain.Leave.AnnualLeaveBalance>();
+        }
+    }
 
     /// <summary>The assets the employee holds (Workforce > Assets, db/84) - for users who may open Assets.</summary>
     private async Task<IReadOnlyList<HRMS.Domain.Assets.AssetRow>?> TryGetAssetsAsync(long employeeId)
@@ -238,7 +264,10 @@ public sealed class EmployeesController : Controller
             Page = page,
             Request = request,
             ClientSide = all,
-            Missing = await TryGetCompletenessAsync(page.Items.Select(e => e.EmployeeId))
+            Missing = await TryGetCompletenessAsync(page.Items.Select(e => e.EmployeeId)),
+            ShowLeave = ShowLeave,
+            CanEliminateLeave = _currentUser.HasPermission(LeaveController.PermEliminate),
+            Leave = await TryGetAnnualLeaveAsync()
         });
     }
 

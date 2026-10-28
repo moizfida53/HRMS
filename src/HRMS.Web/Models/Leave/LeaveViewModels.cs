@@ -19,6 +19,8 @@ public sealed class LeaveRights
     public bool CanSetupEdit { get; init; }
     /// <summary>db/86: settles the leave salary of an approved leave (cash before the leave or the payroll).</summary>
     public bool CanSettle { get; init; }
+    /// <summary>db/98: forces days off an annual balance over 60 days (30 always remain).</summary>
+    public bool CanEliminate { get; init; }
     public long? UserId { get; init; }
     /// <summary>The employee the user is (My Leave).</summary>
     public long? EmployeeId { get; init; }
@@ -110,6 +112,8 @@ public sealed class LeaveLedgerModel
     public required LeaveBalance Balance { get; init; }
     public IReadOnlyList<LeaveLedgerLine> Lines { get; init; } = Array.Empty<LeaveLedgerLine>();
     public bool CanAdjust { get; init; }
+    /// <summary>db/98: the most days the user may eliminate now (0 = no elimination).</summary>
+    public decimal EliminateMax { get; init; }
 }
 
 public sealed class LeaveMyPageModel

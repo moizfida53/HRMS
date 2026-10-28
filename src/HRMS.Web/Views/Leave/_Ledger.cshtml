@@ -43,9 +43,25 @@
                         <tr>
                             <td data-label="@L["lv.date"]" class="hrms-nowrap">@(line.ToDate is { } td && td != line.OnDate ? LeaveFormat.Period(L, line.OnDate, td, false) : L.Date(line.OnDate))</td>
                             <td data-label="@L["lv.entry"]">
-                                @(line.Code switch { "OPENING" => L["lv.e_opening"], "ADJUST" => L["lv.e_adjust"], _ => L["lv.e_leave"] })
+                                @if (line.Code == "ELIMINATE")
+                                {
+                                    <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["lv.e_eliminate"]</span>
+                                }
+                                else
+                                {
+                                    @(line.Code switch { "OPENING" => L["lv.e_opening"], "ADJUST" => L["lv.e_adjust"], _ => L["lv.e_leave"] })
+                                }
                                 @if (line.RequestNo is not null) { <span class="hrms-code-chip ms-1">@line.RequestNo</span> }
                                 @if (line.Status == LeaveStatus.Pending) { <span class="hrms-badge hrms-badge--warning ms-1"><span class="hrms-badge__dot"></span>@L["lv.f_pending"]</span> }
+                                @* db/98: how the leave's salary was paid *@
+                                @if (line.Kind == "REQUEST" && line.Status == LeaveStatus.Approved)
+                                {
+                                    <span class="lv-paid lv-paid--@((line.SettlementMode ?? "none").ToLowerInvariant())">
+                                        @Html.Icon(line.SettlementMode == "CASH" ? "wallet" : line.SettlementMode == "PAYROLL" ? "receipt" : "clock", 12)
+                                        <span>@(line.SettlementMode switch { "CASH" => L["lv.paid_cash"], "PAYROLL" => L["lv.paid_payroll"], _ => L["lv.not_settled"] })</span>
+                                        @if (line.SettlementMode == "CASH" && line.SettlementAmount is { } amt) { <span class="hrms-numeric">· @amt.ToString("N3")</span> }
+                                    </span>
+                                }
                             </td>
                             <td data-label="@L["lv.days"]" class="pr-money @(line.Days < 0 ? "pr-neg" : null)">@((line.Days > 0 && line.Code == "ADJUST" ? "+" : "") + LeaveFormat.Days(line.Days))</td>
                             <td data-label="@L["lv.comment"]" class="pr-line-comment"><span class="lv-cell">@(line.Comment ?? "—")<span class="pr-emp-sub">@line.ByName</span></span></td>
@@ -60,6 +76,37 @@
                 </tbody>
             </table>
         </div>
+    }
+
+    @* db/98: a balance over 60 days - eliminate days down to 30 at the least, with remarks *@
+    @if (Model.EliminateMax > 0)
+    {
+        <form class="lv-eliminate" data-lv-eliminate-form data-balance="@((free ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))"
+              data-max="@Model.EliminateMax.ToString(System.Globalization.CultureInfo.InvariantCulture)" novalidate>
+            <div class="lv-eliminate__head">
+                <span class="lv-eliminate__icon" aria-hidden="true">@Html.Icon("alert", 16)</span>
+                <div>
+                    <h3 class="lv-detail__sub mb-0">@L["lv.eliminate_title"]</h3>
+                    <p class="hrms-text-sm mb-0">@L["lv.eliminate_hint", LeaveFormat.Days(Model.EliminateMax)]</p>
+                </div>
+            </div>
+            <div class="row g-2">
+                <div class="col-sm-4">
+                    <label class="form-label" for="lv-elim-days">@L["lv.eliminate_days"] <span class="req" aria-hidden="true">*</span></label>
+                    <input type="number" class="form-control" id="lv-elim-days" name="days" step="0.5" min="0.5"
+                           max="@Model.EliminateMax.ToString(System.Globalization.CultureInfo.InvariantCulture)" inputmode="decimal" required />
+                    <span class="form-text">@L["lv.eliminate_after"]: <strong data-lv-elim-after>@LeaveFormat.Days(free ?? 0)</strong></span>
+                </div>
+                <div class="col-sm-8">
+                    <label class="form-label" for="lv-elim-remarks">@L["lv.eliminate_remarks"] <span class="req" aria-hidden="true">*</span></label>
+                    <input type="text" class="form-control" id="lv-elim-remarks" name="remarks" maxlength="500" required placeholder="@L["lv.eliminate_remarks_hint"]" />
+                </div>
+            </div>
+            <span class="field-validation-error d-block" data-lv-eliminate-error></span>
+            <div class="d-flex justify-content-end mt-2">
+                <button type="submit" class="btn btn-danger btn-sm">@Html.Icon("trash", 14)<span>@L["lv.eliminate_button"]</span></button>
+            </div>
+        </form>
     }
 
     @if (Model.CanAdjust)

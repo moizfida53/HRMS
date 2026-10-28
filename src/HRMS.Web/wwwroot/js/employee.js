@@ -32,7 +32,8 @@
             toggle: slot.dataset.toggleUrl
         };
 
-        var state = { search: "", status: "", page: 1, pageSize: 25, sortColumn: "", sortDirection: "ASC" };
+        // ?leave=30 (the Dashboard's "Leave balance > 30 days") opens the list filtered
+        var state = { search: "", status: slot.dataset.initialFilter || "", page: 1, pageSize: 25, sortColumn: "", sortDirection: "ASC" };
         var rows = [];          // { id, tr, code, name, hire, status, active, text } - every employee
         var view = [];          // the rows the search / filter / sort leave, in order
         var ui = {};            // the grid's parts, found once after the load
@@ -87,11 +88,15 @@
                     hire: tr.dataset.hire || "",
                     status: tr.dataset.status || "",
                     active: tr.dataset.active === "true",
+                    leave: tr.dataset.leave === undefined || tr.dataset.leave === "" ? null : Number(tr.dataset.leave),
                     text: tr.dataset.search || (tr.dataset.name || "").toLowerCase()
                 };
             }) : [];
             if (ui.search) { ui.search.value = state.search; }
-            if (ui.statusSelect) { ui.statusSelect.value = state.status; }
+            if (ui.statusSelect) {
+                ui.statusSelect.value = state.status;
+                if (ui.statusSelect.value !== state.status) { state.status = ""; ui.statusSelect.value = ""; }   // no leave rights
+            }
         }
 
         var sorters = {
@@ -108,6 +113,8 @@
             view = rows.filter(function (r) {
                 if (state.status === "true" && !r.active) { return false; }
                 if (state.status === "false" && r.active) { return false; }
+                if (state.status === "leave30" && !(r.leave > 30)) { return false; }
+                if (state.status === "leave60" && !(r.leave > 60)) { return false; }
                 return words.every(function (w) { return r.text.indexOf(w) >= 0; });
             });
 
@@ -399,6 +406,9 @@
 
             HRMS.toast(HRMS.t("js.exported_employees", "Exported {0} employees.", view.length), "success");
         }
+
+        // db/98: leave eliminated from the transactions popup - the balances change
+        document.addEventListener("hrms:leave-eliminated", function () { loadGrid(); });
 
         loadGrid();
     })();

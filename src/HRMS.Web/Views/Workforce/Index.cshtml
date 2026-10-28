@@ -13,7 +13,8 @@
      aria-busy="true"
      data-grid-url="@Url.Action("Grid", "Employees")"
      data-delete-url="@Url.Action("Delete", "Employees")"
-     data-toggle-url="@Url.Action("Toggle", "Employees")">
+     data-toggle-url="@Url.Action("Toggle", "Employees")"
+     data-initial-filter="@(Context.Request.Query["leave"].ToString() switch { "30" => "leave30", "60" => "leave60", _ => null })">
 
     <div class="hrms-spinner" aria-hidden="true"></div>
 
@@ -83,11 +84,21 @@
     </div>
 }
 
+@* db/98: the leave transactions popup (and elimination) opened from the list *@
+@if (CurrentUser.CanOpen("leave:balances"))
+{
+    @await Html.PartialAsync("~/Views/Leave/_Modals.cshtml")
+}
+
 @Html.AntiForgeryToken()
 
 @section Scripts {
     <script src="~/js/employee.js" asp-append-version="true"></script>
     <script src="~/js/passport.js" asp-append-version="true"></script>
+    @if (CurrentUser.CanOpen("leave:balances"))
+    {
+        <script src="~/js/leave.js" asp-append-version="true"></script>
+    }
 }
 
 

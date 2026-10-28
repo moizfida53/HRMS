@@ -1048,3 +1048,45 @@
 }
 
 .lv-tier:only-child [data-lv-tier-remove] { visibility: hidden; }
+
+// ------------------------------------------- db/98: elimination + payment ----
+// the ledger's "Eliminate leave" form (a balance over 60 days) - a red-edged card
+.lv-eliminate {
+  margin-top: space("4");
+  padding: space("3") space("4") space("4");
+  border: 1px solid color.adjust($red-600, $alpha: -0.7);
+  border-inline-start: 4px solid $red-600;
+  border-radius: $radius;
+  background: $red-050;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    gap: space("2");
+    margin-bottom: space("3");
+    color: $red-700;
+
+    p { color: $ink-700; }
+  }
+
+  &__icon { display: inline-flex; margin-top: 2px; }
+
+  .form-control { background: #fff; }
+}
+
+// how an approved leave's salary was paid, under the entry in the ledger
+.lv-paid {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: $radius-pill;
+  font-size: $fs-xs;
+  font-weight: $fw-medium;
+
+  &--cash { background: $green-050; color: $green-700; }
+  &--payroll { background: $blue-050; color: $blue-700; }
+  &--none { background: $amber-050; color: $amber-700; }
+}
