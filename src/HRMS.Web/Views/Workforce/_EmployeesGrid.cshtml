@@ -1,6 +1,10 @@
 @inject ICurrentUser CurrentUser
 @model EmployeeGridViewModel
-@{ var canDelete = CurrentUser.EmployeeAccess().Delete; }
+@{
+    var access = CurrentUser.EmployeeAccess();
+    var canDelete = access.Delete;
+    var canPassport = CurrentUser.CanViewPassportCustody();
+}
 
 <div class="hrms-card">
     @await Html.PartialAsync("~/Views/Workforce/Partials/_GridToolbar.cshtml", Model)
@@ -42,8 +46,28 @@
                             <td data-label="@L.Tr("Hire Date")" class="col-p2 col-date">@L.Date(row.HireDate)</td>
                             <td data-label="@L.Tr("Status")">@await Html.PartialAsync("~/Views/Workforce/Partials/_StatusBadge.cshtml", row.EmploymentStatus)</td>
                             <td class="hrms-table__actions">
-                                <a class="btn-icon" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId"
-                                   title="@L["emp.open_profile"]" aria-label="@L["common.open_named", row.FullName]">@Html.Icon("edit", 15)</a>
+                                @* Actions: each opens the profile at the right place, or the Passport In / Out popup *@
+                                <div class="dropdown emp-more">
+                                    <button type="button" class="btn-icon" data-bs-toggle="dropdown" aria-expanded="false" data-bs-popper-config='{"strategy":"fixed"}'
+                                            title="@L["common.actions"]" aria-label="@L["emp.actions_named", row.FullName]">@Html.Icon("more", 15)</button>
+                                    <ul class="dropdown-menu dropdown-menu-end emp-more__menu">
+                                        @if (access.EmploymentView)
+                                        {
+                                            <li><a class="dropdown-item is-danger" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId" asp-route-focus="TerminationDate">@Html.Icon("user-x", 15)<span>@L["emp.act_terminate"]</span></a></li>
+                                        }
+                                        @if (access.ComplianceView)
+                                        {
+                                            <li><a class="dropdown-item" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId" asp-route-focus="CivilIdExpiryDate">@Html.Icon("id-card", 15)<span>@L["emp.act_renew_civil_id"]</span></a></li>
+                                            <li><a class="dropdown-item" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId" asp-route-focus="PassportExpiryDate">@Html.Icon("passport", 15)<span>@L["emp.act_renew_passport"]</span></a></li>
+                                        }
+                                        @if (canPassport)
+                                        {
+                                            <li><button type="button" class="dropdown-item" data-passport-open="@row.EmployeeId">@Html.Icon("swap", 15)<span>@L["emp.act_passport_inout"]</span></button></li>
+                                        }
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId" asp-route-tab="personal">@Html.Icon("user", 15)<span>@L["emp.act_general"]</span></a></li>
+                                    </ul>
+                                </div>
                                 @if (canDelete)
                                 {
                                     <button type="button" class="btn-icon btn-icon--success" data-action="toggle"

@@ -304,3 +304,20 @@ public sealed class ComplianceHistoryViewModel
     public required string Key { get; init; }
     public required IReadOnlyList<ComplianceImageEntry> Images { get; init; }
 }
+
+/// <summary>Passport In / Out popup (db/93).</summary>
+public sealed class PassportPanelModel
+{
+    public required PassportCustodyStatus Status { get; init; }
+    public bool CanEdit { get; init; }
+}
+
+public static class PassportFormat
+{
+    public static string Holder(HRMS.Web.Localization.IUiText L, string? heldBy) => heldBy switch
+    {
+        PassportHolder.Company => L["emp.pp_with_company"],
+        PassportHolder.Employee => L["emp.pp_with_employee"],
+        _ => L["emp.pp_not_recorded"]
+    };
+}

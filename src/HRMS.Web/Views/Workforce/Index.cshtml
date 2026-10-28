@@ -59,10 +59,35 @@
     </div>
 </div>
 
+@* db/93: Passport In / Out (Actions menu) - the body comes from the server *@
+@if (CurrentUser.CanViewPassportCustody())
+{
+    <div class="modal fade" id="pp-modal" tabindex="-1" aria-hidden="true" aria-labelledby="pp-modal-title"
+         data-urls-panel="@Url.Action("Panel", "Passport")" data-urls-log="@Url.Action("Log", "Passport")"
+         data-urls-save="@Url.Action("Save", "Passport")" data-urls-export="@Url.Action("Export", "Passport")"
+         data-text-show-log="@L["emp.pp_view_transactions"]" data-text-hide-log="@L["emp.pp_hide_transactions"]">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5 pp-title" id="pp-modal-title">@Html.Icon("swap", 18)<span>@L["emp.pp_title"]</span></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body" data-pp-body></div>
+                <div class="modal-footer pp-footer">
+                    <button type="button" class="btn btn-outline-primary me-auto" data-pp-toggle-log>@Html.Icon("history", 15)<span data-pp-toggle-text>@L["emp.pp_view_transactions"]</span></button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                    <button type="button" class="btn btn-primary" data-pp-submit hidden>@Html.Icon("check", 15)<span>@L["emp.pp_submit"]</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @Html.AntiForgeryToken()
 
 @section Scripts {
     <script src="~/js/employee.js" asp-append-version="true"></script>
+    <script src="~/js/passport.js" asp-append-version="true"></script>
 }
 
 

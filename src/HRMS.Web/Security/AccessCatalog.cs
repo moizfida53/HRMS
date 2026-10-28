@@ -92,6 +92,8 @@ public static class AccessCatalog
                 new("WF.PERSONAL", "sec.fn_personal_tab", "sec.fn_tab_hint", C("EMPLOYEE_PERSONAL_VIEW"), C("EMPLOYEE_EDIT"), No),
                 new("WF.EMPLOYMENT", "sec.fn_employment_tab", "sec.fn_tab_hint", C("EMPLOYEE_EMPLOYMENT_VIEW"), C("EMPLOYEE_EMPLOYMENT_EDIT"), No),
                 new("WF.COMPLIANCE", "sec.fn_compliance", null, C("EMPLOYEE_COMPLIANCE_VIEW"), C("EMPLOYEE_COMPLIANCE_EDIT"), No),
+                // db/93: Passport In / Out - who holds the passport (company / employee) and the log
+                new("WF.PASSPORT", "sec.fn_passport_custody", "sec.fn_passport_custody_hint", C("EMPLOYEE_PASSPORT_VIEW"), C("EMPLOYEE_PASSPORT_EDIT"), No),
                 new("WF.DEPENDENTS", "sec.fn_dependents", null, C("EMPLOYEE_DEPENDENT_VIEW"), C("EMPLOYEE_DEPENDENT_EDIT"), C("EMPLOYEE_DEPENDENT_DELETE")),
                 new("WF.DOCUMENTS", "sec.fn_documents", "sec.fn_documents_hint", C("EMPLOYEE_DOCUMENT_VIEW"), C("EMPLOYEE_DOCUMENT_UPLOAD"), C("EMPLOYEE_DOCUMENT_DELETE")),
                 new("WF.LEAVE_TAB", "sec.fn_leave_tab", "sec.fn_leave_tab_hint", C("EMPLOYEE_LEAVE_VIEW"), No, No),

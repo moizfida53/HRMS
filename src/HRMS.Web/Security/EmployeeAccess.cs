@@ -38,6 +38,10 @@ public sealed record EmployeeAccess(
 
     /// <summary>Set the alerts on the employee date fields (db/65) - administrators.</summary>
     public const string PermDateAlerts = "EMPLOYEE_DATE_ALERTS";
+
+    /// <summary>Passport In / Out (db/93): see the holder and the log / record a hand-over.</summary>
+    public const string PermPassportView = "EMPLOYEE_PASSPORT_VIEW";
+    public const string PermPassportEdit = "EMPLOYEE_PASSPORT_EDIT";
 }
 
 public static class EmployeeAccessExtensions
@@ -52,6 +56,14 @@ public static class EmployeeAccessExtensions
     /// <summary>The bell next to a date field: set its alerts (for every employee). System Administrator always may.</summary>
     public static bool CanManageDateAlerts(this ICurrentUser u) =>
         u.HasPermission(Security.EmployeeAccess.PermDateAlerts) || u.IsInRole("SYSADMIN");
+
+    /// <summary>db/93: see where an employee's passport is (company / employee) and its log.</summary>
+    public static bool CanViewPassportCustody(this ICurrentUser u) =>
+        u.HasPermission(Security.EmployeeAccess.PermPassportView) || u.HasPermission(Security.EmployeeAccess.PermPassportEdit) || u.IsInRole("SYSADMIN");
+
+    /// <summary>db/93: record a passport handed to / received from the employee.</summary>
+    public static bool CanEditPassportCustody(this ICurrentUser u) =>
+        u.HasPermission(Security.EmployeeAccess.PermPassportEdit) || u.IsInRole("SYSADMIN");
 
     public static bool CanViewAudit(this ICurrentUser u) =>
         u.HasPermission(Security.EmployeeAccess.PermAuditView) || u.IsInRole("SYSADMIN");

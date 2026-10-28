@@ -332,6 +332,50 @@
             if (target) { target.textContent = message || ""; }
         }
 
+        // Brings a field into view wherever it is: its tab, its closed section, then focus.
+        function revealField(field) {
+            if (!field) { return; }
+            var pane = field.closest(".tab-pane");
+            var show = function () {
+                var collapse = field.closest(".collapse:not(.show)");
+                var go = function () {
+                    field.scrollIntoView({ block: "center", behavior: "smooth" });
+                    var holder = field.closest("[class*='col-']") || field.parentElement;
+                    holder.classList.add("hrms-focus-field");
+                    window.setTimeout(function () { holder.classList.remove("hrms-focus-field"); }, 4000);
+                    window.setTimeout(function () { field.focus({ preventScroll: true }); }, 250);
+                };
+                if (collapse && window.bootstrap) {
+                    collapse.addEventListener("shown.bs.collapse", go, { once: true });
+                    bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+                } else { go(); }
+            };
+            if (pane && !pane.classList.contains("active")) {
+                var button = document.querySelector('[data-bs-target="#' + pane.id + '"]') || document.getElementById(pane.id.replace(/-pane$/, "") + "-btn");
+                if (button && window.bootstrap) {
+                    button.addEventListener("shown.bs.tab", show, { once: true });
+                    bootstrap.Tab.getOrCreateInstance(button).show();
+                    return;
+                }
+            }
+            show();
+        }
+
+        // The mandatory fields (marked *) still empty - every tab, not only the open one.
+        function missingRequired() {
+            var fields = Array.prototype.slice.call(document.querySelectorAll(
+                '[form="employee-form"][required], #employee-form [required], #compliance-form [required]'));
+            return fields.filter(function (f) {
+                if (f.disabled || f.type === "hidden" || f.closest("[hidden]")) { return false; }
+                return !String(f.value || "").trim();
+            });
+        }
+        function labelOf(field) {
+            var label = field.id ? document.querySelector('label[for="' + field.id + '"]') : null;
+            var text = label ? label.textContent : (field.getAttribute("aria-label") || field.name);
+            return text.replace(/\*/g, "").replace(/\s+/g, " ").trim();
+        }
+
         function clearErrors(form) {
             var scope = form.id === "employee-form" ? document : form;
             scope.querySelectorAll("[data-valmsg-for]").forEach(function (span) { span.textContent = ""; });
@@ -371,7 +415,7 @@
 
                         var firstInvalid = document.querySelector(".is-invalid");
                         document.dispatchEvent(new CustomEvent("form:invalid", { detail: { field: firstInvalid } }));
-                        if (firstInvalid) { firstInvalid.focus(); }
+                        revealField(firstInvalid);
                     }
 
                     HRMS.toast(result.message, "error");
@@ -426,6 +470,28 @@
         // user may edit - Personal Info / Employment, then Kuwait Compliance.
         var saveAllButton = document.querySelector("[data-save-all]");
         function saveAll() {
+            // nothing is saved while a mandatory field is empty: say which, then go to the first
+            var missing = missingRequired();
+            if (missing.length) {
+                missing.forEach(function (f) {
+                    f.classList.add("is-invalid");
+                    var slot = document.querySelector('[data-valmsg-for="' + f.name + '"]');
+                    if (slot) { slot.textContent = HRMS.t("js.field_required", "This field is required."); }
+                    f.addEventListener("input", function () { f.classList.remove("is-invalid"); if (slot) { slot.textContent = ""; } }, { once: true });
+                    f.addEventListener("change", function () { f.classList.remove("is-invalid"); if (slot) { slot.textContent = ""; } }, { once: true });
+                });
+                var names = missing.map(labelOf).filter(function (n, i, all) { return n && all.indexOf(n) === i; });
+                HRMS.confirm({
+                    title: HRMS.t("js.fill_mandatory_title", "Fill in the mandatory fields"),
+                    text: HRMS.t("js.fill_mandatory_text", "These fields are required before the changes can be saved:"),
+                    name: names.join(" · "),
+                    tone: "primary",
+                    note: "",
+                    ok: HRMS.t("js.fill_mandatory_ok", "Fill in now"),
+                    cancel: HRMS.t("js.close", "Close")
+                }).then(function () { revealField(missing[0]); });
+                return;
+            }
             var doEmployee = saveAllButton.dataset.saveEmployee === "true" && employeeForm;
             var doCompliance = saveAllButton.dataset.saveCompliance === "true" && complianceForm && complianceDirty;
             var options = { quiet: true, button: saveAllButton };

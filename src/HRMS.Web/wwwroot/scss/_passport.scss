@@ -1,0 +1,144 @@
+// ============================================================================
+// Workforce > Employees: the row Actions menu and Passport In / Out (db/93)
+// ----------------------------------------------------------------------------
+// The passport card's colour says where the passport is: green with the
+// company, amber with the employee, grey when nothing is recorded yet.
+// ============================================================================
+
+@use "sass:color";
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ---------------------------------------------------------- row actions ----
+.emp-more {
+  display: inline-block;
+
+  &__menu {
+    min-width: 210px;
+    padding: space("1");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    box-shadow: $shadow-md;
+    font-size: $fs-sm;
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: space("2");
+      padding: space("2") space("3");
+      border-radius: $radius-sm;
+      color: $ink-700;
+
+      svg { flex: 0 0 auto; color: $ink-500; }
+      &:hover, &:focus { background: $blue-050; color: $blue-700; svg { color: $blue-600; } }
+      &.is-danger { color: $red-700; svg { color: $red-600; } &:hover, &:focus { background: $red-050; } }
+    }
+    .dropdown-divider { margin: space("1") 0; }
+  }
+}
+
+// ------------------------------------------------------------ the popup ----
+.pp-title { display: inline-flex; align-items: center; gap: space("2"); }
+
+.pp {
+  container-type: inline-size;
+  container-name: content;
+  display: flex;
+  flex-direction: column;
+  gap: space("3");
+
+  &__who { margin: 0; font-weight: $fw-semibold; color: $ink-800; }
+  &__label { @include label-caps; font-size: $fs-xs; color: $ink-500; }
+  &__warn {
+    display: flex; align-items: center; gap: space("2");
+    margin: 0; padding: space("2") space("3");
+    border-radius: $radius; background: $amber-050; color: $amber-700; font-size: $fs-sm;
+  }
+}
+
+.pp-card {
+  --pp-c: #{$ink-500};
+  --pp-bg: #{$line-100};
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: space("3") space("4");
+  padding: space("3") space("4");
+  border: 1px solid $line-200;
+  border-inline-start: 4px solid var(--pp-c);
+  border-radius: $radius-lg;
+  background: $white;
+  box-shadow: $shadow-xs;
+
+  &.is-company  { --pp-c: #{$green-600}; --pp-bg: #{$green-050}; }
+  &.is-employee { --pp-c: #{$amber-600}; --pp-bg: #{$amber-050}; }
+
+  &__icon {
+    display: grid; place-items: center;
+    width: 52px; height: 52px;
+    border-radius: $radius-md;
+    background: var(--pp-bg); color: var(--pp-c);
+  }
+  &__body, &__status { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  &__status { align-items: flex-end; text-align: end; }
+  &__number {
+    font-family: $font-mono, monospace;
+    font-size: $fs-lg;
+    letter-spacing: .04em;
+    color: $ink-900;
+    @include truncate;
+  }
+
+  @include cq-down("sm") {
+    grid-template-columns: auto minmax(0, 1fr);
+    &__status { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: space("2"); text-align: start; }
+  }
+}
+
+.pp-status {
+  display: inline-flex; align-items: center; gap: space("1");
+  padding: 3px space("2");
+  border-radius: $radius-pill;
+  font-size: $fs-sm; font-weight: $fw-semibold; white-space: nowrap;
+  @include soft-badge($ink-600, $line-100);
+
+  &.is-company  { @include soft-badge($green-700, $green-050); }
+  &.is-employee { @include soft-badge($amber-700, $amber-050); }
+}
+
+.pp-form {
+  padding: space("3") space("4");
+  border: 1px solid $line-200;
+  border-radius: $radius-lg;
+  background: $surface;
+
+  .field-validation-error:not(:empty) { display: block; margin-top: space("2"); }
+
+  &__title {
+    display: flex; align-items: center; gap: space("2");
+    margin: 0 0 space("3");
+    font-size: $fs-md; font-weight: $fw-semibold; color: $ink-800;
+    svg { color: $blue-600; }
+    &--in svg { color: $green-600; }
+    &--out svg { color: $amber-600; }
+  }
+}
+
+.pp-log {
+  &[hidden] { display: none; }
+  &__head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: space("2");
+    margin-bottom: space("2");
+    .pp-form__title { margin: 0; }
+  }
+  &__table td { vertical-align: middle; }
+}
+
+.pp-footer {
+  flex-wrap: wrap;
+  gap: space("2");
+  @include down("sm") {
+    > .btn { flex: 1 1 calc(50% - #{space("2")}); justify-content: center; }
+    > .me-auto { flex-basis: 100%; margin-inline-end: 0 !important; }
+  }
+}

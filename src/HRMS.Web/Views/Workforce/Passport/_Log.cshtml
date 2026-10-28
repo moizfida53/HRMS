@@ -1,0 +1,37 @@
+@model IReadOnlyList<PassportMovement>
+@if (Model.Count == 0)
+{
+    <p class="hrms-muted hrms-text-sm mb-0">@L["emp.pp_no_transactions"]</p>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table pp-log__table">
+            <thead>
+                <tr>
+                    <th scope="col">@L["emp.pp_date"]</th>
+                    <th scope="col">@L["emp.pp_passport_with"]</th>
+                    <th scope="col">@L["emp.passport_number"]</th>
+                    <th scope="col">@L["emp.pp_remarks"]</th>
+                    <th scope="col">@L["emp.pp_entered_by"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in Model)
+                {
+                    <tr>
+                        <td data-label="@L["emp.pp_date"]" class="hrms-nowrap">@L.Date(m.MovementDate)</td>
+                        <td data-label="@L["emp.pp_passport_with"]">
+                            <span class="pp-status @(m.HeldBy == PassportHolder.Company ? "is-company" : "is-employee")">
+                                @Html.Icon(m.HeldBy == PassportHolder.Company ? "building" : "user", 13)<span>@PassportFormat.Holder(L, m.HeldBy)</span>
+                            </span>
+                        </td>
+                        <td data-label="@L["emp.passport_number"]"><span class="hrms-code-chip">@(m.PassportNumber ?? "—")</span></td>
+                        <td data-label="@L["emp.pp_remarks"]" class="hrms-muted">@(m.Remarks ?? "—")</td>
+                        <td data-label="@L["emp.pp_entered_by"]" class="hrms-muted hrms-nowrap">@(m.CreatedByName ?? "—") · @L.Date(m.CreatedDate)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

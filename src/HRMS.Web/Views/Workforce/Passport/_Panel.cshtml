@@ -1,0 +1,94 @@
+@model PassportPanelModel
+@{
+    var s = Model.Status;
+    var name = L.IsArabic && !string.IsNullOrWhiteSpace(s.EmployeeArabicName) ? s.EmployeeArabicName : s.EmployeeName;
+    var state = s.WithCompany ? "is-company" : s.WithEmployee ? "is-employee" : "is-none";
+    var noPassport = string.IsNullOrWhiteSpace(s.PassportNumber);
+    var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    var min = s.HeldSince?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+}
+<div class="pp" data-pp-employee="@s.EmployeeId">
+    <p class="pp__who">@name <span class="hrms-muted">· @s.EmployeeCode</span></p>
+
+    @* the passport and where it is now *@
+    <div class="pp-card @state">
+        <span class="pp-card__icon" aria-hidden="true">@Html.Icon("passport", 26)</span>
+        <div class="pp-card__body">
+            <span class="pp__label">@L["emp.passport_number"]</span>
+            <strong class="pp-card__number">@(noPassport ? "—" : s.PassportNumber)</strong>
+            @if (s.PassportExpiryDate is { } exp)
+            {
+                <span class="hrms-muted hrms-text-sm">@L["emp.pp_expires", L.Date(exp)]</span>
+            }
+        </div>
+        <div class="pp-card__status">
+            <span class="pp__label">@L["emp.pp_current_status"]</span>
+            <span class="pp-status @state">
+                @Html.Icon(s.WithCompany ? "building" : s.WithEmployee ? "user" : "clock", 14)
+                <span>@PassportFormat.Holder(L, s.HeldBy)</span>
+            </span>
+            @if (s.HeldSince is { } since)
+            {
+                <span class="hrms-muted hrms-text-sm">@L["emp.pp_since", L.Date(since)]</span>
+            }
+        </div>
+    </div>
+
+    @if (noPassport)
+    {
+        <p class="pp__warn">@Html.Icon("alert", 15)<span>@L["emp.pp_no_passport"]</span></p>
+    }
+    else if (Model.CanEdit)
+    {
+        @* the next hand-over: the opposite of the holder now; the first time, choose *@
+        <form class="pp-form" data-pp-form novalidate>
+            <input type="hidden" name="id" value="@s.EmployeeId" />
+            @if (s.HeldBy is null)
+            {
+                <h3 class="pp-form__title">@L["emp.pp_record_first"]</h3>
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="form-label" for="pp-held">@L["emp.pp_passport_with"] <span class="req" aria-hidden="true">*</span></label>
+                        <select class="form-select" id="pp-held" name="heldBy" required>
+                            <option value="">@L["common.select"]</option>
+                            <option value="@PassportHolder.Company">@L["emp.pp_company"]</option>
+                            <option value="@PassportHolder.Employee">@L["emp.pp_employee"]</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="pp-date">@L["emp.pp_date_received"] <span class="req" aria-hidden="true">*</span></label>
+                        <input type="date" class="form-control" id="pp-date" name="date" value="@today" max="@today" required />
+                    </div>
+                </div>
+            }
+            else
+            {
+                var to = s.WithEmployee ? PassportHolder.Company : PassportHolder.Employee;
+                <h3 class="pp-form__title pp-form__title--@(s.WithEmployee ? "in" : "out")">
+                    @Html.Icon("swap", 16)<span>@(s.WithEmployee ? L["emp.pp_transfer_company"] : L["emp.pp_transfer_employee"])</span>
+                </h3>
+                <input type="hidden" name="heldBy" value="@to" />
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="form-label" for="pp-date">@(s.WithEmployee ? L["emp.pp_date_received"] : L["emp.pp_date_handed"]) <span class="req" aria-hidden="true">*</span></label>
+                        <input type="date" class="form-control" id="pp-date" name="date" value="@today" min="@min" max="@today" required />
+                    </div>
+                </div>
+            }
+            <div class="mt-3">
+                <label class="form-label" for="pp-remarks">@L["emp.pp_remarks"]</label>
+                <input type="text" class="form-control" id="pp-remarks" name="remarks" maxlength="300" placeholder="@L["emp.pp_remarks_hint"]" />
+            </div>
+            <span class="field-validation-error" data-pp-error></span>
+        </form>
+    }
+
+    @* the log - opened with View Transactions *@
+    <section class="pp-log" data-pp-log hidden>
+        <div class="pp-log__head">
+            <h3 class="pp-form__title">@Html.Icon("history", 16)<span>@L["emp.pp_transactions"]</span></h3>
+            <button type="button" class="btn btn-sm btn-outline-success" data-pp-export>@Html.Icon("download", 14)<span>@L["emp.pp_export_excel"]</span></button>
+        </div>
+        <div data-pp-log-body></div>
+    </section>
+</div>
