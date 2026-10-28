@@ -747,12 +747,20 @@
     // Dependents tab on the Profile page: a small grid-slot (same AJAX-fetch-
     // and-swap pattern as the Employees list grid above) plus one static
     // Add/Edit modal reused for both, and one confirm modal for delete.
-    /* ============================================ profile panels: one call === */
-    // Dependents, Documents and the Kuwait Compliance images / thumbnails come in ONE call
-    // when the profile opens; each panel's script below then gets its HTML from it.
+    /* ============================================ profile panels: no extra call === */
+    // Dependents, Documents and the Kuwait Compliance images / thumbnails are drawn into the
+    // page by the server (read with the rest of the profile in one database call, db/97);
+    // each panel's script below takes its HTML from there. A panel the page does not hold
+    // comes in ONE call for all of them.
     (function primeProfilePanels() {
         var form = document.getElementById("employee-form");
         if (!form) { return; }
+        var held = {};
+        document.querySelectorAll("template[data-preloaded-panel]").forEach(function (t) {
+            held[t.getAttribute("data-preloaded-panel")] = true;
+            HRMS.primeHtmlWith(t.getAttribute("data-preloaded-panel"), t.innerHTML);
+            t.remove();
+        });
         var urls = [
             document.querySelector("#dependents-slot[data-grid-url]"),
             document.querySelector("#documents-slot[data-grid-url]"),
@@ -760,7 +768,7 @@
             document.querySelector("#compliance-form[data-kct-url]")
         ].map(function (el) {
             return el && (el.dataset.gridUrl || el.dataset.kcdUrl || el.dataset.kctUrl);
-        }).filter(function (u) { return u && !/\/0\//.test(u); });
+        }).filter(function (u) { return u && !held[u] && !/\/0\//.test(u); });
         HRMS.primeHtml("/employees/panels", urls);
     })();
 

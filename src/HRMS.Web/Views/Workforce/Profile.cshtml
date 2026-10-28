@@ -1789,6 +1789,13 @@
     @await Html.PartialAsync("~/Views/Leave/_Modals.cshtml")
 }
 
+@* db/97: the tabs' panels, read with the rest of the profile in one call - employee.js puts
+   each in its slot instead of asking the server for it *@
+@foreach (var panel in Model.Preloaded)
+{
+    <template data-preloaded-panel="@panel.Url">@await Html.PartialAsync(panel.View, panel.Model)</template>
+}
+
 @section Scripts {
     <script src="~/js/employee.js" asp-append-version="true"></script>
     @if (showLeave)

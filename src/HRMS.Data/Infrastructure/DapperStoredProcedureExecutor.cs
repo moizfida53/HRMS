@@ -36,6 +36,45 @@ public sealed partial class DapperStoredProcedureExecutor : ISqlExecutor
         _commandTimeoutSeconds = options.Value.CommandTimeoutSeconds;
     }
 
+    public Task<IReadOnlyDictionary<string, IReadOnlyList<object>>> QuerySectionsAsync(
+        string procedureName,
+        DynamicParameters parameters,
+        Func<string, Type?> typeOf,
+        CancellationToken cancellationToken = default) =>
+        RunAsync(procedureName, parameters, cancellationToken, async (connection, command) =>
+        {
+            const string Marker = "__Section";
+            var parts = new Dictionary<string, IReadOnlyList<object>>(StringComparer.OrdinalIgnoreCase);
+            using var reader = await connection.ExecuteReaderAsync(command).ConfigureAwait(false);
+            string? current = null;
+            do
+            {
+                if (reader.FieldCount == 1 && string.Equals(reader.GetName(0), Marker, StringComparison.Ordinal))
+                {
+                    current = null;
+                    while (reader.Read())
+                    {
+                        var name = reader.IsDBNull(0) ? "" : reader.GetString(0);
+                        if (name.StartsWith('!')) { parts.Remove(name[1..]); continue; }
+                        parts[name] = Array.Empty<object>();
+                        current = name;
+                    }
+                    continue;
+                }
+                // the first result after a marker is the part; anything more is ignored
+                if (current is not null && typeOf(current) is { } type)
+                {
+                    var parse = reader.GetRowParser(type);
+                    var rows = new List<object>();
+                    while (reader.Read()) rows.Add(parse(reader));
+                    parts[current] = rows;
+                }
+                current = null;
+            }
+            while (reader.NextResult());
+            return (IReadOnlyDictionary<string, IReadOnlyList<object>>)parts;
+        });
+
     public Task<IReadOnlyList<T>> QueryAsync<T>(
         string procedureName,
         DynamicParameters parameters,

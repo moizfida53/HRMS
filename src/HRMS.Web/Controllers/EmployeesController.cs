@@ -62,8 +62,10 @@ public sealed class EmployeesController : Controller
         IComplianceDocumentRepository complianceDocuments,
         IEmployeeLeaveTermsRepository leaveTerms,
         IAssetRepository assets,
+        IEmployeeProfileRepository profile,
         ILogger<EmployeesController> logger)
     {
+        _profile = profile;
         _assets = assets;
         _leaveTerms = leaveTerms;
         _dateAlerts = dateAlerts;
@@ -86,6 +88,7 @@ public sealed class EmployeesController : Controller
     private readonly IComplianceDocumentRepository _complianceDocuments;
     private readonly IEmployeeLeaveTermsRepository _leaveTerms;
     private readonly IAssetRepository _assets;
+    private readonly IEmployeeProfileRepository _profile;
 
     /// <summary>The assets the employee holds (Workforce > Assets, db/84) - for users who may open Assets.</summary>
     private async Task<IReadOnlyList<HRMS.Domain.Assets.AssetRow>?> TryGetAssetsAsync(long employeeId)
@@ -292,19 +295,48 @@ public sealed class EmployeesController : Controller
 
         if (!Access.View) return Forbid();
 
-        // Everything the page needs is read AT THE SAME TIME (each call has its own pooled
-        // connection), so the page waits for the slowest call, not for the sum of ~18 calls.
-        var employeeTask = _employees.GetByIdAsync(id, Ct);
+        // Everything the page and its tabs show comes from ONE database call (db/97). A part
+        // that call could not give (a database without db/97, or a part that failed) is read
+        // on its own - those reads run at the same time.
+        var access = Access;
+        var showComplianceImages = !wizard && access.ComplianceView && access.DocumentView;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        var data = await TryLoadProfileAsync(new EmployeeProfileLoadRequest(
+            id,
+            LookupCompanyId: _currentUser.LookupCompany(null),
+            UserCompanyId: _currentUser.ActiveCompanyId,
+            UserId: _currentUser.UserId,
+            IncludeInactive: true,
+            WithDateAlerts: _currentUser.CanManageDateAlerts(),
+            WithAssets: _currentUser.CanOpen("assets"),
+            WithDependents: access.DependentView,
+            WithDocuments: access.DocumentView,
+            WithComplianceDocuments: showComplianceImages));
+        bool Has(string part) => data?.Has(part) == true;
+
+        var employeeTask = Has(EmployeeProfileData.Employee)
+            ? Task.FromResult(data!.One<Employee>(EmployeeProfileData.Employee)) : _employees.GetByIdAsync(id, Ct);
         // Compliance is a separate 1:1 record that may not exist yet, even for
         // an existing employee - that is a normal state, rendered as an empty form.
-        var complianceTask = _compliance.GetAsync(id, Ct);
-        var lookupsTask = LoadProfileLookupsAsync(includeInactive: true);
-        var payrollCalendarTask = TryGetPayrollCalendarAsync(id);
-        var calendarsTask = LoadPayrollCalendarsAsync(lookupsTask, payrollCalendarTask);
-        var alertsTask = TryListDateAlertsAsync();
-        var leaveTermsTask = TryGetLeaveTermsAsync(id);
-        var assetsTask = TryGetAssetsAsync(id);
+        var complianceTask = Has(EmployeeProfileData.Compliance)
+            ? Task.FromResult(data!.One<EmployeeKuwaitCompliance>(EmployeeProfileData.Compliance)) : _compliance.GetAsync(id, Ct);
+        var lookupsTask = ProfileLookupTypes.All(t => Has(EmployeeProfileData.LookupPrefix + t))
+            ? Task.FromResult(OwnLookups(ProfileLookupTypes.Select(t => data!.Many<LookupItem>(EmployeeProfileData.LookupPrefix + t)).ToArray()))
+            : LoadProfileLookupsAsync(includeInactive: true);
+        var payrollCalendarTask = Has(EmployeeProfileData.PayrollCalendar)
+            ? Task.FromResult(data!.One<EmployeePayrollCalendar>(EmployeeProfileData.PayrollCalendar)) : TryGetPayrollCalendarAsync(id);
+        var calendarsTask = Has(EmployeeProfileData.Calendars)
+            ? FilterCalendarsAsync(data!.Many<PayrollCalendar>(EmployeeProfileData.Calendars), lookupsTask, payrollCalendarTask)
+            : LoadPayrollCalendarsAsync(lookupsTask, payrollCalendarTask);
+        var alertsTask = !_currentUser.CanManageDateAlerts() || Has(EmployeeProfileData.DateAlerts)
+            ? Task.FromResult<IReadOnlyList<DateAlertRule>>(data?.Many<DateAlertRule>(EmployeeProfileData.DateAlerts) ?? []) : TryListDateAlertsAsync();
+        var leaveTermsTask = Has(EmployeeProfileData.LeaveTerms)
+            ? Task.FromResult(data!.One<EmployeeLeaveTerms>(EmployeeProfileData.LeaveTerms)) : TryGetLeaveTermsAsync(id);
+        var assetsTask = !_currentUser.CanOpen("assets") ? Task.FromResult<IReadOnlyList<HRMS.Domain.Assets.AssetRow>?>(null)
+            : Has(EmployeeProfileData.Assets) ? Task.FromResult<IReadOnlyList<HRMS.Domain.Assets.AssetRow>?>(data!.Many<HRMS.Domain.Assets.AssetRow>(EmployeeProfileData.Assets))
+            : TryGetAssetsAsync(id);
         await Task.WhenAll(employeeTask, complianceTask, lookupsTask, payrollCalendarTask, calendarsTask, alertsTask, leaveTermsTask, assetsTask);
+        Response.Headers["Server-Timing"] = $"db;desc=\"profile data ({(data is null ? "separate calls" : "one call")})\";dur={clock.ElapsedMilliseconds}";
 
         var employee = employeeTask.Result;
 
@@ -345,8 +377,73 @@ public sealed class EmployeesController : Controller
             CanManageDateAlerts = _currentUser.CanManageDateAlerts(),
             DateAlertRules = alertsTask.Result,
             LeaveTerms = leaveTermsTask.Result,
-            Assets = assetsTask.Result
+            Assets = assetsTask.Result,
+            // the Dependents / Documents tabs and the compliance images, drawn into the page:
+            // the browser does not ask for them again
+            Preloaded = data is null ? [] : PreloadedPanels(data, id, compliance, showComplianceImages)
         });
+    }
+
+    /// <summary>The one-call read of the profile (db/97); null when it cannot be used, so each part is read on its own.</summary>
+    private async Task<EmployeeProfileData?> TryLoadProfileAsync(EmployeeProfileLoadRequest request)
+    {
+        try
+        {
+            return await _profile.LoadAsync(request, Ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "The employee profile could not be read in one call (run db/97) - reading it part by part.");
+            return null;
+        }
+    }
+
+    /// <summary>The panels of the tabs, built from the one-call read (each needs the same right as its own address).</summary>
+    private List<PreloadedPanel> PreloadedPanels(EmployeeProfileData data, long id, EmployeeKuwaitCompliance? compliance, bool showComplianceImages)
+    {
+        var access = Access;
+        var maxMb = (int)(_storage.MaxFileSizeBytes / 1024 / 1024);
+        var panels = new List<PreloadedPanel>();
+
+        if (access.DependentView && data.Has(EmployeeProfileData.Dependents))
+        {
+            panels.Add(new($"/employees/dependents/{id}/grid", ViewsRoot + "Partials/_DependentsGrid.cshtml",
+                data.Many<EmployeeDependent>(EmployeeProfileData.Dependents)));
+        }
+
+        var complianceRows = data.Has(EmployeeProfileData.ComplianceDocuments)
+            ? data.Many<ComplianceDocumentRow>(EmployeeProfileData.ComplianceDocuments) : null;
+
+        if (access.DocumentView && data.Has(EmployeeProfileData.Documents) && (!showComplianceImages || complianceRows is not null))
+        {
+            IReadOnlyList<EmployeeDocumentRow> rows = data.Many<EmployeeDocumentRow>(EmployeeProfileData.Documents);
+            if (showComplianceImages)
+            {
+                var linked = complianceRows!.Select(r => r.DocumentTypeId).ToHashSet();
+                rows = rows.Where(r => !linked.Contains(r.DocumentTypeId)).ToList();
+            }
+            panels.Add(new($"/employees/documents/{id}/grid" + (showComplianceImages ? "?exceptCompliance=true" : ""),
+                ViewsRoot + "Partials/_DocumentsGrid.cshtml",
+                new EmployeeDocumentsViewModel { EmployeeId = id, Rows = rows, MaxFileSizeMb = maxMb }));
+        }
+
+        if (showComplianceImages && complianceRows is not null)
+        {
+            var groups = BuildComplianceGroups(complianceRows, compliance);
+            panels.Add(new($"/employees/documents/{id}/compliance", ViewsRoot + "Partials/_ComplianceDocuments.cshtml",
+                new ComplianceDocumentsViewModel
+                {
+                    EmployeeId = id,
+                    Groups = groups,
+                    CanUpload = access.DocumentUpload && access.ComplianceEdit,
+                    CanConfirm = access.ComplianceEdit,
+                    CanDiscard = access.DocumentDelete && access.ComplianceEdit,
+                    MaxFileSizeMb = maxMb
+                }));
+            panels.Add(new($"/employees/documents/{id}/compliance/thumbs", ViewsRoot + "Partials/_ComplianceThumbs.cshtml",
+                new ComplianceDocumentsViewModel { EmployeeId = id, Groups = groups }));
+        }
+        return panels;
     }
 
     /// <summary>
@@ -366,14 +463,36 @@ public sealed class EmployeesController : Controller
             includeInactive: includeInactive,
             cancellationToken: Ct)));
 
+        return OwnLookups(lists);
+    }
+
+    /// <summary>The lists by type (in <see cref="ProfileLookupTypes"/> order); a user pinned to a company only gets that company's.</summary>
+    private Dictionary<string, IReadOnlyList<LookupItem>> OwnLookups(IReadOnlyList<LookupItem>[] lists)
+    {
         var lookups = new Dictionary<string, IReadOnlyList<LookupItem>>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < ProfileLookupTypes.Length; i++)
         {
-            // a user pinned to a company only gets that company's lists
             lookups[ProfileLookupTypes[i]] = _currentUser.OwnCompanies(ProfileLookupTypes[i], lists[i]);
         }
-
         return lookups;
+    }
+
+    private static async Task<IReadOnlyList<PayrollCalendar>> FilterCalendarsAsync(IReadOnlyList<PayrollCalendar> all,
+        Task<Dictionary<string, IReadOnlyList<LookupItem>>> lookups, Task<EmployeePayrollCalendar?> current)
+    {
+        await Task.WhenAll(lookups, current);
+        return FilterCalendars(all, lookups.Result, current.Result?.PayrollCalendarId);
+    }
+
+    /// <summary>The calendars of the companies on the form (active ones, plus the employee's own even when deactivated).</summary>
+    private static IReadOnlyList<PayrollCalendar> FilterCalendars(IEnumerable<PayrollCalendar> all,
+        IReadOnlyDictionary<string, IReadOnlyList<LookupItem>> lookups, int? currentCalendarId)
+    {
+        var companies = lookups.TryGetValue(LookupType.Company, out var list) ? list.Select(c => c.Id).ToHashSet() : new HashSet<int>();
+        return all
+            .Where(c => companies.Contains(c.CompanyId) && (c.IsActive || c.PayrollCalendarId == currentCalendarId))
+            .OrderByDescending(c => c.IsDefault).ThenBy(c => c.CalendarName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 
     /// <summary>Starts as soon as the lists and the employee's calendar are in, alongside the page's other reads.</summary>
@@ -391,7 +510,6 @@ public sealed class EmployeesController : Controller
     private async Task<IReadOnlyList<PayrollCalendar>> LoadPayrollCalendarsAsync(
         IReadOnlyDictionary<string, IReadOnlyList<LookupItem>> lookups, int? currentCalendarId)
     {
-        var companies = lookups.TryGetValue(LookupType.Company, out var list) ? list.Select(c => c.Id).ToHashSet() : new HashSet<int>();
         try
         {
             var page = await _calendars.ListAsync(new GridRequest
@@ -400,10 +518,7 @@ public sealed class EmployeesController : Controller
                 PageSize = 200,
                 SortColumn = "CalendarName"
             }, Ct);
-            return page.Items
-                .Where(c => companies.Contains(c.CompanyId) && (c.IsActive || c.PayrollCalendarId == currentCalendarId))
-                .OrderByDescending(c => c.IsDefault).ThenBy(c => c.CalendarName, StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            return FilterCalendars(page.Items, lookups, currentCalendarId);
         }
         catch (Exception ex)
         {
@@ -1021,9 +1136,12 @@ public sealed class EmployeesController : Controller
         var rowsTask = _complianceDocuments.ListAsync(employeeId, Ct);
         var complianceTask = _compliance.GetAsync(employeeId, Ct);
         await Task.WhenAll(rowsTask, complianceTask);
-        var rows = rowsTask.Result;
-        var compliance = complianceTask.Result;
+        return BuildComplianceGroups(rowsTask.Result, complianceTask.Result);
+    }
 
+    private static IReadOnlyList<ComplianceDocumentGroup> BuildComplianceGroups(
+        IReadOnlyList<ComplianceDocumentRow> rows, EmployeeKuwaitCompliance? compliance)
+    {
         return ComplianceDocumentKey.All.Select(key => new ComplianceDocumentGroup
         {
             Key = key,

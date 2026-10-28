@@ -200,8 +200,14 @@ public sealed record DocumentSectionGroup(
     public bool MandatoryComplete => Rows.All(r => !r.IsMissingRequired);
 }
 
+/// <summary>A tab's panel drawn into the profile page (db/97), so the browser need not ask for it.</summary>
+public sealed record PreloadedPanel(string Url, string View, object Model);
+
 public sealed class EmployeeProfileViewModel
 {
+    /// <summary>The Dependents / Documents panels and the compliance images, already drawn (see employee.js).</summary>
+    public IReadOnlyList<PreloadedPanel> Preloaded { get; init; } = [];
+
     public required Employee Employee { get; init; }
 
     /// <summary>Null when the employee has no compliance record yet - a normal state, not an error.</summary>

@@ -736,6 +736,11 @@
         });
     };
 
+    /** A panel the page already holds (drawn into it by the server): its first getHtml is answered with it. */
+    HRMS.primeHtmlWith = function (url, html) {
+        if (url) { primed[url] = Promise.resolve(html); }
+    };
+
     HRMS.getHtml = function (url) {
         if (Object.prototype.hasOwnProperty.call(primed, url)) {
             var ready = primed[url];

@@ -56,6 +56,7 @@ public static class DependencyInjection
 
         // ---- Module 4: Workforce - Employees & Kuwait Compliance ----
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IEmployeeProfileRepository, EmployeeProfileRepository>();
         services.AddScoped<IEmployeeComplianceRepository, EmployeeComplianceRepository>();
         services.AddScoped<IEmployeeDependentRepository, EmployeeDependentRepository>();
         services.AddScoped<IEmployeeDocumentRepository, EmployeeDocumentRepository>();

@@ -39,6 +39,9 @@ public static class StoredProcedure
     /// <summary>The mandatory details each saved employee is missing (db/95) - a flag on the Employees list.</summary>
     public const string EmployeeCompleteness = "Employee.usp_EmployeeCompleteness";
 
+    /// <summary>Everything the employee profile shows, in one call (db/97).</summary>
+    public const string EmployeeProfileLoad = "Employee.usp_EmployeeProfile_Load";
+
     /// <summary>1:1 child of the employee record - GET/UPSERT only, no paging or delete of its own.</summary>
     public const string EmployeeComplianceManage = "Kuwait.usp_EmployeeCompliance_Manage";
 

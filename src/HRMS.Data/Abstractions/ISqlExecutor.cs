@@ -41,4 +41,16 @@ public interface ISqlExecutor
         string procedureName,
         DynamicParameters parameters,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes a procedure that returns several parts in one call: before each part a
+    /// one-row result <c>SELECT N'name' AS [__Section]</c>, then the part's rows (the first
+    /// result after the marker, read as <paramref name="typeOf"/>(name)). A part marked
+    /// <c>N'!name'</c> failed and is left out of the answer; a part with no rows is empty.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, IReadOnlyList<object>>> QuerySectionsAsync(
+        string procedureName,
+        DynamicParameters parameters,
+        Func<string, Type?> typeOf,
+        CancellationToken cancellationToken = default);
 }
