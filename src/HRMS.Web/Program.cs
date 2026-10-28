@@ -226,6 +226,15 @@ if (app.Configuration.GetValue<bool>("Authentication:SimplePassword"))
 // ---------------------------------------------------------------------------
 // Pipeline
 // ---------------------------------------------------------------------------
+
+// Behind a reverse proxy (Cloudflare, a load balancer ...): the browser talks HTTPS to the
+// proxy, the proxy forwards plain HTTP to IIS with X-Forwarded-Proto / X-Forwarded-For.
+// Believed from the proxies in appsettings.json "ReverseProxy" only (Services/ForwardedProxies.cs),
+// so the request counts as HTTPS (the HTTPS-only sign-in cookies work) and the visitor's own
+// IP is used for the sign-in log and the rate limit. Anyone else's headers are ignored - a
+// site served by IIS directly is not affected.
+app.UseForwardedHeaders(ForwardedProxies.Options(app.Configuration));
+
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();

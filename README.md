@@ -199,6 +199,17 @@ set it. `Database:TrustServerCertificate` is true (the SQL Server's own
 certificate is accepted); set it to false only with a certificate from a
 trusted authority.
 
+**HTTPS / reverse proxy** — sign-in cookies are HTTPS-only outside development, so
+the site must be reached over `https://`:
+
+- IIS directly: add an `https` binding with a certificate. Nothing to configure.
+- Behind Cloudflare (HTTPS to Cloudflare, plain HTTP on to IIS): works as is -
+  Cloudflare's addresses are trusted by default (`ReverseProxy:TrustCloudflare`).
+- Behind any other proxy / load balancer: list its addresses in
+  `ReverseProxy:TrustedNetworks`, e.g. `["10.0.0.0/8", "203.0.113.7"]`.
+
+X-Forwarded headers from any other address are ignored.
+
 The lockout policy is configured in `appsettings.json` under `Authentication`
 and can be overridden per environment the same way:
 
