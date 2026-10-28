@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    91_Reset_For_New_Deployment.sql  -  HRMS: clear the company data
    ---------------------------------------------------------------------
    For a FRESH DEPLOYMENT: removes every company, employee, payroll,
@@ -219,8 +219,9 @@ BEGIN TRANSACTION;
 COMMIT TRANSACTION;
 
     SELECT FullName AS [Cleared table], RowsBefore AS [Rows removed] FROM @Clear WHERE RowsBefore > 0 ORDER BY FullName;
-    PRINT CONCAT(N'Done - ', (SELECT COUNT(1) FROM @Clear), N' tables emptied, ', (SELECT ISNULL(SUM(RowsBefore), 0) FROM @Clear),
-                 N' rows removed. Users kept: ', (SELECT COUNT(1) FROM [Security].[Users]),
+    DECLARE @Tables INT = (SELECT COUNT(1) FROM @Clear), @Removed BIGINT = (SELECT ISNULL(SUM(RowsBefore), 0) FROM @Clear),
+            @Users INT = (SELECT COUNT(1) FROM [Security].[Users]);
+    PRINT CONCAT(N'Done - ', @Tables, N' tables emptied, ', @Removed, N' rows removed. Users kept: ', @Users,
                  N'. Next: add the companies (or run db/92), then link the users to their company.');
 END TRY
 BEGIN CATCH
