@@ -170,8 +170,18 @@ $od-categories: (
 
   @include down("lg") { grid-template-columns: minmax(0, 1fr); }
 
-  &__companies { position: sticky; top: calc(#{$topbar-height} + #{space("4")}); }
-  @include down("lg") { &__companies { position: static; } }
+  // pinned while the documents scroll - and scrolling on its own when the companies are taller
+  // than the window (a pinned list taller than the window hid the last companies)
+  &__companies {
+    position: sticky;
+    top: calc(#{$topbar-height} + #{space("4")});
+    max-height: calc(100vh - #{$topbar-height} - #{space("6")});
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline-end: space("1");
+    @include thin-scrollbar;
+  }
+  @include down("lg") { &__companies { position: static; max-height: none; overflow: visible; padding-inline-end: 0; } }
 
   &__docs { min-width: 0; @include motion(opacity); &.is-loading { opacity: .5; pointer-events: none; } }
 }

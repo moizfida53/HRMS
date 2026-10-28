@@ -4120,10 +4120,35 @@ html.hrms-dragging * {
 .od-layout__companies {
   position: sticky;
   top: calc(64px + 1rem);
+  max-height: calc(100vh - 64px - 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline-end: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #d0d5dd transparent;
+}
+.od-layout__companies::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.od-layout__companies::-webkit-scrollbar-track {
+  background: transparent;
+}
+.od-layout__companies::-webkit-scrollbar-thumb {
+  background-color: #d0d5dd;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.od-layout__companies::-webkit-scrollbar-thumb:hover {
+  background-color: #b4bcc8;
 }
 @media (max-width: 991.98px) {
   .od-layout__companies {
     position: static;
+    max-height: none;
+    overflow: visible;
+    padding-inline-end: 0;
   }
 }
 .od-layout__docs {
