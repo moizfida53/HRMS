@@ -6,10 +6,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <!-- Runs on the .NET 9 runtime when the server has it, otherwise on a newer one
-         (e.g. a server with only the .NET 10 Hosting Bundle) - avoids HTTP 500.31 -->
-    <RollForward>Major</RollForward>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>

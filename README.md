@@ -43,7 +43,7 @@ below.
 
 ## Prerequisites
 
-- .NET SDK 9.0
+- .NET SDK 10.0 (Visual Studio 2026, or 2022 17.14+); on the server the ASP.NET Core 10 Hosting Bundle
 - SQL Server 2019 or later (Express is fine for development)
 - Node.js 18+ — **only** if you intend to edit the SCSS. The compiled CSS is
   committed, so the app runs without Node.
