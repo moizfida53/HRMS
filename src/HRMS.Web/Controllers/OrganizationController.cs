@@ -190,7 +190,8 @@ public sealed class OrganizationController : Controller
             OrganizationTabs.CostCenters  => GridAsync(_costCenters,  descriptor, request),
             // every type on one page, so whole sections can be dragged into order
             OrganizationTabs.DocumentTypes => GridAsync(_documentTypes, descriptor, WholeList(request)),
-            OrganizationTabs.OrgDocumentTypes => GridAsync(_orgDocumentTypes, descriptor, request),
+            // db/99: every type on one page too, so rows can be dragged into their sequence
+            OrganizationTabs.OrgDocumentTypes => GridAsync(_orgDocumentTypes, descriptor, WholeList(request)),
             OrganizationTabs.AssetTypes => GridAsync(_assetTypes, descriptor, request),
             _ => GridAsync(_companies, OrganizationTabs.All[0], request)
         };
@@ -411,6 +412,29 @@ public sealed class OrganizationController : Controller
         }
 
         var result = await _documentTypes.ReorderAsync(ordered, _currentUser.UserId, Ct);
+        return Json(result.Success
+            ? ActionResponse.Ok(result.Id, result.Message)
+            : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    /// <summary>
+    /// db/99: the drag on the Organization Documents grid - every type in its new sequence.
+    /// Same right as editing a record.
+    /// </summary>
+    [HttpPost("org-document-type-order")]
+    public async Task<IActionResult> ReorderOrgDocumentTypes([FromForm] int[]? ids)
+    {
+        if (!CanWrite(OrganizationTabs.OrgDocumentTypes, isNew: false)) return NoRight();
+        // organization document types are group-wide: not for a user pinned to one company
+        if (_currentUser.ActiveCompanyId is not null) return NoRight();
+
+        var ordered = (ids ?? []).Where(id => id > 0).Distinct().ToList();
+        if (ordered.Count == 0 || ordered.Count > 500)
+        {
+            return Json(ActionResponse.Failed("The new order could not be read.", "VALIDATION"));
+        }
+
+        var result = await _orgDocumentTypes.ReorderAsync(ordered, _currentUser.UserId, Ct);
         return Json(result.Success
             ? ActionResponse.Ok(result.Id, result.Message)
             : ActionResponse.Failed(result.Message, result.ErrorCode));

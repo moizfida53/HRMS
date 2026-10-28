@@ -1,6 +1,12 @@
 @model GridViewModel<OrgDocumentType>
 @{
     // Organization > Organization Documents (db/73): what each company keeps on Workforce > Organizations.
+    // db/99: every type on one page; rows are dragged into their sequence (organization.js) while the
+    // list shows in that sequence - no search, no status filter, no other column sort.
+    var request = Model.Request;
+    var inOwnOrder = string.IsNullOrEmpty(request.SortColumn) || (Model.IsSortedBy("SortOrder") && !Model.IsDescending);
+    var canDrag = inOwnOrder && !Model.IsFiltered && Model.TotalPages <= 1;
+    var position = 0;
 }
 <div class="hrms-card">
     @await Html.PartialAsync("Partials/_GridToolbar", (IGridView)Model)
@@ -12,10 +18,16 @@
     else
     {
         <div class="hrms-table-wrap">
-            <table class="hrms-table od-types">
+            <p class="org-doctypes__hint">
+                @Html.Icon(canDrag ? "grip" : "info", 14)
+                <span>@(canDrag ? L["org.od_drag_hint"] : L["org.od_drag_off_hint"])</span>
+            </p>
+            <table class="hrms-table od-types org-doctypes@(canDrag ? " is-sortable" : "")" @(canDrag ? "data-docorder" : "")
+                   data-docorder-url="@Url.Action("ReorderOrgDocumentTypes", "Organization")">
                 <caption class="hrms-sr-only">@L["common.records_page_of", Model.PageNumber, Model.TotalPages]</caption>
                 <thead>
                     <tr>
+                        @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "SortOrder", "Order", "org-doctypes__order-col"))
                         @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "TypeName", "Document Type"))
                         @await Html.PartialAsync("Partials/_SortHeader", SortHeaderModel.For(Model, "Category", "Category"))
                         <th scope="col" class="col-p2">@L["od.issuing_authority"]</th>
@@ -32,7 +44,22 @@
                     {
                         var name = OrgDocumentFormat.Name(L, row.TypeName, row.ArabicName);
                         var alerts = ExpiryAlert.Parse(row.AlertRules);
-                        <tr data-id="@row.OrgDocumentTypeId" data-name="@row.TypeName" data-active="@row.IsActive.ToString().ToLowerInvariant()">
+                        position++;
+                        <tr data-id="@row.OrgDocumentTypeId" data-name="@row.TypeName" data-active="@row.IsActive.ToString().ToLowerInvariant()"
+                            data-section="all">
+                            <td data-label="@L["org.od_order"]" class="org-doctypes__order">
+                                <span class="org-doctypes__order-in">
+                                    @if (canDrag)
+                                    {
+                                        <button type="button" class="org-doctypes__handle" data-docorder-handle
+                                                title="@L["org.od_drag_handle", name]" aria-label="@L["org.od_drag_handle", name]"
+                                                aria-describedby="docorder-help">
+                                            @Html.Icon("grip", 16)
+                                        </button>
+                                    }
+                                    <span class="org-doctypes__pos" data-docorder-pos>@(canDrag ? position : row.SortOrder ?? position)</span>
+                                </span>
+                            </td>
                             <td data-label="@L.Tr("Document Type")">
                                 <span class="od-cell">
                                     <span class="hrms-table__primary">@name</span>
@@ -116,8 +143,12 @@
                     }
                 </tbody>
             </table>
+            @if (canDrag)
+            {
+                <span id="docorder-help" class="hrms-sr-only">@L["org.od_drag_hint"]</span>
+                <span class="hrms-sr-only" role="status" aria-live="polite" data-docorder-live></span>
+            }
         </div>
-
-        @await Html.PartialAsync("Partials/_Pagination", PaginationModel.From(Model))
+        @* db/99: no pages - the whole list shows, so it can be dragged into order *@
     }
 </div>

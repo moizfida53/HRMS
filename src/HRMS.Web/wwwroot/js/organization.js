@@ -763,7 +763,9 @@
             ids.forEach(function (id) { body.append("ids", id); });
             row.classList.add("is-saving");
 
-            HRMS.post(urls.docOrder, body)
+            // each grid names its own address (db/99: Organization Documents), else Employee Documents
+            var table = row.closest("table");
+            HRMS.post((table && table.dataset.docorderUrl) || urls.docOrder, body)
                 .then(function (result) {
                     if (!result.success) {
                         HRMS.toast(result.message || HRMS.t("js.doc_order_failed", "The new order could not be saved."), "error");

@@ -80,6 +80,9 @@ public static class StoredProcedure
     public const string EmployeeDocumentManage = "Documents.usp_EmployeeDocument_Manage";
     public const string ComplianceDocumentManage = "Kuwait.usp_ComplianceDocument_Manage";
     public const string OrgDocumentTypeManage = "Documents.usp_OrgDocumentType_Manage";
+
+    /// <summary>The organization document types dragged into their sequence (db/99).</summary>
+    public const string OrgDocumentTypeReorder = "Documents.usp_OrgDocumentType_Reorder";
     public const string OrgDocumentManage = "Documents.usp_OrgDocument_Manage";
     public const string AssetTypeManage = "Assets.usp_AssetType_Manage";
     public const string AssetManage = "Assets.usp_Asset_Manage";
