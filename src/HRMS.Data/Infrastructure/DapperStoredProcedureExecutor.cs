@@ -28,12 +28,12 @@ public sealed partial class DapperStoredProcedureExecutor : ISqlExecutor
 
     public DapperStoredProcedureExecutor(
         IDbConnectionFactory connectionFactory,
-        IOptions<SqlServerOptions> options,
+        IOptionsMonitor<SqlServerOptions> options,
         ILogger<DapperStoredProcedureExecutor> logger)
     {
         _connectionFactory = connectionFactory;
         _logger = logger;
-        _commandTimeoutSeconds = options.Value.CommandTimeoutSeconds;
+        _commandTimeoutSeconds = options.CurrentValue.CommandTimeoutSeconds;
     }
 
     public Task<IReadOnlyDictionary<string, IReadOnlyList<object>>> QuerySectionsAsync(

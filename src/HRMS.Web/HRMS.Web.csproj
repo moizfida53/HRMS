@@ -26,4 +26,25 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Server database connection (Program.cs, Services/DatabaseSetup.cs):
+      dbsettings.json is written ON THE SERVER by Set-DatabaseConnection.cmd and
+      holds the password - never published, so a publish never overwrites it.
+      The template and the helper script go into the publish output, next to
+      HRMS.Web.dll, where they are run.
+    -->
+    <Content Update="dbsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+    <Content Update="dbsettings.template.json">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <None Include="Deploy\Set-DatabaseConnection.ps1;Deploy\Set-DatabaseConnection.cmd">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

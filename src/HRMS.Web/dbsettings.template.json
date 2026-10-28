@@ -1,0 +1,11 @@
+{
+  "//": "HRMS database connection for THIS server. Copy this file to dbsettings.json (same folder as HRMS.Web.dll) and fill it in - or run Set-DatabaseConnection.cmd, which asks for the details, tests them and writes dbsettings.json. Publishing never overwrites dbsettings.json. Changes apply without a restart.",
+  "ConnectionStrings": {
+    "//": "SQL Server sign-in: Server=SERVER\\INSTANCE;Database=HRMS_Kuwait;User Id=...;Password=...;   Windows sign-in (the IIS app pool account): Server=...;Database=HRMS_Kuwait;Integrated Security=True;",
+    "SqlServerConnectionString": "Server=YOUR_SQL_SERVER;Database=HRMS_Kuwait;User Id=YOUR_USER;Password=YOUR_PASSWORD;"
+  },
+  "Database": {
+    "//": "true when the SQL Server uses its own (self-signed) certificate - the usual case. false only with a certificate from a trusted authority.",
+    "TrustServerCertificate": true
+  }
+}

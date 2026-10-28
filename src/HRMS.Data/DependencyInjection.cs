@@ -3,6 +3,7 @@ using HRMS.Data.Infrastructure;
 using HRMS.Data.Repositories;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace HRMS.Data;
 
@@ -33,6 +34,11 @@ public static class DependencyInjection
                     ?? options.ConnectionString)
             .ValidateDataAnnotations()
             .ValidateOnStart();
+
+        // dbsettings.json is re-read when it changes (Program.cs): rebuild the options then too,
+        // so a new connection string works without restarting the site
+        services.AddSingleton<IOptionsChangeTokenSource<SqlServerOptions>>(
+            new ConfigurationChangeTokenSource<SqlServerOptions>(configuration));
 
         services.AddSingleton<IDbConnectionFactory, SqlConnectionFactory>();
         services.AddScoped<ISqlExecutor, DapperStoredProcedureExecutor>();

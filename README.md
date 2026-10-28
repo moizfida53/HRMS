@@ -184,10 +184,26 @@ dotnet user-secrets set "Database:ConnectionString" \
   "Server=.;Database=HRMS_Kuwait;User Id=hrms_app;Password=YourPassword;Encrypt=True;TrustServerCertificate=True"
 ```
 
-**Production** — environment variable or Key Vault:
+**Server (after publishing)** — `dbsettings.json` next to `HRMS.Web.dll`:
+
+1. Publish and copy the output to the server as usual.
+2. In that folder, double-click **`Set-DatabaseConnection.cmd`**. It asks for the
+   SQL Server, the database and the sign-in (SQL user or Windows / app pool),
+   tests the connection and writes `dbsettings.json`. Run it again to change it.
+   (Or copy `dbsettings.template.json` to `dbsettings.json` and fill it in.)
+3. Refresh the site - `dbsettings.json` is re-read when it changes, no restart.
+
+Until it is set, every page shows "The database connection is not set up yet"
+with these steps (instead of failing to start). A publish never includes or
+overwrites `dbsettings.json` - keep "Delete all existing files prior to publish"
+unticked in the publish profile. The file holds the password: keep it readable
+by Administrators and the app pool account only.
+
+An environment variable still wins over the file:
 
 ```
-Database__ConnectionString=Server=...;Database=HRMS_Kuwait;User Id=hrms_app;Password=...;Encrypt=True
+ConnectionStrings__SqlServerConnectionString=Server=...;Database=HRMS_Kuwait;User Id=hrms_app;Password=...;
+Database__TrustServerCertificate=true
 ```
 
 The lockout policy is configured in `appsettings.json` under `Authentication`

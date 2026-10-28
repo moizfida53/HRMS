@@ -34,8 +34,13 @@ public sealed class SqlServerOptions
     // ("Expected an ASCII digit") instead of showing this message, which
     // is exactly backwards for a message whose whole job is to explain a
     // missing connection string at startup.
-    [Required(ErrorMessage = "ConnectionStrings:SqlServerConnectionString is not configured. Set it in appsettings.{{Environment}}.local.json, User Secrets, or the ConnectionStrings__SqlServerConnectionString environment variable.")]
+    // Not [Required]: a missing connection string no longer stops the site from starting -
+    // every page then shows the "Database connection not set up" page instead
+    // (HRMS.Web DatabaseSetupMiddleware), which says which file to fill in (dbsettings.json).
     public string ConnectionString { get; set; } = string.Empty;
+
+    /// <summary>True once a connection string is configured.</summary>
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(ConnectionString);
 
     /// <summary>Command timeout in seconds for every stored-procedure call.</summary>
     [Range(1, 600)]

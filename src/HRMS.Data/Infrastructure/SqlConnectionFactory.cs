@@ -16,19 +16,42 @@ public interface IDbConnectionFactory
 /// </summary>
 public sealed class SqlConnectionFactory : IDbConnectionFactory
 {
-    private readonly string _connectionString;
+    private readonly IOptionsMonitor<SqlServerOptions> _options;
+    private readonly object _gate = new();
+    private SqlServerOptions? _builtFrom;
+    private string _connectionString = string.Empty;
 
-    public SqlConnectionFactory(IOptions<SqlServerOptions> options)
+    // IOptionsMonitor: a connection string changed in dbsettings.json is used from the next call on
+    public SqlConnectionFactory(IOptionsMonitor<SqlServerOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var settings = options.Value;
+        _options = options;
+    }
 
-        if (string.IsNullOrWhiteSpace(settings.ConnectionString))
+    /// <summary>The connection string with the app's security rules applied (rebuilt when the settings change).</summary>
+    private string ConnectionString
+    {
+        get
+        {
+            var settings = _options.CurrentValue;
+            lock (_gate)
+            {
+                if (ReferenceEquals(settings, _builtFrom)) return _connectionString;
+                _connectionString = Build(settings);
+                _builtFrom = settings;
+                return _connectionString;
+            }
+        }
+    }
+
+    private static string Build(SqlServerOptions settings)
+    {
+        if (!settings.IsConfigured)
         {
             throw new InvalidOperationException(
-                "Database:ConnectionString is not configured. Set it with " +
-                "'dotnet user-secrets set \"Database:ConnectionString\" \"...\"' during development, " +
-                "or the Database__ConnectionString environment variable in production.");
+                "The database connection is not set up. Fill in dbsettings.json next to the application " +
+                "(run Set-DatabaseConnection.cmd there), or set the ConnectionStrings__SqlServerConnectionString " +
+                "environment variable.");
         }
 
         var builder = new SqlConnectionStringBuilder(settings.ConnectionString)
@@ -54,12 +77,12 @@ public sealed class SqlConnectionFactory : IDbConnectionFactory
             builder.TrustServerCertificate = settings.TrustServerCertificate;
         }
 
-        _connectionString = builder.ConnectionString;
+        return builder.ConnectionString;
     }
 
     public async Task<IDbConnection> CreateOpenConnectionAsync(CancellationToken cancellationToken = default)
     {
-        var connection = new SqlConnection(_connectionString);
+        var connection = new SqlConnection(ConnectionString);
         try
         {
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
