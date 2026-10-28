@@ -12,7 +12,6 @@ src/HRMS.Web/wwwroot/uploads/
 # Employee document uploads (db/22) - real ID scans, never commit
 **/App_Data/uploads/
 
-# personal data (civil IDs, passports) - generated, not kept in git
-db/92_Import_HRMS_Data.sql
+# personal data (civil IDs, passports) - generated working files, not kept in git
 HRMS_Import_Questions.xlsx
 db/tools/import_hrms_data/*.json

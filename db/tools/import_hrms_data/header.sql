@@ -45,11 +45,11 @@
      - "Basic Salary" of Employee Data = the contract salary (payroll);
        "الراتب" of بيانات العمالة = the work permit salary.
      - "Expiry Date Civil ID" = civil ID expiry AND residency expiry.
-     - Not in the sheet, left blank: hire date, marital status, mobile,
-       department, allowances, bank, work permit number / expiry;
-       nationality for 19 employees.
-     - The passport status (✓ / X) and the notes column have no field in
-       the app - they are listed at the end of the run to act on.
+     - Not in the sheet, left blank to fill in later on the employee
+       profile: hire date, marital status, mobile, department, allowances,
+       bank, work permit number / expiry; nationality for 19 employees.
+     - The passport status (✓ / X) is not imported. The notes column has
+       no field in the app - it is listed at the end of the run.
 
    HOW TO RUN
      1. Take a backup. Run db/86-90 first if not done yet (the work permit

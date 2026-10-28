@@ -252,7 +252,7 @@ WHERE  NOT EXISTS (SELECT 1 FROM [Employee].[EmployeePayroll] AS p WHERE p.Emplo
 COMMIT TRANSACTION;
 
 /* =====================================================================
-   What was loaded, and what still needs your input
+   What was loaded
    ===================================================================== */
 PRINT CONCAT(N'Import finished: ', @CompaniesAdded, N' companies added, ', @EmployeesAdded, N' employees added, ',
              @EmployeesUpdated, N' updated.');
@@ -269,11 +269,9 @@ SELECT  i.CompanyCode AS Company, i.EmployeeCode AS [New code (not in the sheet)
 FROM    @Import AS i WHERE i.CodeGenerated = 1 ORDER BY i.CompanyCode, i.EmployeeCode;
 
 SELECT  i.CompanyCode AS Company, i.EmployeeCode AS Code, i.FirstName + N' ' + ISNULL(i.LastName, N'') AS Employee,
-        CASE WHEN i.Nationality IS NULL THEN N'nationality missing' END AS [Missing],
-        CASE i.PassportCustody WHEN N'✓' THEN N'✓' WHEN N'X' THEN N'X' END AS [Passport status (sheet)],
         i.SheetNotes AS [Sheet notes]
 FROM    @Import AS i
-WHERE   i.Nationality IS NULL OR i.SheetNotes IS NOT NULL
+WHERE   i.SheetNotes IS NOT NULL
 ORDER BY i.CompanyCode, i.EmployeeCode;
 
 END TRY

@@ -1,8 +1,9 @@
 # HRMS_Data.xlsx -> db/92_Import_HRMS_Data.sql
 
-Builds the import script from the company workbook. The generated script and the
-questions workbook carry personal data (civil IDs, passports), so they are **not**
-kept in git (see `.gitignore`); rebuild them from the workbook when needed.
+Builds the import script from the company workbook. The generated script
+(`db/92_Import_HRMS_Data.sql`, kept in the db folder) carries personal data (civil
+IDs, passports) - keep the repository private. The intermediate `data.json` and the
+questions workbook are not kept in git (see `.gitignore`).
 
 ```bash
 python3 -I read.py HRMS_Data.xlsx data.json            # the workbook -> json

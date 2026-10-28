@@ -169,7 +169,7 @@ for e in x['employees']:
                      nat=e['nationality'], civil=e['civil_id'], civil_exp=e['civil_exp'] or p['residency_exp'],
                      passport=e['passport'] or p['passport'], passport_exp=e['passport_exp'] or p['passport_exp'],
                      salary=e['salary'], permit_salary=p['salary'], job_code=job[0], job_en=job[1], job_ar=p['job_ar'],
-                     sponsor=co[2], custody=e['passport_status'], notes=' / '.join(NOTE_EN.get(n, n) for n in notes) or None))
+                     sponsor=co[2], notes=' / '.join(NOTE_EN.get(n, n) for n in notes) or None))
 
 # ------------------------------------------------------------------ SQL
 L = []
@@ -243,9 +243,9 @@ w("""DECLARE @Import TABLE (
     Gender CHAR(1) NULL, DateOfBirth DATE NULL, Nationality NVARCHAR(50) NULL,
     CivilIdNumber NVARCHAR(20) NOT NULL, CivilIdExpiry DATE NULL, PassportNumber NVARCHAR(30) NULL, PassportExpiry DATE NULL,
     BasicSalary DECIMAL(12, 3) NULL, PermitSalary DECIMAL(12, 3) NULL,
-    JobCode NVARCHAR(20) NULL, SponsorName NVARCHAR(200) NULL, PassportCustody NVARCHAR(5) NULL, SheetNotes NVARCHAR(300) NULL);""")
+    JobCode NVARCHAR(20) NULL, SponsorName NVARCHAR(200) NULL, SheetNotes NVARCHAR(300) NULL);""")
 cols = ['sl', 'company', 'workplace', 'code', 'generated', 'first', 'middle', 'last', 'ar', 'gender', 'dob', 'nat', 'civil', 'civil_exp',
-        'passport', 'passport_exp', 'salary', 'permit_salary', 'job_code', 'sponsor', 'custody', 'notes']
+        'passport', 'passport_exp', 'salary', 'permit_salary', 'job_code', 'sponsor', 'notes']
 w("INSERT INTO @Import VALUES")
 def qv(k, v):
     if k == 'generated': return '1' if v else '0'
