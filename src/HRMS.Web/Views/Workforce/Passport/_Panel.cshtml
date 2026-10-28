@@ -5,12 +5,13 @@
     var state = s.WithCompany ? "is-company" : s.WithEmployee ? "is-employee" : "is-none";
     var noPassport = string.IsNullOrWhiteSpace(s.PassportNumber);
     var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-    var min = s.HeldSince?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    // a hand-over may be recorded up to 15 days late - never in the future
+    var min = DateTime.Today.AddDays(-15).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 }
 <div class="pp" data-pp-employee="@s.EmployeeId">
+    @* the passport and where it is now - stays in view while the rest scrolls *@
+    <div class="pp__sticky">
     <p class="pp__who">@name <span class="hrms-muted">· @s.EmployeeCode</span></p>
-
-    @* the passport and where it is now *@
     <div class="pp-card @state">
         <span class="pp-card__icon" aria-hidden="true">@Html.Icon("passport", 26)</span>
         <div class="pp-card__body">
@@ -33,6 +34,7 @@
             }
         </div>
     </div>
+    </div>
 
     @if (noPassport)
     {
@@ -47,7 +49,7 @@
             {
                 <h3 class="pp-form__title">@L["emp.pp_record_first"]</h3>
                 <div class="row g-3">
-                    <div class="col-sm-6">
+                    <div class="col-sm-4">
                         <label class="form-label" for="pp-held">@L["emp.pp_passport_with"] <span class="req" aria-hidden="true">*</span></label>
                         <select class="form-select" id="pp-held" name="heldBy" required>
                             <option value="">@L["common.select"]</option>
@@ -55,9 +57,13 @@
                             <option value="@PassportHolder.Employee">@L["emp.pp_employee"]</option>
                         </select>
                     </div>
-                    <div class="col-sm-6">
+                    <div class="col-sm-4">
                         <label class="form-label" for="pp-date">@L["emp.pp_date_received"] <span class="req" aria-hidden="true">*</span></label>
-                        <input type="date" class="form-control" id="pp-date" name="date" value="@today" max="@today" required />
+                        <input type="date" class="form-control" id="pp-date" name="date" value="@today" min="@min" max="@today" required />
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label" for="pp-remarks">@L["emp.pp_remarks"]</label>
+                        <input type="text" class="form-control" id="pp-remarks" name="remarks" maxlength="300" placeholder="@L["emp.pp_remarks_hint"]" />
                     </div>
                 </div>
             }
@@ -73,12 +79,13 @@
                         <label class="form-label" for="pp-date">@(s.WithEmployee ? L["emp.pp_date_received"] : L["emp.pp_date_handed"]) <span class="req" aria-hidden="true">*</span></label>
                         <input type="date" class="form-control" id="pp-date" name="date" value="@today" min="@min" max="@today" required />
                     </div>
+                    <div class="col-sm-6">
+                        <label class="form-label" for="pp-remarks">@L["emp.pp_remarks"]</label>
+                        <input type="text" class="form-control" id="pp-remarks" name="remarks" maxlength="300" placeholder="@L["emp.pp_remarks_hint"]" />
+                    </div>
                 </div>
             }
-            <div class="mt-3">
-                <label class="form-label" for="pp-remarks">@L["emp.pp_remarks"]</label>
-                <input type="text" class="form-control" id="pp-remarks" name="remarks" maxlength="300" placeholder="@L["emp.pp_remarks_hint"]" />
-            </div>
+            <span class="form-text">@L["emp.pp_date_hint"]</span>
             <span class="field-validation-error" data-pp-error></span>
         </form>
     }

@@ -1,4 +1,4 @@
-/* =====================================================================
+﻿/* =====================================================================
    93_Passport_Custody.sql  -  HRMS: Passport In / Out
    ---------------------------------------------------------------------
    Run after 92. Safe to re-run (IF NOT EXISTS / CREATE OR ALTER).
@@ -131,6 +131,9 @@ BEGIN
         BEGIN SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'Enter the date.'; RETURN; END;
         IF @MovementDate > @Today
         BEGIN SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'The date cannot be in the future.'; RETURN; END;
+        /* a hand-over may be recorded up to 15 days late */
+        IF @MovementDate < DATEADD(DAY, -15, @Today)
+        BEGIN SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'The date can be at most 15 days back.'; RETURN; END;
         IF @curHeldBy = @HeldBy
         BEGIN
             SELECT @ResultCode = 'VALIDATION',

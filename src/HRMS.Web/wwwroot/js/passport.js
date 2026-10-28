@@ -88,16 +88,37 @@
         var held = form.elements.heldBy, date = form.elements.date;
         if (!held.value) { error.textContent = HRMS.t("js.pp_choose_holder", "Choose who has the passport."); held.focus(); return; }
         if (!date.value) { error.textContent = HRMS.t("js.pp_enter_date", "Enter the date."); date.focus(); return; }
-        busy(submit, true);
-        HRMS.post(url("save"), new FormData(form)).then(function (res) {
-            busy(submit, false);
-            if (res && res.success) {
-                HRMS.toast(res.message, "success");
-                loadPanel();
-                return;
-            }
-            error.textContent = (res && res.message) || HRMS.t("js.something_went_wrong", "Something went wrong. Please try again.");
-        }).catch(function (e) { busy(submit, false); error.textContent = e.message; });
+        if ((date.min && date.value < date.min) || (date.max && date.value > date.max)) {
+            error.textContent = HRMS.t("js.pp_date_range", "The date can be today or up to 15 days back.");
+            date.focus();
+            return;
+        }
+
+        // ask first: who gets the passport, on which day
+        var toCompany = held.value === "C";
+        var day = new Date(date.value + "T00:00:00").toLocaleDateString(document.documentElement.lang === "ar" ? "ar-KW" : "en-GB",
+            { day: "2-digit", month: "short", year: "numeric" });
+        HRMS.confirm({
+            title: toCompany ? HRMS.t("js.pp_confirm_company", "Passport received by the company?")
+                             : HRMS.t("js.pp_confirm_employee", "Passport handed to the employee?"),
+            text: HRMS.t("js.pp_confirm_text", "The hand-over is recorded in the passport log on {0}.", day),
+            name: ($(".pp-card__number", body) || {}).textContent || "",
+            tone: "primary",
+            note: "",
+            ok: HRMS.t("js.pp_confirm_ok", "Yes, record it")
+        }).then(function (ok) {
+            if (!ok) { return; }
+            busy(submit, true);
+            HRMS.post(url("save"), new FormData(form)).then(function (res) {
+                busy(submit, false);
+                if (res && res.success) {
+                    HRMS.toast(res.message, "success");
+                    bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+                    return;
+                }
+                error.textContent = (res && res.message) || HRMS.t("js.something_went_wrong", "Something went wrong. Please try again.");
+            }).catch(function (e) { busy(submit, false); error.textContent = e.message; });
+        });
     }
     submit.addEventListener("click", send);
     body.addEventListener("submit", function (event) {

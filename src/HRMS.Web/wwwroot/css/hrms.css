@@ -16366,6 +16366,18 @@ html.hrms-embed .hrms-content {
   font-weight: 600;
   color: #1d2939;
 }
+.pp__sticky {
+  position: sticky;
+  top: calc(-1 * var(--bs-modal-padding, 1rem));
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: calc(-1 * var(--bs-modal-padding, 1rem)) calc(-1 * var(--bs-modal-padding, 1rem)) 0;
+  padding: var(--bs-modal-padding, 1rem) var(--bs-modal-padding, 1rem) 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 6px 8px -8px rgba(16, 24, 40, 0.25);
+}
 .pp__label {
   font-size: 0.725rem;
   font-weight: 700;
