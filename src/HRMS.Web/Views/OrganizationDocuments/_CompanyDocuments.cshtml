@@ -35,6 +35,11 @@
         <button type="button" class="od-filter__btn od-filter__btn--due" data-od-filter="due" aria-pressed="false" disabled="@(Count("due") == 0)">@L["od.f_due"] <span>@Count("due")</span></button>
         <button type="button" class="od-filter__btn od-filter__btn--missing" data-od-filter="missing" aria-pressed="false" disabled="@(Count("missing") + Count("none") == 0)">@L["od.f_missing"] <span>@(Count("missing") + Count("none"))</span></button>
         <button type="button" class="od-filter__btn od-filter__btn--valid" data-od-filter="valid" aria-pressed="false" disabled="@(Count("valid") == 0)">@L["od.f_valid"] <span>@Count("valid")</span></button>
+        @* the categories below fold away (org-documents.js remembers which, per browser) *@
+        <span class="od-filter__fold">
+            <button type="button" class="od-fold-btn" data-od-fold="collapse">@Html.Icon("chevron-down", 13)<span>@L["od.collapse_all"]</span></button>
+            <button type="button" class="od-fold-btn" data-od-fold="expand">@Html.Icon("chevron-down", 13)<span>@L["od.expand_all"]</span></button>
+        </span>
     </div>
 
     @if (Model.Rows.Count == 0)
@@ -44,8 +49,24 @@
     @foreach (var group in Model.Rows.GroupBy(x => x.Category))
     {
         var catKey = OrgDocumentFormat.CategoryKey(group.Key);
-        <section class="od-group od-cat-@catKey" data-od-group>
-            <h3 class="od-group__title"><span class="od-group__icon" aria-hidden="true">@Html.Icon(OrgDocumentFormat.CategoryIcon(group.Key), 15)</span>@OrgDocumentFormat.CategoryLabel(L, group.Key)</h3>
+        var groupExpired = group.Count(x => Status(x) == "expired");
+        var groupDue = group.Count(x => Status(x) == "due");
+        var groupMissing = group.Count(x => Status(x) == "missing");
+        <section class="od-group od-cat-@catKey" data-od-group="@catKey">
+            <h3 class="od-group__title">
+                <button type="button" class="od-group__toggle" data-od-group-toggle aria-expanded="true" aria-controls="od-group-@catKey">
+                    <span class="od-group__icon" aria-hidden="true">@Html.Icon(OrgDocumentFormat.CategoryIcon(group.Key), 15)</span>
+                    <span class="od-group__name">@OrgDocumentFormat.CategoryLabel(L, group.Key)</span>
+                    <span class="od-group__count">@group.Count()</span>
+                    @* what needs attention stays in sight while the category is folded *@
+                    @if (groupExpired > 0) { <span class="od-group__flag is-expired">@Html.Icon("alert", 11)@groupExpired</span> }
+                    @if (groupDue > 0) { <span class="od-group__flag is-due">@Html.Icon("bell", 11)@groupDue</span> }
+                    @if (groupMissing > 0) { <span class="od-group__flag is-missing">@L["od.n_missing", groupMissing]</span> }
+                    <span class="od-group__line" aria-hidden="true"></span>
+                    <span class="od-group__chev" aria-hidden="true">@Html.Icon("chevron-down", 15)</span>
+                </button>
+            </h3>
+            <div class="od-group__body" id="od-group-@catKey">
             <div class="od-group__list">
                 @foreach (var d in group)
                 {
@@ -179,6 +200,7 @@
                         </div>
                     </article>
                 }
+            </div>
             </div>
         </section>
     }

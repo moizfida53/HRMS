@@ -106,6 +106,7 @@
         $all("[data-od-group]", panel).forEach(function (g) {
             g.hidden = !$all("[data-od-doc]", g).some(function (d) { return !d.hidden; });
         });
+        applyFolds();
         $all("[data-od-filter]", panel).forEach(function (b) {
             var on = b.getAttribute("data-od-filter") === filter;
             b.classList.toggle("is-active", on);
@@ -115,7 +116,48 @@
         if (none) { none.hidden = shown > 0; }
     }
 
+    /* ------------------------------------------------------- folding -- */
+    // A category folds away by its header; which ones are folded is kept in this browser
+    // (the same for every company). While a status filter is on, every category with a
+    // match shows open - a filter never hides what it found.
+    var FOLD_KEY = "hrms.od.folded";
+    function folded() {
+        try { return JSON.parse(window.localStorage.getItem(FOLD_KEY) || "[]") || []; } catch (e) { return []; }
+    }
+    function saveFolded(list) {
+        try { window.localStorage.setItem(FOLD_KEY, JSON.stringify(list)); } catch (e) { /* private mode: not kept */ }
+    }
+    function applyFolds() {
+        var keys = folded();
+        $all("[data-od-group]", panel).forEach(function (g) {
+            var shut = !filter && keys.indexOf(g.getAttribute("data-od-group")) >= 0;
+            g.classList.toggle("is-folded", shut);
+            var t = $("[data-od-group-toggle]", g);
+            if (t) { t.setAttribute("aria-expanded", shut ? "false" : "true"); }
+            var body = $(".od-group__body", g);
+            if (body) { body.inert = shut; }
+        });
+    }
+    function setFold(keys, shut) {
+        var list = folded().filter(function (k) { return keys.indexOf(k) < 0; });
+        if (shut) { list = list.concat(keys); }
+        saveFolded(list);
+        if (filter) { filter = ""; applyFilter(); } else { applyFolds(); }
+    }
+
     panel && panel.addEventListener("click", function (event) {
+        var toggle = event.target.closest("[data-od-group-toggle]");
+        if (toggle) {
+            var g = toggle.closest("[data-od-group]");
+            setFold([g.getAttribute("data-od-group")], !g.classList.contains("is-folded"));
+            return;
+        }
+        var fold = event.target.closest("[data-od-fold]");
+        if (fold) {
+            var all = $all("[data-od-group]", panel).map(function (x) { return x.getAttribute("data-od-group"); });
+            setFold(all, fold.getAttribute("data-od-fold") === "collapse");
+            return;
+        }
         var f = event.target.closest("[data-od-filter]");
         if (f) {
             var value = f.getAttribute("data-od-filter");

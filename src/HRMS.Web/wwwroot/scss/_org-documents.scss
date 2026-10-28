@@ -361,27 +361,126 @@ $od-categories: (
 .od-group {
   &[hidden] { display: none; }
 
-  &__title {
+  &__title { margin: space("2") 0; }
+
+  // the whole header folds the category open / shut
+  &__toggle {
     display: flex;
     align-items: center;
     gap: space("2");
-    margin: space("2") 0 space("2");
+    width: 100%;
+    padding: space("1") space("1") space("1") 0;
+    border: 0;
+    border-radius: $radius-sm;
+    background: none;
+    color: var(--od-accent);
     font-size: $fs-sm;
     font-weight: $fw-bold;
-    color: var(--od-accent);
+    text-align: start;
     text-transform: uppercase;
     letter-spacing: .05em;
+    cursor: pointer;
 
-    &::after { content: ""; flex: 1 1 auto; height: 1px; background: linear-gradient(90deg, color-mix(in srgb, var(--od-accent) 35%, transparent), transparent); }
+    &:hover .od-group__chev { background: var(--od-tint); }
+    &:focus-visible { @include focus-ring; }
   }
 
   &__icon {
-    display: inline-flex; align-items: center; justify-content: center;
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
     width: 26px; height: 26px; border-radius: $radius-sm;
     background: var(--od-tint); color: var(--od-accent);
   }
 
+  &__count {
+    padding: 0 7px;
+    border-radius: $radius-pill;
+    background: var(--od-tint);
+    font-size: $fs-xs;
+    letter-spacing: 0;
+  }
+
+  // expired / due / missing: in sight while folded
+  &__flag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 0 7px;
+    border-radius: $radius-pill;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    letter-spacing: 0;
+    text-transform: none;
+
+    &.is-expired { background: $red-050; color: $red-700; }
+    &.is-due { background: $amber-050; color: $amber-700; }
+    &.is-missing { background: $red-050; color: $red-700; }
+  }
+
+  &__line {
+    flex: 1 1 auto;
+    min-width: space("4");
+    height: 1px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--od-accent) 35%, transparent), transparent);
+  }
+  [dir="rtl"] &__line { background: linear-gradient(270deg, color-mix(in srgb, var(--od-accent) 35%, transparent), transparent); }
+
+  &__chev {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 26px; height: 26px; border-radius: $radius-sm;
+    color: var(--od-accent);
+    @include motion(background-color);
+
+    svg { transition: transform .2s ease; }
+  }
+
+  // folding: the rows collapse smoothly (grid 1fr -> 0fr)
+  &__body {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows .22s ease;
+
+    > .od-group__list { min-height: 0; overflow: hidden; padding: 2px; margin: -2px; }
+  }
+
+  &.is-folded {
+    .od-group__body { grid-template-rows: 0fr; }
+    .od-group__body > .od-group__list { padding: 0; margin: 0; visibility: hidden; transition: visibility 0s .22s; }
+    .od-group__chev svg { transform: rotate(-90deg); }
+  }
+  [dir="rtl"] &.is-folded .od-group__chev svg { transform: rotate(90deg); }
+
   &__list { display: flex; flex-direction: column; gap: space("2"); }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__body, &__chev svg { transition: none; }
+  }
+}
+
+// Collapse all / Expand all - at the end of the status filters
+.od-filter__fold {
+  display: inline-flex;
+  gap: space("1");
+  margin-inline-start: auto;
+}
+
+.od-fold-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid $line-200;
+  border-radius: $radius-pill;
+  background: $white;
+  color: $ink-600;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  cursor: pointer;
+  @include motion(border-color, color, background-color);
+
+  &:hover { border-color: $blue-200; color: $blue-700; background: $blue-050; }
+  &:focus-visible { @include focus-ring; }
+
+  &[data-od-fold="collapse"] svg { transform: rotate(180deg); }
 }
 
 // one document

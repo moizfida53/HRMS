@@ -4519,36 +4519,188 @@ html.hrms-dragging * {
   display: none;
 }
 .od-group__title {
+  margin: 0.5rem 0;
+}
+.od-group__toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 0.5rem 0 0.5rem;
+  width: 100%;
+  padding: 0.25rem 0.25rem 0.25rem 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--od-accent);
   font-size: 0.8rem;
   font-weight: 700;
-  color: var(--od-accent);
+  text-align: start;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  cursor: pointer;
 }
-.od-group__title::after {
-  content: "";
-  flex: 1 1 auto;
-  height: 1px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--od-accent) 35%, transparent), transparent);
+.od-group__toggle:hover .od-group__chev {
+  background: var(--od-tint);
+}
+.od-group__toggle:focus-visible:focus {
+  outline: none;
+}
+.od-group__toggle:focus-visible:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(29, 95, 191, 0.28);
+  border-color: #1d5fbf;
 }
 .od-group__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: none;
   width: 26px;
   height: 26px;
   border-radius: 5px;
   background: var(--od-tint);
   color: var(--od-accent);
 }
+.od-group__count {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--od-tint);
+  font-size: 0.725rem;
+  letter-spacing: 0;
+}
+.od-group__flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 0.725rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.od-group__flag.is-expired {
+  background: #fef3f2;
+  color: #b42318;
+}
+.od-group__flag.is-due {
+  background: #fffaeb;
+  color: #b54708;
+}
+.od-group__flag.is-missing {
+  background: #fef3f2;
+  color: #b42318;
+}
+.od-group__line {
+  flex: 1 1 auto;
+  min-width: 1rem;
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--od-accent) 35%, transparent), transparent);
+}
+[dir=rtl] .od-group__line {
+  background: linear-gradient(270deg, color-mix(in srgb, var(--od-accent) 35%, transparent), transparent);
+}
+.od-group__chev {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  color: var(--od-accent);
+  transition-property: background-color;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .od-group__chev {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+.od-group__chev svg {
+  transition: transform 0.2s ease;
+}
+.od-group__body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.22s ease;
+}
+.od-group__body > .od-group__list {
+  min-height: 0;
+  overflow: hidden;
+  padding: 2px;
+  margin: -2px;
+}
+.od-group.is-folded .od-group__body {
+  grid-template-rows: 0fr;
+}
+.od-group.is-folded .od-group__body > .od-group__list {
+  padding: 0;
+  margin: 0;
+  visibility: hidden;
+  transition: visibility 0s 0.22s;
+}
+.od-group.is-folded .od-group__chev svg {
+  transform: rotate(-90deg);
+}
+[dir=rtl] .od-group.is-folded .od-group__chev svg {
+  transform: rotate(90deg);
+}
 .od-group__list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .od-group__body, .od-group__chev svg {
+    transition: none;
+  }
+}
+
+.od-filter__fold {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-inline-start: auto;
+}
+
+.od-fold-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid #e4e7ec;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475467;
+  font-size: 0.725rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition-property: border-color, color, background-color;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .od-fold-btn {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+.od-fold-btn:hover {
+  border-color: #c7dbf7;
+  color: #1b4f91;
+  background: #f2f7fd;
+}
+.od-fold-btn:focus-visible:focus {
+  outline: none;
+}
+.od-fold-btn:focus-visible:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(29, 95, 191, 0.28);
+  border-color: #1d5fbf;
+}
+.od-fold-btn[data-od-fold=collapse] svg {
+  transform: rotate(180deg);
 }
 
 .od-doc {
