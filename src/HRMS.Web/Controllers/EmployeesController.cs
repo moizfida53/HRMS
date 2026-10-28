@@ -164,10 +164,22 @@ public sealed class EmployeesController : Controller
     /// on every action that takes an employee id, so changing it in the address or a posted
     /// field cannot reach another company's employee.
     /// </summary>
-    private async Task<bool> OwnsEmployeeAsync(long employeeId)
+    // read once per request (the profile's panels call ask the same question four times)
+    private readonly Dictionary<long, Task<bool>> _owns = new();
+
+    private Task<bool> OwnsEmployeeAsync(long employeeId)
     {
-        if (employeeId <= 0) return false;
-        if (_currentUser.ActiveCompanyId is null) return true;
+        if (employeeId <= 0) return Task.FromResult(false);
+        if (_currentUser.ActiveCompanyId is null) return Task.FromResult(true);
+        if (!_owns.TryGetValue(employeeId, out var owns))
+        {
+            _owns[employeeId] = owns = ReadOwnsAsync(employeeId);
+        }
+        return owns;
+    }
+
+    private async Task<bool> ReadOwnsAsync(long employeeId)
+    {
         var employee = await _employees.GetByIdAsync(employeeId, Ct);
         return employee is not null && _currentUser.Allows(employee.CompanyId);
     }
@@ -244,6 +256,7 @@ public sealed class EmployeesController : Controller
         if (!Access.Create) return Forbid();
         // Pre-select the company when the top-bar filter is narrowed to exactly one.
         var employee = new Employee { CompanyId = _currentUser.ActiveCompanyId ?? _companyFilter.SingleCompanyId ?? 0 };
+        var alertsTask = TryListDateAlertsAsync();
         var lookups = await LoadProfileLookupsAsync(includeInactive: false);
 
         // Same page as editing (every section, same fields) - shown as a
@@ -258,7 +271,7 @@ public sealed class EmployeesController : Controller
             PayrollCalendars = await LoadPayrollCalendarsAsync(lookups, null),
             CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar(),
             CanManageDateAlerts = _currentUser.CanManageDateAlerts(),
-            DateAlertRules = await TryListDateAlertsAsync()
+            DateAlertRules = await alertsTask
         });
     }
 
@@ -279,7 +292,21 @@ public sealed class EmployeesController : Controller
 
         if (!Access.View) return Forbid();
 
-        var employee = await _employees.GetByIdAsync(id, Ct);
+        // Everything the page needs is read AT THE SAME TIME (each call has its own pooled
+        // connection), so the page waits for the slowest call, not for the sum of ~18 calls.
+        var employeeTask = _employees.GetByIdAsync(id, Ct);
+        // Compliance is a separate 1:1 record that may not exist yet, even for
+        // an existing employee - that is a normal state, rendered as an empty form.
+        var complianceTask = _compliance.GetAsync(id, Ct);
+        var lookupsTask = LoadProfileLookupsAsync(includeInactive: true);
+        var payrollCalendarTask = TryGetPayrollCalendarAsync(id);
+        var calendarsTask = LoadPayrollCalendarsAsync(lookupsTask, payrollCalendarTask);
+        var alertsTask = TryListDateAlertsAsync();
+        var leaveTermsTask = TryGetLeaveTermsAsync(id);
+        var assetsTask = TryGetAssetsAsync(id);
+        await Task.WhenAll(employeeTask, complianceTask, lookupsTask, payrollCalendarTask, calendarsTask, alertsTask, leaveTermsTask, assetsTask);
+
+        var employee = employeeTask.Result;
 
         // another company's employee answers "not found", like a missing one
         if (employee is null || !_currentUser.Allows(employee.CompanyId))
@@ -287,12 +314,9 @@ public sealed class EmployeesController : Controller
             return NotFound();
         }
 
-        // Compliance is a separate 1:1 record that may not exist yet, even for
-        // an existing employee - that is a normal state, rendered as an empty form.
-        var compliance = await _compliance.GetAsync(id, Ct);
-        var lookups = await LoadProfileLookupsAsync(includeInactive: true);
-
-        var payrollCalendar = await TryGetPayrollCalendarAsync(id);
+        var compliance = complianceTask.Result;
+        var lookups = lookupsTask.Result;
+        var payrollCalendar = payrollCalendarTask.Result;
         employee.PayrollCalendarId = payrollCalendar?.PayrollCalendarId;
 
         // the Dashboard's alert popup shows this page in a frame of the same site
@@ -316,12 +340,12 @@ public sealed class EmployeesController : Controller
             Focus = focusField?.Key,
             Lookups = lookups,
             PayrollCalendar = payrollCalendar,
-            PayrollCalendars = await LoadPayrollCalendarsAsync(lookups, payrollCalendar?.PayrollCalendarId),
+            PayrollCalendars = calendarsTask.Result,
             CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar(),
             CanManageDateAlerts = _currentUser.CanManageDateAlerts(),
-            DateAlertRules = await TryListDateAlertsAsync(),
-            LeaveTerms = await TryGetLeaveTermsAsync(id),
-            Assets = await TryGetAssetsAsync(id)
+            DateAlertRules = alertsTask.Result,
+            LeaveTerms = leaveTermsTask.Result,
+            Assets = assetsTask.Result
         });
     }
 
@@ -333,20 +357,31 @@ public sealed class EmployeesController : Controller
     /// </summary>
     private async Task<Dictionary<string, IReadOnlyList<LookupItem>>> LoadProfileLookupsAsync(bool includeInactive)
     {
-        var lookups = new Dictionary<string, IReadOnlyList<LookupItem>>(StringComparer.OrdinalIgnoreCase);
+        // all the lists at once (one call each, run together)
+        var companyId = _currentUser.LookupCompany(null);
+        var lists = await Task.WhenAll(ProfileLookupTypes.Select(type => _lookups.GetAsync(
+            type,
+            companyId: companyId,
+            parentId: null,
+            includeInactive: includeInactive,
+            cancellationToken: Ct)));
 
-        foreach (var type in ProfileLookupTypes)
+        var lookups = new Dictionary<string, IReadOnlyList<LookupItem>>(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < ProfileLookupTypes.Length; i++)
         {
             // a user pinned to a company only gets that company's lists
-            lookups[type] = _currentUser.OwnCompanies(type, await _lookups.GetAsync(
-                type,
-                companyId: _currentUser.LookupCompany(null),
-                parentId: null,
-                includeInactive: includeInactive,
-                cancellationToken: Ct));
+            lookups[ProfileLookupTypes[i]] = _currentUser.OwnCompanies(ProfileLookupTypes[i], lists[i]);
         }
 
         return lookups;
+    }
+
+    /// <summary>Starts as soon as the lists and the employee's calendar are in, alongside the page's other reads.</summary>
+    private async Task<IReadOnlyList<PayrollCalendar>> LoadPayrollCalendarsAsync(
+        Task<Dictionary<string, IReadOnlyList<LookupItem>>> lookups, Task<EmployeePayrollCalendar?> current)
+    {
+        await Task.WhenAll(lookups, current);
+        return await LoadPayrollCalendarsAsync(lookups.Result, current.Result?.PayrollCalendarId);
     }
 
     /// <summary>
@@ -709,7 +744,17 @@ public sealed class EmployeesController : Controller
     public async Task<IActionResult> Panels([FromForm(Name = "url")] string[]? urls)
     {
         var panels = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var url in (urls ?? []).Distinct().Take(10))
+        urls = (urls ?? []).Distinct().Take(10).ToArray();
+
+        // the reads the panels share start together before the panels are drawn one by one
+        var ids = urls.Select(u => PanelUrl.Match(u ?? "")).Where(m => m.Success)
+            .Select(m => long.TryParse(m.Groups["id"].Value, out var i) ? i : 0).Where(i => i > 0).Distinct().ToList();
+        var access = Access;
+        await Task.WhenAll(ids.SelectMany(i => access.ComplianceView && access.DocumentView
+            ? new Task[] { OwnsEmployeeAsync(i), ComplianceGroupsAsync(i) }
+            : new Task[] { OwnsEmployeeAsync(i) }));
+
+        foreach (var url in urls)
         {
             var m = PanelUrl.Match(url ?? "");
             if (!m.Success || !long.TryParse(m.Groups["id"].Value, out var id)) continue;
@@ -959,10 +1004,25 @@ public sealed class EmployeesController : Controller
         });
     }
 
-    private async Task<IReadOnlyList<ComplianceDocumentGroup>> ComplianceGroupsAsync(long employeeId)
+    // read once per request (the images panel and the thumbnails show the same groups)
+    private readonly Dictionary<long, Task<IReadOnlyList<ComplianceDocumentGroup>>> _groups = new();
+
+    private Task<IReadOnlyList<ComplianceDocumentGroup>> ComplianceGroupsAsync(long employeeId)
     {
-        var rows = await _complianceDocuments.ListAsync(employeeId, Ct);
-        var compliance = await _compliance.GetAsync(employeeId, Ct);
+        if (!_groups.TryGetValue(employeeId, out var groups))
+        {
+            _groups[employeeId] = groups = ReadComplianceGroupsAsync(employeeId);
+        }
+        return groups;
+    }
+
+    private async Task<IReadOnlyList<ComplianceDocumentGroup>> ReadComplianceGroupsAsync(long employeeId)
+    {
+        var rowsTask = _complianceDocuments.ListAsync(employeeId, Ct);
+        var complianceTask = _compliance.GetAsync(employeeId, Ct);
+        await Task.WhenAll(rowsTask, complianceTask);
+        var rows = rowsTask.Result;
+        var compliance = complianceTask.Result;
 
         return ComplianceDocumentKey.All.Select(key => new ComplianceDocumentGroup
         {
