@@ -4,6 +4,7 @@ using HRMS.Domain.Leave;
 using HRMS.Domain.Workforce;
 using HRMS.Web.Models.Dashboard;
 using HRMS.Web.Security;
+using HRMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS.Web.Controllers;
@@ -22,12 +23,14 @@ public sealed class DashboardController : Controller
     private readonly ILeaveRepository _leave;
     private readonly IOrganizationDocumentRepository _orgDocuments;
     private readonly IAssetRepository _assets;
+    private readonly IEmployeeNames _names;
     private readonly ILogger<DashboardController> _logger;
 
     public DashboardController(IDashboardRepository dashboard, ICurrentUser currentUser, ICompanyFilter companyFilter,
         IDateAlertRepository dateAlerts, ILeaveRepository leave, IOrganizationDocumentRepository orgDocuments,
-        IAssetRepository assets, ILogger<DashboardController> logger)
+        IAssetRepository assets, IEmployeeNames names, ILogger<DashboardController> logger)
     {
+        _names = names;
         _assets = assets;
         _leave = leave;
         _orgDocuments = orgDocuments;
@@ -138,6 +141,17 @@ public sealed class DashboardController : Controller
             {
                 _logger.LogWarning(ex, "The asset alerts could not be read (run db/84).");
             }
+        }
+
+        // Arabic mode: the employees' Arabic names (one call for the three lists)
+        var arabic = await _names.ArabicAsync(
+            data.Events.Select(e => e.EmployeeId).Concat(data.Activity.Select(a => a.EmployeeId)).Concat(dateAlerts.Select(a => a.EmployeeId)),
+            HttpContext.RequestAborted);
+        if (arabic.Count > 0)
+        {
+            foreach (var e in data.Events) { if (arabic.TryGetValue(e.EmployeeId, out var n)) e.EmployeeName = n; }
+            foreach (var a in data.Activity) { if (arabic.TryGetValue(a.EmployeeId, out var n)) a.EmployeeName = n; }
+            foreach (var a in dateAlerts) { if (arabic.TryGetValue(a.EmployeeId, out var n)) a.EmployeeName = n; }
         }
 
         return View("~/Views/Dashboard/Index.cshtml", new DashboardViewModel

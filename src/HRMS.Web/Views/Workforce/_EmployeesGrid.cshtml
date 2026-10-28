@@ -1,4 +1,4 @@
-@inject ICurrentUser CurrentUser
+﻿@inject ICurrentUser CurrentUser
 @model EmployeeGridViewModel
 @{
     var access = CurrentUser.EmployeeAccess();
@@ -34,14 +34,15 @@
                     @foreach (var row in Model.Page.Items)
                     {
                         var leave = Model.Leave.TryGetValue(row.EmployeeId, out var lb) ? lb : null;
-                        <tr data-id="@row.EmployeeId" data-name="@row.FullName" data-active="@row.IsActive.ToString().ToLowerInvariant()"
+                        var name = L.Name(row.FullName, row.ArabicName);   // Arabic mode: the Arabic name when there is one
+                        <tr data-id="@row.EmployeeId" data-name="@name" data-active="@row.IsActive.ToString().ToLowerInvariant()"
                             data-code="@row.EmployeeCode" data-hire="@row.HireDate?.ToString("yyyy-MM-dd")" data-status="@row.EmploymentStatus"
                             data-leave="@(leave?.Balance.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                             data-search="@(string.Join(" ", new[] { row.EmployeeCode, row.EmployeeNo, row.FullName, row.ArabicName, row.DepartmentName, row.DesignationName, row.WorkEmail, row.MobileNumber, row.EmploymentStatus }.Where(x => !string.IsNullOrWhiteSpace(x))).ToLowerInvariant())">
                             <td data-label="@L.Tr("Code")"><span class="hrms-code-chip">@(string.IsNullOrWhiteSpace(row.EmployeeCode) ? "—" : row.EmployeeCode)</span></td>
                             <td data-label="@L.Tr("Employee")">
                                 <a class="hrms-table__primary" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId">
-                                    @row.FullName
+                                    @name
                                 </a>
                                 @* db/98: an annual leave balance over 30 days (amber), over 60 (red - may be eliminated) *@
                                 @if (leave is { } big && big.Balance > HRMS.Domain.Leave.LeaveElimination.FlagOver)
@@ -72,7 +73,7 @@
                                 @* Actions: each opens the profile at the right place, or the Passport In / Out popup *@
                                 <div class="dropdown emp-more">
                                     <button type="button" class="btn-icon" data-bs-toggle="dropdown" aria-expanded="false" data-bs-popper-config='{"strategy":"fixed"}'
-                                            title="@L["common.actions"]" aria-label="@L["emp.actions_named", row.FullName]">@Html.Icon("more", 15)</button>
+                                            title="@L["common.actions"]" aria-label="@L["emp.actions_named", name]">@Html.Icon("more", 15)</button>
                                     <ul class="dropdown-menu dropdown-menu-end emp-more__menu">
                                         @if (access.EmploymentView)
                                         {
@@ -103,11 +104,11 @@
                                 {
                                     <button type="button" class="btn-icon btn-icon--success" data-action="toggle"
                                             data-text-on="@L["common.deactivate"]" data-text-off="@L["common.activate"]"
-                                            data-aria-on="@L["common.deactivate_named", row.FullName]" data-aria-off="@L["common.activate_named", row.FullName]"
+                                            data-aria-on="@L["common.deactivate_named", name]" data-aria-off="@L["common.activate_named", name]"
                                             title="@(row.IsActive ? L["common.deactivate"] : L["common.activate"])"
-                                            aria-label="@(row.IsActive ? L["common.deactivate_named", row.FullName] : L["common.activate_named", row.FullName])">@Html.Icon("power", 15)</button>
+                                            aria-label="@(row.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
                                     <button type="button" class="btn-icon btn-icon--danger" data-action="delete"
-                                            title="@L["common.delete"]" aria-label="@L["common.delete_named", row.FullName]">@Html.Icon("trash", 15)</button>
+                                            title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
                                 }
                             </td>
                         </tr>

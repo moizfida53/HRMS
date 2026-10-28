@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Common;
@@ -7,6 +7,7 @@ using HRMS.Web.Localization;
 using HRMS.Web.Models.Organization;
 using HRMS.Web.Models.Payroll;
 using HRMS.Web.Security;
+using HRMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS.Web.Controllers;
@@ -26,11 +27,13 @@ public sealed class AccountingController : PayrollFinanceControllerBase
     private readonly IPayrollFinanceRepository _finance;
     private readonly ILookupRepository _lookups;
     private readonly IUiText _l;
+    private readonly IEmployeeNames _names;
 
     public AccountingController(IPayrollFinanceRepository finance, ILookupRepository lookups, IUiText l,
-                                ICurrentUser currentUser, ICompanyFilter companyFilter)
+                                IEmployeeNames names, ICurrentUser currentUser, ICompanyFilter companyFilter)
         : base(currentUser, companyFilter)
     {
+        _names = names;
         _finance = finance;
         _lookups = lookups;
         _l = l;
@@ -241,6 +244,7 @@ public sealed class AccountingController : PayrollFinanceControllerBase
             RunMonth = y is { } yy && month is >= 1 and <= 12 ? new DateTime(yy, month.Value, 1) : null,
             Search = search, Page = Math.Max(1, page), PageSize = 50
         }, Ct);
+        await _names.LocalizeAsync(result.Items, a => a.EmployeeId, (a, name) => a.EmployeeName = name, Ct);
         return PartialView("~/Views/Accounting/_AllocationGrid.cshtml", new SettingsGridModel<CostAllocation>
         {
             Page = result,

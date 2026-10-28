@@ -201,6 +201,7 @@ builder.Services.AddHostedService<PayslipEmailSender>();
 // Figures next to Payroll Processing's sub-sections in the sidebar (cached a few seconds).
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPayrollNavCounts, PayrollNavCounts>();
+builder.Services.AddScoped<IEmployeeNames, EmployeeNames>();
 builder.Services.AddScoped<IEmployeeAuditor, EmployeeAuditor>();          // employee Audit Report (db/60)
 
 // Compression stays off over HTTPS (the default) for now: enabling it (EnableForHttps)

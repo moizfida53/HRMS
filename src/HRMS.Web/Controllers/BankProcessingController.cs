@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Payroll;
 using HRMS.Web.Localization;
@@ -26,11 +26,13 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
     private readonly IPayrollRulesRepository _rules;
     private readonly IBankRepository _banks;
     private readonly IUiText _l;
+    private readonly IEmployeeNames _names;
 
     public BankProcessingController(IPayrollFinanceRepository finance, IPayrollRulesRepository rules, IBankRepository banks, IUiText l,
-                                    ICurrentUser currentUser, ICompanyFilter companyFilter)
+                                    IEmployeeNames names, ICurrentUser currentUser, ICompanyFilter companyFilter)
         : base(currentUser, companyFilter)
     {
+        _names = names;
         _finance = finance;
         _rules = rules;
         _banks = banks;
@@ -182,6 +184,7 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
             RunId = run, FileId = file, Search = q, Page = Math.Max(1, page), PageSize = 25
         };
         var result = await _finance.PaymentsAsync(filter, Ct);
+        await _names.LocalizeAsync(result.Items, p => p.EmployeeId, (p, name) => p.EmployeeName = name, Ct);
 
         return View("~/Views/BankProcessing/Register.cshtml", new PaymentRegisterModel
         {

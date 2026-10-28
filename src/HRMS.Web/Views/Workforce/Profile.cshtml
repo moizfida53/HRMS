@@ -4,7 +4,14 @@
     // Security > Create Roles: each section is shown read-only, editable, or not at all.
     var acc = CurrentUser.EmployeeAccess();
 
-    ViewData["Title"] = Model.DisplayName;
+    // Arabic mode: the employee's Arabic name when one is filled in, else the English name
+    var empName = Model.IsNew ? L.Tr(Model.DisplayName) : L.Name(Model.DisplayName, Model.Employee.ArabicName);
+    var empInitials = Model.Initials;
+    if (L.IsArabic && !Model.IsNew && !string.IsNullOrWhiteSpace(Model.Employee.ArabicName))
+    {
+        empInitials = Model.Employee.ArabicName.Trim()[..1];   // Arabic letters join, so one letter reads best
+    }
+    ViewData["Title"] = empName;
     ViewData["ActiveArea"] = "workforce";
     // Top bar shows the screen name; the employee's own name appears once,
     // in the employee card below - not twice.
@@ -75,13 +82,13 @@
    screen name ("Employee Profile"). Save sits here, next to the record it saves. *@
 <div class="hrms-card hrms-emp-strip">
     <span class="hrms-profile-photo" title="@L["emp.photo_upload_is_coming_soon"]" aria-label="@L["emp.employee_photo_placeholder"]">
-        <span class="hrms-avatar hrms-emp-strip__avatar">@Model.Initials</span>
+        <span class="hrms-avatar hrms-emp-strip__avatar">@empInitials</span>
         <span class="hrms-profile-photo__badge" aria-hidden="true">@Html.Icon("camera", 11)</span>
     </span>
 
     <div class="hrms-emp-strip__who">
         <div class="hrms-emp-strip__name-row">
-            <h2 class="hrms-emp-strip__name">@L.Tr(Model.DisplayName)</h2>
+            <h2 class="hrms-emp-strip__name">@empName</h2>
             @if (!Model.IsNew)
             {
                 @await Html.PartialAsync("~/Views/Workforce/Partials/_StatusBadge.cshtml", e.EmploymentStatus)
@@ -1771,7 +1778,7 @@
                 <div class="modal-header">
                     <div class="aud-modal__title">
                         <h2 class="modal-title h5" id="emp-audit-modal-title">@L["emp.audit_history"]</h2>
-                        <span class="aud-modal__who">@L.Tr(Model.DisplayName)@(string.IsNullOrWhiteSpace(e.EmployeeCode) ? "" : " · " + e.EmployeeCode)</span>
+                        <span class="aud-modal__who">@empName@(string.IsNullOrWhiteSpace(e.EmployeeCode) ? "" : " · " + e.EmployeeCode)</span>
                     </div>
                     <a class="btn btn-sm btn-link ms-auto aud-modal__full" asp-controller="Audit" asp-action="Index" asp-route-employee="@e.EmployeeId">
                         @L["aud.open_full_report"]@Html.Icon("chevron-right", 13)

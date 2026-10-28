@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
 using HRMS.Data.Abstractions;
 using HRMS.Data.Infrastructure;
@@ -10,6 +10,9 @@ public interface IEmployeeRepository : IMasterRepository<Employee>
 {
     /// <summary>The mandatory details each of these employees is missing (db/95); complete employees are left out.</summary>
     Task<IReadOnlyDictionary<long, EmployeeCompleteness>> CompletenessAsync(IEnumerable<long> employeeIds, CancellationToken cancellationToken = default);
+
+    /// <summary>The Arabic names of these employees (db/102); employees without one are left out.</summary>
+    Task<IReadOnlyDictionary<long, string>> ArabicNamesAsync(IEnumerable<long> employeeIds, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -46,6 +49,25 @@ public sealed class EmployeeRepository : MasterRepositoryBase<Employee>, IEmploy
         var rows = await Sql.QueryAsync<EmployeeCompleteness>(StoredProcedure.EmployeeCompleteness, parameters, cancellationToken)
             .ConfigureAwait(false);
         return rows.Where(r => r.MissingCount > 0).ToDictionary(r => r.EmployeeId);
+    }
+
+    public async Task<IReadOnlyDictionary<long, string>> ArabicNamesAsync(
+        IEnumerable<long> employeeIds, CancellationToken cancellationToken = default)
+    {
+        var ids = string.Join(',', employeeIds.Where(id => id > 0).Distinct());
+        if (ids.Length == 0) return new Dictionary<long, string>();
+
+        var parameters = new DynamicParameters();
+        parameters.Add("@EmployeeIds", ids, DbType.String, size: -1);
+        var rows = await Sql.QueryAsync<ArabicNameRow>(StoredProcedure.EmployeeArabicNames, parameters, cancellationToken)
+            .ConfigureAwait(false);
+        return rows.GroupBy(r => r.EmployeeId).ToDictionary(g => g.Key, g => g.First().ArabicName);
+    }
+
+    private sealed class ArabicNameRow
+    {
+        public long EmployeeId { get; set; }
+        public string ArabicName { get; set; } = string.Empty;
     }
 
     protected override void AddEntityParameters(DynamicParameters parameters, Employee entity)

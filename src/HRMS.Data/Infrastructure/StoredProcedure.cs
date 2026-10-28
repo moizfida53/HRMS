@@ -39,6 +39,9 @@ public static class StoredProcedure
     /// <summary>The mandatory details each saved employee is missing (db/95) - a flag on the Employees list.</summary>
     public const string EmployeeCompleteness = "Employee.usp_EmployeeCompleteness";
 
+    /// <summary>The Arabic names of the employees given (db/102), for pages shown in Arabic.</summary>
+    public const string EmployeeArabicNames = "Employee.usp_EmployeeArabicNames";
+
     /// <summary>Everything the employee profile shows, in one call (db/97).</summary>
     public const string EmployeeProfileLoad = "Employee.usp_EmployeeProfile_Load";
 
