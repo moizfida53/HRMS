@@ -1,6 +1,9 @@
 @model ErrorViewModel
 @{
     ViewData["Title"] = "Something went wrong";
+    // the sign-in page's layout: no database, no signed-in user needed - the error page
+    // must show even when the database or the sign-in is what failed
+    Layout = "_AuthLayout";
 }
 
 <div class="hrms-card" style="max-width:640px;margin:3rem auto">
@@ -20,8 +23,6 @@
             </p>
         }
 
-        <a class="btn btn-primary" asp-controller="Organization" asp-action="Index">
-            @L["common.back_to_organization_setup"]
-        </a>
+        <a class="btn btn-primary" href="/">@L["common.back_to_organization_setup"]</a>
     </div>
 </div>
