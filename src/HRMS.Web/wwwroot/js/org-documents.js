@@ -1,8 +1,9 @@
 /* ==========================================================================
  * HRMS Kuwait - Workforce > Organizations (db/73)
- * The active companies on the left; the one picked opens on the right with
- * its Legal & Compliance Documents: add / change / renew (the previous
- * version goes to History), view the scan, remove. Filters by status.
+ * The active companies in one row (scrolls sideways); the one picked opens
+ * below - master / child: its document categories, and the documents of the
+ * category picked as cards (filtered by status too): add / change / renew
+ * (the previous version goes to History), view the scan, remove.
  * The company opens in place - it never reaches the address bar.
  * ========================================================================== */
 (function () {
@@ -26,29 +27,31 @@
 
     var companiesSlot = $("[data-od-companies]", page);
     var panel = $("[data-od-panel]", page);
-    var current = null;     // the company open on the right
-    var filter = "";
+    var current = null;     // the company open below
+    var filter = "";        // status: "" / expired / due / missing / valid
+    var category = "";      // master: "" = every category
 
-    /* ------------------------------------------- company list height -- */
-    // The company list is pinned while the documents scroll and scrolls on its own. Its
-    // height is the room actually left below its top edge in the window - at the top of the
-    // page that is less (the figures above take space), so the last company is always
-    // reachable by scrolling the list, without scrolling the page to its end first.
-    (function fitCompanyList() {
-        var aside = companiesSlot && companiesSlot.closest(".od-layout__companies");
-        if (!aside) { return; }
-        var pending = false;
-        function fit() {
-            pending = false;
-            if (getComputedStyle(aside).position !== "sticky") { aside.style.maxHeight = ""; return; }   // phone: a row
-            var top = Math.max(aside.getBoundingClientRect().top, 0);
-            aside.style.maxHeight = Math.max(window.innerHeight - top - 16, 200) + "px";
-        }
-        function soon() { if (!pending) { pending = true; window.requestAnimationFrame(fit); } }
-        window.addEventListener("scroll", soon, { passive: true });
-        window.addEventListener("resize", soon);
-        fit();
-    })();
+    /* --------------------------------------------- company strip -- */
+    // the companies scroll sideways; the arrows show while there is more that way
+    var scroller = $("[data-od-scroller]", page);
+    function syncArrows() {
+        if (!scroller || !companiesSlot) { return; }
+        var max = companiesSlot.scrollWidth - companiesSlot.clientWidth;
+        var x = Math.abs(companiesSlot.scrollLeft);       // RTL scrolls to negative values
+        $("[data-od-scroll='-1']", scroller).hidden = x <= 2;
+        $("[data-od-scroll='1']", scroller).hidden = x >= max - 2;
+    }
+    if (scroller && companiesSlot) {
+        scroller.addEventListener("click", function (event) {
+            var b = event.target.closest("[data-od-scroll]");
+            if (!b) { return; }
+            var dir = Number(b.getAttribute("data-od-scroll")) * (HRMS.isRtl ? -1 : 1);
+            companiesSlot.scrollBy({ left: dir * companiesSlot.clientWidth * 0.8, behavior: "smooth" });
+        });
+        companiesSlot.addEventListener("scroll", syncArrows, { passive: true });
+        window.addEventListener("resize", syncArrows);
+        syncArrows();
+    }
 
     /* ------------------------------------------------------ companies -- */
 
@@ -57,14 +60,15 @@
             var on = b.getAttribute("data-od-company") === String(current);
             b.classList.toggle("is-active", on);
             b.setAttribute("aria-pressed", on ? "true" : "false");
+            if (on) { b.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" }); }
         });
+        syncArrows();
     }
 
     function openCompany(id, keepFilter) {
         current = id;
-        if (!keepFilter) { filter = ""; }
+        if (!keepFilter) { filter = ""; category = ""; }
         markCompany();
-        try { sessionStorage.setItem("od.company", String(id)); } catch (e) { /* private window */ }
         if (!panel.firstElementChild || !panel.querySelector(".pr-loading")) { panel.classList.add("is-loading"); }
         return HRMS.getHtml(url("panel", { company: id })).then(function (html) {
             panel.innerHTML = html;
@@ -87,10 +91,6 @@
             var b = event.target.closest("[data-od-company]");
             if (!b) { return; }
             openCompany(b.getAttribute("data-od-company"));
-            // on a phone the documents are below the list: bring them into view
-            if (window.matchMedia("(max-width: 991.98px)").matches) {
-                panel.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
         });
     }
 
@@ -98,64 +98,45 @@
 
     function applyFilter() {
         var shown = 0;
+        var n = { "": 0, expired: 0, due: 0, missing: 0, valid: 0 };
         $all("[data-od-doc]", panel).forEach(function (d) {
-            var on = !filter || d.getAttribute("data-status") === filter;
+            var inCat = !category || d.getAttribute("data-cat") === category;
+            var st = d.getAttribute("data-status");
+            if (inCat) { n[""]++; n[st] = (n[st] || 0) + 1; }
+            var on = inCat && (!filter || st === filter);
             d.hidden = !on;
             if (on) { shown++; }
         });
-        $all("[data-od-group]", panel).forEach(function (g) {
-            g.hidden = !$all("[data-od-doc]", g).some(function (d) { return !d.hidden; });
-        });
-        applyFolds();
+        // the status buttons count within the category picked
         $all("[data-od-filter]", panel).forEach(function (b) {
-            var on = b.getAttribute("data-od-filter") === filter;
+            var key = b.getAttribute("data-od-filter");
+            var on = key === filter;
             b.classList.toggle("is-active", on);
             b.setAttribute("aria-pressed", on ? "true" : "false");
+            var num = $("[data-od-n]", b);
+            if (num) { num.textContent = n[key] || 0; }
+            b.disabled = key !== "" && !n[key] && !on;
         });
+        $all("[data-od-cat]", panel).forEach(function (m) {
+            var on = m.getAttribute("data-od-cat") === category;
+            m.classList.toggle("is-active", on);
+            m.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        var title = $("[data-od-child-title]", panel);
+        if (title) {
+            var picked = category ? $('[data-od-cat="' + category + '"]', panel) : null;
+            title.textContent = picked ? picked.getAttribute("data-label") : title.getAttribute("data-all");
+        }
         var none = $("[data-od-nomatch]", panel);
         if (none) { none.hidden = shown > 0; }
     }
 
-    /* ------------------------------------------------------- folding -- */
-    // A category folds away by its header; which ones are folded is kept in this browser
-    // (the same for every company). While a status filter is on, every category with a
-    // match shows open - a filter never hides what it found.
-    var FOLD_KEY = "hrms.od.folded";
-    function folded() {
-        try { return JSON.parse(window.localStorage.getItem(FOLD_KEY) || "[]") || []; } catch (e) { return []; }
-    }
-    function saveFolded(list) {
-        try { window.localStorage.setItem(FOLD_KEY, JSON.stringify(list)); } catch (e) { /* private mode: not kept */ }
-    }
-    function applyFolds() {
-        var keys = folded();
-        $all("[data-od-group]", panel).forEach(function (g) {
-            var shut = !filter && keys.indexOf(g.getAttribute("data-od-group")) >= 0;
-            g.classList.toggle("is-folded", shut);
-            var t = $("[data-od-group-toggle]", g);
-            if (t) { t.setAttribute("aria-expanded", shut ? "false" : "true"); }
-            var body = $(".od-group__body", g);
-            if (body) { body.inert = shut; }
-        });
-    }
-    function setFold(keys, shut) {
-        var list = folded().filter(function (k) { return keys.indexOf(k) < 0; });
-        if (shut) { list = list.concat(keys); }
-        saveFolded(list);
-        if (filter) { filter = ""; applyFilter(); } else { applyFolds(); }
-    }
-
     panel && panel.addEventListener("click", function (event) {
-        var toggle = event.target.closest("[data-od-group-toggle]");
-        if (toggle) {
-            var g = toggle.closest("[data-od-group]");
-            setFold([g.getAttribute("data-od-group")], !g.classList.contains("is-folded"));
-            return;
-        }
-        var fold = event.target.closest("[data-od-fold]");
-        if (fold) {
-            var all = $all("[data-od-group]", panel).map(function (x) { return x.getAttribute("data-od-group"); });
-            setFold(all, fold.getAttribute("data-od-fold") === "collapse");
+        var cat = event.target.closest("[data-od-cat]");
+        if (cat) {
+            category = cat.getAttribute("data-od-cat");
+            filter = "";
+            applyFilter();
             return;
         }
         var f = event.target.closest("[data-od-filter]");
@@ -323,11 +304,11 @@
 
     /* ---------------------------------------------------------- start -- */
 
-    var first = page.getAttribute("data-selected");
-    var remembered = null;
-    try { remembered = sessionStorage.getItem("od.company"); } catch (e) { /* private window */ }
-    // a company named by the address (a Dashboard alert) wins; else the one open last time
-    var fromAddress = new URLSearchParams(HRMS.pageUrl ? HRMS.pageUrl().search : window.location.search).has("company");
-    var start = !fromAddress && remembered && $('[data-od-company="' + remembered + '"]', companiesSlot) ? remembered : first;
+    // the company named by the address (a Dashboard alert), else the first one
+    var start = page.getAttribute("data-selected");
+    if (!start || !$('[data-od-company="' + start + '"]', companiesSlot)) {
+        var firstCard = companiesSlot && $("[data-od-company]", companiesSlot);
+        start = firstCard ? firstCard.getAttribute("data-od-company") : null;
+    }
     if (start && panel) { openCompany(start); }
 })();

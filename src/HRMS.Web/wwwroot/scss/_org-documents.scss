@@ -3,11 +3,12 @@
 // ----------------------------------------------------------------------------
 // Setup > Organization > Organization Documents: the types, their category
 // chip, the fields they keep and their expiry alerts.
-// Workforce > Organizations: the companies (left) and one company's Legal &
-// Compliance Documents (right) - each document a card whose colour says its
-// state against the expiry date: expired (red), alert due (amber), valid
-// (green), missing (red, dashed). Categories carry their own colour and icon.
-// Below 992px the two columns stack.
+// Workforce > Organizations: the companies in one row (scrolls sideways), and
+// the one picked below - master / child: its document categories, and the
+// documents of the category picked as cards whose colour says their state
+// against the expiry date: expired (red), alert due (amber), valid (green),
+// missing (red, dashed); a ring shows the validity left. Categories carry their
+// own colour and icon. On a narrow screen the categories become a row of chips.
 // ============================================================================
 
 @use "sass:map";
@@ -155,36 +156,8 @@ $od-categories: (
 // ------------------------------------------------- Organizations page ----
 .od-page { display: flex; flex-direction: column; gap: space("4"); min-width: 0; }
 
-.od-kpi {
-  &.is-bad .hrms-kpi__value { color: $red-700; }
-  &.is-bad .hrms-kpi__icon { background: $red-050; color: $red-700; }
-  &.is-warn .hrms-kpi__value { color: $amber-700; }
-  &.is-warn .hrms-kpi__icon { background: $amber-050; color: $amber-700; }
-}
-
-.od-layout {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  gap: space("4");
-  align-items: start;
-
-  @include down("lg") { grid-template-columns: minmax(0, 1fr); }
-
-  // pinned while the documents scroll - and scrolling on its own when the companies are taller
-  // than the window (a pinned list taller than the window hid the last companies)
-  &__companies {
-    position: sticky;
-    top: calc(#{$topbar-height} + #{space("4")});
-    max-height: calc(100vh - #{$topbar-height} - #{space("6")});
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding-inline-end: space("1");
-    @include thin-scrollbar;
-  }
-  @include down("lg") { &__companies { position: static; max-height: none; overflow: visible; padding-inline-end: 0; } }
-
-  &__docs { min-width: 0; @include motion(opacity); &.is-loading { opacity: .5; pointer-events: none; } }
-}
+// the documents of the company picked, below the companies
+.od-docs { min-width: 0; @include motion(opacity); &.is-loading { opacity: .5; pointer-events: none; } }
 
 .od-side-title {
   @include label-caps;
@@ -206,24 +179,55 @@ $od-categories: (
   }
 }
 
+// ----------------------------------------------- the companies, in one row ----
+.od-strip { display: flex; flex-direction: column; min-width: 0; }
+
+.od-strip__scroller { position: relative; min-width: 0; }
+
+.od-strip__track {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: space("1");
+  scrollbar-width: none;                 // the arrows replace the scrollbar
+  &::-webkit-scrollbar { display: none; }
+}
+
+.od-strip__arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid $line-200;
+  border-radius: 50%;
+  background: rgba($white, .96);
+  box-shadow: $shadow-md;
+  color: $ink-700;
+  transform: translateY(-50%);
+  cursor: pointer;
+  @include motion(color, border-color, box-shadow);
+
+  &[hidden] { display: none; }
+  &:hover { border-color: $blue-200; color: $blue-700; box-shadow: $shadow-lg; }
+  &:focus-visible { @include focus-ring; }
+  &.is-prev { inset-inline-start: -10px; }
+  &.is-next { inset-inline-end: -10px; }
+  [dir="rtl"] & svg { transform: scaleX(-1); }
+}
+
+// the companies sit side by side, each the same card as before
 .od-colist {
   display: flex;
-  flex-direction: column;
-  gap: space("2");
+  gap: space("3");
   margin: 0;
-  padding: 0;
+  padding: space("1");
   list-style: none;
 
-  // a phone: a row to swipe
-  @include down("lg") {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: space("1");
-    scroll-snap-type: x mandatory;
-    @include thin-scrollbar;
-
-    > li { flex: 0 0 min(280px, 85%); scroll-snap-align: start; }
-  }
+  > li { flex: 0 0 clamp(250px, 26%, 310px); scroll-snap-align: start; display: flex; }
+  > li > .od-co { flex: 1 1 auto; }
 }
 
 .od-co {
@@ -358,263 +362,282 @@ $od-categories: (
   }
 }
 
-.od-group {
-  &[hidden] { display: none; }
+// --------------------------------------------- master / child: categories ----
+.od-md {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: space("4");
+  align-items: start;
 
-  &__title { margin: space("2") 0; }
+  @container odpanel (max-width: 759.98px) { grid-template-columns: minmax(0, 1fr); }
+}
 
-  // the whole header folds the category open / shut
-  &__toggle {
-    display: flex;
+.od-master {
+  position: sticky;
+  top: calc(#{$topbar-height} + #{space("4")});
+  display: flex;
+  flex-direction: column;
+  gap: space("2");
+  padding: space("3");
+  border: 1px solid $line-200;
+  border-radius: $radius-lg;
+  background: $white;
+  box-shadow: $shadow-xs;
+
+  &__title { @include label-caps; padding: 0 space("2"); color: $ink-500; font-size: $fs-xs; }
+  &__list { display: flex; flex-direction: column; gap: space("1"); }
+
+  // one category: icon, name, how much is on record, what needs attention, the count
+  &__item {
+    --od-accent: #{$navy-900};
+    --od-tint: #{$surface};
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
     align-items: center;
     gap: space("2");
     width: 100%;
-    padding: space("1") space("1") space("1") 0;
-    border: 0;
-    border-radius: $radius-sm;
+    padding: space("2");
+    border: 1px solid transparent;
+    border-radius: $radius-md;
     background: none;
-    color: var(--od-accent);
-    font-size: $fs-sm;
-    font-weight: $fw-bold;
     text-align: start;
-    text-transform: uppercase;
-    letter-spacing: .05em;
     cursor: pointer;
+    @include motion(background-color, border-color, box-shadow);
 
-    &:hover .od-group__chev { background: var(--od-tint); }
+    &:hover { background: var(--od-tint); }
     &:focus-visible { @include focus-ring; }
+
+    &.is-active {
+      border-color: color-mix(in srgb, var(--od-accent) 40%, transparent);
+      background: var(--od-tint);
+      box-shadow: inset 3px 0 0 var(--od-accent);
+    }
+    [dir="rtl"] &.is-active { box-shadow: inset -3px 0 0 var(--od-accent); }
   }
 
   &__icon {
-    display: inline-flex; align-items: center; justify-content: center; flex: none;
-    width: 26px; height: 26px; border-radius: $radius-sm;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: $radius;
     background: var(--od-tint); color: var(--od-accent);
+  }
+  &__item.is-active &__icon { background: var(--od-accent); color: $white; }
+
+  &__text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  &__name { font-weight: $fw-semibold; color: $ink-900; font-size: $fs-sm; @include truncate; }
+  &__meta { font-size: $fs-xs; color: $ink-500; }
+
+  &__bar {
+    display: block; height: 4px; border-radius: $radius-pill; background: $line-100; overflow: hidden;
+    > span { display: block; height: 100%; border-radius: inherit; background: var(--od-accent); }
+  }
+
+  &__flags {
+    display: flex; flex-wrap: wrap; gap: 3px;
+    > span {
+      display: inline-flex; align-items: center; gap: 2px;
+      padding: 0 6px; border-radius: $radius-pill;
+      font-size: .66rem; font-weight: $fw-semibold;
+    }
+    .is-expired { background: $red-050; color: $red-700; }
+    .is-due { background: $amber-050; color: $amber-700; }
+    .is-missing { background: #fff1f2; color: #be123c; }
+    .is-ok { padding: 0; color: $ink-500; font-weight: $fw-medium; }
   }
 
   &__count {
-    padding: 0 7px;
+    min-width: 26px; padding: 1px 7px;
     border-radius: $radius-pill;
-    background: var(--od-tint);
-    font-size: $fs-xs;
-    letter-spacing: 0;
+    background: $surface; color: $ink-700;
+    font-size: $fs-xs; font-weight: $fw-bold; text-align: center;
   }
+  &__item.is-active &__count { background: var(--od-accent); color: $white; }
 
-  // expired / due / missing: in sight while folded
-  &__flag {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 0 7px;
-    border-radius: $radius-pill;
-    font-size: $fs-xs;
-    font-weight: $fw-semibold;
-    letter-spacing: 0;
-    text-transform: none;
+  // narrow: the categories become a row of chips to swipe
+  @container odpanel (max-width: 759.98px) {
+    position: static;
+    padding: space("2");
 
-    &.is-expired { background: $red-050; color: $red-700; }
-    &.is-due { background: $amber-050; color: $amber-700; }
-    &.is-missing { background: $red-050; color: $red-700; }
-  }
-
-  &__line {
-    flex: 1 1 auto;
-    min-width: space("4");
-    height: 1px;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--od-accent) 35%, transparent), transparent);
-  }
-  [dir="rtl"] &__line { background: linear-gradient(270deg, color-mix(in srgb, var(--od-accent) 35%, transparent), transparent); }
-
-  &__chev {
-    display: inline-flex; align-items: center; justify-content: center; flex: none;
-    width: 26px; height: 26px; border-radius: $radius-sm;
-    color: var(--od-accent);
-    @include motion(background-color);
-
-    svg { transition: transform .2s ease; }
-  }
-
-  // folding: the rows collapse smoothly (grid 1fr -> 0fr)
-  &__body {
-    display: grid;
-    grid-template-rows: 1fr;
-    transition: grid-template-rows .22s ease;
-
-    > .od-group__list { min-height: 0; overflow: hidden; padding: 2px; margin: -2px; }
-  }
-
-  &.is-folded {
-    .od-group__body { grid-template-rows: 0fr; }
-    .od-group__body > .od-group__list { padding: 0; margin: 0; visibility: hidden; transition: visibility 0s .22s; }
-    .od-group__chev svg { transform: rotate(-90deg); }
-  }
-  [dir="rtl"] &.is-folded .od-group__chev svg { transform: rotate(90deg); }
-
-  &__list { display: flex; flex-direction: column; gap: space("2"); }
-
-  @media (prefers-reduced-motion: reduce) {
-    &__body, &__chev svg { transition: none; }
+    &__title { display: none; }
+    &__list { flex-direction: row; overflow-x: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+    &__item { flex: 0 0 auto; width: auto; grid-template-columns: 28px auto auto; }
+    &__icon { width: 28px; height: 28px; }
+    &__bar, &__flags, &__meta { display: none; }
   }
 }
+.od-cat-all { --od-accent: #{$navy-900}; --od-tint: #{$blue-050}; }
 
-// Collapse all / Expand all - at the end of the status filters
-.od-filter__fold {
-  display: inline-flex;
-  gap: space("1");
-  margin-inline-start: auto;
-}
+.od-child { display: flex; flex-direction: column; gap: space("3"); min-width: 0; }
 
-.od-fold-btn {
-  display: inline-flex;
+.od-child__bar {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid $line-200;
-  border-radius: $radius-pill;
-  background: $white;
-  color: $ink-600;
-  font-size: $fs-xs;
-  font-weight: $fw-semibold;
-  cursor: pointer;
-  @include motion(border-color, color, background-color);
+  justify-content: space-between;
+  gap: space("2") space("3");
+}
+.od-child__title { margin: 0; font-family: $font-display; font-size: $fs-lg; font-weight: $fw-semibold; color: $navy-900; }
 
-  &:hover { border-color: $blue-200; color: $blue-700; background: $blue-050; }
-  &:focus-visible { @include focus-ring; }
-
-  &[data-od-fold="collapse"] svg { transform: rotate(180deg); }
+// ------------------------------------------------------------- the cards ----
+.od-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 268px), 1fr));
+  gap: space("3");
 }
 
-// one document
-.od-doc {
+.od-card {
   --od-state: #{$line-300};
+  --od-state-tint: #{$surface};
 
   position: relative;
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) minmax(150px, auto) 64px auto;
-  align-items: center;
-  gap: space("2") space("4");
-  padding: space("3") space("4") space("3") calc(#{space("4")} + 4px);
+  display: flex;
+  flex-direction: column;
+  gap: space("3");
+  padding: space("4");
+  overflow: hidden;
   border: 1px solid $line-200;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   background: $white;
   box-shadow: $shadow-xs;
-  @include motion(box-shadow, border-color);
+  @include motion(box-shadow, transform, border-color);
 
   &[hidden] { display: none; }
-  &:hover { box-shadow: $shadow-sm; }
+  &:hover { box-shadow: $shadow-md; transform: translateY(-2px); }
 
-  // its state down the start edge
+  // the state as a band across the top
   &::before {
     content: "";
     position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0;
-    width: 4px;
-    border-start-start-radius: $radius-md;
-    border-end-start-radius: $radius-md;
+    inset-inline: 0;
+    top: 0;
+    height: 4px;
     background: var(--od-state);
   }
 
-  &--expired { --od-state: #{$red-600}; background: linear-gradient(90deg, $red-050 0%, $white 35%); }
-  &--due { --od-state: #{$amber-600}; background: linear-gradient(90deg, $amber-050 0%, $white 35%); }
-  &--valid { --od-state: #{$green-600}; }
-  &--missing { --od-state: #{$red-300}; border-style: dashed; border-color: $red-300; }
-  &--none { --od-state: #{$line-300}; border-style: dashed; }
+  &--expired { --od-state: #{$red-600}; --od-state-tint: #{$red-050}; }
+  &--due { --od-state: #{$amber-600}; --od-state-tint: #{$amber-050}; }
+  &--valid { --od-state: #{$green-600}; --od-state-tint: #{$green-050}; }
+  &--missing { --od-state: #{$red-300}; --od-state-tint: #{$red-050}; border-style: dashed; border-color: $red-300; box-shadow: none; }
+  &--none { --od-state: #{$line-300}; border-style: dashed; box-shadow: none; background: $surface; }
 
+  &__top { display: flex; align-items: center; gap: space("2"); }
   &__icon {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px; border-radius: $radius;
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 34px; height: 34px; border-radius: $radius;
     background: var(--od-tint); color: var(--od-accent);
   }
-
-  &__main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-  &__name { margin: 0; font-size: $fs-base; font-weight: $fw-semibold; color: $ink-900; }
-  &__req { color: $red-600; }
-
-  &__meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px space("3");
-    font-size: $fs-xs;
-    color: $ink-500;
-
-    > span { display: inline-flex; align-items: center; gap: space("1"); }
+  &__cat { flex: 1 1 auto; min-width: 0; font-size: $fs-xs; font-weight: $fw-semibold; color: var(--od-accent); text-transform: uppercase; letter-spacing: .04em; @include truncate; }
+  &__state {
+    flex: none;
+    padding: 2px 9px;
+    border-radius: $radius-pill;
+    background: var(--od-state-tint);
+    color: color-mix(in srgb, var(--od-state) 75%, #000);
+    font-size: .68rem;
+    font-weight: $fw-bold;
   }
-  &__no { font-family: $font-mono; color: $ink-700; }
-  &__none { font-style: italic; }
 
-  &__alerts {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: space("1");
-    color: $ink-400;
+  &__name {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px space("2");
+    margin: 0; font-size: $fs-md; font-weight: $fw-semibold; color: $ink-900; line-height: 1.3;
   }
+  &__req { padding: 0 6px; border-radius: $radius-pill; background: #fff1f2; color: #be123c; font-size: .62rem; font-weight: $fw-bold; text-transform: uppercase; letter-spacing: .04em; }
+
+  // the ring: how much of its validity is left (the number = days)
+  &__body { display: flex; align-items: center; gap: space("3"); }
+  &__ring {
+    --p: 0;
+    position: relative;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    flex: none;
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: conic-gradient(var(--od-state) calc(var(--p) * 1%), $line-100 0);
+    color: $ink-900;
+
+    &::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: $white; }
+    > * { position: relative; }
+
+    &.is-flat { background: var(--od-state-tint); color: var(--od-state); &::before { display: none; } }
+  }
+  &__ring-n { font-family: $font-display; font-size: 1.05rem; font-weight: $fw-bold; line-height: 1; }
+  &__ring-u { max-width: 54px; font-size: .52rem; line-height: 1.1; color: $ink-500; text-align: center; text-transform: uppercase; letter-spacing: .02em; }
+  &--expired &__ring-n { color: $red-700; }
+  &--due &__ring-n { color: $amber-700; }
+
+  &__dates { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  &__label { font-size: $fs-xs; color: $ink-500; }
+  &__when { font-family: $font-display; font-size: $fs-base; color: $ink-900; }
+  &--expired &__when { color: $red-700; }
+  &--due &__when { color: $amber-700; }
+
+  &__facts {
+    display: flex; flex-wrap: wrap; gap: space("1") space("3");
+    font-size: $fs-xs; color: $ink-600;
+    > span { display: inline-flex; align-items: center; gap: space("1"); min-width: 0; }
+    &:empty { display: none; }
+  }
+  &__no { font-family: $font-mono; color: $ink-800; }
+
+  &__empty {
+    display: flex; align-items: center; gap: space("2");
+    padding: space("3");
+    border-radius: $radius-md;
+    background: rgba($white, .7);
+    color: $ink-500; font-size: $fs-sm; font-style: italic;
+  }
+  &__empty-icon {
+    display: inline-grid; place-items: center; flex: none;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px dashed currentColor;
+  }
+  &--missing &__empty { color: #be123c; }
+
+  &__alerts { display: flex; flex-wrap: wrap; align-items: center; gap: space("1"); color: $ink-400; }
   &__alert {
     padding: 0 space("2");
-    border-radius: $radius-pill;
     border: 1px solid $line-200;
-    font-size: .68rem;
-    font-weight: $fw-semibold;
+    border-radius: $radius-pill;
     color: $ink-500;
+    font-size: .66rem;
+    font-weight: $fw-semibold;
 
-    &.is-fired { background: $amber-600; border-color: $amber-600; color: $white; }
-    &.is-none { border-style: dashed; }
+    &.is-fired { border-color: $amber-600; background: $amber-600; color: $white; }
   }
 
-  &__status { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: end; }
-  &__date { font-family: $font-display; font-weight: $fw-semibold; color: $ink-900; }
-  &__days { font-size: $fs-xs; color: $ink-500; }
-  &--expired &__days { color: $red-700; font-weight: $fw-semibold; }
-  &--due &__days { color: $amber-700; font-weight: $fw-semibold; }
-
-  &__file { display: flex; justify-content: center; }
+  &__foot {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    margin-top: auto;
+    padding-top: space("3");
+    border-top: 1px solid $line-100;
+  }
   &__thumb {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 60px; height: 44px; overflow: hidden;
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    width: 52px; height: 38px; overflow: hidden;
     border: 1px solid $line-200; border-radius: $radius-sm; background: $surface;
     @include motion(border-color, transform);
     @include focus-ring;
 
     img { width: 100%; height: 100%; object-fit: cover; }
-    &.is-pdf { background: $red-050; color: $red-700; font-size: .65rem; font-weight: $fw-bold; }
+    &.is-pdf { background: $red-050; color: $red-700; font-size: .62rem; font-weight: $fw-bold; }
     &:hover { border-color: $blue-600; transform: translateY(-1px); }
   }
   &__noscan { color: $ink-300; }
-
-  &__actions { display: flex; align-items: center; justify-content: flex-end; gap: space("1"); flex-wrap: wrap; }
+  &__actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: space("1"); margin-inline-start: auto; }
   &__count {
-    position: absolute;
-    top: -4px;
-    inset-inline-end: -4px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 3px;
-    border-radius: $radius-pill;
-    background: $blue-600;
-    color: $white;
-    font-size: .6rem;
-    line-height: 16px;
-    text-align: center;
+    position: absolute; top: -4px; inset-inline-end: -4px;
+    min-width: 16px; height: 16px; padding: 0 3px;
+    border-radius: $radius-pill; background: $blue-600; color: $white;
+    font-size: .6rem; line-height: 16px; text-align: center;
   }
   [data-od-act="history"] { position: relative; }
-
   .od-renew { display: inline-flex; align-items: center; gap: space("1"); white-space: nowrap; }
 
-  // narrow: icon + name on top, then status / scan / actions in a row
-  // narrow: icon + name across the top, then status, scan and actions in one row
-  @container odpanel (max-width: 719.98px) {
-    grid-template-columns: 40px minmax(0, 1fr) auto auto;
-    grid-template-areas: "icon main main main" "status status file actions";
-    gap: space("2") space("3");
-    padding: space("3") space("3") space("3") calc(#{space("3")} + 4px);
-
-    .od-doc__icon { grid-area: icon; width: 40px; height: 40px; align-self: start; }
-    .od-doc__main { grid-area: main; }
-    .od-doc__file { grid-area: file; }
-    .od-doc__thumb { width: 48px; height: 36px; }
-    .od-doc__status { grid-area: status; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 2px space("2"); text-align: start; }
-    .od-doc__actions { grid-area: actions; flex-wrap: nowrap; }
-  }
+  @media (prefers-reduced-motion: reduce) { &:hover { transform: none; } }
 }
 
 // the form
