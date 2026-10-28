@@ -101,19 +101,24 @@
                                 case "expired":
                                     <span class="hrms-badge hrms-badge--danger"><span class="hrms-badge__dot"></span>@L["od.s_expired"]</span>
                                     <span class="od-doc__date">@L.Date(d.ExpiryDate)</span>
-                                    <span class="od-doc__days">@L["od.days_ago", -days!.Value]</span>
+                                    @if (days is { } ago) { <span class="od-doc__days">@L["od.days_ago", -ago]</span> }
                                     break;
                                 case "due":
                                     <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["od.s_due"]</span>
                                     <span class="od-doc__date">@L.Date(d.ExpiryDate)</span>
-                                    <span class="od-doc__days">@(days == 0 ? L["od.today"] : L["od.in_days", days!.Value])</span>
+                                    @if (days is { } left) { <span class="od-doc__days">@(left == 0 ? L["od.today"] : L["od.in_days", left])</span> }
                                     break;
                                 case "valid":
                                     <span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@(d.HasExpiryDate ? L["od.s_valid"] : L["od.s_on_record"])</span>
-                                    @if (d.HasExpiryDate)
+                                    @if (d.HasExpiryDate && d.ExpiryDate is not null && days is { } valid)
                                     {
                                         <span class="od-doc__date">@L.Date(d.ExpiryDate)</span>
-                                        <span class="od-doc__days">@L["od.in_days", days!.Value]</span>
+                                        <span class="od-doc__days">@L["od.in_days", valid]</span>
+                                    }
+                                    else if (d.HasExpiryDate)
+                                    {
+                                        @* on record without its expiry date (e.g. imported) - fill it in on the document *@
+                                        <span class="od-doc__days">@L["od.no_expiry"]</span>
                                     }
                                     break;
                                 case "missing":
