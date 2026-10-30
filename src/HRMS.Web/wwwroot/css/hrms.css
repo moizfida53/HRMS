@@ -15964,29 +15964,35 @@ html.hrms-embed .hrms-content {
   text-decoration: none;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
+.hrms-app-tile[data-app=hrms] {
+  --app-accent: #1d5fbf;
+}
 .hrms-app-tile[data-app=pos] {
   --app-accent: #d97706;
 }
-.hrms-app-tile[data-app=hr] {
-  --app-accent: #1d5fbf;
+.hrms-app-tile[data-app=assets] {
+  --app-accent: #0b7a3b;
 }
-.hrms-app-tile[data-app=payroll] {
-  --app-accent: #16a34a;
+.hrms-app-tile[data-app=feedback] {
+  --app-accent: #6941c6;
 }
-.hrms-app-tile[data-app=setup] {
-  --app-accent: #15396a;
+.hrms-app-tile[data-app=menucolors] {
+  --app-accent: #dc2626;
+}
+.hrms-app-tile[data-app=items] {
+  --app-accent: #3373d6;
+}
+.hrms-app-tile[data-app=printers] {
+  --app-accent: #344054;
 }
 .hrms-app-tile[data-app=settings] {
   --app-accent: #475467;
 }
 .hrms-app-tile[data-app=security] {
-  --app-accent: #dc2626;
+  --app-accent: #15396a;
 }
-.hrms-app-tile[data-app=printers] {
-  --app-accent: #6941c6;
-}
-.hrms-app-tile[data-app=items] {
-  --app-accent: #3373d6;
+.hrms-app-tile[data-app=users] {
+  --app-accent: #16a34a;
 }
 .hrms-app-tile__icon {
   display: inline-flex;

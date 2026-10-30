@@ -1,0 +1,495 @@
+﻿
+@{
+    ViewBag.Title = "Dashboard";
+
+    // Stated explicitly, as every other POS view does. There is no _ViewStart
+    // in this Area, so without this line the view renders with no layout at
+    // all - no nav, no sign-out, no way back to the Order List.
+    Layout = "~/Areas/POS/Views/Shared/_LayoutPOS.cshtml";
+}
+
+@* -----------------------------------------------------------------------------
+   STYLESHEETS
+
+   The originals pointed at ~/assets/css/pages/reportdashboard/ and
+   ~/Content/datatables/. NEITHER FOLDER EXISTS in this project, so every one of
+   those links 404'd - which is why the filter bar rendered as bare, unstyled
+   <select> boxes. They are replaced with the copies that are actually here.
+
+   bootstrap.min.css and jquery.dataTables.min.css are already loaded by
+   _LayoutPOS.cshtml's <head>; pulling them in a second time only invites a
+   cascade fight, so they are not repeated.
+----------------------------------------------------------------------------- *@
+<link href="~/Content/bootstrap-select.min.css" rel="stylesheet" />
+<link href="~/DashboardContent/DateRangePicker/daterangepicker.css" rel="stylesheet" />
+<link href="~/css/KMLoader.css" rel="stylesheet" />
+<link href="~/css/loader-Montserrat.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css?family=Poppins:300,300i,400,400i,500,600,700,900&display=swap" rel="stylesheet" />
+
+<style>
+    .nav-tabs .nav-item.show .nav-link, .nav-tabs .nav-link.active {
+        background-color: #f2f3f7 !important;
+        color: #000 !important;
+    }
+
+    .dropdown-menu.show {
+        transform: none !important;
+    }
+
+    /* The filter bar sits inside a Bootstrap card; bootstrap-select renders a
+       button the same height as .form-control so the row lines up. */
+    .filter-bar .bootstrap-select > .dropdown-toggle {
+        height: calc(1.5em + .75rem + 2px);
+        padding: .375rem .75rem;
+    }
+
+    .filter-bar .form-group {
+        margin-bottom: .75rem;
+    }
+
+    #reportrange {
+        background: #fff;
+        cursor: pointer;
+        padding: .375rem .75rem;
+        border: 1px solid #ced4da;
+        border-radius: .25rem;
+        color: #212529;
+        height: calc(1.5em + .75rem + 2px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ---------------- KPI cards (Sales.cshtml's 4 boxes) ----------------
+       .info-name and .name-id came from ~/assets/css/pages/reportdashboard/
+       style.css, which 404's - see the STYLESHEETS note above. With no CSS to
+       stack them, the amount and its count sat side by side as two inline
+       elements. Amount now leads, its count follows underneath as a smaller,
+       muted line - the count is context for the amount, not a second figure
+       of equal weight. */
+    .info-name {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .info-name .name-id {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--tmm-ink);
+    }
+    .info-name .name-id .currancy {
+        font-size: 12px;
+        font-weight: 600;
+        margin-right: 4px;
+        color: var(--pos-muted);
+    }
+    .info-name .kpi-count {
+        margin-top: 2px;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--pos-muted);
+    }
+
+    /* ---------------- Sales Data pivot grid ----------------
+       Built server-side by SalesPivotBuilder dot Build in DashboardModels.cs.
+       col-total / row-total are added by the builder to the Total group's
+       cells so the grand totals stay visually distinct from the per-branch
+       figures they sum. */
+    .totalSalesPivotTable thead tr:last-child th {
+        background: #F2F4F4;
+        font-weight: 600;
+        font-size: 12.5px;
+    }
+    .totalSalesPivotTable th.col-total,
+    .totalSalesPivotTable td.col-total {
+        background: #FBF8EF;
+    }
+    .totalSalesPivotTable tr.row-total td {
+        font-weight: 700;
+        background: #FAFBFB;
+        border-top: 2px solid #DCE1E0;
+    }
+</style>
+<input type="hidden" id="hdnCurrancyCode" value="KD" />
+<!-- Tab START -->
+<div class="tab-section">
+    <ul class="tab-sec nav nav-tabs md-tabs mb-3 bg-white align-items-center" id="myTabMD" role="tablist">
+        @* Sales / BI Reports / Finance / Business Summary / Saved Reports - hidden
+           until those pages exist, same as the Customers/Reports/Settings links
+           in the POS main menu (_LayoutPOS.cshtml). Kept, not deleted: restoring
+           one is a matter of uncommenting its <li>.
+
+           The Sales tab-pane (#home-md, below) already carries "show active" of
+           its own, independent of these nav links, so Sales content keeps
+           showing by default with the tab strip gone - there just stops being a
+           way to switch to BI Reports/Finance/Business Summary/Saved Reports.
+
+           "Location & Date" is left alone - it is not one of the named tabs,
+           and is what opens the filter bar (Country/Location/Brand/date range)
+           that the Sales tab still uses. Hiding the row that contains it would
+           have taken it out too. *@
+        @*
+        <li class="nav-item waves-effect waves-light">
+            <a class="nav-link active p-md-3 p-sm-2 border-0 dash_tab" id="sales-tab-md" data-toggle="tab" href="#home-md" role="tab" aria-controls="home-md" aria-selected="true">Sales</a>
+        </li>
+        <li class="nav-item waves-effect waves-light">
+            <a class="nav-link p-md-3 p-sm-2 border-0 dash_tab" id="BIReports-tab-md" data-toggle="tab" href="#profile-md" role="tab" aria-controls="profile-md" aria-selected="false">BI Reports</a>
+        </li>
+        <li class="nav-item waves-effect waves-light">
+            <a class="nav-link p-md-3 p-sm-2 border-0 dash_tab" id="Finance-tab-md" data-toggle="tab" href="#contact-md" role="tab" aria-controls="contact-md" aria-selected="false">Finance</a>
+        </li>
+        <li class="nav-item waves-effect waves-light">
+            <a class="nav-link p-md-3 p-sm-2 border-0 dash_tab" id="summary-tab-md" data-toggle="tab" href="#summary-md" role="tab" aria-controls="summary-md" aria-selected="false">Business Summary</a>
+        </li>
+        <li class="nav-item waves-effect waves-light">
+            <a class="nav-link p-md-3 p-sm-2 border-0 dash_tab" id="reports-tab-md" data-toggle="tab" href="#reports-md" role="tab" aria-controls="reports-md" aria-selected="false">Saved Reports</a>
+        </li>
+        *@
+        @* "Location & Date" used to open/close the filter bar below via
+           Bootstrap's collapse plugin. The filter bar is now always visible
+           (see #collapseExample below - the "collapse" class that hid it by
+           default is gone), so there is nothing left for this button to
+           toggle. Kept, not deleted: bringing it - and the click-to-open
+           behaviour - back just means restoring the "collapse" class down
+           there and uncommenting this. *@
+        @*
+        <li class="collapse-btn ml-md-auto bd-md-highlight pr-3">
+            <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+                Location & Date
+            </a>
+        </li>
+        *@
+    </ul>
+</div>
+<!-- Tab END -->
+<!-- Main Content -->
+<main class="main-content pt-0">
+    <!-- Tabbing START -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Filter bar: always visible now - see the note on the removed
+                 "Location & Date" button above. "collapseExample" is no
+                 longer a Bootstrap collapse (that class is gone); the id is
+                 kept only because nothing else needs to change to restore it. -->
+            <div class="col-lg-12">
+                <div id="collapseExample">
+                    <div class="card p-3 mb-3">
+                        @* -------------------------------------------------------------
+                           FILTER BAR
+
+                           Operation Day and Late Order Min Duration are gone from the
+                           bar. Operation Day was the end-day / end-shift selector: it
+                           listed till sessions and posted them as @@EndDates, which then
+                           OVERRODE the chosen date range in sp_DashbordSalesData. The
+                           dashboard now scopes on the selected date range and nothing
+                           else, so the control has no job left.
+
+                           Late Order Min Duration survives as a hidden input rather than
+                           being deleted - the late-orders panel and its drill-down both
+                           post it, and a missing element makes $('#txtLateMinDuration')
+                           .val() undefined at three call sites in Dashboard.js.
+                        ------------------------------------------------------------- *@
+                        <div class="row justify-content-between filter-bar">
+                            <div class="col-md">
+                                <div class="row">
+                                    @* Country is hidden, not removed: sp_DashboardFilter already
+                                       accepts and ignores @@CountryId ("one country here"), and
+                                       bindCountryDropdown() still needs the element to populate and
+                                       default it to Kuwait, which is what GetFilterData() posts.
+                                       display:none only - no JS depends on this being visible. *@
+                                    <div class="form-group col-xl-2 col-lg-3 col-md-4 d-none">
+                                        <label>Select Country</label>
+                                        <select id="drpCountry" class="selectpicker clsfilter" data-width="100%">
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-xl-2 col-lg-3 col-md-4">
+                                        <label>All Brands</label>
+                                        <select id="drpBrands" class="selectpicker clsfilter" multiple title="All Brands" data-actions-box="true" data-live-search="true" data-width="100%" data-selected-text-format="count > 2">
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-xl-2 col-lg-3 col-md-4">
+                                        <label>All Locations</label>
+                                        <select id="drpLocations" class="selectpicker clsfilter" multiple title="All Locations" data-actions-box="true" data-live-search="true" data-width="100%" data-selected-text-format="count > 2">
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-xl-2 col-lg-3 col-md-4">
+                                        <label>All Order Type</label>
+                                        <select id="drpOrdertypes" class="selectpicker clsfilter" multiple title="All Order Type" data-actions-box="true" data-width="100%" data-selected-text-format="count > 2">
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-xl-2 col-lg-3 col-md-4">
+                                        <label>All Payment Types</label>
+                                        <select id="drpPaymenttypes" class="selectpicker clsfilter" multiple title="All Payment Types" data-actions-box="true" data-width="100%" data-selected-text-format="count > 2">
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group col-xl-3 col-lg-4 col-md-6">
+                                        <label>Select Date Range</label>
+                                        <div id="reportrange">
+                                            <i class="fa fa-calendar"></i>&nbsp;
+                                            <span></span> <i class="fa fa-caret-down"></i>
+                                        </div>
+                                        <input type="hidden" id="StartDate" />
+                                        <input type="hidden" id="EndDate" />
+                                    </div>
+
+                                    @* Hidden, not deleted - see the note above. *@
+                                    <input type="hidden" id="txtLateMinDuration" value="70" />
+
+                                    <div class="form-group col-xl-3 col-lg-4 col-md-6 d-flex align-items-end">
+                                        <button type="button" class="btn btn-primary mr-2" onclick="ApplybuttonClick();">
+                                            Apply
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="OnReloadFilterClick();">
+                                            Reload
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Collepse Content START (click to open)-->
+            <div class="col-lg-12 mb-3">
+                <div class="tab-content" id="myTabContentMD">
+                    <!-- 1st Tab Content START -->
+                    <div class="tab-pane fade show active" id="home-md" role="tabpanel" aria-labelledby="sales-tab-md">
+                        <div id="SalesTabMainView">
+                            @{
+                                Html.RenderPartial("~/Areas/POS/Views/Dashboard/Sales.cshtml");
+                            }
+                        </div>
+                        <div id="SalesTabDetailsView">
+                            @{
+                                Html.RenderPartial("~/Areas/POS/Views/Dashboard/DetailsView.cshtml");
+                            }
+                        </div>
+                        <div id="SalesTabSalesDetailsView">
+
+                        </div>
+                        <div id="HoursWiseSalesDataView">
+
+                        </div>
+                    </div>
+                    <!-- 1st Tab Content END -->
+                    <!-- 2nd Tab Content START -->
+                    <div class="tab-pane fade" id="profile-md" role="tabpanel" aria-labelledby="BIReports-tab-md">
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="card p-2 mb-3">
+                                    @*<div class="d-flex justify-content-center">*@
+                                    @{
+                                        Html.RenderPartial("~/Areas/POS/Views/Dashboard/BIReports.cshtml");
+                                    }
+                                    @*</div>*@
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 2nd Tab Content END -->
+                    <!-- 3rd Tab Content START -->
+                    <div class="tab-pane fade" id="contact-md" role="tabpanel" aria-labelledby="Finance-tab-md">
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="card p-2 mb-3">
+                                    <div class="d-flex justify-content-center">
+                                        <span>Tab 3</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 3rd Tab Content END -->
+                    <!-- 4th Tab Content START -->
+                    <div class="tab-pane fade" id="summary-md" role="tabpanel" aria-labelledby="summary-tab-md">
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="card p-2 mb-3">
+                                    <div class="d-flex justify-content-center">
+                                        <span>Tab 4</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 4th Tab Content END -->
+                    <!-- 5th Tab Content START -->
+                    <div class="tab-pane fade" id="reports-md" role="tabpanel" aria-labelledby="reports-tab-md">
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="card p-2 mb-3">
+                                    <div class="d-flex justify-content-center">
+                                        <span>Tab 5</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 5th Tab Content END -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Tabbing END -->
+</main>
+<!-- End Main Content -->
+@*//------------------------------------------------------Alert box-------------------------------------------------------------------*@
+<div class="modal " id="alert" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="lblCallMessage">Message</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="message"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="btnCallAlertCloseModel" type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@* =============================================================================
+   SCRIPTS - and why every one of them is down here in a section
+
+   _LayoutPOS.cshtml loads jQuery AFTER @@RenderBody(). Anything this view loaded
+   inline in the body therefore registered its plugins against a jQuery that the
+   layout then replaced wholesale a moment later: window.$ became a brand-new
+   instance with no .selectpicker and no .daterangepicker on $.fn. Dashboard.js's
+   ready handler then threw on the first $('#reportrange').daterangepicker(...)
+   and never reached BindFilters() - which is why the date range did nothing AND
+   every dropdown came up empty. One fault, two symptoms.
+
+   @@section scripts renders after the layout's own <script> tags, so the plugins
+   attach to the jQuery that survives. The view no longer loads jQuery,
+   Bootstrap's JS or DataTables core at all - the layout already has all three.
+
+   Paths corrected while here: ~/assets/js/pages/custom/reportdashboard/,
+   ~/Content/datatables/ and ~/Scripts/chartkick.js do not exist in this project.
+============================================================================= *@
+@section scripts {
+    @* Popper is deliberately NOT loaded here any more. It used to be, and it
+       did not work: this section renders AFTER the layout's bootstrap.min.js,
+       and Bootstrap captures Popper as a UMD closure argument when IT runs,
+       not when a dropdown opens. Loading Popper afterwards left that argument
+       undefined for good, so every filter below threw "Bootstrap's dropdowns
+       require Popper.js" on first click and never opened. It now loads ahead
+       of Bootstrap in _LayoutPOS.cshtml - see the note there. *@
+    <script src="~/js/bootstrap-select.min.js"></script>
+
+    <script src="~/DashboardContent/DateRangePicker/moment.min.js"></script>
+    <script src="~/DashboardContent/DateRangePicker/daterangepicker.min.js"></script>
+
+    @* DataTables core comes from the layout; these are the export buttons the
+       drill-down grids ask for with dom: 'Bfrtip'. *@
+    <link href="https://cdn.datatables.net/buttons/1.6.5/css/buttons.dataTables.min.css" rel="stylesheet" />
+    <script src="https://cdn.datatables.net/buttons/1.6.5/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.5/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.5/js/buttons.print.min.js"></script>
+
+    @* Charts. Chart.js drives the Branch Sales bar; Chartkick over Highcharts
+       draws the hourly and total-sales lines. Only ONE Chart.js version now -
+       3.6.0 and 3.0.2 were both being pulled in, and the second overwrote the
+       first after the datalabels plugin had registered against it. *@
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.6.0/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0-rc"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartkick@3.2.1/dist/chartkick.min.js"></script>
+
+    @* The endpoints, written by the router rather than by hand.
+
+       Inside an Area the routes are /POS/Dashboard/..., not /Dashboard/... -
+       the hard-coded paths in Dashboard.js pointed at the root and returned 404,
+       which shows up as a page stuck on its loading spinner rather than as an
+       error. Emitting them here means a future route change cannot break the JS.
+
+       Same pattern as POS.urls in _LayoutPOS.cshtml. *@
+    <script>
+        window.DASH = {
+            filter: '@Url.Action("GetFilter",              "Dashboard", new { area = "POS" })',
+            data:   '@Url.Action("GetReportDashboardData", "Dashboard", new { area = "POS" })'
+        };
+    </script>
+
+    <script src="~/MainJs/KMLoader.js"></script>
+    <script src="~/Areas/POS/Scripts/Dashboard.js"></script>
+
+    @* BI Reports tab. These were inline in BIReports.cshtml, which is rendered
+       into the middle of the body - i.e. before the layout's jQuery and before
+       Chartkick existed - so the whole block threw on its first line and left
+       exportPivotToExcel() and saveAs() undefined. Moved here, after both. *@
+    <script src="~/vendor/pivot/c3.min.js"></script>
+    <script src="~/vendor/pivot/d3.min.js"></script>
+    <script src="~/MainJs/PivotJS.js"></script>
+
+    <script>
+        // $(document)
+        //    .ajaxStart(function () {
+        //        debugger;
+        //        showLoading();
+        //    });
+        //$(document).ajaxStop(function () {
+        //    hideLoading();
+        //});
+        //$(document).ajaxError(function () {
+        //    hideLoading();
+        //});
+
+        Chartkick.CustomChart = function (element, dataSource, options) { };
+
+
+        ///////////////////// Start code for BI Reports Tab //////////////////////////////////
+        var uri = 'data:application/vnd.ms-excel;base64,'
+            , template = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>{worksheet}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><meta http-equiv="content-type" content="text/plain; charset=UTF-8"/></head><body><table>{table}</table></body></html>'
+            , base64 = function (s) { return window.btoa(unescape(encodeURIComponent(s))) }
+            , format = function (s, c) { return s.replace(/{(\w+)}/g, function (m, p) { return c[p]; }) };
+
+
+        function saveAs(uri, filename) {
+            var link = document.createElement('a');
+            if (typeof link.download === 'string') {
+                link.href = uri;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                window.open(uri);
+            }
+        }
+
+        function exportPivotToExcel(pivotBlockId, name) {
+            if ($('#outputInvoicewise').css('display') != 'none') {
+                pivotBlockId = "outputInvoicewise";
+            }
+            if ($('#outputItemwise').css('display') != 'none') {
+                pivotBlockId = "outputItemwise";
+            }
+
+            var tbl = $('#' + pivotBlockId).find('.pvtTable');
+            var ctx = { worksheet: name || 'Worksheet', table: tbl.html() };
+            var uriFile = uri + base64(format(template, ctx));
+            saveAs(uriFile, name + '.xls');
+        }
+        ///////////////////// End code for BI Reports Tab //////////////////////////////////
+        $("#chkSelectAllDays").click(function () {
+            if ($("#chkSelectAllDays").is(':checked')) {
+                $("#daysdropdowns > option").prop("selected", "selected");
+                $("#daysdropdowns").trigger("change");
+            } else {
+                $("#daysdropdowns > option").removeAttr("selected");
+                $("#daysdropdowns").trigger("change");
+            }
+        });
+    </script>
+}

@@ -1,0 +1,48 @@
+@*
+    Areas/POS/Views/Dashboard/HoursWiseSalesDataView.cshtml
+
+    The hour-by-hour breakdown, opened from the "Hours Wise Sales" link on the
+    Sales tab. This view was NOT among the files carried over from the Call
+    Centre project - the controller renders it by name, so the tab threw until
+    it existed. It is rebuilt from what Dashboard.js does with it:
+
+        $('#HoursWiseSalesDataView').html(result.view);
+        $('#HourlyChartGroupBy').val(result.GroupByFlag);
+        genHourlyWiseSalesBarGraph(result.hourlyWiseSalesData);
+
+    So it has to contain the chart container (id="hourswisesalesbarchart"), the
+    group-by dropdown (id="HourlyChartGroupBy") and a way back. The chart is
+    drawn by Chartkick after this HTML lands, which is why the div is empty.
+*@
+<div class="row">
+    <div class="col-lg-12 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Hours Wise Sales</label>
+
+                    <div class="d-flex align-items-center">
+                        @* Values match what sp_DashbordSalesData groups by:
+                           1 branch, 2 invoice type, 3 everything together. *@
+                        <select id="HourlyChartGroupBy" class="form-control form-control-sm mr-2"
+                                style="width:auto;">
+                            <option value="1">By Branch</option>
+                            <option value="2">By Order Type</option>
+                            <option value="3">All Together</option>
+                        </select>
+
+                        <input type="button" value="Back" class="btn btn-primary btn-sm"
+                               onclick="BackToMainTab();" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-2">
+                @* Chartkick renders into this by id. Height is set here rather
+                   than left to the chart: an unsized container collapses to
+                   nothing before the first draw and the page jumps. *@
+                <div id="hourswisesalesbarchart" style="height:420px;"></div>
+            </div>
+        </div>
+    </div>
+</div>

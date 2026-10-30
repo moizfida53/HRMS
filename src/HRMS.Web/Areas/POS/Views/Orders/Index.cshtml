@@ -1,0 +1,822 @@
+﻿@*
+    Areas/POS/Views/Orders/Index.cshtml
+
+    Facet filters on the left, search toolbar and grid on the right.
+    The Brands facet hides itself when there is only one brand - a filter with
+    a single option cannot narrow anything, it just costs a click and screen
+    space.
+*@
+@{
+    Layout = "~/Areas/POS/Views/Shared/_LayoutPOS.cshtml";
+    ViewBag.Title = "Order List";
+    var u = POSUser.Current;
+}
+
+@section styles {
+    <style>
+        .ol-wrap { display: flex; gap: 14px; align-items: flex-start; }
+
+        /* One scrollbar for the whole panel instead of one per group.
+           Four independently-scrolling boxes meant a status could be present
+           but out of view inside its own little window, with nothing on screen
+           saying so. Now every group is drawn at full height and the column
+           itself scrolls - and because it is sticky, it scrolls independently
+           of the grid rather than dragging the page.
+
+           100vh minus the header and the body padding: the panel ends at the
+           bottom of the window, never past it. */
+        .ol-side {
+            flex: 0 0 232px; max-width: 232px;
+            position: sticky; top: 14px;
+            max-height: calc(100vh - 84px);
+            overflow-y: auto; overflow-x: hidden;
+            padding-right: 4px;          /* keeps the scrollbar off the cards */
+            scrollbar-width: thin;
+        }
+        .ol-side::-webkit-scrollbar { width: 8px; }
+        .ol-side::-webkit-scrollbar-thumb {
+            background: #C8CFCE; border-radius: 4px;
+        }
+        .ol-side::-webkit-scrollbar-track { background: transparent; }
+        /* min-width:0 lets the table scroll instead of forcing the flex row wide */
+        .ol-main { flex: 1 1 auto; min-width: 0; }
+
+        /* ---------------- grid scroll region ----------------
+           DataTables' scrollY (set in initGrid()) splits the table into a
+           fixed header and a scrolling body, so a long result set scrolls
+           inside the card instead of growing the whole page. The pieces
+           below just make that split look intentional: a solid header
+           background (the cloned header table has none of its own) and a
+           thin themed scrollbar on the body, to match .ol-side. */
+        .dataTables_scrollHead { background: var(--pos-surface); }
+        .dataTables_scrollHead table.dataTable thead th { position: sticky; top: 0; }
+        .dataTables_scrollBody {
+            scrollbar-width: thin;
+        }
+        .dataTables_scrollBody::-webkit-scrollbar { width: 8px; }
+        .dataTables_scrollBody::-webkit-scrollbar-thumb { background: #C8CFCE; border-radius: 4px; }
+        .dataTables_scrollBody::-webkit-scrollbar-track { background: transparent; }
+
+        /* ---------------- facets ---------------- */
+        .facet {
+            background: var(--pos-surface); border: 1px solid var(--pos-border);
+            border-radius: 6px; margin-bottom: 10px; overflow: hidden;
+            box-shadow: 0 1px 2px rgba(33,35,34,.05);
+        }
+        .facet > header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 9px 12px; background: var(--tmm-ink); color: #fff;
+            font-size: 13px; font-weight: 600; cursor: pointer; user-select: none;
+        }
+        .facet > header .toggle { margin-left: auto; font-size: 15px; line-height: 1; }
+        /* No max-height: every option in a group is visible at once. The
+           column scrolls, the group does not. */
+        .facet .items { padding: 4px 0; }
+        .facet.collapsed .items { display: none; }
+
+        .facet label {
+            display: flex; align-items: center; gap: 8px; margin: 0;
+            padding: 7px 12px; font-size: 13px; cursor: pointer; font-weight: 400;
+        }
+        .facet label:hover { background: var(--tmm-teal-lt); }
+        .facet label input { margin: 0; }
+        .facet label .nm  { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .facet label .cnt {
+            background: var(--tmm-teal); color: #fff; border-radius: 10px;
+            font-size: 11px; font-weight: 600; padding: 1px 7px; min-width: 22px; text-align: center;
+        }
+        .facet label .cnt.zero { background: #C8CFCE; }
+
+        /* Status rows are taller than the other facets on purpose: the glyph is
+           the thing being scanned, and a 26px icon in a 30px row is unreadable.
+           The checkbox stays - the row is still a filter, not a legend. */
+        .facet label.st-row { padding: 9px 12px; gap: 10px; }
+        .facet label.st-row .pos-st-ico { flex: 0 0 auto; }
+        .facet label.st-row .nm {
+            flex: 1 1 auto; font-size: 13.5px; font-weight: 600;
+            color: var(--tmm-ink); overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+        }
+        .facet label.st-row + label.st-row { border-top: 1px solid var(--pos-border); }
+        .facet label.st-row input:checked ~ .nm { text-decoration: underline; }
+
+        /* ---------------- toolbar ---------------- */
+        .ol-toolbar {
+            display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+            background: var(--pos-surface); border: 1px solid var(--pos-border);
+            border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;
+            box-shadow: 0 1px 2px rgba(33,35,34,.05);
+        }
+
+        /* icon buttons */
+        .tb-icon {
+            width: 38px; height: 38px; flex: 0 0 38px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border: 1px solid var(--pos-border); background: #fff;
+            border-radius: 8px; cursor: pointer; font-size: 17px; color: var(--tmm-ink);
+            transition: background .12s, border-color .12s;
+        }
+        .tb-icon:hover { background: var(--tmm-teal-lt); border-color: #BFDEDB; }
+        .tb-icon.on    { background: var(--tmm-teal); border-color: var(--tmm-teal); color: #fff; }
+
+        /* search shell - the icon sits inside the field, not beside it */
+        .tb-search { position: relative; flex: 1 1 320px; min-width: 220px; }
+        .tb-search .ico {
+            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+            color: #9AA5A3; font-size: 15px; pointer-events: none;
+        }
+        .tb-search input {
+            width: 100%; height: 38px; border: 1px solid var(--pos-border);
+            border-radius: 8px; padding: 0 34px 0 38px; font-size: 14px;
+            background: #FAFBFB; transition: background .12s, border-color .12s, box-shadow .12s;
+        }
+        .tb-search input:focus {
+            outline: none; background: #fff;
+            border-color: var(--tmm-teal); box-shadow: 0 0 0 3px rgba(14,138,128,.13);
+        }
+        .tb-search .clear {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            border: 0; background: none; color: #9AA5A3; font-size: 17px;
+            line-height: 1; cursor: pointer; display: none;
+        }
+        .tb-search.has-value .clear { display: block; }
+        .tb-search .clear:hover { color: var(--tmm-ink); }
+
+        .tb-select {
+            height: 38px; border: 1px solid var(--pos-border); border-radius: 8px;
+            padding: 0 10px; font-size: 13.5px; background: #fff; color: var(--tmm-ink);
+            max-width: 170px;
+        }
+        .tb-select:focus {
+            outline: none; border-color: var(--tmm-teal); box-shadow: 0 0 0 3px rgba(14,138,128,.13);
+        }
+
+        /* Same footprint as .tb-select (height, border, radius) so it sits in
+           the toolbar row without looking like a different kind of control -
+           it took the Payment Status dropdown's spot, see the markup below. */
+        .tb-check {
+            height: 38px; display: inline-flex; align-items: center; gap: 7px;
+            border: 1px solid var(--pos-border); border-radius: 8px; padding: 0 12px;
+            font-size: 13.5px; color: var(--tmm-ink); background: #fff; cursor: pointer;
+            user-select: none; white-space: nowrap; transition: background .12s, border-color .12s;
+            /* Bootstrap's base stylesheet gives every <label> margin-bottom:
+               .5rem, and .tb-check is a <label>. Overriding display above
+               doesn't clear that margin, so this pill's flex box (margin
+               included) was taller than the search bar/dropdown next to it -
+               .ol-toolbar's align-items:center then centred it on that taller
+               box, landing the visible pill a few px above them. */
+            margin: 0;
+        }
+        .tb-check:hover { background: var(--tmm-teal-lt); border-color: #BFDEDB; }
+        /* Unstyled native checkboxes render at an inconsistent intrinsic size
+           per browser, which throws off align-items:center against the
+           Search bar next to it. Giving it a fixed box (same fix as the
+           branch checklist checkboxes in User Management) makes the centering
+           land exactly instead of depending on that intrinsic size. */
+        .tb-check input {
+            margin: 0; cursor: pointer;
+            width: 15px; height: 15px; flex: 0 0 auto;
+        }
+        .tb-check.on {
+            background: var(--tmm-teal-lt); border-color: var(--tmm-teal);
+            color: var(--tmm-teal-dk); font-weight: 600;
+        }
+
+        /* Invoice Type badge in the grid - the background colour itself is
+           set inline per row (itypeColor() in pos.orders.js hashes the
+           Invoice Type ID to a hue), this just gives every colour the same
+           pill shape. */
+        .itype-badge {
+            display: inline-block; padding: 2px 9px; border-radius: 11px;
+            font-size: 12.5px; font-weight: 600; color: var(--tmm-ink);
+            white-space: nowrap;
+        }
+
+        .btn-place {
+            height: 38px; border: 0; border-radius: 8px; padding: 0 18px;
+            background: var(--tmm-teal); color: #fff; font-weight: 600; font-size: 14px;
+            display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+            box-shadow: 0 1px 3px rgba(14,138,128,.35); white-space: nowrap;
+        }
+        .btn-place:hover { background: var(--tmm-teal-dk); color: #fff; text-decoration: none; }
+
+        .tb-sep { width: 1px; height: 26px; background: var(--pos-border); }
+
+        /* ---------------- grid bits ---------------- */
+        .act-btn {
+            background: none; border: 0; padding: 3px 5px; cursor: pointer;
+            font-size: 16px; line-height: 1; border-radius: 4px;
+        }
+        .act-btn:hover:not(:disabled) { background: var(--tmm-teal-lt); }
+        .act-btn:disabled { opacity: .25; cursor: default; }
+
+        .chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--tmm-teal-lt); border: 1px solid #BFDEDB;
+            border-radius: 12px; padding: 2px 6px 2px 10px; font-size: 12px; margin: 0 4px 4px 0;
+        }
+        .chip button { background: none; border: 0; cursor: pointer; font-size: 14px; line-height: 1; color: var(--tmm-teal-dk); }
+
+        /* ---------------- cancel dialog ----------------
+           Stacked ABOVE the details drawer, which is .pos-modal at z-index
+           1065 with its own scrim at 1060 (see _LayoutPOS.cshtml). At 1060/1061
+           this dialog opened underneath the drawer: it was on screen the whole
+           time, just hidden behind it, which is why it appeared only once the
+           order popup was closed. */
+        .pos-scrim {
+            position: fixed; inset: 0; background: rgba(33,35,34,.45);
+            z-index: 1070; display: none;
+        }
+        .pos-scrim.open { display: block; }
+
+        .co-dialog {
+            position: fixed; z-index: 1075; display: none;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: min(420px, calc(100vw - 32px));
+            background: var(--pos-surface); border-radius: 10px;
+            box-shadow: 0 12px 40px rgba(33,35,34,.28);
+            overflow: hidden;
+        }
+        .co-dialog.open { display: block; }
+
+        .co-head {
+            display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+            background: #C02626; color: #fff;
+        }
+        .co-head h5 { margin: 0; font-size: 15px; font-weight: 600; }
+        .co-head .x {
+            margin-left: auto; background: none; border: 0; color: #fff;
+            font-size: 22px; line-height: 1; cursor: pointer;
+        }
+
+        .co-body { padding: 16px; }
+        .co-inv { margin: 0 0 12px; font-size: 13px; color: var(--pos-muted); }
+        .co-lbl {
+            display: block; margin: 0 0 4px; font-size: 12.5px; font-weight: 600;
+        }
+        .co-lbl .req { color: #C02626; }
+        .co-body textarea { margin-bottom: 14px; resize: vertical; }
+        .co-hint { margin-top: 8px; font-size: 11.5px; color: var(--pos-muted); }
+
+        .co-error {
+            margin-top: 12px; padding: 8px 10px; border-radius: 6px;
+            background: #FDECEC; color: #8E1B1B; font-size: 12.5px;
+        }
+
+        .co-foot {
+            display: flex; gap: 10px; justify-content: flex-end;
+            padding: 12px 16px; border-top: 1px solid var(--pos-border);
+        }
+
+        /* ---------------- take payment dialog ----------------
+           Shares the cancel dialog's shell (.co-dialog and friends); only the
+           parts that differ are set here. */
+        /* Wider than the cancel dialog: it carries two columns of payment
+           types, and squeezing them into 480px leaves each name truncated to
+           the point where "Cash on Delivery" and "Cash" read the same. */
+        .tp-dialog { width: min(760px, calc(100vw - 32px)); }
+        .tp-head { background: var(--tmm-teal); }
+
+        /* Invoice / customer / bill amount as one horizontal strip. */
+        .tp-order {
+            display: flex; align-items: stretch; gap: 0;
+            border: 1px solid var(--pos-border); border-radius: 6px;
+            margin-bottom: 12px; font-size: 13px; overflow: hidden;
+        }
+        .tp-order .cell {
+            display: flex; flex-direction: column; gap: 2px;
+            padding: 8px 12px; min-width: 0;
+            border-left: 1px solid var(--pos-border);
+        }
+        .tp-order .cell:first-child { border-left: 0; }
+        /* The customer takes the slack; the other two are as wide as they need
+           to be, so a long name never pushes the amount off the strip. */
+        .tp-order .cell.grow { flex: 1 1 auto; }
+        .tp-order .cell.amt  { margin-left: auto; text-align: right; background: #FAFBFB; }
+        .tp-order .k { color: var(--pos-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
+        .tp-order .v { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tp-order .cell.amt .v { font-size: 16px; font-variant-numeric: tabular-nums; }
+
+        .tp-paid {
+            margin: -4px 0 12px; font-size: 12px; color: #B26A00;
+        }
+
+        /* Two payment types per row. auto-fit rather than a fixed 2 so the
+           dialog still works at phone width, where one column is all that
+           fits. */
+        .tp-types {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 4px 20px; max-height: 320px; overflow-y: auto;
+        }
+        /* Label column then box column, both fixed, so every amount box starts
+           at the same x and the boxes read as a straight column. --tp-label is
+           set in script from the widest payment-type name actually rendered:
+           a hard-coded width either clips a long name or leaves a gap after a
+           short one, and the names come from the database. */
+        .tp-types { --tp-label: 150px; }
+        .tp-row {
+            display: grid; align-items: center;
+            grid-template-columns: var(--tp-label) 110px;
+            gap: 8px; justify-content: start;
+            padding: 6px 0; border-bottom: 1px solid var(--pos-border);
+        }
+        .tp-row .nm {
+            font-size: 13px; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+        }
+        /* An inactive or deleted method is listed but cannot be used - hiding it
+           would look like the method had vanished from the system. */
+        .tp-row.off .nm { color: var(--pos-muted); text-decoration: line-through; }
+        .tp-row input {
+            width: 110px; text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Second column pushed to the right edge, so the two columns read as a
+           pair of lists with a channel between them instead of four ragged
+           edges. Only while there really are two columns - below the grid's
+           300px minimum everything collapses to one, and right-aligning that
+           would just look broken. */
+        @@media (min-width: 700px) {
+            .tp-types .tp-row:nth-child(even) { justify-content: end; }
+        }
+
+        .tp-ref { margin-top: 12px; }
+
+        /* One line: entered on the left, change on the right. */
+        .tp-totals {
+            display: flex; align-items: baseline; justify-content: space-between;
+            gap: 24px; margin-top: 12px; padding-top: 10px;
+            border-top: 2px solid var(--pos-border); font-size: 13px;
+        }
+        /* Label and figure travel together - a label at one end of the dialog
+           and its number at the other is how the wrong figure gets read out. */
+        .tp-totals .pair { display: flex; align-items: baseline; gap: 8px; }
+        .tp-totals .k { color: var(--pos-muted); }
+        .tp-totals .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+        /* Change is invisible until there is change to give: a figure
+           permanently reading 0.000 is noise the cashier learns to skip past,
+           and then misses on the one order where it matters. Red and larger
+           because it is the one number on this dialog that has to leave the
+           screen and reach the customer's hand. */
+        .tp-totals .change { display: none; margin-left: auto; }
+        .tp-totals .change.on { display: flex; }
+        .tp-totals .change .k { color: #C02626; font-weight: 600; }
+        .tp-totals .change .v { color: #C02626; font-size: 22px; font-weight: 800; }
+
+        /* ---------------- delete line dialog ---------------- */
+        .dl-radios { display: flex; gap: 10px; margin-bottom: 14px; }
+        .dl-radio {
+            flex: 1 1 0; display: flex; align-items: flex-start; gap: 8px;
+            margin: 0; padding: 10px; cursor: pointer; font-weight: 400;
+            border: 1px solid var(--pos-border); border-radius: 6px;
+        }
+        .dl-radio:hover { background: var(--tmm-teal-lt); }
+        .dl-radio input { margin: 2px 0 0; }
+        .dl-radio span { display: flex; flex-direction: column; line-height: 1.3; }
+        .dl-radio strong { font-size: 13px; }
+        .dl-radio small { color: var(--pos-muted); font-size: 11.5px; }
+
+        /* Item name: the one thing on this row a busy cashier actually reads,
+           so it gets its own size instead of matching Price/Qty/Discount.
+           Only the parent item, not :not(.sub) rows for choices/extras -
+           those stay small and indented so they still read as modifiers,
+           not as items in their own right. */
+        .pm-body table tbody tr:not(.sub) td:first-child {
+            font-size: 15.5px; font-weight: 600;
+        }
+
+        /* The row's own delete button. Kept quiet-styled (outline, not solid
+           red) so the list does not read as a minefield, but sized up from
+           the original 14px/3px-7px so it is easy to hit and to see. */
+        .pm-body td .line-del {
+            background: none; border: 1px solid #F0C9C9; cursor: pointer;
+            padding: 7px 12px; border-radius: 5px; font-size: 19px; line-height: 1;
+            color: #C02626;
+        }
+        .pm-body td .line-del:hover { background: #FDECEC; border-color: #C02626; }
+
+        /* Change Branch and Update Status were <select> dropdowns; they are now
+           .pm-btn buttons like the rest of the footer, tinted as outline rather
+           than filled so they read as "opens a list of buttons" rather than a
+           committed action the way Pay or Cancel Order are. Disabled state
+           (order not at Received, role lacks permission, no status ahead of
+           this one) reuses .pm-btn:disabled - same rule, same look, as every
+           other footer button. */
+        .pm-btn.branch, .pm-btn.status {
+            background: var(--pos-surface); color: var(--tmm-ink);
+            border: 1px solid var(--pos-border);
+        }
+
+        /* ---------------- branch / status picker ----------------
+           Shares the cancel dialog's .co-dialog shell; only the body differs -
+           one .pm-btn per option instead of typed input. A dropdown's tap
+           target is a fraction of a button's on a counter touchscreen, and it
+           hides every option until tapped open; a grid of buttons shows them
+           all at once and takes one tap to choose instead of two. */
+        .pick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 10px; max-height: 46vh; overflow-y: auto; padding: 2px;
+        }
+        .pick-grid .pm-btn {
+            width: 100%; min-width: 0; flex-direction: row; justify-content: flex-start;
+            background: var(--pos-surface); border: 1px solid var(--pos-border);
+            color: var(--tmm-ink); font-weight: 500;
+        }
+        .pick-grid .pm-btn:hover:not(:disabled) {
+            background: var(--tmm-teal-lt); border-color: var(--tmm-teal); filter: none;
+        }
+        /* The status colour dot (see statusIcon() in pos.orders.js) must not be
+           squashed by the row's flex layout - the same rule the facet panel
+           already applies to the same icon for the same reason. */
+        .pick-grid .pm-btn .pos-st-ico { flex: 0 0 auto; }
+        .pick-empty { padding: 10px 2px; color: var(--pos-muted); font-size: 13px; }
+
+        @@media (max-width: 991px) {
+            .ol-wrap { flex-direction: column; }
+            /* Stacked layout: the panel sits above the grid, so pinning it
+               to the viewport would hide the orders behind it. */
+            .ol-side {
+                flex: 1 1 auto; max-width: none; width: 100%;
+                position: static; max-height: none; overflow: visible;
+            }
+            .tb-search { flex: 1 1 100%; order: -1; }
+        }
+    </style>
+}
+
+<div class="ol-wrap">
+
+    @* ---------------- left: facets ---------------- *@
+    <aside class="ol-side" id="olSide">
+        @* hidden by the grid when only one brand exists *@
+        <div class="facet" data-group="brand" id="facetBrandBox">
+            <header>Brands <span class="toggle">&minus;</span></header>
+            <div class="items" id="facetBrands"></div>
+        </div>
+
+        <div class="facet" data-group="branch">
+            <header>Branches <span class="toggle">&minus;</span></header>
+            <div class="items" id="facetBranches"></div>
+        </div>
+
+        <div class="facet" data-group="itype">
+            <header>Invoice Types <span class="toggle">&minus;</span></header>
+            <div class="items" id="facetTypes"></div>
+        </div>
+
+        <div class="facet" data-group="status">
+            <header>Order Status <span class="toggle">&minus;</span></header>
+            <div class="items" id="facetStatus"></div>
+        </div>
+    </aside>
+
+    @* ---------------- right: toolbar + grid ---------------- *@
+    <div class="ol-main">
+
+        <div class="ol-toolbar">
+            <button id="btnToggleFilters" class="tb-icon on" title="Show or hide the filter panel">&#9776;</button>
+            <button id="btnRefresh" class="tb-icon" title="Refresh (F5)">&#10227;</button>
+
+            <a href="@Url.Action("Place", "Orders", new { area = "POS" })" class="btn-place">
+                <span style="font-size:16px;">&#128722;</span> Place Order
+            </a>
+
+            <span class="tb-sep"></span>
+
+            <div class="tb-search" id="searchShell">
+                <span class="ico">&#128269;</span>
+                <input id="fSearch" type="text" autocomplete="off"
+                       placeholder="Search order no, tracking code, customer, mobile, area..." />
+                <button class="clear" id="btnClearSearch" aria-label="Clear search">&times;</button>
+            </div>
+
+            <select id="fDateMode" class="tb-select">
+                <option value="Today" selected>For Today</option>
+                <option value="Future">Future</option>
+                <option value="Past">Past</option>
+                <option value="Range">Date range</option>
+                <option value="All">All time</option>
+            </select>
+
+            <span id="fRangeWrap" style="display:none; gap:6px;">
+                <input id="fFrom" type="date" class="tb-select" />
+                <input id="fTo"   type="date" class="tb-select" />
+            </span>
+
+            @* Hidden, not deleted: currentFilters() still reads it and the
+               server-side filter still works - only the toolbar control was
+               swapped out, for Scheduled Orders below. *@
+            <select id="fPaymentStatus" class="tb-select" style="display:none;">
+                <option value="">All payments</option>
+                <option value="Unpaid">Unpaid</option>
+                <option value="Partial">Partial</option>
+                <option value="Paid">Paid</option>
+            </select>
+
+            <label class="tb-check" id="fScheduledWrap" for="fScheduledOnly"
+                   title="Only orders whose delivery date is later than the day they were placed">
+                <input type="checkbox" id="fScheduledOnly" />
+                Scheduled Orders
+            </label>
+
+            <button id="btnReset" class="tb-icon" title="Clear all filters">&#8634;</button>
+        </div>
+
+        <div id="activeChips" class="mb-2"></div>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table id="posOrders" class="table table-sm table-hover mb-0" style="width:100%">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Invoice No</th>
+                            <th>Invoice Type</th>
+                            <th>Customer Name</th>
+                            <th>Mobile</th>
+                            <th>Area</th>
+                            <th>Delivery Date</th>
+                            <th class="text-right">Amount</th>
+                            <th>Driver Name</th>
+                            <th>Brand</th>
+                            <th>Branch</th>
+                            <th style="width:96px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ---------------- order details modal ---------------- *@
+<div class="pos-modal-scrim" id="pmScrim"></div>
+
+<div class="pos-modal" id="posModal" role="dialog" aria-modal="true"
+     aria-labelledby="pmTitle" aria-hidden="true">
+
+    <div class="pm-head">
+        <div class="who">
+            <h5 id="pmTitle">Order Details</h5>
+            <div class="cust" id="pmCustomer"></div>
+        </div>
+        <span class="stat" id="pmStatus"></span>
+        <button class="x" id="pmClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="pm-summary" id="pmSummary"></div>
+
+    <div class="pm-body" id="pmBody"></div>
+
+    <div class="pm-foot" id="pmFoot" style="display:none;">
+        @* Branch is only movable while the order is still New (status 0) - no
+           ticket has been printed anywhere yet. From Received (status 1) on,
+           the kitchen has started on it somewhere. See BRANCH_CHANGE_STATUS
+           in pos.orders.js. Was a <select>; now a button that opens a picker
+           of one tappable option per branch, same shape as every other
+           action on this row. *@
+        <button class="pm-btn branch" id="pmBranchBtn" title="Change branch"><span class="i">&#127980;</span> Change Branch</button>
+        @* Forward-only, and never to Cancelled: cancelling has its own dialog
+           because it needs a reason and a password. Same change as Branch,
+           for the same reason. *@
+        <button class="pm-btn status" id="pmStatusBtn" title="Update status"><span class="i">&#128260;</span> Update Status</button>
+        <button class="pm-btn cancel" id="pmCancel"><span class="i">&#128465;</span> Cancel Order</button>
+        <button class="pm-btn modify" id="pmModify"><span class="i">&#9998;</span> Modify Order</button>
+        <button class="pm-btn pay"    id="pmPay"><span class="i">&#128181;</span> Pay</button>
+        <button class="pm-btn pickup" id="pmPickup"><span class="i">&#128694;</span> Change to Pickup</button>
+        <button class="pm-btn print"  id="pmPrint"><span class="i">&#128424;</span> Print</button>
+    </div>
+</div>
+
+@* ---------------- cancel / reject dialog ----------------
+   Sits above the details drawer rather than replacing it, so the operator can
+   still see which order they are about to cancel while they type. *@
+<div class="pos-scrim" id="coScrim"></div>
+<div class="co-dialog" id="cancelModal" role="dialog" aria-modal="true"
+     aria-labelledby="coTitle" aria-hidden="true">
+
+    <div class="co-head">
+        <h5 id="coTitle">Cancel Order</h5>
+        <button class="x" id="coClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="co-body">
+        <p class="co-inv">Order <strong id="coInvoice"></strong></p>
+
+        <label class="co-lbl" for="coReason">Reason <span class="req">*</span></label>
+        <textarea id="coReason" class="form-control" rows="3" maxlength="450"
+                  placeholder="Why is this order being cancelled?"></textarea>
+
+        <label class="co-lbl" for="coPassword">Manager password <span class="req">*</span></label>
+        <input type="password" id="coPassword" class="form-control"
+               autocomplete="new-password" placeholder="Delete password" />
+        <div class="co-hint">The reason is saved against the order and cannot be edited afterwards.</div>
+
+        <div class="co-error" id="coError" style="display:none;"></div>
+    </div>
+
+    <div class="co-foot">
+        <button class="btn btn-secondary" id="coBack">Back</button>
+        <button class="btn btn-danger" id="coConfirm">Cancel Order</button>
+    </div>
+</div>
+
+@* ---------------- take payment dialog ---------------- *@
+<div class="pos-scrim" id="tpScrim"></div>
+<div class="co-dialog tp-dialog" id="payModal" role="dialog" aria-modal="true"
+     aria-labelledby="tpTitle" aria-hidden="true">
+
+    <div class="co-head tp-head">
+        <h5 id="tpTitle">Take Payment</h5>
+        <button class="x" id="tpClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="co-body">
+        @* Invoice, customer and bill amount side by side in a single strip. *@
+        <div class="tp-order">
+            <div class="cell">
+                <span class="k">Invoice No.</span>
+                <span class="v" id="tpInvoice">-</span>
+            </div>
+            <div class="cell grow">
+                <span class="k">Customer Name</span>
+                <span class="v" id="tpCustomer">-</span>
+            </div>
+            <div class="cell amt">
+                <span class="k">Bill Amount</span>
+                <span class="v" id="tpFinal">0.000</span>
+            </div>
+        </div>
+
+        @* Only shown when part of the order has already been settled, because
+           the change below is then worked out against what is LEFT rather than
+           against the bill amount on the strip above. *@
+        <div class="tp-paid" id="tpPaidRow" style="display:none;">
+            Already paid <strong id="tpPaid">0.000</strong> &middot;
+            outstanding <strong id="tpDue">0.000</strong>
+        </div>
+
+        <div class="tp-types" id="tpTypes"></div>
+
+        <div class="tp-ref" id="tpRefRow" style="display:none;">
+            <label class="co-lbl" for="tpReference">Reference <span class="req">*</span></label>
+            <input type="text" id="tpReference" class="form-control" placeholder="Approval / transaction number" />
+        </div>
+
+        @* Entered on the left, Change on the right, one line. Each label is
+           pinned to its own figure so neither reads against the other's. *@
+        <div class="tp-totals">
+            <div class="pair"><span class="k">Entered Amount</span><span class="v" id="tpEntered">0.000</span></div>
+            <div class="pair change" id="tpChangeRow"><span class="k">Change Amount</span><span class="v" id="tpChange">0.000</span></div>
+        </div>
+
+        <div class="co-error" id="tpError" style="display:none;"></div>
+    </div>
+
+    <div class="co-foot">
+        <button class="btn btn-secondary" id="tpCancel">Back</button>
+        <button class="btn btn-primary" id="tpConfirm">Take Payment</button>
+    </div>
+</div>
+
+@* ---------------- delete order line dialog ---------------- *@
+<div class="pos-scrim" id="dlScrim"></div>
+<div class="co-dialog" id="delLineModal" role="dialog" aria-modal="true"
+     aria-labelledby="dlTitle" aria-hidden="true">
+
+    <div class="co-head">
+        <h5 id="dlTitle">Delete Item</h5>
+        <button class="x" id="dlClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="co-body">
+        <p class="co-inv">Removing <strong id="dlItem"></strong> from order <strong id="dlInvoice"></strong></p>
+
+        <label class="co-lbl">Disposition <span class="req">*</span></label>
+        <div class="dl-radios">
+            @* Waste is not preselected: which one it is changes what the
+               kitchen counts at close, and a default gets accepted without
+               being read. *@
+            <label class="dl-radio">
+                <input type="radio" name="dlDisposition" value="1" />
+                <span><strong>Waste</strong><small>Made, and thrown away</small></span>
+            </label>
+            <label class="dl-radio">
+                <input type="radio" name="dlDisposition" value="2" />
+                <span><strong>Reuse</strong><small>Stock goes back</small></span>
+            </label>
+        </div>
+
+        <label class="co-lbl" for="dlComment">Delete comment <span class="req">*</span></label>
+        <textarea id="dlComment" class="form-control" rows="3" maxlength="450"
+                  placeholder="Why is this item being removed?"></textarea>
+
+        <label class="co-lbl" for="dlPassword">Manager password <span class="req">*</span></label>
+        <input type="password" id="dlPassword" class="form-control"
+               autocomplete="new-password" placeholder="Delete password" />
+        <div class="co-hint">Any extras and choices on this item are removed with it, and the order total is recalculated.</div>
+
+        <div class="co-error" id="dlError" style="display:none;"></div>
+    </div>
+
+    <div class="co-foot">
+        <button class="btn btn-secondary" id="dlBack">Back</button>
+        <button class="btn btn-danger" id="dlConfirm">Delete Item</button>
+    </div>
+</div>
+
+@* ---------------- change to pickup dialog ---------------- *@
+<div class="pos-scrim" id="pkScrim"></div>
+<div class="co-dialog" id="pickupModal" role="dialog" aria-modal="true"
+     aria-labelledby="pkTitle" aria-hidden="true">
+
+    <div class="co-head" style="background:var(--tmm-teal);">
+        <h5 id="pkTitle">Change to Pickup</h5>
+        <button class="x" id="pkClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="co-body">
+        <p class="co-inv">Order <strong id="pkInvoice"></strong></p>
+
+        <label class="co-lbl" for="pkBranch">Collection branch <span class="req">*</span></label>
+        <select id="pkBranch" class="form-control"></select>
+
+        <div class="co-hint">
+            The order becomes invoice type 3, the branch above becomes the
+            collecting branch, and the delivery charge is removed.
+        </div>
+
+        <div class="co-error" id="pkError" style="display:none;"></div>
+    </div>
+
+    <div class="co-foot">
+        <button class="btn btn-secondary" id="pkBack">Back</button>
+        <button class="btn btn-primary" id="pkConfirm">Change to Pickup</button>
+    </div>
+</div>
+
+@* ---------------- branch / status picker ----------------
+   One dialog shared by both Change Branch and Update Status, the way the
+   cancel and pickup dialogs already share nothing else does not need to be
+   said twice: same shell, its title and its grid of options are filled in by
+   whichever button opened it (see openPicker() in pos.orders.js). *@
+<div class="pos-scrim" id="pickScrim"></div>
+<div class="co-dialog" id="pickModal" role="dialog" aria-modal="true"
+     aria-labelledby="pickTitle" aria-hidden="true">
+
+    @* Neutral dark header, not the cancel dialog's red or the payment/pickup
+       dialogs' teal: this picker is neither a destructive nor a "go" action. *@
+    <div class="co-head" style="background:var(--tmm-ink);">
+        <h5 id="pickTitle">Change Branch</h5>
+        <button class="x" id="pickClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="co-body">
+        <p class="co-inv">Order <strong id="pickInvoice"></strong></p>
+
+        @* Populated per-open with one .pm-btn per branch or status, or a
+           .pick-empty message when there is nothing to offer - see
+           openPicker() in pos.orders.js. *@
+        <div class="pick-grid" id="pickGrid"></div>
+    </div>
+
+    <div class="co-foot">
+        <button class="btn btn-secondary" id="pickBack">Back</button>
+    </div>
+</div>
+
+@* ---------------- status/branch change confirmation ----------------
+   Shared by Update Status and Change Branch. Status transitions are no
+   longer limited to the next configured step (see sp_POS_ChangeStatus),
+   and a branch transfer reassigns the order's kitchen outright, so this is
+   the one "are you sure" before either change is sent - see openConfirm()
+   in pos.orders.js. Same shell as the dialogs above; only the message is
+   filled in per-open. *@
+<div class="pos-scrim" id="cfScrim"></div>
+<div class="co-dialog" id="confirmModal" role="dialog" aria-modal="true"
+     aria-labelledby="cfTitle" aria-hidden="true">
+
+    <div class="co-head" style="background:var(--tmm-ink);">
+        <h5 id="cfTitle">Confirm</h5>
+        <button class="x" id="cfClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="co-body">
+        <p class="co-inv" id="cfMessage" style="font-size:14px;color:var(--tmm-ink);"></p>
+        <div class="co-error" id="cfError" style="display:none;"></div>
+    </div>
+
+    <div class="co-foot">
+        <button class="btn btn-secondary" id="cfBack">Back</button>
+        <button class="btn btn-primary" id="cfConfirm">Confirm</button>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Areas/POS/Scripts/pos.alerts.js"></script>
+    <script src="~/Areas/POS/Scripts/pos.orders.js"></script>
+    <script src="~/Areas/POS/Scripts/pos.context.js"></script>
+}

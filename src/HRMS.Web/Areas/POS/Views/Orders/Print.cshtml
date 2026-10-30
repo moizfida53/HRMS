@@ -1,0 +1,344 @@
+﻿@*
+    Areas/POS/Views/Orders/Print.cshtml
+
+    Bilingual boxed receipt. Every label carries its Arabic underneath, and the
+    whole document is a grid of bordered cells so a driver or a customer can
+    find a field by position without reading either language fully.
+
+    RAZOR NOTE: inside an @if { } block you are already in CODE, so nested
+    constructs are written as plain `if` / `foreach`. A second @ there is the
+    "Unexpected if keyword after @ character" parse error. Constructs at markup
+    level (inside an open element) keep the @.
+*@
+@using System.Data
+@using System.Linq
+@using System.Collections.Generic
+@{
+    Layout = null;
+
+    DataRow   h       = ViewBag.Header as DataRow;
+    DataTable lines   = ViewBag.Lines as DataTable;
+    string    doc     = (ViewBag.Doc as string) ?? "Thermal";
+    int       printNo = ViewBag.PrintCount != null ? (int)ViewBag.PrintCount : 1;
+    string    printedBy = ViewBag.PrintedBy as string ?? "";
+
+    bool thermal = doc != "A4";
+    bool kitchen = doc == "Kitchen";
+
+    Func<string, object>  V = c => (h != null && h.Table.Columns.Contains(c) && h[c] != DBNull.Value) ? h[c] : null;
+    Func<string, string>  S = c => { var v = V(c); return v == null ? "" : v.ToString().Trim(); };
+    Func<string, decimal> D = c => { var v = V(c); return v == null ? 0m : Convert.ToDecimal(v); };
+
+    string cur = S("Currency");
+    if (cur == "") { cur = "KD"; }
+
+    int dp = V("DecimalPlaces") != null ? Convert.ToInt32(V("DecimalPlaces")) : 3;
+    if (dp < 0 || dp > 3) { dp = 3; }
+
+    Func<decimal, string> M = d => cur + " " + d.ToString("0." + new string('0', dp));
+
+    DateTime invDate = V("InvoiceDate") != null ? Convert.ToDateTime(V("InvoiceDate")) : DateTime.Now;
+
+    string branch = S("BranchName");
+    string phone  = S("BrandTelephone");
+    if (phone == "") { phone = S("BrandContact"); }
+
+    var rows = new List<DataRow>();
+    if (lines != null)
+    {
+        foreach (DataRow r in lines.Rows)
+        {
+            bool del = r["Deleted"] != DBNull.Value && Convert.ToBoolean(r["Deleted"]);
+            if (!del) { rows.Add(r); }
+        }
+    }
+}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8" />
+    <title>@(S("InvoiceNumShow") != "" ? S("InvoiceNumShow") : S("InvoiceNo")) - Invoice</title>
+    <style>
+        /* 80mm continuous roll: auto height, so a short receipt does not eject
+           a long blank tail. A4 for the office copy. */
+        @@page { size: @(thermal ? "80mm auto" : "A4"); margin: @(thermal ? "3mm" : "10mm"); }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; background: #fff; }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+            /* Pure black only - thermal heads turn greys into mush. */
+            color: #000;
+            font-size: @(thermal ? "11px" : "12.5px");
+            line-height: 1.3;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+
+        .sheet { width: @(thermal ? "72mm" : "180mm"); margin: 0 auto; padding: 4px 0 8px; }
+
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        td, th {
+            border: 1px solid #000; padding: 3px 4px; vertical-align: middle;
+            word-wrap: break-word; overflow-wrap: break-word;
+        }
+
+        .branch { text-align: center; font-weight: 700; padding: 4px 0 6px; font-size: @(thermal ? "12px" : "14px"); }
+
+        /* label cell: English over Arabic */
+        .lbl { font-weight: 700; text-align: center; width: 40%; }
+        .lbl .ar { display: block; font-weight: 400; font-size: @(thermal ? "9.5px" : "11px"); }
+        .val { text-align: center; }
+
+        .addr .lbl { width: 22%; }
+        .addr .val { width: 28%; }
+
+        .items th { text-align: center; font-weight: 700; }
+        .items td { text-align: center; }
+        .items .nm { text-align: left; }
+        .items .nm .ar { display: block; font-size: @(thermal ? "9.5px" : "11px"); }
+        .items .rem { display: block; font-style: italic; font-size: @(thermal ? "9.5px" : "11px"); }
+        .items .rem.ta { font-style: normal; font-weight: 800; font-size: @(thermal ? "11.5px" : "13px"); letter-spacing: .02em; }
+
+        .tot .lbl { width: 55%; text-align: center; }
+        .tot .val { font-weight: 700; }
+        .tot .final td, .tot .final th { font-weight: 700; font-size: @(thermal ? "13px" : "15px"); }
+
+        .gap { height: 6px; border: 0; }
+
+        .foot { text-align: center; padding-top: 8px; font-weight: 700; }
+        .foot div { padding: 1px 0; }
+
+        .reprint {
+            border: 2px solid #000; text-align: center; font-weight: 700;
+            padding: 3px; margin-bottom: 5px; letter-spacing: 1px;
+        }
+
+        /* Screen-only toolbar; never reaches the paper. */
+        .toolbar {
+            position: fixed; top: 0; left: 0; right: 0; background: #212322; color: #fff;
+            padding: 8px 14px; display: flex; gap: 10px; align-items: center;
+            font-size: 13px; z-index: 10;
+        }
+        .toolbar button, .toolbar a {
+            background: #0E8A80; color: #fff; border: 0; border-radius: 5px;
+            padding: 6px 14px; font-size: 13px; cursor: pointer; text-decoration: none;
+        }
+        .toolbar .ghost { background: transparent; border: 1px solid rgba(255,255,255,.35); }
+        .screen-pad { height: 44px; }
+
+        @@media print { .toolbar, .screen-pad { display: none !important; } }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <button onclick="window.print()">Print</button>
+    <a class="ghost" href="?id=@S("InvoiceNo")&doc=Thermal">80mm</a>
+    <a class="ghost" href="?id=@S("InvoiceNo")&doc=A4">A4</a>
+    <a class="ghost" href="?id=@S("InvoiceNo")&doc=Kitchen">Kitchen</a>
+    <span style="flex:1"></span>
+    <button class="ghost" onclick="window.close()">Close</button>
+</div>
+<div class="screen-pad"></div>
+
+<div class="sheet">
+
+    @if (printNo > 1)
+    {
+        <div class="reprint">REPRINT #@printNo &nbsp;&nbsp; نسخة مكررة</div>
+    }
+
+    <div class="branch">- @branch</div>
+
+    @* ---------- invoice / customer ---------- *@
+    <table>
+        <tr>
+            <td class="lbl">Invoice No<span class="ar">رقم الفاتورة</span></td>
+            @* The printed number. S() returns "" for a column that is not
+               there, so an install that has not run POS_32 yet falls back to
+               the key rather than printing a blank box. *@
+            <td class="val">@(S("InvoiceNumShow") != "" ? S("InvoiceNumShow") : S("InvoiceNo"))</td>
+        </tr>
+        <tr>
+            <td class="lbl">Invoice Date<span class="ar">تاريخ الفاتورة</span></td>
+            <td class="val">@invDate.ToString("dd MMM yyyy h:mm tt")</td>
+        </tr>
+        <tr>
+            <td class="lbl">Customer Name<span class="ar">اسم العميل</span></td>
+            <td class="val">@S("CustomerName")</td>
+        </tr>
+        <tr>
+            <td class="lbl">Customer No<span class="ar">رقم العميل</span></td>
+            @* Forced LTR: an RTL run reorders a leading + and prints
+               +965-6077... as 6077...-965+ *@
+            <td class="val" dir="ltr" style="unicode-bidi:embed;">@S("Mobile")</td>
+        </tr>
+    </table>
+
+    <div class="gap"></div>
+
+    @* ---------- address (delivery only) ---------- *@
+    @if (!kitchen && Convert.ToInt32(V("OrderType") ?? 2) == 2)
+    {
+        <table class="addr">
+            <tr>
+                <td class="lbl">Area<span class="ar">المنطقة</span></td>
+                <td class="val">@S("AreaName")</td>
+                <td class="lbl">Block<span class="ar">قطعة</span></td>
+                <td class="val">@S("Block")</td>
+            </tr>
+            <tr>
+                <td class="lbl">Street<span class="ar">الشارع</span></td>
+                <td class="val">@S("Street")</td>
+                <td class="lbl">Building<span class="ar">المبنى</span></td>
+                <td class="val">@S("Building")</td>
+            </tr>
+            <tr>
+                <td class="lbl">Floor<span class="ar">الطابق</span></td>
+                <td class="val">@S("Floor")</td>
+                <td class="lbl">Flat<span class="ar">شقة</span></td>
+                <td class="val">@S("Flat")</td>
+            </tr>
+            <tr>
+                <td class="lbl" colspan="4" style="text-align:left;">
+                    Lane<span class="ar" style="display:inline;">&nbsp;الجادة</span>: @S("Lane")
+                </td>
+            </tr>
+        </table>
+
+        <div class="gap"></div>
+    }
+
+    @* ---------- items ---------- *@
+    <table class="items">
+        <thead>
+            <tr>
+                <th style="width:46%;">Item Name<span class="ar" style="display:block;font-weight:400;">اسم الصنف</span></th>
+                <th style="width:12%;">Qty<span class="ar" style="display:block;font-weight:400;">الكمية</span></th>
+                <th style="width:21%;">Unit Price<span class="ar" style="display:block;font-weight:400;">السعر</span></th>
+                <th style="width:21%;">Total Price<span class="ar" style="display:block;font-weight:400;">الإجمالي</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (rows.Count == 0)
+            {
+                <tr><td colspan="4">&mdash;</td></tr>
+            }
+            @foreach (DataRow r in rows)
+            {
+                string nameEn = r["ItemName"] != DBNull.Value ? r["ItemName"].ToString() : "";
+                string nameAr = r.Table.Columns.Contains("ItemNameAra") && r["ItemNameAra"] != DBNull.Value
+                                ? r["ItemNameAra"].ToString() : "";
+                string rem    = r["Comments"] != DBNull.Value ? r["Comments"].ToString() : "";
+                bool   isSub  = r.Table.Columns.Contains("LineType") && r["LineType"] != DBNull.Value
+                                && Convert.ToInt32(r["LineType"]) > 1;
+
+                <tr>
+                    <td class="nm" style="@(isSub ? "padding-left:14px;" : "")">
+                        @(isSub ? "↳ " : "")@nameEn
+                        @if (nameAr != "")
+                        {
+                            <span class="ar">@nameAr</span>
+                        }
+                        @if (rem != "")
+                        {
+                            if (rem.StartsWith("TAKE AWAY", StringComparison.OrdinalIgnoreCase))
+                            {
+                                string remRest = rem.Substring(9).TrimStart(' ', '-');
+                                <span class="rem ta">*** TAKE AWAY ***@(remRest != "" ? " - " + remRest : "")</span>
+                            }
+                            else
+                            {
+                                <span class="rem">( @rem )</span>
+                            }
+                        }
+                    </td>
+                    <td>@r["Quantity"]</td>
+                    <td>@(kitchen ? "" : Convert.ToDecimal(r["Price"]).ToString("0." + new string('0', dp)))</td>
+                    <td>@(kitchen ? "" : Convert.ToDecimal(r["TotalAmount"]).ToString("0." + new string('0', dp)))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (!kitchen)
+    {
+        <div class="gap"></div>
+
+        <table class="tot">
+            <tr>
+                <td class="lbl">Total Amount<span class="ar">المجموع</span></td>
+                <td class="val">@M(D("BillAmount"))</td>
+            </tr>
+            <tr>
+                <td class="lbl">Delivery Charges<span class="ar">رسوم التوصيل</span></td>
+                <td class="val">@M(D("DeliveryCharges"))</td>
+            </tr>
+            <tr>
+                <td class="lbl">Discount<span class="ar">الخصم</span></td>
+                <td class="val">@M(D("Discount"))</td>
+            </tr>
+            @* NetPayable, not FinalAmount: the DB column of that name excludes
+               DeliveryCharges, but this is what the customer pays. *@
+            <tr class="final">
+                <td class="lbl">FINAL PRICE<span class="ar">السعر النهائي</span></td>
+                <td class="val">@M(D("NetPayable"))</td>
+            </tr>
+        </table>
+    }
+
+    <div class="foot">
+        <div>Print Time: @DateTime.Now.ToString("M/d/yyyy, h:mm:ss tt")</div>
+        @if (phone != "")
+        {
+            <div>Phone: @phone</div>
+        }
+        @if (printedBy != "")
+        {
+            <div>Printed By : @printedBy</div>
+        }
+    </div>
+</div>
+
+<script src="~/Scripts/jquery-3.3.1.min.js"></script>
+<script>
+    (function () {
+        // Print once the layout has settled. Firing on DOM-ready can catch the
+        // page before fonts are laid out, which prints a half-rendered receipt.
+        function go() { setTimeout(function () { window.print(); }, 300); }
+        if (document.readyState === 'complete') { go(); }
+        else { $(window).on('load', go); }
+
+        // Tell the Order List the operator is done with this print, so it can
+        // close the order details drawer. afterprint fires whether the dialog
+        // was confirmed or dismissed - either way they have finished with this
+        // order. Sent once; the list also ignores a repeat.
+        // Quoted: the list only uses it to match the print it started, and a
+        // ternary over ViewBag here would be a dynamic-typing compile error.
+        var invoiceNo = '@S("InvoiceNo")';
+        var told = false;
+
+        function tellOpener() {
+            if (told) return;
+            told = true;
+            try {
+                var o = window.opener;
+                if (o && !o.closed && o.POS && typeof o.POS.onPrintClosed === 'function') {
+                    o.POS.onPrintClosed(invoiceNo);
+                }
+            } catch (e) {
+                // Opener gone or navigated away - nothing to tell.
+            }
+        }
+
+        window.addEventListener('afterprint', tellOpener);
+
+        // Safari and some older builds do not fire afterprint. Closing this
+        // window is the other signal, and the list polls for that too, so this
+        // is belt and braces rather than the only path.
+        window.addEventListener('beforeunload', tellOpener);
+    })();
+</script>
+</body>
+</html>

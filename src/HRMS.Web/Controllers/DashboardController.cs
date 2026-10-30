@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using HRMS.Data.Repositories;
 using HRMS.Domain.Leave;
 using HRMS.Domain.Workforce;
@@ -41,7 +41,7 @@ public sealed class DashboardController : Controller
         _companyFilter = companyFilter;
     }
 
-    [HttpGet("/")]
+    // "/" is the application launcher (/apps); the HRMS dashboard lives at /dashboard.
     [HttpGet("/dashboard")]
     public async Task<IActionResult> Index(string? month = null)
     {

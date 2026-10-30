@@ -1,0 +1,240 @@
+﻿@{
+    ViewBag.Title = "User Management";
+
+    // Stated explicitly, as every other POS view does. There is no _ViewStart
+    // in this Area, so without this line the view renders with no layout at
+    // all - no nav, no sign-out, no way back to the Order List.
+    Layout = "~/Areas/POS/Views/Shared/_LayoutPOS.cshtml";
+}
+
+@* -----------------------------------------------------------------------------
+   Admin-only User Management: list every tblUser row, Add User, Update User,
+   and Assign / Re-Assign Role (both from the row and from the edit form).
+
+   bootstrap.min.css, jquery.dataTables.min.css, jquery, bootstrap.min.js and
+   the DataTables core script are already loaded by _LayoutPOS.cshtml - only
+   this page's own styles/markup/script are added here.
+----------------------------------------------------------------------------- *@
+<style>
+    .um-wrap { padding: 18px 22px 40px; max-width: 1180px; margin: 0 auto; }
+
+    .um-toolbar {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+    .um-toolbar h4 { margin: 0; font-size: 19px; font-weight: 700; color: var(--tmm-ink); flex: 1 1 auto; }
+
+    .um-search {
+        flex: 0 1 260px; min-width: 180px;
+        border: 1px solid var(--pos-border); border-radius: 6px;
+        padding: 8px 12px; font-size: 13.5px; background: var(--pos-surface);
+    }
+    .um-search:focus { outline: none; border-color: var(--tmm-teal); }
+
+    .um-add {
+        background: var(--tmm-teal); color: #fff; border: 0; border-radius: 6px;
+        padding: 9px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    }
+    .um-add:hover { background: var(--tmm-teal-dk); }
+
+    .um-card {
+        background: var(--pos-surface); border: 1px solid var(--pos-border);
+        border-radius: 8px; overflow: hidden;
+    }
+
+    #umTable { width: 100%; margin: 0; }
+    #umTable thead th {
+        font-size: 12.5px; font-weight: 600; color: #4A5250;
+        border-bottom: 2px solid var(--pos-border); padding: 10px 14px; white-space: nowrap;
+    }
+    #umTable tbody td { padding: 10px 14px; border-bottom: 1px solid #EEF1F0; font-size: 13.5px; vertical-align: middle; }
+    #umTable tbody tr:last-child td { border-bottom: 0; }
+    .um-name { font-weight: 600; color: var(--tmm-ink); }
+    .um-username { color: var(--pos-muted); font-size: 12.5px; }
+
+    .um-role-badge {
+        display: inline-block; padding: 2px 9px; border-radius: 11px;
+        font-size: 12px; font-weight: 600; background: var(--tmm-teal-lt); color: var(--tmm-teal-dk);
+        white-space: nowrap;
+    }
+    .um-branch-badge {
+        display: inline-block; padding: 1px 8px; border-radius: 10px; margin: 1px 3px 1px 0;
+        font-size: 11.5px; font-weight: 600; background: #EEF1F0; color: var(--tmm-ink);
+        white-space: nowrap;
+    }
+    .um-branch-none { color: var(--pos-muted); font-size: 12px; font-style: italic; }
+    .um-pw-flag {
+        display: inline-block; padding: 1px 8px; border-radius: 10px;
+        font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .um-pw-flag.ok   { background: #E7F5EC; color: #1E7A3C; }
+    .um-pw-flag.weak { background: #FDF3E3; color: #8A6116; }
+
+    .um-edit {
+        background: #EDF1F1; color: var(--tmm-ink); border: 0; border-radius: 5px;
+        padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .um-edit:hover { background: #E1E7E6; }
+
+    .um-empty { padding: 40px 20px; text-align: center; color: var(--pos-muted); font-size: 13.5px; }
+
+    /* ---------------- Add / Update User modal ----------------
+       Reuses the shared .pos-modal-scrim / .pos-modal shell from
+       _LayoutPOS.cshtml so it matches the Order Details dialog. Wide enough
+       for two columns: Name/Username/Password/Role on the left, Assigned
+       Branches running the full height of that column on the right. */
+    #umModal { width: 720px; }
+    .um-cols { display: flex; gap: 0; align-items: stretch; }
+    .um-col { flex: 1 1 0; min-width: 0; }
+
+    /* Every flex item below defaults to min-height:auto, which refuses to
+       shrink smaller than its content - the branch list would then just
+       grow the whole modal instead of capping at max-height and scrolling.
+       min-height:0 at each level is what lets the real max-height/
+       overflow-y on .um-branch-list actually take effect. */
+    .um-col-branches { display: flex; flex-direction: column; min-height: 0; }
+    .um-col-branches .um-field { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+    .um-col-branches .um-branch-list { flex: 1 1 auto; min-height: 0; }
+
+    .um-field { padding: 0 22px; margin-bottom: 14px; }
+    .um-field label { display: block; font-size: 12.5px; font-weight: 600; color: #4A5250; margin-bottom: 5px; }
+    .um-field input, .um-field select {
+        width: 100%; border: 1px solid var(--pos-border); border-radius: 6px;
+        padding: 9px 11px; font-size: 13.5px;
+    }
+    .um-field input:focus, .um-field select:focus { outline: none; border-color: var(--tmm-teal); }
+    .um-field .hint { font-size: 11.5px; color: var(--pos-muted); margin-top: 4px; }
+    .um-error {
+        margin: 0 22px 14px; padding: 8px 12px; border-radius: 6px;
+        background: #FDECEC; color: #A32F2F; font-size: 12.5px; display: none;
+    }
+
+    .um-branch-list {
+        border: 1px solid var(--pos-border); border-radius: 6px;
+        min-height: 160px; max-height: 260px; overflow-y: auto; padding: 6px 4px;
+    }
+    .um-branch-list label {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 13px; font-weight: 400; color: var(--tmm-ink);
+        padding: 5px 8px; margin: 0; cursor: pointer; border-radius: 4px;
+    }
+    .um-branch-list label:hover { background: var(--tmm-teal-lt); }
+
+    /* .um-field input, .um-field select { width: 100%; ... } above also
+       matches these checkboxes, since .um-branch-list sits inside a
+       .um-field - that stretched each one to full width with a text-input's
+       padding/border, shoving the label text off to the right. Reset every
+       property that rule sets, at higher specificity so it wins regardless
+       of source order. */
+    .um-branch-list input[type="checkbox"] {
+        -webkit-appearance: checkbox; appearance: checkbox;
+        width: 15px; height: 15px; flex: 0 0 auto;
+        padding: 0; border: 0; border-radius: 0;
+        margin: 0; cursor: pointer;
+    }
+    .um-branch-empty { padding: 8px; font-size: 12.5px; color: var(--pos-muted); }
+</style>
+
+<div class="um-wrap">
+    <div class="um-toolbar">
+        <h4>User Management</h4>
+        <input type="text" id="umSearch" class="um-search" placeholder="Search name or username&hellip;" />
+        <button type="button" class="um-add" id="umAddBtn">+ Add User</button>
+    </div>
+
+    <div class="um-card">
+        <table id="umTable" class="display">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Assigned Branches</th>
+                    <th>Role</th>
+                    <th>Password</th>
+                    <th style="width:190px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+@* ---------------- Add / Update User modal ---------------- *@
+<div class="pos-modal-scrim" id="umScrim"></div>
+<div class="pos-modal" id="umModal" role="dialog" aria-modal="true" aria-labelledby="umTitle" aria-hidden="true">
+    <div class="pm-head">
+        <div class="who">
+            <h5 id="umTitle">Add User</h5>
+        </div>
+        <button class="x" id="umClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div style="padding-top:18px;">
+        <div class="um-error" id="umError"></div>
+
+        <input type="hidden" id="umUserId" value="0" />
+
+        <div class="um-cols">
+            <div class="um-col">
+                <div class="um-field">
+                    <label for="umName">Name</label>
+                    <input type="text" id="umName" maxlength="100" autocomplete="off" />
+                </div>
+                <div class="um-field">
+                    <label for="umUsername">Username</label>
+                    <input type="text" id="umUsername" maxlength="50" autocomplete="off" />
+                </div>
+                <div class="um-field">
+                    <label for="umPassword">Password</label>
+                    <input type="password" id="umPassword" maxlength="50" autocomplete="new-password" />
+                    <div class="hint" id="umPwHint">Stored as a salted hash - never shown again once set.</div>
+                </div>
+                <div class="um-field">
+                    <label for="umRole">Role</label>
+                    <select id="umRole"></select>
+                </div>
+            </div>
+            <div class="um-col um-col-branches">
+                <div class="um-field">
+                    <label>Assigned Branches</label>
+                    <div class="um-branch-list" id="umBranchList"></div>
+                    <div class="hint">
+                        Controls what this user sees in the Order List and Dashboard reports.
+                        A user with the Settings/User Management permission always sees every
+                        branch regardless of this list; everyone else sees ONLY the branches
+                        checked here - none checked means they see nothing.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pm-foot">
+        <button class="pm-btn modify" id="umCancel">Cancel</button>
+        <button class="pm-btn pay" id="umSave">Save</button>
+    </div>
+</div>
+
+@* ---------------- Save confirmation ---------------- *@
+<div class="pos-modal-scrim" id="umConfirmScrim"></div>
+<div class="pos-modal" id="umConfirmModal" role="dialog" aria-modal="true" aria-labelledby="umConfirmTitle" aria-hidden="true" style="width:420px;">
+    <div class="pm-head">
+        <div class="who">
+            <h5 id="umConfirmTitle">Confirm</h5>
+        </div>
+        <button class="x" id="umConfirmClose" aria-label="Close">&times;</button>
+    </div>
+
+    <div style="padding: 18px 22px;">
+        <p id="umConfirmMessage" style="font-size:14px; color:var(--tmm-ink); margin:0;"></p>
+        <div class="um-error" id="umConfirmError"></div>
+    </div>
+
+    <div class="pm-foot">
+        <button class="pm-btn modify" id="umConfirmBack">Back</button>
+        <button class="pm-btn pay" id="umConfirmYes">Confirm</button>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Areas/POS/Scripts/pos.users.js"></script>
+}

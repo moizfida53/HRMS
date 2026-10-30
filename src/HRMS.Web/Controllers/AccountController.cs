@@ -1,4 +1,4 @@
-using HRMS.Data.Repositories;
+﻿using HRMS.Data.Repositories;
 using HRMS.Domain.Security;
 using HRMS.Web.Localization;
 using HRMS.Web.Models.Organization;
@@ -297,7 +297,9 @@ public sealed class AccountController : Controller
         !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) ? returnUrl : null;
 
     private IActionResult RedirectToLocal(string? returnUrl) =>
-        !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
+        // After sign-in every user lands on the application launcher (/apps), unless they
+        // were sent to the login page from a specific page they asked for.
+        !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl != "/"
             ? Redirect(returnUrl)
-            : RedirectToAction("Index", "Launcher");
+            : LocalRedirect("~/apps");
 }

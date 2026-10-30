@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace HRMS.Web.Helpers;
@@ -20,6 +20,8 @@ public static class IconHelper
         ["grid"]      = """<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>""",
         ["building"]  = """<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M7.5 7.5h2M14.5 7.5h2M7.5 11h2M14.5 11h2"/><path d="M10 21v-5h4v5"/>""",
         ["branch"]    = """<rect x="3" y="13" width="6" height="8" rx="1.5"/><rect x="15" y="13" width="6" height="8" rx="1.5"/><rect x="9" y="3" width="6" height="6" rx="1.5"/><path d="M12 9v2.5M6 13v-1.5h12V13"/>""",
+        ["palette"]   = """<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.8-.8 1.8-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="7" r="1.2" fill="currentColor" stroke="none"/>""",
+        ["message"]   = """<path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4V6a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/>""",
         ["layers"]    = """<polygon points="12,3 21,8 12,13 3,8"/><polyline points="3,13 12,18 21,13"/><polyline points="3,17.5 12,22 21,17.5"/>""",
         ["sections"]  = """<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="6" rx="1.5"/><path d="M14 7.5h7M14 12h7M14 16.5h7"/>""",
         ["badge"]     = """<circle cx="12" cy="9" r="4.5"/><path d="M8.5 13.2 7 21l5-2.2L17 21l-1.5-7.8"/>""",

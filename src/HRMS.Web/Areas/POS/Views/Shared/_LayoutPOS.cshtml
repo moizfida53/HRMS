@@ -1,0 +1,581 @@
+@*
+    Areas/POS/Views/Shared/_LayoutPOS.cshtml
+
+    Navigation is a slide-out vertical drawer opened from the hamburger, so the
+    only permanent chrome is a single brand bar. The tab strip and the ribbon
+    are gone.
+
+    The drawer is off-canvas rather than a permanent sidebar: the orders grid is
+    wide, and on a counter screen giving up 210px of horizontal space
+    permanently costs a visible column.
+*@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@{
+    var posUser = POSUser.Current;
+    var title   = ViewBag.Title as string ?? "POS";
+    var ctrl    = ViewContext.RouteData.Values["controller"]?.ToString();
+    var xsrfToken = Xsrf.GetAndStoreTokens(Context).RequestToken;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>@title &middot; TMM POS</title>
+
+    @* A page hosted through _LayoutPOSAdmin brings its own (newer) Bootstrap
+       and its own DataTables build - see that layout. Loading a second copy
+       of either here would have the two fight over the same classes. *@
+    <link href="~/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/jquery.dataTables.min.css" rel="stylesheet" />
+
+    <style>
+        :root {
+            --tmm-teal:    #0E8A80;
+            --tmm-teal-dk: #0A6B63;
+            --tmm-teal-lt: #E6F3F2;
+            --tmm-ink:     #212322;
+            --tmm-ink-2:   #2C302F;
+
+            --pos-bg:      #F2F4F4;
+            --pos-surface: #FFFFFF;
+            --pos-border:  #DCE1E0;
+            --pos-muted:   #6B7674;
+        }
+
+        html, body { height: 100%; }
+        body {
+            background: var(--pos-bg);
+            color: var(--tmm-ink);
+            font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* ---------------- brand bar ----------------
+           Sticky rather than fixed: it stays a normal flow item (nothing else
+           needs top padding to make room for it) but pins to the top of the
+           viewport once the page scrolls past it. z-index keeps it under the
+           drawer (1060) and its scrim (1055), but above ordinary page content. */
+        .tmm-bar {
+            background: var(--tmm-ink); color: #fff;
+            display: flex; align-items: center; gap: 12px; padding: 8px 14px;
+            position: sticky; top: 0; z-index: 1040;
+        }
+        .tmm-burger {
+            background: none; border: 0; padding: 6px 8px; cursor: pointer;
+            border-radius: 4px; line-height: 0;
+        }
+        .tmm-burger:hover  { background: rgba(255,255,255,.12); }
+        .tmm-burger:focus  { outline: 2px solid var(--tmm-teal); outline-offset: 1px; }
+        .tmm-burger span {
+            display: block; width: 20px; height: 2px; background: #fff;
+            margin: 4px 0; border-radius: 1px;
+        }
+        .tmm-bar .logo { display: flex; align-items: center; gap: 9px; }
+        .tmm-bar .bar-logo { width: 26px; height: 26px; display: block; }
+        .tmm-bar .wordmark { font-size: 18px; font-weight: 700; letter-spacing: 3px; line-height: 1; }
+        .tmm-bar .divider { width: 1px; height: 22px; background: rgba(255,255,255,.22); }
+        .tmm-bar .page-title { font-size: 15px; font-weight: 500; color: #E4E8E7; }
+        .tmm-bar .spacer { flex: 1 1 auto; }
+        .tmm-bar .who { font-size: 12.5px; color: #B9C2C0; text-align: right; line-height: 1.3; }
+        .tmm-bar .who strong { display: block; color: #fff; font-weight: 600; }
+        .tmm-bar .signout {
+            color: #C9D2D0; border: 1px solid rgba(255,255,255,.28);
+            border-radius: 4px; padding: 4px 10px; font-size: 12.5px; text-decoration: none;
+        }
+        .tmm-bar .signout:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+        /* ---------------- drawer ---------------- */
+        .tmm-drawer {
+            position: fixed; top: 0; left: 0; height: 100%; width: 250px;
+            background: var(--tmm-ink); color: #C7CFCE; z-index: 1060;
+            transform: translateX(-100%); transition: transform .18s ease-out;
+            display: flex; flex-direction: column;
+        }
+        .tmm-drawer.open { transform: translateX(0); }
+        .tmm-drawer .head {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.12);
+        }
+        .tmm-drawer .head .wordmark { font-size: 17px; font-weight: 700; letter-spacing: 3px; color: #fff; }
+        .tmm-drawer .head .close {
+            margin-left: auto; background: none; border: 0; color: #C7CFCE;
+            font-size: 22px; line-height: 1; cursor: pointer; opacity: 1;
+        }
+        .tmm-drawer nav { padding: 8px 0; overflow-y: auto; flex: 1 1 auto; }
+        .tmm-drawer nav a {
+            display: flex; align-items: center; gap: 11px;
+            padding: 11px 16px; color: #C7CFCE; text-decoration: none;
+            border-left: 3px solid transparent; font-size: 14px;
+        }
+        .tmm-drawer nav a:hover  { background: rgba(255,255,255,.08); color: #fff; }
+        .tmm-drawer nav a.active {
+            background: rgba(14,138,128,.18); color: #fff;
+            border-left-color: var(--tmm-teal); font-weight: 600;
+        }
+        .tmm-drawer nav .ico { width: 20px; text-align: center; font-size: 16px; }
+        .tmm-drawer nav .sect {
+            padding: 14px 16px 5px; font-size: 10.5px; letter-spacing: 1px;
+            text-transform: uppercase; color: #7C8785;
+        }
+        .tmm-drawer .foot {
+            padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.12);
+            font-size: 12px; color: #8B9593;
+        }
+        .tmm-scrim {
+            position: fixed; inset: 0; background: rgba(0,0,0,.4);
+            z-index: 1055; display: none;
+        }
+        .tmm-scrim.open { display: block; }
+
+        /* ---------------- content ---------------- */
+        .pos-body { padding: 14px 16px; }
+
+        /* ---------------- shared ---------------- */
+        /* Kept for anything still rendering a coloured pill. The order status
+           no longer uses it - see .pos-status below. */
+        .pos-pill {
+            display: inline-block; padding: 2px 9px; border-radius: 11px;
+            font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap;
+        }
+
+        /* Order status: glyph + label, no filled background. The colour from
+           tblOrderStatus tints the glyph only, so the shape carries the
+           meaning and the colour reinforces it. */
+        .pos-status {
+            display: inline-flex; align-items: center; gap: 6px;
+            white-space: nowrap; line-height: 1;
+        }
+        .pos-status .pos-st-ico { flex: 0 0 auto; display: block; }
+        .pos-status-tx {
+            font-size: 12.5px; font-weight: 600; color: var(--pos-ink, #212322);
+        }
+        .age-ok   { color: var(--pos-muted); }
+        .age-warn { color: #B26A00; font-weight: 600; }
+        .age-late { color: #C02626; font-weight: 700; }
+
+        .card { border-color: var(--pos-border); }
+        .btn-primary { background: var(--tmm-teal); border-color: var(--tmm-teal); }
+        .btn-primary:hover, .btn-primary:focus {
+            background: var(--tmm-teal-dk); border-color: var(--tmm-teal-dk); box-shadow: none;
+        }
+        .btn-outline-secondary:hover { background: var(--tmm-teal-lt); color: var(--tmm-ink); border-color: #BFDEDB; }
+        a { color: var(--tmm-teal-dk); }
+
+        table.dataTable tbody tr         { cursor: pointer; }
+        table.dataTable tbody tr:hover   { background: var(--tmm-teal-lt) !important; }
+        table.dataTable tbody tr.pos-sel { background: #D5EAE8 !important; }
+        table.dataTable tbody td         { vertical-align: middle; }
+        table.dataTable thead th         { border-bottom: 2px solid var(--pos-border); font-size: 12.5px; }
+
+        /* ---------------- context menu ---------------- */
+        .pos-ctx {
+            position: absolute; z-index: 1100; min-width: 210px;
+            background: #fff; border: 1px solid var(--pos-border); border-radius: 5px;
+            box-shadow: 0 6px 22px rgba(0,0,0,.17); padding: 5px 0; display: none;
+        }
+        .pos-ctx.open { display: block; }
+        .pos-ctx button {
+            display: flex; align-items: center; gap: 9px; width: 100%;
+            background: none; border: 0; text-align: left;
+            padding: 7px 14px; font-size: 13.5px; color: var(--tmm-ink); cursor: pointer;
+        }
+        .pos-ctx button:hover:not(:disabled) { background: var(--tmm-teal-lt); }
+        .pos-ctx button:disabled { opacity: .38; cursor: default; }
+        .pos-ctx .ico { width: 18px; text-align: center; }
+        .pos-ctx .sep { height: 1px; background: var(--pos-border); margin: 5px 0; }
+        .pos-ctx .cap {
+            padding: 7px 14px 4px; font-size: 10.5px; letter-spacing: .8px;
+            text-transform: uppercase; color: var(--pos-muted);
+        }
+
+        /* ---------------- order details modal ----------------
+           Custom classes, not Bootstrap's .modal: this app already had a class
+           collision with Bootstrap's .mark, and .modal / .close carry their own
+           baggage too. Own names, own behaviour. */
+        .pos-modal-scrim {
+            position: fixed; inset: 0; background: rgba(33,35,34,.55);
+            z-index: 1060; display: none;
+        }
+        .pos-modal-scrim.open { display: block; }
+
+        .pos-modal {
+            position: fixed; z-index: 1065; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(.98);
+            width: 1220px; max-width: 95vw; max-height: 92vh;
+            background: var(--pos-surface); border-radius: 8px;
+            box-shadow: 0 18px 50px rgba(0,0,0,.3);
+            display: none; flex-direction: column;
+            opacity: 0; transition: opacity .12s ease-out, transform .12s ease-out;
+        }
+        .pos-modal.open { display: flex; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+        .pm-head {
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 20px; border-bottom: 1px solid var(--pos-border);
+        }
+        .pm-head h5 { margin: 0; font-size: 19px; font-weight: 600; color: var(--tmm-ink); }
+        /* min-width:0 lets a long Arabic customer name ellipsis instead of
+           pushing the status pill and close button off the dialog */
+        .pm-head .who { min-width: 0; flex: 1 1 auto; }
+        .pm-head .who .cust {
+            font-size: 13.5px; color: var(--pos-muted); margin-top: 2px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .pm-head .who .cust a { color: var(--tmm-teal-dk); }
+        .pm-head .stat { flex: 0 0 auto; }
+        .pm-head .x {
+            background: none; border: 0; font-size: 24px; line-height: 1;
+            color: var(--pos-muted); cursor: pointer; padding: 0 4px;
+        }
+        .pm-head .x:hover { color: var(--tmm-ink); }
+
+        /* summary strip - brand tint, not the cream of the reference */
+        .pm-summary {
+            display: flex; flex-wrap: wrap; gap: 8px 28px;
+            padding: 16px 20px; background: var(--tmm-teal-lt);
+            border-bottom: 1px solid #CFE6E3;
+        }
+        .pm-summary .cell { min-width: 120px; }
+        .pm-summary .lbl {
+            font-size: 12.5px; color: #5C6B69; margin-bottom: 3px; white-space: nowrap;
+        }
+        .pm-summary .val { font-size: 19px; font-weight: 600; color: var(--tmm-ink); line-height: 1.1; }
+        .pm-summary .cell.final { margin-left: auto; text-align: right; }
+        .pm-summary .cell.final .lbl { color: var(--tmm-teal-dk); font-weight: 600; }
+        .pm-summary .cell.final .val { font-size: 26px; color: var(--tmm-teal-dk); font-weight: 700; }
+        .pm-summary .cell.disc .val { color: var(--tmm-teal); }
+
+        .pm-body { padding: 16px 20px; overflow-y: auto; flex: 1 1 auto; min-height: 140px; }
+        .pm-body table { width: 100%; }
+        .pm-body table thead th {
+            font-size: 12.5px; font-weight: 600; color: #4A5250;
+            border-bottom: 2px solid var(--pos-border); padding: 8px 10px; white-space: nowrap;
+        }
+        .pm-body table tbody td { padding: 9px 10px; border-bottom: 1px solid #EEF1F0; font-size: 13.5px; }
+        .pm-body table tbody tr.sub td { color: var(--pos-muted); font-size: 12.5px; }
+        .pm-count { font-size: 12.5px; color: var(--pos-muted); margin-top: 10px; }
+
+        .pm-foot {
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+            padding: 14px 20px; border-top: 1px solid var(--pos-border); background: #FAFBFB;
+        }
+        .pm-btn {
+            min-width: 132px; border: 0; border-radius: 6px; padding: 12px 16px;
+            font-size: 13.5px; font-weight: 600; cursor: pointer;
+            display: inline-flex; flex-direction: column; align-items: center; gap: 5px;
+            line-height: 1.2; transition: filter .12s;
+        }
+        .pm-btn .i { font-size: 17px; line-height: 1; }
+        .pm-btn:hover:not(:disabled) { filter: brightness(.95); }
+        .pm-btn:disabled { opacity: .4; cursor: default; }
+
+        /* Only Pay is solid: one primary action per dialog, so the eye is not
+           asked to choose between five equally loud buttons. */
+        .pm-btn.pay     { background: var(--tmm-teal);  color: #fff; }
+        .pm-btn.cancel  { background: #FDECEC; color: #A32F2F; }
+        .pm-btn.modify  { background: #EDF1F1; color: var(--tmm-ink); }
+        .pm-btn.pickup  { background: var(--tmm-teal-lt); color: var(--tmm-teal-dk); }
+        .pm-btn.print   { background: #F2EFE6; color: #7A6A3F; }
+
+        @@media (max-width: 767px) {
+            .pos-modal { width: 96vw; max-height: 94vh; }
+            .pm-summary .cell.final { margin-left: 0; text-align: left; }
+            .pm-btn { min-width: 0; flex: 1 1 44%; }
+        }
+
+        .pos-muted { color: var(--pos-muted); }
+        .pos-kv { display: grid; grid-template-columns: 130px 1fr; gap: 4px 10px; }
+        .pos-kv dt { color: var(--pos-muted); font-weight: 500; }
+        .pos-kv dd { margin: 0; }
+
+        [dir="rtl"] .tmm-drawer { right: 0; left: auto; transform: translateX(100%); }
+        /* ---------------- new-order alerts ---------------- */
+        #posAlerts {
+            position: fixed; top: 12px; right: 12px; z-index: 1200;
+            display: flex; flex-direction: column; gap: 8px;
+            width: 320px; max-width: calc(100vw - 24px);
+            /* The column itself must not eat clicks on the page behind it;
+               only the toasts do. */
+            pointer-events: none;
+        }
+        #posAlerts .pa-toast { pointer-events: auto; }
+
+        .pa-toast {
+            background: var(--pos-surface);
+            border: 1px solid var(--pos-border);
+            border-left: 4px solid var(--tmm-teal);
+            border-radius: 6px; padding: 10px 12px;
+            box-shadow: 0 6px 20px rgba(33,35,34,.18);
+            cursor: pointer;
+            animation: paIn .18s ease-out;
+        }
+        .pa-toast:hover { border-color: #BFDEDB; border-left-color: var(--tmm-teal-dk); }
+        .pa-toast.pa-out { opacity: 0; transform: translateX(12px); transition: opacity .15s, transform .15s; }
+
+        @@keyframes paIn {
+            from { opacity: 0; transform: translateX(16px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        .pa-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; }
+        .pa-title { font-weight: 700; font-size: 13.5px; color: var(--tmm-teal-dk); }
+        .pa-inv   { margin-left: auto; font-weight: 700; font-size: 13.5px; color: var(--tmm-ink); }
+
+        .pa-body  { font-size: 13px; line-height: 1.45; }
+        .pa-name  { font-weight: 600; color: var(--tmm-ink); }
+        .pa-meta  { color: var(--pos-muted); font-size: 12.5px; }
+
+        .pa-dismiss {
+            margin-top: 8px; width: 100%;
+            background: var(--tmm-teal); color: #fff; border: 0;
+            border-radius: 4px; padding: 6px 10px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer;
+        }
+        .pa-dismiss:hover { background: var(--tmm-teal-dk); }
+
+        .pa-toast.pa-blocked {
+            border-left-color: #B26A00; cursor: default;
+            background: #FFF8EC; color: #7A5A16;
+        }
+
+        @@media (max-width: 575px) {
+            #posAlerts { left: 12px; right: 12px; width: auto; }
+        }
+    </style>
+    @RenderSection("styles", required: false)
+</head>
+<body>
+
+@* ---------------- drawer ---------------- *@
+<aside class="tmm-drawer" id="tmmDrawer" aria-hidden="true" aria-label="Main menu">
+    <div class="head">
+        <img src="@Url.Content("~/Areas/POS/Content/tmm-logo-light.svg")" alt="" style="width:24px;height:24px;" />
+        <span class="wordmark">TMM</span>
+        <button class="close" id="tmmDrawerClose" aria-label="Close menu">&times;</button>
+    </div>
+
+    <nav>
+        <a href="/apps">
+            <span class="ico">&#8962;</span> All apps
+        </a>
+        <a href="@Url.Action("Index", "Dashboard", new { area = "POS" })"
+           class="@(ctrl == "Dashboard" ? "active" : "")">
+            <span class="ico">&#9632;</span> Dashboard
+        </a>
+
+        <div class="sect">Operations</div>
+        <a href="@Url.Action("Index", "Orders", new { area = "POS" })"
+           class="@(ctrl == "Orders" ? "active" : "")">
+            <span class="ico">&#128203;</span> Order List
+        </a>
+        <a href="@Url.Action("Index", "DineIn", new { area = "POS" })"
+           class="@(ctrl == "DineIn" ? "active" : "")">
+            <span class="ico">&#127869;</span> Dine-In
+        </a>
+        @* Customers, Reports and Settings are hidden until their pages exist -
+           the links are kept (not deleted) so bringing each one back is a
+           matter of uncommenting it. Their permission gates are preserved
+           exactly as they were, so nothing has to be re-derived later.
+
+           NOTE for whoever restores Reports: the "Management" heading below
+           is currently gated on CanManageMasters alone, because User and Item
+           Management are the only things left under it. Put the heading's
+           original gate back at the same time:
+               (posUser.CanViewReports || posUser.CanManageMasters)
+           otherwise a reports-only user sees the Reports link with no heading.
+        *@
+        @*
+        <a href="@Url.Action("Index", "Customers", new { area = "POS" })"
+           class="@(ctrl == "Customers" ? "active" : "")">
+            <span class="ico">&#128100;</span> Customers
+        </a>
+        *@
+
+        @if (posUser != null && posUser.CanManageMasters)
+        {
+            <div class="sect">Management</div>
+        }
+        @*
+        @if (posUser != null && posUser.CanViewReports)
+        {
+            <a href="@Url.Action("Index", "Reports", new { area = "POS" })"
+               class="@(ctrl == "Reports" ? "active" : "")">
+                <span class="ico">&#128202;</span> Reports
+            </a>
+        }
+        @if (posUser != null && posUser.CanManageMasters)
+        {
+            <a href="@Url.Action("Index", "Settings", new { area = "POS" })"
+               class="@(ctrl == "Settings" ? "active" : "")">
+                <span class="ico">&#9881;</span> Settings
+            </a>
+        }
+        *@
+        @if (posUser != null && posUser.CanManageMasters)
+        {
+            <a href="@Url.Action("Index", "Users", new { area = "POS" })"
+               class="@(ctrl == "Users" ? "active" : "")">
+                <span class="ico">&#128101;</span> User Management
+            </a>
+            <a href="@Url.Action("Index", "Print", new { area = "POS" })"
+               class="@(ctrl == "Print" ? "active" : "")">
+                <span class="ico">&#128424;</span> Printer Settings
+            </a>
+            <a href="/Category/Index">
+                <span class="ico">&#127860;</span> Item Management
+            </a>
+        }
+    </nav>
+
+    @if (posUser != null)
+    {
+        <div class="foot">@posUser.UserName &middot; @posUser.RoleName</div>
+    }
+</aside>
+<div class="tmm-scrim" id="tmmScrim"></div>
+
+@* ---------------- brand bar ---------------- *@
+<header class="tmm-bar">
+    <button class="tmm-burger" id="tmmBurger" aria-label="Open menu" aria-expanded="false" aria-controls="tmmDrawer">
+        <span></span><span></span><span></span>
+    </button>
+
+    <span class="logo">
+        <img src="@Url.Content("~/Areas/POS/Content/tmm-logo-light.svg")" alt="TMM" class="bar-logo" />
+        <span class="wordmark">TMM</span>
+    </span>
+
+    <span class="divider"></span>
+    <span class="page-title">@title</span>
+    <span id="posLiveDot" style="font-size:12px;color:#8FA09D;" title="Live update status">&#9679; connecting</span>
+
+    <span class="spacer"></span>
+
+    @if (posUser != null)
+    {
+        <span class="who"><strong>@posUser.UserName</strong>@posUser.RoleName</span>
+        <a class="signout" href="/apps">Apps</a>
+        @* Sign-out is the HRMS one: a POST with the anti-forgery token. *@
+        <form method="post" action="/account/logout" class="m-0" style="display:inline">
+            <input type="hidden" name="__RequestVerificationToken" value="@xsrfToken" />
+            <button type="submit" class="signout" style="background:none;cursor:pointer">Sign out</button>
+        </form>
+    }
+</header>
+
+<main class="pos-body">
+    <div id="posAlerts" aria-live="polite"></div>
+
+    @RenderBody()
+</main>
+
+
+@* A page hosted through _LayoutPOSAdmin has already loaded jQuery, jQuery UI,
+   Bootstrap and DataTables in <head> - it has to, because that page's own
+   scripts run inside RenderBody, above this point. Loading jQuery a second
+   time here would replace window.jQuery and silently strip every plugin
+   (jQuery UI sortable, bootstrap-select, DataTables) off it. *@
+@{
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    @* Popper MUST come before bootstrap.min.js, and the order is not a style
+       preference - it is the whole reason this line exists.
+
+       Scripts/bootstrap.min.js is plain Bootstrap 4, not the bundle, so it does
+       not carry Popper. Its UMD wrapper ends:
+
+           (factory((global.bootstrap = {}), global.jQuery, global.Popper));
+
+       so the Popper its dropdown code tests is a closure argument, read ONCE
+       at the moment bootstrap.min.js executes - not window.Popper looked up
+       later. Load Popper after Bootstrap and that argument is captured as
+       undefined for the life of the page, and every Bootstrap 4 dropdown
+       throws "Bootstrap's dropdowns require Popper.js" the first time it is
+       opened, no matter that window.Popper exists by then.
+
+       That is exactly what happened on the Dashboard: it loaded Popper from
+       its own @@section scripts, which renders further down this file, and so
+       every bootstrap-select filter took a click and never dropped its list.
+       Loading it here fixes it for that page and for any other POS page that
+       uses a dropdown, tooltip or popover. *@
+    <script src="~/js/popper.min.js"></script>
+    <script src="~/Scripts/bootstrap.min.js"></script>
+    <script src="~/Scripts/jquery.dataTables.min.js"></script>
+}
+<script>
+    // HRMS validates an anti-forgery token on every POST; the POS $.ajax calls send it from here.
+    $.ajaxSetup({ headers: { 'RequestVerificationToken': '@xsrfToken' } });
+
+    window.POS = window.POS || {};
+    POS.urls = {
+        lookups: '@Url.Action("Lookups", "Orders", new { area = "POS" })',
+        list:    '@Url.Action("List",    "Orders", new { area = "POS" })',
+        facets:  '@Url.Action("Facets",  "Orders", new { area = "POS" })',
+        changes: '@Url.Action("Changes", "Orders", new { area = "POS" })',
+        details: '@Url.Action("Details", "Orders", new { area = "POS" })',
+        print:   '@Url.Action("Print",   "Orders", new { area = "POS" })',
+        cancel:  '@Url.Action("Cancel",  "Orders", new { area = "POS" })',
+        takePay: '@Url.Action("TakePayment", "Orders", new { area = "POS" })',
+        delLine: '@Url.Action("DeleteLine",  "Orders", new { area = "POS" })',
+        chBranch: '@Url.Action("ChangeBranch",   "Orders", new { area = "POS" })',
+        chStatus: '@Url.Action("ChangeStatus",   "Orders", new { area = "POS" })',
+        toPickup: '@Url.Action("ChangeToPickup", "Orders", new { area = "POS" })',
+        payLink: '@Url.Action("CreateLink", "Payment", new { area = "POS" })',
+        payRefresh: '@Url.Action("Refresh", "Payment", new { area = "POS" })',
+        login:   '/account/login?returnUrl=' + encodeURIComponent(location.pathname + location.search),
+        usersList:       '@Url.Action("List",       "Users", new { area = "POS" })',
+        usersSave:       '@Url.Action("Save",       "Users", new { area = "POS" })',
+        usersChangeRole: '@Url.Action("ChangeRole", "Users", new { area = "POS" })'
+    };
+
+    // New-order alarm. Replace Areas/POS/Sounds/neworder.mp3 with your own file
+    // under that same name to change the sound - no code change needed.
+    //   seconds       : how long the alarm runs (a shorter file loops to fill it,
+    //                   a longer one plays through once in full)
+    //   keepAlive     : inaudible tone that stops the browser throttling this
+    //                   tab in the background, so alerts still fire promptly
+    //                   when the cashier is on another tab. Costs a speaker icon
+    //                   on the tab and keeps the machine from idle-sleeping.
+    //   desktopNotify : also raise a Windows notification when the tab is not in
+    //                   view. Asks for browser permission the first time.
+    POS.sound = {
+        url:           '@Url.Content("~/Areas/POS/Sounds/neworder.mp3")',
+        seconds:       6,
+        keepAlive:     true,
+        desktopNotify: false
+    };
+
+    // The context menu greys out what this role cannot do. The server re-checks
+    // every one on POST - hiding a command is presentation, not security.
+    POS.perms = {
+        changeStatus: @((posUser != null && posUser.CanChangeStatus).ToString().ToLower()),
+        cancel:       @((posUser != null && posUser.CanCancel).ToString().ToLower()),
+        refund:       @((posUser != null && posUser.CanRefund).ToString().ToLower()),
+        transfer:     @((posUser != null && posUser.CanTransfer).ToString().ToLower()),
+        takePayment:  @((posUser != null && posUser.CanTakePayment).ToString().ToLower())
+    };
+
+    $(document).ajaxError(function (e, xhr) {
+        if (xhr.status === 401) { window.location = POS.urls.login; }
+    });
+
+    // ---- drawer ----
+    (function () {
+        var $d = $('#tmmDrawer'), $s = $('#tmmScrim'), $b = $('#tmmBurger');
+
+        function open()  { $d.addClass('open').attr('aria-hidden','false'); $s.addClass('open'); $b.attr('aria-expanded','true'); }
+        function close() { $d.removeClass('open').attr('aria-hidden','true'); $s.removeClass('open'); $b.attr('aria-expanded','false'); }
+
+        $b.on('click', function () { $d.hasClass('open') ? close() : open(); });
+        $('#tmmDrawerClose, #tmmScrim').on('click', close);
+
+        // Escape closes the drawer, but not while a dialog above it is open.
+        $(document).on('keydown', function (e) {
+            if (e.key === 'Escape' && $d.hasClass('open')) close();
+        });
+    })();
+</script>
+@RenderSection("scripts", required: false)
+</body>
+</html>

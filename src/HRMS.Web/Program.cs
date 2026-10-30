@@ -53,6 +53,10 @@ builder.Services.AddControllersWithViews(options =>
 // Items Management (QR Menu) ported from the old .NET Framework project:
 // Areas/Items - JSON binding, appsettings "QrMenu", wwwroot-qr (Areas/Items/Legacy).
 builder.Services.AddQrMenuLegacy(builder.Configuration);
+// POS Dine-In live table status (Areas/POS/Hubs/DineInHub.cs). Payload names stay
+// PascalCase because the old Dine-In script reads m.TableID / m.By.
+builder.Services.AddSignalR()
+    .AddJsonProtocol(o => o.PayloadSerializerOptions.PropertyNamingPolicy = null);
 
 // The AJAX calls in organization.js send the token in this header.
 builder.Services.AddAntiforgery(options =>
@@ -216,6 +220,11 @@ builder.Services.AddResponseCompression();
 
 var app = builder.Build();
 
+// The ported POS code reads the operator and broadcasts table changes from static helpers.
+HRMS.Web.Areas.POS.POSUser.Configure(app.Services.GetRequiredService<IHttpContextAccessor>());
+HRMS.Web.Areas.POS.Hubs.DineInHub.Configure(
+    app.Services.GetRequiredService<Microsoft.AspNetCore.SignalR.IHubContext<HRMS.Web.Areas.POS.Hubs.DineInHub>>());
+
 // where each request's time goes (Server-Timing header + a log line per slow page)
 if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Diagnostics:ServerTiming"))
 {
@@ -295,7 +304,9 @@ app.MapControllerRoute(
     name: "qrmenu-items",
     pattern: "{controller}/{action=Index}/{id?}",
     defaults: new { area = "Items" },
-    constraints: new { controller = "Category|ItemsViewNew|ItemsView|Payment|BranchReservation" });
+    constraints: new { controller = "Category|ItemsViewNew|ItemsView|Payment|BranchReservation|MenuColors|FeedBackReport" });
+
+app.MapHub<HRMS.Web.Areas.POS.Hubs.DineInHub>(HRMS.Web.Areas.POS.Hubs.DineInHub.Path);
 
 app.MapControllerRoute(
     name: "areas",

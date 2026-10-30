@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    TMM mark - light variant, for use on dark backgrounds.
+    Ink tiles: #FFFFFF   Accent: #0E8A80
+    No background rectangle: the mark sits on whatever is behind it.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="TMM">
+  <path d="M 27,0 L 30,0 Q 36,0 36,6 L 36,78 Q 36,84 42,84 L 74,84 Q 80,84 80,90 L 80,120 L 27,120 Q 0,120 0,93 L 0,27 Q 0,0 27,0 Z" fill="#FFFFFF"/>
+  <path d="M 43,0 L 93,0 Q 120,0 120,27 L 120,77 L 90,77 Q 84,77 84,71 L 84,42 Q 84,36 78,36 L 49,36 Q 43,36 43,30 L 43,0 Z" fill="#0E8A80"/>
+  <path d="M 87,92 Q 87,84 95,84 L 120,84 L 120,93 Q 120,120 93,120 L 95,120 Q 87,120 87,112 Z" fill="#FFFFFF"/>
+</svg>

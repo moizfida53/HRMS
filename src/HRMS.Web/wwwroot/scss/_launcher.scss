@@ -10,14 +10,16 @@
 @use "mixins" as *;
 
 $app-accents: (
-  "pos":      $amber-600,
-  "hr":       $blue-600,
-  "payroll":  $green-600,
-  "setup":    $navy-800,
-  "settings": $ink-600,
-  "security": $red-600,
-  "printers": $purple-700,
-  "items":    $blue-500
+  "hrms":       $blue-600,
+  "pos":        $amber-600,
+  "assets":     $green-700,
+  "feedback":   $purple-700,
+  "menucolors": $red-600,
+  "items":      $blue-500,
+  "printers":   $ink-700,
+  "settings":   $ink-600,
+  "security":   $navy-800,
+  "users":      $green-600
 );
 
 .hrms-launcher-body {

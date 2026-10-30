@@ -1,0 +1,71 @@
+@*
+    Areas/POS/Views/Payment/Result.cshtml
+
+    The page the CUSTOMER lands on after paying, on their own phone. No POS
+    chrome, no menu, nothing that assumes a signed-in operator.
+
+    The wording reflects our VERIFIED state, not what the redirect claimed:
+    "Unknown" is shown honestly rather than guessed either way, because telling
+    a customer their payment failed when it actually succeeded produces a
+    duplicate payment, and the reverse produces an unpaid order.
+*@
+@{
+    Layout = null;
+    string outcome = (ViewBag.Outcome as string) ?? "Unknown";
+
+    string title, detail, colour, glyph;
+    switch (outcome)
+    {
+        case "Paid":
+            title  = "Payment received";
+            detail = "Thank you. Your order is confirmed.";
+            colour = "#0E8A80"; glyph = "&#10003;";
+            break;
+        case "Failed":
+            title  = "Payment not completed";
+            detail = "No money was taken. You can try again, or pay on delivery.";
+            colour = "#C02626"; glyph = "&#10005;";
+            break;
+        default:
+            title  = "Checking your payment";
+            detail = "We could not confirm the result yet. If money left your account, "
+                   + "it will be applied to your order automatically — please do not pay twice.";
+            colour = "#B26A00"; glyph = "!";
+            break;
+    }
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@title</title>
+    <style>
+        body {
+            margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            background: #F2F4F4; color: #212322; padding: 24px;
+            font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        .card {
+            background: #fff; border-radius: 10px; padding: 36px 28px; max-width: 380px; width: 100%;
+            text-align: center; box-shadow: 0 6px 26px rgba(33,35,34,.12);
+        }
+        .badge {
+            width: 68px; height: 68px; border-radius: 50%; margin: 0 auto 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 34px; color: #fff; background: @colour;
+        }
+        h1 { font-size: 21px; margin: 0 0 10px; font-weight: 600; }
+        p  { font-size: 14.5px; color: #6B7674; margin: 0; line-height: 1.55; }
+        .brand { margin-top: 26px; font-size: 12px; letter-spacing: 3px; color: #9AA5A3; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="badge">@Html.Raw(glyph)</div>
+        <h1>@title</h1>
+        <p>@detail</p>
+        <div class="brand">TMM</div>
+    </div>
+</body>
+</html>

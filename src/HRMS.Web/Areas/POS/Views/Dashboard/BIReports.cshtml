@@ -1,0 +1,49 @@
+﻿<div class="row">
+    <div class="col-lg-12">
+        <div class="card mb-3">
+            <div class="card-header bg-dark border-0">
+                <div class="row">
+                    <div class="col-sm">
+                        <button id="add" type="button" class="btn btn-primary w-100" onclick="Search('../../Pivot/GetPivotItem')">
+                            <span>Search By Item</span>
+                        </button>
+                    </div>
+                    <div class="col-sm">
+                        <button id="add" type="button" class="btn btn-primary w-100" onclick="Search('../../Pivot/GetPivotInvoice')">
+                            <span>Search By Invoice</span>
+                        </button>
+                    </div>
+                    @*<div class="col-sm">
+                            <button id="add" type="button" class="btn btn-primary w-100 invisible" onclick="exporttoExcel()">
+                                <span>Exporttotexcel</span>
+                            </button>
+                        </div>*@
+                    <div class="col-sm">
+                        <button id="Export" type="button" class="btn btn-primary w-100" onclick="exportPivotToExcel('output','Pivot Data');">
+                            <span>Export to excel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-2">
+                <div class="table-responsive grid-table">
+                    <div id="output" style="margin:10px"></div>
+                    <div id="MainDiv" style="margin:10px">
+                        @*<div id="output" style="margin:10px"></div>*@
+                        <div id="outputInvoicewise" style="display:none;"></div>
+                        <div id="outputItemwise" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@* The scripts that used to sit here have moved into the SCRIPTS section of
+   Index.cshtml, the only view that renders this partial.
+
+   They could not stay: a partial is written into the middle of the body, and
+   _LayoutPOS.cshtml does not load jQuery until after @RenderBody(). Every line
+   below the first $ in that block threw ReferenceError before jQuery existed,
+   which took exportPivotToExcel() and saveAs() down with it - the Export to
+   excel button on this tab has been calling an undefined function. *@

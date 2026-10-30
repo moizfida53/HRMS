@@ -1,4 +1,4 @@
-﻿@inject ICurrentUser CurrentUser
+@inject ICurrentUser CurrentUser
 @inject ICompanyFilter CompanyFilter
 @inject HRMS.Web.Services.IPayrollNavCounts PayrollNavCounts
 @inject Microsoft.Extensions.Options.IOptions<AuthenticationPolicyOptions> AuthPolicy
@@ -368,6 +368,11 @@
                 </div>
 
                 <div class="dropdown-divider"></div>
+
+                <a class="dropdown-item hrms-account-menu__item" href="@(Context.Request.PathBase)/apps">
+                    @Html.Icon("grid", 16)
+                    <span>All apps</span>
+                </a>
 
                 <button type="button" class="dropdown-item hrms-account-menu__item" data-bs-toggle="modal" data-bs-target="#change-password-modal">
                     @Html.Icon("lock", 16)

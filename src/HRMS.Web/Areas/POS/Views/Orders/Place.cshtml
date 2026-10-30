@@ -1,0 +1,31 @@
+@*
+    Areas/POS/Views/Orders/Place.cshtml
+
+    Counter order entry. Placeholder for now - a real screen here needs the menu
+    browser, cart, customer lookup and payment flow, and it should reuse
+    sp_POS_ProcessOrder rather than growing a second order-insert path.
+*@
+@{
+    Layout = "~/Areas/POS/Views/Shared/_LayoutPOS.cshtml";
+    ViewBag.Title = "Place Order";
+}
+
+<div class="card">
+    <div class="card-body text-center" style="padding:64px 24px;">
+        <img src="@Url.Content("~/Areas/POS/Content/tmm-logo-dark.svg")" alt=""
+             style="width:64px;height:64px;opacity:.5;" />
+
+        <h2 style="margin:22px 0 6px;font-size:24px;font-weight:600;">Under Development</h2>
+
+        <p class="pos-muted" style="max-width:500px;margin:0 auto;">
+            Counter order entry &mdash; menu browsing, cart, customer lookup and
+            payment &mdash; will live here. It will post through the same
+            <code>sp_POS_ProcessOrder</code> the QR menu uses, so pricing,
+            discount validation and invoice numbering stay in one place.
+        </p>
+
+        <a class="btn btn-primary mt-4" href="@Url.Action("Index", "Orders", new { area = "POS" })">
+            Back to Order List
+        </a>
+    </div>
+</div>

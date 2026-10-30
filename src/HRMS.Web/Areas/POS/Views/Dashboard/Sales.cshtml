@@ -1,0 +1,303 @@
+﻿<!-- 4 Boxs ============================================-->
+<div class="row">
+    <div class="col-lg-4 col-xl-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Total Sales</label>
+                    <button type="button" class="btn btn-primary reporttotalsales">
+                        <svg class="icon white-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Open details"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-3">
+                @* Amount first, its count underneath - was two inline siblings
+                   with no CSS to stack them (see .info-name in Index.cshtml). *@
+                <div class="info-name text-center mt-3">
+                    <span class="name-id my-2 text-uppercase">
+                        <small class="currancy">kwd</small>
+                        <label id="lblTotalSalesAmount">0.000</label>
+                    </span>
+                    <span class="kpi-count">
+                        <label id="lblTotalOrderCount">0</label>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-xl-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Total Discount</label>
+                    <button type="button" class="btn btn-primary">
+                        @*onclick="bindDiscountWiseDetails();"*@
+                        <svg class="icon white-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Open details"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-3">
+                <div class="info-name text-center mt-3">
+                    <span class="name-id my-2 text-uppercase">
+                        <small class="currancy">kwd</small>
+                        <label id="lblTotalDiscountAmount">0.000</label>
+                    </span>
+                    <span class="kpi-count">
+                        <label id="lblTotalDiscountOrderCount">0</label>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-xl-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Cancellation (Re-Use)</label>
+                    <button type="button" class="btn btn-primary" onclick="bindDeletedReUseWiseItemsDetails();">
+                        <svg class="icon white-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Open details"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div class="info-name text-center mt-3">
+                    <span class="name-id my-2 text-uppercase">
+                        <small class="currancy">kwd</small>
+                        <label id="lblCancellationReUseAmount">0.000</label>
+                    </span>
+                    <span class="kpi-count">
+                        <label id="lblCancellationReUseCount">0</label>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 col-xl-3 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Cancellation (Waste)</label>
+                    <button type="button" class="btn btn-primary" onclick="bindDeletedWasteWiseItemsDetails();">
+                        <svg class="icon white-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Open details"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-3">
+                <div class="info-name text-center mt-3">
+                    <span class="name-id my-2 text-uppercase">
+                        <small class="currancy">kwd</small>
+                        <label id="lblCancellationWasteAmount">0.000</label>
+                    </span>
+                    <span class="kpi-count">
+                        <label id="lblCancellationWasteCount">0</label>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3 Boxs ============================================-->
+@* Late orders is hidden, not deleted: #tbodyLateOrders simply no longer
+   exists in the DOM, so BindLateOrders() in Dashboard.js still runs and still
+   parses dtLateOrders on every load - it just has nothing to write into, which
+   jQuery treats as a no-op rather than an error. Payment Types and Order Types
+   take col-lg-6 each instead of col-lg-4 so the row still reads as a deliberate
+   two-card layout rather than one with a gap on the right. *@
+<div class="row">
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Payment Types</label>
+                    <button type="button" class="btn btn-primary" onclick="bindPaymentTypeDetails();">
+                        <svg class="icon white-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Open details"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-center inner-table">
+                    <div class="table-responsive grid-table">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Payment Type</th>
+                                    <th>Count of Order</th>
+                                    <th>Total Payment (<span class="currancy">KD</span>)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyPaymentTypes">
+                                @*<tr>
+                                        <td>Deliveroo GO</td>
+                                        <td>KWD 945.500</td>
+                                        <td>144</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Deliveroo Market</td>
+                                        <td>KWD 538.800</td>
+                                        <td>64</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Talabat</td>
+                                        <td>KWD 11586.250</td>
+                                        <td>1255</td>
+                                    </tr>*@
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Order Types</label>
+                    <button type="button" class="btn btn-primary hourwisesalesbreakdown">
+                        <svg class="icon white-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Open details"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-center inner-table">
+                    <div class="table-responsive grid-table">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order Type</th>
+                                    <th>Count of Order</th>
+                                    <th>Total Payment (<span class="currancy">KD</span>)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyOrderTypes">
+                                @*<tr>
+                <td>Deliveroo GO</td>
+                <td>KWD 0.000</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>Deliveroo Market</td>
+                <td>KWD 0.000</td>
+                <td>0</td>
+            </tr>
+            <tr>
+                <td>Talabat</td>
+                <td>KWD 0.000</td>
+                <td>0</td>
+            </tr>*@
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2 Boxs ============================================-->
+<div class="row">
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Branch Sales</label>
+                    <button type="button" class="btn btn-primary">
+                        <svg class="icon white-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Open details"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-center inner-table">
+                    <div class="table-responsive grid-table">
+                         <canvas id="chartBranchSales" style="width:100%;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Top Items</label>
+                    <button type="button" class="btn btn-primary" onclick="bindTopItemsDetailsData();">
+                        <svg class="icon white-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Open details"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-center inner-table">
+                    <div class="table-responsive grid-table">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Item Name</th>
+                                    <th>Count of Order</th>
+                                    <th>Total Payment (<span class="currancy">KD</span>)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyTopItems">
+                                @*<tr>
+                <td>Credit Talabat</td>
+                <td>KD 0.000</td>
+            </tr>
+            <tr>
+                <td>Deliveroo Credit</td>
+                <td>KD 0.000</td>
+            </tr>
+            <tr>
+                <td>K-Net</td>
+                <td>KD 0.000</td>
+            </tr>*@
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 1 Boxs ============================================-->
+<div class="row">
+    <div class="col-lg-12 mb-3">
+        <div class="card h-100">
+            <div class="card-header p-2 border-0 bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="text-white">Hours Wise Sales Data</label>
+                    <select class="form-control" id="ShowDefaultValue" style="width: 233px;float: left;margin-right: 10px;">
+                        <option value="1">Amount</option>
+                        <option value="2">Count</option>
+                    </select>
+                    <select class="form-control" id="HourlyChartGroupByForMainView" style="width: 174px;float: left;margin-right: 10px;">
+                        <option value="1">Branch</option>
+                        <option value="2">Order Type</option>
+                        <option value="3">Day</option>
+                        <option value="4">Brand</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-center inner-table">
+                    <div class="table-responsive grid-table">
+                        <div id="hourswisesalesbarchartForMainView" style="height: 300px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+
+
+
+
+
