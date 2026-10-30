@@ -1,0 +1,160 @@
+@{
+    Layout = "";
+    // light-grey placeholder (fully url-encoded so Razor leaves it intact)
+    var ph = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='300'%20height='200'%3E%3Crect%20width='300'%20height='200'%20fill='%23d6d6d6'/%3E%3C/svg%3E";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Menu preview</title>
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="~/cssNew/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="~/cssNew/OraBlu.css" />
+    <link rel="stylesheet" type="text/css" href="~/cssNew/style.css" />
+    <link rel="stylesheet" type="text/css" href="~/cssNew/theme-01.css" />
+    <link rel="stylesheet" type="text/css" href="~/cssNew/responsive-categories.css" />
+    <style>
+        /* Preview-only tweaks: unpin the fixed header, drop the 480px phone cap and
+           lay the sample cards out tidily inside the iframe. The colours themselves
+           come entirely from the :root block the editor injects. */
+        html, body { margin: 0; background: var(--category_page_background_color, #08203e); }
+        .pv-scroll { padding-bottom: 24px; }
+        .top-header { position: static !important; max-width: 100% !important; width: 100% !important; }
+        .wrapper, .main-content, .item-list-title { position: static !important; max-width: 100% !important; width: 100% !important; padding-top: 0 !important; max-height: none !important; overflow: visible !important; }
+        .main-content { padding-bottom: 8px !important; }
+        .pv-label { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #9aa7b3; margin: 14px 14px 4px; }
+        .pv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 14px; }
+        .pv-grid > div { max-width: 100%; }
+        .card-primary .img-Category, .card-primary .img-Item { width: 100%; height: 110px; object-fit: cover; }
+        .product-details .img-thumbnail { max-width: 300px; height: auto; }
+        .item-details-price { padding: 0 14px 16px; gap: 8px; }
+    </style>
+</head>
+<body>
+    <div class="pv-scroll">
+
+        <!-- ===== Header ===== -->
+        <header class="header">
+            <div class="top-header">
+                <div class="container-fluid">
+                    <div class="row justify-content-between align-items-center">
+                        <div class="col-auto">
+                            <button class="nav-icon"><span class="one"></span><span class="two"></span><span class="three"></span></button>
+                        </div>
+                        <div class="col-auto">
+                            <a href="#" class="cart mr-2"><i class="fa fa-language"></i></a>
+                            <a href="#" class="cart"><i class="fa fa-commenting-o"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ===== Category page ===== -->
+        <div class="pv-label">Category page</div>
+        <div class="main-content category-page-bg">
+            <div class="form-row responsive-category-grid pv-grid">
+                <div>
+                    <a class="card-primary ml-1 mr-1">
+                        <img class="card-img-top img-Category" src="@ph" alt="" />
+                        <div class="card-body-category"><h3>Salads</h3></div>
+                    </a>
+                </div>
+                <div>
+                    <a class="card-primary ml-1 mr-1">
+                        <img class="card-img-top img-Category" src="@ph" alt="" />
+                        <div class="card-body-category"><h3>Mains</h3></div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Item page ===== -->
+        <div class="pv-label">Item page</div>
+        <div class="main-content item-list">
+            <div class="item-list-title d-flex align-items-center">
+                <a href="#" class="btn btn-sm back-btn"><i class="fa fa-arrow-left"></i></a>
+                <h2 class="pl-2 pr-2">Salads</h2>
+            </div>
+            <div class="form-row pv-grid">
+                <div>
+                    <div class="card-primary ml-1 mr-1">
+                        <img class="card-img-top img-Item" src="@ph" alt="" />
+                        <div class="card-body"><h4 class="pb-0">Salmon &amp; avocado salad</h4></div>
+                        <div class="card-footer">
+                            <div class="row no-gutters align-items-center justify-content-between">
+                                <div class="col-auto"><span class="price">KD 5.000</span></div>
+                                <div class="col-auto"><button class="btn btn-plus"><span class="text-icon">+</span></button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="card-primary ml-1 mr-1">
+                        <img class="card-img-top img-Item" src="@ph" alt="" />
+                        <div class="card-body"><h4 class="pb-0">Crispy duck salad</h4></div>
+                        <div class="card-footer">
+                            <div class="row no-gutters align-items-center justify-content-between">
+                                <div class="col-auto"><span class="price">KD 4.500</span></div>
+                                <div class="col-auto"><button class="btn btn-plus"><span class="text-icon">+</span></button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Item details ===== -->
+        <div class="pv-label">Item details</div>
+        <div class="main-content product-details">
+            <div class="product-details-inner">
+                <div class="item-list-title d-flex align-items-center">
+                    <a href="#" class="btn btn-sm back-btn"><i class="fa fa-arrow-left"></i></a>
+                    <h2 class="pl-2 pr-2">Salads</h2>
+                </div>
+                <img id="itemDetailsItemImage" class="img-thumbnail rounded mx-auto d-block" src="@ph" alt="" />
+                <h2 class="product-name">Salmon &amp; avocado salad</h2>
+                <p class="product-details-text">salmon, avocado, mixed greens, cherry tomato, house dressing</p>
+                <div class="row justify-content-center">
+                    <div class="col-auto pb-3">
+                        <div class="d-flex item-select-block"><button class="btn btn-plus"><span class="text-icon">+</span></button></div>
+                    </div>
+                </div>
+                <div class="item-details-price d-flex align-items-end justify-content-between">
+                    <div class="price-block">
+                        <label>Unit price</label>
+                        <span class="price"><em>KD</em><label>5.000</label></span>
+                    </div>
+                    <div class="price-block extra-price">
+                        <label>Extra price</label>
+                        <span class="price"><em>KD</em><label>0.500</label></span>
+                    </div>
+                    <div class="price-block total-price">
+                        <label>Total price</label>
+                        <span class="price"><em>KD</em><label>5.500</label></span>
+                    </div>
+                </div>
+            </div>
+            <div class="category-carousel">
+                <div class="form-row pv-grid">
+                    <div>
+                        <a class="card-primary ml-1 mr-1">
+                            <img class="card-img-top img-Category" src="@ph" alt="" />
+                            <div class="card-body-category"><h3>Citrus salad</h3></div>
+                        </a>
+                    </div>
+                    <div>
+                        <a class="card-primary ml-1 mr-1">
+                            <img class="card-img-top img-Category" src="@ph" alt="" />
+                            <div class="card-body-category"><h3>Mango chicken</h3></div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

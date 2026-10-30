@@ -1,0 +1,230 @@
+:root {
+    --primary: #b30050;
+    --secondary: #b30050;
+    --secondary_text: #131313;
+    --title_bg: #fff;
+    --title_text: #000;
+    --header_icon: #fff;
+    --btn-language_background_color: #fff;
+    --btn-language_text_color: #000;
+    --main_navigation_bg: #fff;
+    --main_navigation_icon_color: #b30050;
+    --main_navigation_text_color: #b30050;
+    /* Main Page Header */
+    --header_background_color: #b30050;
+    --header_icon_color: #fff;
+    --scroll_header_background_color: #b30050;
+    --scroll_header_icon_color: #FFF;
+    --fixd_item-list-title_background_color: #000;
+    --fixd_item-list-title_text_color: #fff;
+    /* Category Page-- */
+    --category_page_background_color: #fff;
+    --category_page_card_primary_background_color: #fff;
+    --category_page_categoryname_color: #b30050;
+    /* Item Page-- */
+    --item_page_background_color: #fff;
+    --item_page_category_title_bg_color: #fff;
+    --item_page_category_title_font_color: #b30050;
+    --item_page_item_background_color: #fff;
+    --item_page_itemname_color: #b30050;
+    --item_page_price_color: #b30050;
+    --item_page_plus_button_color: #b30050;
+    --item_page_plus_button_icon_color: #fff;
+    /* Product Details-- */
+    --product_details_title_bg_color: #fff;
+    --product_details_title_font_color: #b30050;
+    --product_details_background_color: #fff;
+    --product_name: #b30050;
+    --product_details_text: #b30050;
+    --product_details_price: #b30050;
+    --product_details_price_text: #b30050;
+    --product_details_price_background_color: #f1e7de;
+    --product_details_plus_button_color: #000;
+    --product_details_plus_button_icon_color: #fff;
+    --category_carousel_background_color: #fcfcfc;
+    --extra_bg_color: #f1e7de;
+    --extra_button_normal_bg_color: #efefef;
+    --extra_button_normal_font_color: #000;
+    --extra_button_selection_bg_color: #cab9aa;
+    --extra_button_selection_bg_font_color: #fff;
+    --item-details-price-background-color: #f5f2f0;
+    --item-details-price-text: #304633;
+    --item-details-price-total-price-background-color: #f5f2f0;
+    --item-details-price-total-price-text: #000;
+    --item-details-extra-price-text-color: #2eca42;
+    /* Cart-- */
+    --cart_page_title_bg_color: #fff;
+    --cart_page_title_font_color: #000;
+    --cart_background_color: #faf7f1;
+    --cart_category_name: #000;
+    --cart_item_name: #000;
+    --cart-page-price-outer-background-color: #faf7f1;
+    --cart_item_price_color: #000;
+    --cart-page-total-price-text: #fff;
+    --cart-page-total-price-background-color: #000;
+    --cart_textarea_background_color: #e8e8e8;
+    --cart_textarea_text_color: #000;
+    --cart_page_plus_button_color: #fff;
+    --cart_page_plus_button_icon_color: #000;
+    --cart_page_comments_items_text: #7a7a7a;
+    --cart_page_comments_items_border_color: #d6d6d6;
+    --cart_item_background_color: #fff;
+    --cart_page_extra_items_background_color: #e3ede4;
+    --cart_page_extra_items_text: #fff;
+    --cart_page_extra_price: #2eca42;
+    /* Landing page */
+    --branch_menu_button_background_color: #e1baa2;
+    --branch_menu_button-text: #f1e7de;
+    --reservation_menu_button_background_color: #fff;
+    --reservation_menu_button-text: #000;
+    /* Branch Menu */
+    --branch_area_background_color: #b30050;
+    --branch_area_text_color: #000;
+    --branch_list_background_color: #fff;
+    --branch_list_text_color: #000;
+    --branch_list_border_bottom_color: #f0f0f0;
+    /* Form control */
+    --form_group_label_color: #2a2e30;
+    --form_control_text_color: #2a2e30;
+    --times_select_icon_color: #818181;
+    --date_pick_icon_color: #818181;
+    --datepicker_active_color: #000;
+    /* These two were #000 while the toggle text stayed #313131 - dark grey on
+       black, which is the "delivery time list is a black box" report. This is
+       a light theme everywhere else (form text #2a2e30, buttons on #efefef),
+       so the surfaces go back to white. */
+    --dropdown_menu_background_color: #fff;
+    --dropdown_toggle_text_color: #313131;
+    --dropdown_toggle_background_color: #fff;
+    --dropdown_item_text_color: #313131;
+    --active_dropdown_item_text_color: #000;
+    --active_dropdown_item_background_color: #f2f2f2;
+    --time_zone_button_normal_bg_color: #efefef;
+    --time_zone_button_normal_font_color: #000;
+    --time_zone_button_selection_bg_color: #fff;
+    --time_zone_button_selection_bg_font_color: #000;
+    /* Reservation */
+    --btn_confirm_background_color: #fff;
+    --btn_confirm_border_color: #fff;
+    --form_primary_details_text_color: #131416;
+    --times_zone_text_color: #fff;
+    --times_zone_background_color: #fff;
+    --active_times_zone_text_color: #fff;
+    --active_times_zone_background_color: #fff;
+    --available_reservation_search_btn_border_color: #fff;
+    --available_reservation_search_btn_text_color: #fff;
+    --focus_available_reservation_search_btn_text_color: #fff;
+    --focus_available_reservation_search_btn_text_background_color: #fff;
+    --focus_available_reservation_search_btn_text_color: #fff;
+    --available_reservation_times_title_text_color: #313131;
+    --reservation_info_text_color: #fff;
+    --thanks_text_color: #fff;
+    /* loading */
+    --loading-text-color: #b30050;
+    --loading-boll-color: #b30050;
+    /* 22-10-2020 --------------------- */
+    /* terms-and-conditions */
+    --terms-and-conditions-title-text-color: #fff;
+    --terms-and-conditions-title-background_color: #fff;
+    --terms-and-conditions--list-text-color: #fff;
+    /* login-page*/
+    --login-page-background-color: #edb649;
+    --login-page-form-group-background-color: #edb649;
+    --login-page-icon-color: #f1e7de;
+    --login-page-form-control-background-color-focus: #f2f2f2;
+    --login-page-login-btn-background-color: #000;
+    --login-page-login-btn-text: #b30050;
+    --table-number-text: #0A153D;
+    --nav-background-color: #d4dfd6;
+    --nav-link-active-background-color: #fff;
+    --table-icon-background-color: #d3e1d5;
+    --table-icon-active-background-color: #9dcaa3;
+    --powered-by-text-color: #333;
+    /* order-mode-page */
+    --svg-icon: #000;
+    --heading-title-text: #000;
+    --heading-sub-title-text: #000;
+    --icon-outer-bg: #ececec;
+    --checkout-nav-border-color: #f1e7de;
+    --checkout-nav-item-text: #000;
+    --checkout-nav-item-bg-active: #f1e7de;
+    --checkout-nav-item-text-active: #000;
+    --checkout-input-group-text: #000;
+    --checkout-input-group-border-right: #000;
+    --checkout-form-group-svg: #000;
+    --checkout-form-control-text: #000;
+    --checkout-input-group-text-bg: #f1e7de;
+    --checkout-form-control-bg: #f6f2f2;
+    /* Pickup Tab */
+    --pickup-tab-list-group-item-title-text: #000;
+    --pickup-tab-list-group-item-text: #333;
+    --pickup-tab-list-group-item-bg-color: #f1e7de;
+    --pickup-tab-list-group-item-active-text-color: #000;
+    --pickup-tab-list-group-item-text-color: #000;
+    --pickup-tab-list-group-item-active-bg-color: #d2c7be;
+    --delivery-title-text: #2e4131;
+    --delivery-tab-pane-icon-outer-bg: #f1e7de;
+    --delivery-tab-pane-icon-svg: #000;
+    --delivery-tab-pane-list-title-text: #282828;
+    --delivery-tab-pane-list-address-text: #282828;
+    --delivery-tab-pane-list-bg-hover: #f1e7de;
+    --delivery-tab-pane-list-bg-active: #f1e7de;
+    --delivery-tab-pane-list-text-active: #000;
+    /* btn */
+    --order-mode-page-primary: #000;
+    --order-mode-page-secondary: #f1e7de;
+    --order-mode-page-secondary-text-color: #000;
+    /* Paymet */
+    --payment-options-text: #6d6868;
+    --payment-options-border: #cccccc;
+    --payment-options-text-hover: #dc914e;
+    --payment-options-border-hover: #dc914e;
+    --payment-options-text-active: #e5620b;
+    --payment-options-border-active: #e5620b;
+    --payment-options-bg-active: #f1e7de;
+    --payment-methods-sub-title-text: #e5620b;
+    --payment-methods-delivery-info-li-text: #000;
+    --payment-methods-delivery-info-date: #898480;
+    --payment-methods-delivery-info-p-text: #898480;
+    --payment-methods-order-recap-li-border: #e7e0e0;
+    --payment-methods-order-recap-li-span-text: #878787;
+    --payment-methods-order-recap-li-strong-text: #000;
+    --payment-methods-order-recap-li-net-amount-span-text: #000;
+    --payment-methods-order-recap-li-net-amount-strong-text: #000;
+    --payment-methods-btn-light-text: #e5620b;
+    --payment-methods-btn-light-bg-hover: #e5620b;
+    --payment-methods-btn-light-text-hover: #000;
+    --payment-methods-order-list-bg: #f5f5f5;
+    --payment-methods-order-list-li-border: #e7e0e0;
+    --payment-methods-order-list-li-span-text: #878787;
+    --payment-methods-order-list-li-strong-text: #000;
+    --payment-methods-ordar-list-hed-bg: #e6e6e6;
+    --order-information-invoice-btn-bg: #f1e7de;
+    --order-information-invoice-btn-text: #000;
+    --order-information-sub-title-text: #e5620b;
+    --order-information-delivery-info-li-text: #000;
+    --order-information-delivery-info-date: #898480;
+    --order-information-delivery-info-p-text: #898480;
+    --order-list-bg: #f5f5f5;
+    --order-information-page-primary: #000;
+    --order-information-page-primary-text: #000;
+    /* Track-order-page */
+    --track-order-page-page-heading-bg: #fff;
+    --track-order-page-page-heading-label: #b0c6b3;
+    --track-order-page-page-heading-order-no: #000;
+    --track-order-page-page-heading-feedback-text: #fff;
+    --track-order-page-page-heading-feedback-bg: rgba(255,255,255,0.20);
+    --track-order-page-page-heading-feedback-bg-hover: rgba(0,0,0,0.20);
+    --status-li-active-bg: #f0f5f1;
+    --status-color: #ddecdf;
+    --status-color-active: #2fc943;
+    --track-block-headign-text: #0b0b0b;
+    --track-block-text: #949494;
+    --btn-map-view-border-color: #fff;
+    --btn-map-view-bg-hover: #fff;
+    --btn-map-view-text-hover: #000;
+/*Brand Alert box*/
+    --brand-alert-backgroundcolor: #fff;
+    --brand-alert-fontcolor: #856404;
+    --brand-alert-border-color: #ffeeba;
+}

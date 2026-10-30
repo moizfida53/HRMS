@@ -1,0 +1,150 @@
+// ============================================================================
+// Application launcher (/apps) - the page after sign-in. One tile per
+// application; each application keeps its own accent so the grid reads at a
+// glance. Tiles not moved over from the QR Menu project yet are muted.
+// ============================================================================
+
+@use "sass:color";
+@use "sass:map";
+@use "tokens" as *;
+@use "mixins" as *;
+
+$app-accents: (
+  "pos":      $amber-600,
+  "hr":       $blue-600,
+  "payroll":  $green-600,
+  "setup":    $navy-800,
+  "settings": $ink-600,
+  "security": $red-600,
+  "printers": $purple-700,
+  "items":    $blue-500
+);
+
+.hrms-launcher-body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  background: $surface;
+}
+
+.hrms-launcher-bar {
+  padding-block: space("3");
+  background: $navy-900;
+  color: $white;
+
+  &__brand {
+    font-family: $font-display;
+    font-weight: $fw-semibold;
+    font-size: $fs-lg;
+  }
+
+  &__user {
+    display: inline-flex;
+    align-items: center;
+    gap: space("2");
+    font-size: $fs-sm;
+    color: color.adjust($white, $alpha: -0.2);
+
+    @include down("sm") { display: none; }
+  }
+}
+
+.hrms-launcher {
+  padding-block: space("8") space("10");
+
+  @include down("md") { padding-block: space("5"); }
+
+  &__title {
+    margin-block-end: space("6");
+    font-family: $font-display;
+    font-size: $fs-xl;
+    font-weight: $fw-semibold;
+    color: $ink-900;
+  }
+}
+
+.hrms-app-tile {
+  --app-accent: #{$blue-600};
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: space("2");
+  block-size: 100%;
+  padding: space("5");
+  background: $white;
+  border: 1px solid $line-200;
+  border-radius: $radius-lg;
+  color: $ink-900;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+
+  @each $key, $accent in $app-accents {
+    &[data-app="#{$key}"] { --app-accent: #{$accent}; }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 3rem;
+    block-size: 3rem;
+    border-radius: $radius;
+    background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+    color: var(--app-accent);
+  }
+
+  &__name {
+    font-family: $font-display;
+    font-size: $fs-lg;
+    font-weight: $fw-semibold;
+  }
+
+  &__text {
+    font-size: $fs-sm;
+    color: $ink-500;
+  }
+
+  &__badge {
+    position: absolute;
+    inset-block-start: space("4");
+    inset-inline-end: space("4");
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: $line-100;
+    color: $ink-600;
+    font-size: $fs-xs;
+    font-weight: $fw-medium;
+  }
+
+  &:is(a):hover,
+  &:is(a):focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--app-accent);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--app-accent) 18%, transparent);
+    color: $ink-900;
+  }
+
+  &:is(a):focus-visible {
+    outline: 2px solid var(--app-accent);
+    outline-offset: 2px;
+  }
+
+  &.is-soon {
+    cursor: default;
+    opacity: 0.72;
+  }
+
+  @include down("sm") {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: space("4");
+
+    .hrms-app-tile__text { flex-basis: 100%; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hrms-app-tile { transition: none; }
+}

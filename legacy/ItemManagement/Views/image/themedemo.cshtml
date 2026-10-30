@@ -1,0 +1,256 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>themedata</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Bootstrap 4 Accordion with Plus Minus Icons</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+
+
+    <link href="~/css/bootstrap.min.css" rel="stylesheet" />
+ @*   <link href="~/Content/newfont-awesome.min.css" rel="stylesheet" />*@
+    @*<link href="~/css/Turbo Css/font-awesome.min.css" rel="stylesheet" />*@
+   
+    <script src="~/vendor/popper/popper.min.js"></script>
+    <script src="~/Scripts/bootstrap.min.js"></script>
+
+
+    <link href="~/Content/demotheme.css" rel="stylesheet" />
+    @*<link href="~/css/bootstrap.css" rel="stylesheet" />*@
+
+
+
+    <style>
+        .bs-example {
+            margin: 20px;
+        }
+
+        .accordion .fa {
+            margin-right: 0.5rem;
+        }
+    </style>
+    @*<script>
+        $(document).ready(function () {
+            // Add minus icon for collapse element which is open by default
+            $(".collapse.show").each(function () {
+                $(this).prev(".card-header").find(".fa").addClass("fa-minus").removeClass("fa-plus");
+            });
+
+            // Toggle plus minus icon on show hide of collapse element
+            $(".collapse").on('show.bs.collapse', function () {
+                $(this).prev(".card-header").find(".fa").removeClass("fa-plus").addClass("fa-minus");
+            }).on('hide.bs.collapse', function () {
+                $(this).prev(".card-header").find(".fa").removeClass("fa-minus").addClass("fa-plus");
+            });
+        });
+    </script>*@
+
+</head>
+<body>
+    <blockquote class="blockquote text-center">
+        <p class="mb-0" style="font-size: x-large;"><b>Theme Menu</b></p>
+
+    </blockquote>
+    <div class="bs-example" style="font-size: larger;">
+        <div class="accordion" id="accordionExample">
+            <div class="card">
+                <div class="card-header" id="headingOne">
+                    <h2 class="mb-0">
+                        <button  type="button" class="btncard btn-link" data-toggle="collapse" data-target="#collapseOne">
+                            <i class="fa fa-plus"></i>Home Screen Image
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-5 m">
+                                <label style="text-align: right;margin-top: 46px;"><b>HomeScreen Image :</b> &nbsp </label>
+                            </div>
+                            <div class="col-md-7">
+                                <div id="jqxHomescreen">
+                                    <div id="imgHomescreen" style="float: left; margin-right: 10px;">
+                                    </div>
+                                    <b id="lblHomescreen" style="display: none"></b>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" id="headingTwo">
+                    <h2 class="mb-0">
+                        <button type="button"  class="btncard btn-link collapsed" data-toggle="collapse" data-target="#collapseTwo">
+                            <i class="fa fa-plus"></i> Internal Page Image
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-7 mt-lg-5">
+                                <label style="text-align: right;"><b>Item and category background image:</b> &nbsp </label>
+                            </div>
+                            <div class="col-md-5">
+                                <div id="jqxitemcatimage">
+                                    <div id="imgitemcatimage" style="float: left; margin-right: 10px;">
+                                    </div>
+                                    <b id="lblimgitemcat" style="display: none"></b>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+            <div class="card">
+                <div class="card-header" id="headingThree">
+                    <h2 class="mb-0">
+                        <button type="button"  class="btncard btn-link collapsed" data-toggle="collapse" data-target="#collapseThree">
+                            <i class="fa fa-plus"></i>Change Colors
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-9 mt-4">
+                                <label style="text-align: right;"><b>Menu Button, Language Button and Back Button Color</b></label>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="color" id="colourbutton" class="buttoncolor" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-9 mt-4">
+                                <label style="text-align: right;"><b>Category Font Color</b></label>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="color" id="Catfontcolor" class="buttoncolor" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-9 mt-4">
+                                <label style="text-align: right;"><b>Item Font Color:</b></label>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="color" id="Itemfontcolor" class="buttoncolor" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-9 mt-4">
+                                <label style="text-align: right;"><b> Item Background Color:</b></label>
+                            </div>
+                            <div class="col-md-3">
+
+                                <input type="color" id="ItemBackgroundcolor" class="buttoncolor" />
+
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-9 mt-4">
+                                <label style="text-align: right;"><b> Font price color:</b></label>
+                            </div>
+                            <div class="col-md-3">
+
+                                <input type="color" id="fontPRICEcolor" class="buttoncolor" />
+
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-9 mt-4">
+                                <label style="text-align: right;"><b> Font Ingredient color:</b></label>
+                            </div>
+                            <div class="col-md-3">
+
+                                <input type="color" id="fontIngredientcolor" class="buttoncolor" />
+
+                            </div>
+                        </div>
+
+
+
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header" id="headingFour">
+                    <h2 class="mb-0">
+                        <button type="button"  class="btncard btn-link collapsed" data-toggle="collapse" data-target="#collapseFour">
+                            <i class="fa fa-plus"></i>Change Display
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapseFour" class="collapse" aria-labelledby="headingFour" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-9 mt-4">
+                                <label style="text-align: right;"><b>No of Items in row:</b>   </label>
+                            </div>
+
+                            <div class="col-md-3">
+                                <select class="btnclor" id="Itemvalue">
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-9 mt-4">
+                                <label style="text-align: right;"><b>No of category in row:</b>   </label>
+                            </div>
+
+                            <div class="col-md-3">
+                                <select class="btnclor" id="catvalue">
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+
+                                </select>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+
+
+        </div>
+        <center>
+            <button id="Savebutton" class="btnsavetheme mt-lg-5 text-center" onclick="Updatetheme()"><i class="fa fa-folder"></i> Save</button>
+
+            <button id="previewbutton" class="btnsavetheme mt-lg-5 text-center" onclick="preview()"><i class="fa fa-bars"></i> Preview</button>
+
+            <button id="clearbutton" class="btnsavetheme mt-lg-5 text-center" onclick="clearpreview()"><i class="fa fa-bars"></i> Clear</button>
+
+        </center>
+    </div>
+
+</body>
+</html>

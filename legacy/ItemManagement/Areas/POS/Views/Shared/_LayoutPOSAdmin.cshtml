@@ -1,0 +1,195 @@
+﻿@*
+    Areas/POS/Views/Shared/_LayoutPOSAdmin.cshtml
+
+    Hosts an EXISTING admin-panel view (currently ~/Views/Category/Index.cshtml)
+    inside the POS chrome, without copying the view, its scripts, or its
+    controller. It nests into _LayoutPOS, so the brand bar, drawer, nav and
+    POS palette all come from the one place they already live.
+
+    What this layout has to supply, and why:
+
+      1. THE DEPENDENCY STACK, IN <head>.
+         The hosted view loads its own scripts (Category.js and friends) from
+         inside the page body. _LayoutPOS loads jQuery at the BOTTOM of the
+         document, which is far too late for that. So the whole stack the
+         classic admin layout (_LayoutNew) puts in <head> is reproduced here,
+         in the same order, via the "styles" section - which _LayoutPOS renders
+         at the end of <head>. ViewBag.POSHostedAdminPage tells _LayoutPOS to
+         skip its own jQuery/Bootstrap/DataTables so nothing loads twice.
+
+      2. THE STYLESHEETS, EXPLICITLY.
+         _LayoutNew does not link these - ~/js/main.js injects them at runtime
+         from paths like "../cssNew/admin.css", which resolve against the page
+         URL. They are linked here with ~/ paths instead, so they cannot break,
+         and main.js is deliberately NOT loaded (it would inject a second,
+         duplicate copy of every one of them).
+
+      3. THE FIELDS THE PAGE READS OFF THE LAYOUT.
+         _LayoutNew renders #hdnBrandId / #hdnUserId / #hdnMultipleBranch from
+         the eCommerceCook cookie, and the .loading spinner. Category.js reads
+         all four. Here they come from the POS session instead, so the page
+         works for someone who signed in at /POS/Auth/Login and has no
+         admin-panel cookie.
+
+    NOTE ON RELATIVE ASSET PATHS: Category.js references images as
+    "../Images/..." (46 such paths across the JS and the view). Those resolve
+    against the page URL, so this page MUST be served exactly one directory
+    deep - /POS/Menu, never /POS/Menu/Index. MenuController.Index enforces
+    that with a canonical redirect; see the comment there.
+*@
+@using Jar.Areas.POS
+@using Jar.Helper   @* Asset.V() - css/js cache-buster, Helper\AssetVersion.cs *@
+@{
+    Layout = "~/Areas/POS/Views/Shared/_LayoutPOS.cshtml";
+
+    // Read before _LayoutPOS renders: a nested layout runs first, so this is
+    // visible to the parent by the time it decides what to load.
+    ViewBag.POSHostedAdminPage = true;
+
+    var admUser = POSUser.Current;
+
+    // WaiterID in eCommerceCook is tblUser.ID (see ItemsController.UserLogin),
+    // which is exactly POSUser.UserID - so these are the same identity the
+    // classic admin panel would have supplied, just from the POS session.
+    var admBrandID = admUser != null ? admUser.BrandID : 0;
+    var admUserID  = admUser != null ? admUser.UserID  : 0;
+
+    // Only drives whether Category.js shows its "Add Branch" button. The POS
+    // session does not carry it, so fall back to the admin cookie when the
+    // operator happens to have one, and to 0 (hidden) when they do not.
+    var admMultipleBranch = 0;
+    if (Request.Cookies["eCommerceCook"] != null
+        && !string.IsNullOrEmpty(Request.Cookies["eCommerceCook"]["MultipleBranch"]))
+    {
+        int.TryParse(Request.Cookies["eCommerceCook"]["MultipleBranch"], out admMultipleBranch);
+    }
+}
+
+@section styles {
+    @* ---- stylesheets ~/js/main.js would otherwise inject at runtime ---- *@
+    <link href="@Asset.V("~/cssNew/bootstrap.min.css")" rel="stylesheet" />
+    <link href="@Asset.V("~/cssNew/jquery.gridstrap.min.css")" rel="stylesheet" />
+    <link href="@Asset.V("~/cssNew/BsMultiSelect.min.css")" rel="stylesheet" />
+    <link href="@Asset.V("~/cssNew/bootstrap-select.min.css")" rel="stylesheet" />
+    <link href="@Asset.V("~/cssNew/datepicker.css")" rel="stylesheet" />
+    <link href="@Asset.V("~/cssNew/admin.css")" rel="stylesheet" />
+    <link href="@Asset.V("~/cssNew/rtl-admin.css")" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css?family=Poppins:300,300i,400,400i,500,600,700,900&display=swap" rel="stylesheet" />
+
+    @* ---- the script stack, in _LayoutNew's order ----
+       main.js is intentionally absent (see header). custom.js is kept: the
+       hosted page's own behaviour depends on it. *@
+    <script src="@Asset.V("~/vendor/jquery/jquery.js")"></script>
+    <script src="@Asset.V("~/vendor/jquery/jquery-ui.min.js")"></script>
+    <script src="@Asset.V("~/js/popper.min.js")"></script>
+    <script src="@Asset.V("~/js/bootstrap.bundle.min.js")"></script>
+    <script src="@Asset.V("~/js/jquery.gridstrap.min.js")"></script>
+    <script src="@Asset.V("~/js/BsMultiSelect.min.js")"></script>
+    <script src="@Asset.V("~/js/bootstrap-select.min.js")"></script>
+    <script src="@Asset.V("~/js/bootstrap-datepicker.js")"></script>
+    <script src="@Asset.V("~/js/custom.js")"></script>
+    <script src="@Asset.V("~/MainJs/AdminLang.js")"></script>
+
+    @* ---- POS palette over the admin theme ----
+       admin.css is amber (#ffb023 / #ffaf40) on dark grey. Most of what
+       follows repaints those accents in the POS teal, colour only. A couple
+       of rules also undo spacing/elements that only made sense under the
+       classic admin chrome this page no longer has - each says why. *@
+    <style>
+        /* the hosted view opens its own <main class="main-content">, which
+           lands inside _LayoutPOS's <main class="pos-body">; drop the inner
+           one's own page background so the POS grey shows through */
+        .pos-body > .main-content { background: transparent; }
+
+        /* admin.css gives .item-management a 90px top padding to clear the
+           CLASSIC panel's own fixed top navbar. That navbar doesn't exist
+           here - .pos-body already supplies normal top spacing (see
+           _LayoutPOS) - so left alone it just reads as a big empty gap above
+           "Category". */
+        .pos-body > .main-content.item-management { padding-top: 0; }
+
+        .item-management-heading h2 { color: var(--tmm-ink); }
+
+        /* the Branch panel's up/down re-sequence buttons (UpdateBranchSequence
+           in Category.js) are still fully wired up - just not shown here */
+        .item-management .right-navigation .branch_tdShort { display: none; }
+
+        /* primary / info buttons */
+        .btn-primary, .btn-primary:hover, .btn-primary:focus, .btn-primary.focus,
+        .btn-info, .btn-info:hover, .btn-info:focus, .btn-info.focus {
+            background-color: var(--tmm-teal) !important;
+            border-color: var(--tmm-teal) !important;
+            color: #fff !important;
+        }
+        .btn-primary:hover, .btn-info:hover { background-color: var(--tmm-teal-dk) !important; }
+
+        /* checkboxes and radios */
+        .form-group .custom-control-input:checked ~ .custom-control-label::before,
+        .item-management .custom-control-input:checked ~ .custom-control-label::before,
+        .form-group .custom-radio .custom-control-input:checked ~ .custom-control-label::before {
+            background-color: var(--tmm-teal) !important;
+            border-color: var(--tmm-teal) !important;
+        }
+        .form-group .custom-control-input:focus ~ .custom-control-label::before,
+        .item-management .custom-control-input:focus ~ .custom-control-label::before {
+            border-color: var(--tmm-teal) !important;
+            box-shadow: 0 0 0 .2rem rgba(14, 138, 128, .25) !important;
+        }
+
+        /* the Branch panel's selection circle: admin.css targets it with the
+           same selector chain plus !important, so the generic rule above
+           loses to it on specificity. Match the chain exactly here (this
+           block loads after admin.css, so equal specificity still wins) */
+        .item-management .right-navigation .custom-radio .custom-control-input:checked ~ .custom-control-label::before {
+            background-color: var(--tmm-teal) !important;
+            border-color: var(--tmm-teal) !important;
+        }
+
+        /* on/off switches */
+        .toggle-switch input:checked + .slider { background-color: var(--tmm-teal) !important; }
+        .toggle-switch input:focus + .slider   { box-shadow: 0 0 1px var(--tmm-teal) !important; }
+
+        /* datepicker + multiselect accents */
+        .datepicker table tr td.active,
+        .datepicker table tr td.active:hover,
+        .datepicker table tr td span.active {
+            background-color: var(--tmm-teal) !important;
+            background-image: none !important;
+            border-color: var(--tmm-teal) !important;
+        }
+        .dashboardcode-bsmultiselect ul.dropdown-menu .hover { background-color: var(--tmm-teal-lt) !important; }
+
+        /* links and focus rings inside the hosted page */
+        .item-management a { color: var(--tmm-teal-dk); }
+        .item-management .form-control:focus {
+            border-color: var(--tmm-teal);
+            box-shadow: 0 0 0 .2rem rgba(14, 138, 128, .15);
+        }
+    </style>
+}
+
+@* ---- what _LayoutNew's body supplied and Category.js reads ---- *@
+<input type="hidden" id="hdnBrandId" value="@admBrandID" />
+<input type="hidden" id="hdnUserId" value="@admUserID" />
+<input type="hidden" id="hdnMultipleBranch" value="@admMultipleBranch" />
+
+<div class="loading" style="display:none;">
+    <div class='peeek-loading'>
+        <ul>
+            <li></li><li></li><li></li><li></li><li></li>
+            <li></li><li></li><li></li><li></li><li></li>
+        </ul>
+    </div>
+</div>
+
+@RenderBody()
+
+@* clearChangePassword() lives in _LayoutNew and the hosted view's Change
+   Password dialog calls it inline, so it has to exist here too. *@
+<script>
+    function clearChangePassword() {
+        $('#txtOldPassword').val("");
+        $('#txtNewPassword').val("");
+        $('#txtReTypePassword').val("");
+    }
+</script>

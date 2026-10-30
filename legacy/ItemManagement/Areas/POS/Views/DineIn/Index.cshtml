@@ -1,0 +1,276 @@
+﻿@*
+    Areas/POS/Views/DineIn/Index.cshtml
+
+    Dine-In floor plan. The page itself is a shell: tables, popups and counts
+    are drawn by Areas/POS/Scripts/pos.dinein.js from DineInController's JSON,
+    and kept current by DineInHub (SignalR) plus a 30-second safety refresh.
+
+    Styles: Areas/POS/Content/pos.dinein.scss (compiled to .css).
+*@
+@using Jar.Areas.POS
+@using Jar.Helper
+@{
+    Layout = "~/Areas/POS/Views/Shared/_LayoutPOS.cshtml";
+    ViewBag.Title = "Dine-In";
+    var u = POSUser.Current;
+}
+
+@section styles {
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="@Asset.V("~/Areas/POS/Content/pos.dinein.css")" rel="stylesheet" />
+}
+
+<div class="di" id="di">
+
+    <div class="di-toolbar">
+        <div class="di-seg" role="group" aria-label="Order type">
+            <button type="button" id="diModeDine" class="is-on" aria-pressed="true">Dine-In</button>
+            <button type="button" id="diTakeAway" aria-pressed="false">Take Away<span class="bdg" id="diTaBadge" hidden>0</span></button>
+        </div>
+
+        <nav class="di-floors" id="diFloors" aria-label="Floors"></nav>
+
+        <div class="di-toolbar__end">
+            <div class="di-legend" role="status" aria-label="Occupied tables and guests">
+                <span class="occ"><i class="o"></i>Occupied<b id="diStOcc">0</b></span>
+                <span class="gst">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    Guests<b id="diStGuests">0</b>
+                </span>
+            </div>
+            <button type="button" class="di-btn di-btn--sm di-ta-new" id="diTaNew" hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                New Take Away order
+            </button>
+            <span class="di-live is-wait" id="diLive" role="status"><span class="dot"></span><span class="tx">Connecting…</span></span>
+            <label for="diBranch" class="sr-only">Branch</label>
+            <select id="diBranch" class="di-select" hidden></select>
+            @if (u != null && u.CanManageMasters)
+            {
+                <button type="button" class="di-arrange-btn" id="diArrange">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9l-3 3 3 3"></path><path d="M9 5l3-3 3 3"></path><path d="M15 19l-3 3-3-3"></path><path d="M19 9l3 3-3 3"></path><path d="M2 12h20"></path><path d="M12 2v20"></path></svg>
+                    <span>Arrange tables</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="di-arrangebar" id="diArrangeBar" hidden>
+        <span class="msg">Arrange mode: drag tables to their place. Positions snap to a 10px grid and are saved for every screen.</span>
+        <button type="button" class="di-btn--ghost di-btn--sm" id="diArrangeCancel">Cancel</button>
+        <button type="button" class="di-btn di-btn--sm" id="diArrangeSave">Save layout</button>
+    </div>
+
+    @* ---------------- Take Away tab: the orders, not a floor ---------------- *@
+    <section class="di-ta" id="diTa" hidden aria-label="Take Away orders">
+        <div class="di-ta__bar">
+            <div class="di-ta__filters" id="diTaFilters" role="group" aria-label="Filter orders"></div>
+        </div>
+        <div class="di-ta__grid" id="diTaGrid"></div>
+        <div class="di-empty" id="diTaEmpty" hidden>
+            <strong>No Take Away orders</strong>
+            Tap <b>New Take Away order</b> to take one. It will be listed here.
+        </div>
+    </section>
+
+    <div class="di-floor">
+        <div class="di-floor__scroll" id="diScroll">
+            <div class="di-floor__sizer" id="diSizer">
+                <div class="di-canvas" id="diCanvas"></div>
+            </div>
+        </div>
+        <div class="di-empty" id="diEmpty" hidden>
+            <strong>No tables yet</strong>
+            Add rows to tblTable (Table_No, Capacity, TableType) and they appear here.
+        </div>
+    </div>
+</div>
+
+@* ---------------- guest popup ---------------- *@
+<div class="di-ov" id="diGuest" hidden>
+    <div class="di-dlg" role="dialog" aria-modal="true" aria-labelledby="diGuestTitle">
+        <div class="di-dlg__head">
+            <span class="js-hex"></span>
+            <div class="t">
+                <h2 id="diGuestTitle">Seat guests</h2>
+                <span class="sub js-sub"></span>
+            </div>
+        </div>
+        <div class="di-dlg__body">
+            <div class="di-note di-note--busy" style="margin-bottom:16px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+                Table locked as occupied on all devices
+            </div>
+            <div class="di-field">
+                <label for="diGName">Guest name</label>
+                <input id="diGName" class="di-input" autocomplete="off" maxlength="200" placeholder="e.g. Ahmad" />
+            </div>
+            <div class="di-field">
+                <label for="diGMobile">Mobile</label>
+                <div class="di-prefix">
+                    <span>+965</span>
+                    <input id="diGMobile" type="tel" inputmode="numeric" autocomplete="off" maxlength="15" placeholder="5000 0000" />
+                </div>
+            </div>
+            <div class="di-field" style="margin-bottom:0;">
+                <label for="diGPersons">Number of persons</label>
+                <div class="di-stepper">
+                    <button type="button" class="js-dec" aria-label="Fewer persons">&minus;</button>
+                    <input id="diGPersons" type="number" inputmode="numeric" min="1" max="999" value="2" />
+                    <button type="button" class="js-inc" aria-label="More persons">+</button>
+                    <span class="hint js-cap"></span>
+                </div>
+            </div>
+            <div class="di-err js-err" role="alert" style="margin-top:10px;"></div>
+        </div>
+        <div class="di-dlg__foot">
+            <button type="button" class="di-btn--ghost js-cancel">Cancel</button>
+            <button type="button" class="di-btn grow js-ok">OK, take order</button>
+        </div>
+    </div>
+</div>
+
+@* ---------------- order popup ---------------- *@
+<div class="di-ov" id="diOrder" hidden>
+    <div class="di-dlg di-dlg--lg" role="dialog" aria-modal="true" aria-labelledby="diOrderTitle">
+        <div class="di-dlg__head" style="padding:12px 18px;">
+            <span class="js-hex"></span>
+            <div class="t">
+                <h2 id="diOrderTitle">Order</h2>
+                <span class="sub js-sub"></span>
+            </div>
+            <button type="button" class="di-x js-close" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+        </div>
+        <div class="di-om-body">
+            <section class="di-cart" aria-label="Order lines">
+                <div class="di-cart__head">
+                    <span>Order<span class="count js-count">0</span></span>
+                    <span class="acts">
+                        <button type="button" class="packall js-ta-all" hidden>Pack all</button>
+                        <button type="button" class="clear js-clear">Clear</button>
+                    </span>
+                </div>
+                <div class="di-ta-cust js-ta-cust" hidden>
+                    <input class="di-input js-ta-name" autocomplete="off" maxlength="200" placeholder="Customer name (optional)" aria-label="Customer name" />
+                    <div class="di-prefix">
+                        <span>+965</span>
+                        <input class="js-ta-mobile" type="tel" inputmode="numeric" autocomplete="off" maxlength="15" placeholder="Mobile (optional)" aria-label="Mobile" />
+                    </div>
+                </div>
+                <div class="di-cart__lines js-lines"></div>
+                <div class="di-cart__foot">
+                    <div class="row"><span>Bill amount</span><span class="js-bill">0.000</span></div>
+                    <div class="tot"><span>Total</span><strong class="js-total">0.000</strong></div>
+                    <div class="di-err js-err" role="alert"></div>
+                    <button type="button" class="di-btn--go di-btn--block js-send" style="min-height:54px;font-size:16px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4z"></path></svg>
+                        <span class="js-send-tx">Process order</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="di-items" aria-label="Items">
+                <div class="di-items__head">
+                    <div><h3 class="js-catname" style="display:inline;">Items</h3><span class="c js-catcount"></span></div>
+                    <label class="di-search">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6B63" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+                        <span class="sr-only">Search items</span>
+                        <input type="search" class="js-search" placeholder="Search all items" autocomplete="off" />
+                    </label>
+                </div>
+                <div class="di-grid js-grid"></div>
+            </section>
+
+            <nav class="di-cats js-cats" aria-label="Categories"></nav>
+        </div>
+    </div>
+</div>
+
+@* ---------------- occupied table popup ---------------- *@
+<div class="di-ov" id="diTable" hidden>
+    <div class="di-dlg di-dlg--md" role="dialog" aria-modal="true" aria-labelledby="diTableTitle">
+        <div class="di-dlg__head">
+            <span class="js-hex"></span>
+            <div class="t">
+                <h2 id="diTableTitle">Table</h2>
+                <span class="sub js-sub"></span>
+            </div>
+            <button type="button" class="di-x js-close" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+        </div>
+        <div class="di-dlg__body js-body"></div>
+        <div class="di-actions js-actions"></div>
+    </div>
+</div>
+
+@* ---------------- action sheet (delete / pay / transfer / split) ---------------- *@
+<div class="di-ov is-sheet" id="diSheet" hidden>
+    <div class="di-dlg" role="dialog" aria-modal="true" aria-labelledby="diSheetTitle">
+        <div class="di-dlg__head">
+            <div class="t">
+                <h3 id="diSheetTitle"></h3>
+                <span class="sub js-sub"></span>
+            </div>
+            <button type="button" class="di-x js-close" aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+            </button>
+        </div>
+        <div class="di-dlg__body js-body"></div>
+        <div class="di-dlg__foot js-foot"></div>
+    </div>
+</div>
+
+<div class="di-toasts" id="diToasts" aria-live="polite"></div>
+
+@section scripts {
+    <script>
+        window.DINEIN_CFG = {
+            urls: {
+                floor:      '@Url.Action("Floor", "DineIn", new { area = "POS" })',
+                table:      '@Url.Action("Table", "DineIn", new { area = "POS" })',
+                takeAway:   '@Url.Action("TakeAway", "DineIn", new { area = "POS" })',
+                lineTa:     '@Url.Action("SetLineTakeAway", "DineIn", new { area = "POS" })',
+                menu:       '@Url.Action("Menu", "DineIn", new { area = "POS" })',
+                lock:       '@Url.Action("Lock", "DineIn", new { area = "POS" })',
+                setGuest:   '@Url.Action("SetGuest", "DineIn", new { area = "POS" })',
+                release:    '@Url.Action("Release", "DineIn", new { area = "POS" })',
+                placeOrder: '@Url.Action("PlaceOrder", "DineIn", new { area = "POS" })',
+                addItems:   '@Url.Action("AddItems", "DineIn", new { area = "POS" })',
+                deleteLine: '@Url.Action("DeleteLine", "DineIn", new { area = "POS" })',
+                deleteBill: '@Url.Action("DeleteInvoice", "DineIn", new { area = "POS" })',
+                pay:        '@Url.Action("Pay", "DineIn", new { area = "POS" })',
+                transfer:   '@Url.Action("Transfer", "DineIn", new { area = "POS" })',
+                split:      '@Url.Action("Split", "DineIn", new { area = "POS" })',
+                splitPay:   '@Url.Action("SplitPay", "DineIn", new { area = "POS" })',
+                saveLayout: '@Url.Action("SaveLayout", "DineIn", new { area = "POS" })',
+                lookups:    '@Url.Action("Lookups", "Orders", new { area = "POS" })',
+                print:      '@Url.Action("Print", "Orders", new { area = "POS" })'
+            },
+            user:     '@Html.Raw(u != null ? System.Web.HttpUtility.JavaScriptStringEncode(u.UserName ?? "") : "")',
+            isAdmin:  @(u != null && u.CanManageMasters ? "true" : "false"),
+            canPay:   @(u != null && u.CanTakePayment ? "true" : "false"),
+            currency: 'KD'
+        };
+    </script>
+    @* SignalR 2: installed by "Install-Package Microsoft.AspNet.SignalR -Version 2.4.3".
+       If either script is missing the page still works - it falls back to
+       refreshing the floor every 15 seconds and the badge says so. *@
+    <script src="@Url.Content("~/Scripts/jquery.signalR-2.4.3.min.js")"></script>
+    <script src="@Url.Content("~/signalr/hubs")"></script>
+    <script>
+        window.POS_PRINT_CFG = {
+            urls: {
+                jobs:     '@Url.Action("Jobs", "Print", new { area = "POS" })',
+                markSent: '@Url.Action("MarkSent", "Print", new { area = "POS" })'
+            },
+            currency: 'KD', decimals: 3
+        };
+    </script>
+    <script src="@Asset.V("~/Areas/POS/Scripts/pos.print.js")"></script>
+    <script src="@Asset.V("~/Areas/POS/Scripts/pos.dinein.js")"></script>
+}

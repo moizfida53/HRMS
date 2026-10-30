@@ -1,0 +1,288 @@
+@using System.Collections.Generic
+@using System.Linq
+@using Jar.Controllers
+@{
+    Layout = "~/Views/Shared/_LayoutNew.cshtml";
+    var fields = ViewBag.Fields as List<ColorField> ?? new List<ColorField>();
+    var groups = fields.GroupBy(f => f.Section).ToList();
+}
+
+<style>
+    .mc-layout { display: flex; align-items: flex-start; gap: 22px; max-width: 1500px; margin: 22px auto 0; padding: 0 18px 96px; }
+    .mc-controls { flex: 1 1 auto; min-width: 0; }
+    .mc-preview { flex: 0 0 410px; position: sticky; top: 16px; }
+    .mc-preview-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; color: #08203e; margin: 4px 2px 8px; }
+    .mc-frame-wrap { border: 1px solid #d9d9d9; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.10); background: #fff; }
+    #mcPreview { display: block; width: 100%; height: 78vh; min-height: 460px; border: 0; background: #fff; }
+    .mc-title { font-size: 22px; font-weight: 700; margin-bottom: 14px; color: #08203e; }
+    .mc-section { background: #fff; border: 1px solid #e6e6e6; border-radius: 8px; padding: 16px 18px; margin-bottom: 18px; }
+    .mc-section h4 { font-size: 16px; font-weight: 700; margin: 0 0 12px; color: #08203e; }
+    .mc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px 20px; }
+    .mc-field { display: flex; align-items: center; gap: 10px; }
+        .mc-field label { flex: 1 1 auto; font-size: 13px; color: #333; margin: 0; }
+    .mc-swatch { width: 40px; height: 34px; border: 1px solid #ccc; border-radius: 6px; padding: 2px; cursor: pointer; background: #fff; flex: 0 0 auto; }
+    .mc-hex { width: 104px; border: 1px solid #ccc; border-radius: 6px; padding: 6px 8px; font-family: monospace; flex: 0 0 auto; }
+    .mc-bar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #e6e6e6; padding: 12px 24px; text-align: right; z-index: 20; }
+    .mc-msg { display: inline-block; margin-right: 14px; font-weight: 600; }
+    .mc-layout-radios { display: flex; flex-wrap: wrap; gap: 10px 14px; }
+    .mc-radio { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; color: #333; cursor: pointer; margin: 0; padding: 7px 13px; border: 1px solid #d9d9d9; border-radius: 8px; }
+    .mc-radio input { margin: 0; }
+    .mc-check { display: inline-flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 700; color: #08203e; cursor: pointer; margin: 0; }
+    .mc-check input { width: 17px; height: 17px; margin: 0; cursor: pointer; }
+    .mc-img-row { display: flex; flex-wrap: wrap; gap: 20px; }
+    .mc-img-item { flex: 1 1 240px; display: flex; flex-direction: column; gap: 8px; }
+    .mc-img-label { font-size: 13px; font-weight: 600; color: #333; }
+    .mc-img-label small { font-weight: 400; color: #888; }
+    .mc-img-prev { width: 100%; height: 110px; border: 1px solid #e3e3e3; border-radius: 8px; object-fit: cover; background: #f6f6f6; }
+    .mc-file { font-size: 13px; }
+    .mc-img-msg { margin-top: 10px; font-weight: 600; font-size: 13px; }
+    @@media (max-width: 991px) {
+        .mc-layout { flex-direction: column; }
+        .mc-preview { flex-basis: auto; width: 100%; position: static; }
+        #mcPreview { height: 520px; }
+    }
+</style>
+
+<div class="mc-layout">
+    <div class="mc-controls">
+    <h2 class="mc-title">Menu Theme</h2>
+
+    <div class="mc-section">
+        <h4>Layout</h4>
+        <div class="mc-layout-radios">
+            @{ var curLayout = Convert.ToString(ViewBag.CurrentLayout); }
+            @foreach (var d in new[] { "Design1", "Design2", "Design3", "Design4" })
+            {
+                <label class="mc-radio">
+                    <input type="radio" name="menuLayout" value="@d" checked="@(curLayout == d ? "checked" : null)" />
+                    <span>@d.Replace("Design", "Design ")</span>
+                </label>
+            }
+        </div>
+    </div>
+
+    <div class="mc-section">
+        <label class="mc-check"><input type="checkbox" id="chkChangeBg" /> <span>Change Background Image</span></label>
+        <div id="imgSectionBody" style="display:none; margin-top:14px;">
+            <div class="mc-img-row">
+                <div class="mc-img-item">
+                    <div class="mc-img-label">Banner image <small>(also used as the mobile image)</small></div>
+                    @{ var bImg = Convert.ToString(ViewBag.BannerImage); }
+                    <img id="imgBannerPrev" class="mc-img-prev" src="@(string.IsNullOrEmpty(bImg) ? null : "/images/" + bImg)" alt="" onerror="this.removeAttribute('src')" />
+                    <input type="file" id="fileBanner" class="mc-file" accept="image/*" />
+                    <button type="button" class="btn btn-sm btn-primary" data-imgtype="banner" data-imginput="fileBanner" data-imgprev="imgBannerPrev">Upload banner</button>
+                </div>
+                <div class="mc-img-item">
+                    <div class="mc-img-label">Desktop image</div>
+                    @{ var dImg = Convert.ToString(ViewBag.DesktopImage); }
+                    <img id="imgDesktopPrev" class="mc-img-prev" src="@(string.IsNullOrEmpty(dImg) ? null : "/images/" + dImg)" alt="" onerror="this.removeAttribute('src')" />
+                    <input type="file" id="fileDesktop" class="mc-file" accept="image/*" />
+                    <button type="button" class="btn btn-sm btn-primary" data-imgtype="desktop" data-imginput="fileDesktop" data-imgprev="imgDesktopPrev">Upload desktop</button>
+                </div>
+            </div>
+            <div id="imgMsg" class="mc-img-msg"></div>
+        </div>
+    </div>
+
+    <form id="frmMenuColors" onsubmit="return false;">
+        @foreach (var g in groups)
+        {
+            var vis = g.Where(x => !x.Hidden).ToList();
+            if (vis.Count > 0)
+            {
+                <div class="mc-section" data-colorsection="@g.Key">
+                    <h4>@g.Key</h4>
+                    <div class="mc-grid">
+                        @foreach (var f in vis)
+                        {
+                            <div class="mc-field">
+                                <label for="@f.Column">@f.Label</label>
+                                <input type="color" class="mc-swatch" data-target="@f.Column" value="@ToPicker(f.Value)" title="@f.Column" />
+                                <input type="text" class="mc-hex" id="@f.Column" name="@f.Column" value="@f.Value" placeholder="#000000" autocomplete="off" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        @* Hidden fields: kept in the form so their values are preserved on save
+           and applied in the preview, but not shown in the editor. *@
+        @foreach (var f in fields.Where(x => x.Hidden))
+        {
+            <input type="hidden" class="mc-hex" name="@f.Column" value="@f.Value" />
+        }
+        <div class="mc-bar">
+            <span id="mcMsg" class="mc-msg"></span>
+            <button type="button" id="btnSaveColors" class="btn btn-primary">Save</button>
+        </div>
+    </form>
+    </div>
+    <div class="mc-preview">
+        <div class="mc-preview-head"><span>Live preview &mdash; click through your menu</span> <button type="button" id="btnReloadPreview" class="btn btn-sm btn-light">Reload</button></div>
+        <div class="mc-frame-wrap"><iframe id="mcPreview" src="/ItemsViewNew/Index?id=@ViewBag.BrandId,0&amp;previewLayout=@ViewBag.CurrentLayout" title="Live menu preview"></iframe></div>
+    </div>
+</div>
+
+@functions {
+    // <input type="color"> needs a 6-digit hex; expand #abc, fall back to #000000.
+    string ToPicker(string v)
+    {
+        if (string.IsNullOrWhiteSpace(v)) return "#000000";
+        v = v.Trim();
+        if (System.Text.RegularExpressions.Regex.IsMatch(v, "^#[0-9A-Fa-f]{6}$")) return v;
+        if (System.Text.RegularExpressions.Regex.IsMatch(v, "^#[0-9A-Fa-f]{3}$"))
+        {
+            return "#" + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+        }
+        return "#000000";
+    }
+}
+
+<script>
+    $(function () {
+        // colour picker -> hex text
+        $('.mc-swatch').on('input change', function () {
+            var t = document.getElementById($(this).data('target'));
+            if (t) { t.value = this.value; }
+        });
+        // hex text -> colour picker (only when it is a valid 6-digit hex)
+        $('.mc-hex').on('input change', function () {
+            var v = $.trim(this.value);
+            if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+                $('.mc-swatch[data-target="' + this.id + '"]').val(v);
+            }
+        });
+
+        $('#btnSaveColors').on('click', function () {
+            var $btn = $(this), $msg = $('#mcMsg');
+            var data = {};
+            $('#frmMenuColors .mc-hex').each(function () {
+                data[this.name] = $.trim(this.value);
+            });
+            data['menuLayout'] = $('input[name="menuLayout"]:checked').val();
+            $btn.prop('disabled', true);
+            $msg.css('color', '#333').text('Saving...');
+            $.ajax({
+                type: 'POST',
+                url: '/MenuColors/Save',
+                data: data,
+                success: function (r) {
+                    if (r && r.Message === 'Success') { $msg.css('color', 'green').text('Saved.'); }
+                    else if (r && r.Message === 'Unauthorized') { $msg.css('color', 'red').text('Not authorized.'); }
+                    else { $msg.css('color', 'red').text('Save failed.'); }
+                },
+                error: function () { $msg.css('color', 'red').text('Save failed.'); },
+                complete: function () { $btn.prop('disabled', false); }
+            });
+        });
+    });
+</script>
+
+<script>
+    $(function () {
+        // DB column -> CSS variable name (7 use dashes; the rest are identical)
+        var cssVarMap = {
+            'fixd_item_list_title_background_color': 'fixd_item-list-title_background_color',
+            'fixd_item_list_title_text_color': 'fixd_item-list-title_text_color',
+            'Item_details_price_background_color': 'item-details-price-background-color',
+            'item_details_price_text': 'item-details-price-text',
+            'item_details_price_total_price_background_color': 'item-details-price-total-price-background-color',
+            'item_details_price_total_price_text': 'item-details-price-total-price-text',
+            'item_details_extra_price_text_color': 'item-details-extra-price-text-color'
+        };
+
+        function buildRootCss() {
+            var css = ':root{';
+            $('#frmMenuColors .mc-hex').each(function () {
+                var v = $.trim(this.value);
+                if (!v) { return; }
+                var name = cssVarMap[this.name] || this.name;
+                css += '--' + name + ':' + v + ';';
+            });
+            return css + '}';
+        }
+
+        function applyPreview() {
+            var ifr = document.getElementById('mcPreview');
+            if (!ifr) { return; }
+            var doc = ifr.contentDocument || (ifr.contentWindow && ifr.contentWindow.document);
+            if (!doc || !doc.documentElement) { return; }
+            var st = doc.getElementById('mcLive');
+            if (!st) {
+                st = doc.createElement('style');
+                st.id = 'mcLive';
+                (doc.head || doc.documentElement).appendChild(st);
+            }
+            st.textContent = buildRootCss();
+        }
+
+        // live-update the preview on any colour change (runs alongside the sync handlers)
+        $('#frmMenuColors').on('input change keyup', '.mc-hex, .mc-swatch', applyPreview);
+
+        var frame = document.getElementById('mcPreview');
+        if (frame) { frame.addEventListener('load', applyPreview); }
+        $('#btnReloadPreview').on('click', function () {
+            if (frame) { frame.contentWindow.location.reload(); }
+        });
+
+        // Layout radio -> reload the preview in the chosen design
+        $('input[name="menuLayout"]').on('change', function () {
+            if (frame) {
+                frame.src = '/ItemsViewNew/Index?id=@ViewBag.BrandId,0&previewLayout=' + encodeURIComponent(this.value);
+            }
+        });
+
+        // Show only the colour sections used by the selected layout (whitelist per design).
+        // Design1 renders item details in a popup and its items in an accordion, so it
+        // hides the full-page "Item page" / "Product details" sections (Design2/3 only).
+        function applyColorSections() {
+            var layout = $('input[name="menuLayout"]:checked').val();
+            var byLayout = {
+                'Design1': ['Header', 'Category page', 'Category (Design 1)', 'Items (Design 1)', 'Item details price', 'Item Popup (Design 1)'],
+                'Design2': ['Header', 'Category page', 'Item page', 'Product details', 'Item details price'],
+                'Design3': ['Header', 'Category page', 'Item page', 'Product details', 'Item details price'],
+                'Design4': ['Design 4']
+            };
+            var allowed = byLayout[layout] || byLayout['Design2'];
+            $('[data-colorsection]').each(function () {
+                $(this).toggle(allowed.indexOf($(this).attr('data-colorsection')) !== -1);
+            });
+        }
+        applyColorSections();
+        $('input[name="menuLayout"]').on('change', applyColorSections);
+
+        // "Change Background Image" checkbox shows/hides the Images section (hidden by default).
+        $('#chkChangeBg').on('change', function () {
+            $('#imgSectionBody').toggle(this.checked);
+        });
+
+        // Brand image upload (banner / desktop) -> saves to ~/images + tbl_Brand
+        $('button[data-imgtype]').on('click', function () {
+            var $b = $(this), type = $b.data('imgtype');
+            var input = document.getElementById($b.data('imginput'));
+            var prevId = $b.data('imgprev');
+            var $msg = $('#imgMsg');
+            if (!input || !input.files || !input.files.length) { $msg.css('color', 'red').text('Choose a file first.'); return; }
+            var fd = new FormData();
+            fd.append('file', input.files[0]);
+            fd.append('type', type);
+            $b.prop('disabled', true);
+            $msg.css('color', '#333').text('Uploading...');
+            $.ajax({
+                type: 'POST', url: '/MenuColors/UploadBrandImage', data: fd, processData: false, contentType: false,
+                success: function (r) {
+                    if (r && r.Message === 'Success') {
+                        $msg.css('color', 'green').text('Uploaded.');
+                        var prev = document.getElementById(prevId);
+                        if (prev) { prev.src = r.url + '?t=' + Date.now(); }
+                        if (frame) { frame.contentWindow.location.reload(); }
+                    } else {
+                        $msg.css('color', 'red').text(r && r.Message ? r.Message : 'Upload failed.');
+                    }
+                },
+                error: function () { $msg.css('color', 'red').text('Upload failed.'); },
+                complete: function () { $b.prop('disabled', false); }
+            });
+        });
+    });
+</script>

@@ -1,0 +1,536 @@
+/* Responsive Category Grid */
+.responsive-category-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    width: 100%;
+}
+
+.responsive-category-grid .col-md-6 {
+    flex: 0 0 calc(50% - 6px);
+    max-width: calc(50% - 6px);
+}
+
+/* Mobile (< 768px) - 1 Column */
+@media (max-width: 767px) {
+    .responsive-category-grid .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+/* Tablet (768px - 991px) - 2 Columns */
+@media (min-width: 768px) and (max-width: 991px) {
+    .responsive-category-grid .col-md-6 {
+        flex: 0 0 calc(50% - 6px);
+        max-width: calc(50% - 6px);
+    }
+}
+
+/* Desktop Large (992px - 1199px) - 2 Columns */
+@media (min-width: 992px) and (max-width: 1199px) {
+    .responsive-category-grid .col-md-6 {
+        flex: 0 0 calc(50% - 6px);
+        max-width: calc(50% - 6px);
+    }
+}
+
+/* Desktop XL (1200px+) - 3 Columns */
+@media (min-width: 1200px) {
+    .responsive-category-grid .col-md-6 {
+        flex: 0 0 calc(33.333% - 8px);
+        max-width: calc(33.333% - 8px);
+    }
+}
+
+/* ============================================================
+   DESKTOP (>= 992px) LAYOUT FIX  — TMM / ItemsViewNew Index
+   ------------------------------------------------------------
+   Scoped to min-width:992px ONLY. Mobile (<768px) and tablet
+   (768-991px) rules are intentionally NOT touched.
+
+   Problem it fixes:
+   - style.css pins .main-content to max-width:480px (phone width)
+     with no desktop override, so on desktop the category/item
+     panels were stuck in a narrow 480px strip inside the wide
+     left column (the big empty white area), and clicking a
+     category showed items in that same cramped strip.
+   - Category/item cards use Bootstrap "col-lg-6" (50% => 2-up).
+   Result: categories & items now fill the desktop column and
+   auto-fit as many cards per row as the width allows.
+   ============================================================ */
+@media (min-width: 992px) {
+
+    /* 1) Let ONLY the category / sub-category / item listing panels
+          fill the desktop content column instead of the hard-coded
+          480px width. (Cart, checkout and item-detail panels also use
+          .main-content, so we deliberately scope by id and leave them
+          exactly as they were.) */
+    #divCategoryList.main-content,
+    #divSubCategoryList.main-content,
+    #divMainItemList.main-content {
+        max-width: 100% !important;
+    }
+
+    #divCategoryList .item-list-title,
+    #divSubCategoryList .item-list-title,
+    #divMainItemList .item-list-title {
+        max-width: 100% !important;
+    }
+
+    /* 2) Category grid -> a fixed 4-across row on desktop.
+          auto-fill/minmax(180px) picked anywhere from 3 to 8 columns
+          depending on the exact viewport width - at the narrow end of the
+          desktop range that meant 3 wide, stretched cards per row instead
+          of 4 normal ones. A fixed column COUNT fixes that; each of the 4
+          columns is still 1fr, so they stay fully fluid and share the row
+          width evenly as the window resizes. */
+    #categoryList.responsive-category-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    /* 3) Item grid -> matches the category grid: fixed 4-across row on
+          desktop, same as #categoryList above (was 2-across, which made
+          every item card roughly twice the width of a category card at
+          the same viewport - each item card's image and .card-footer
+          stretched to fill that extra width, so the whole card read as
+          "expanded" next to the tighter category cards. Same column
+          count now gives both grids the same card width. */
+    #itemlist {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    /* 4) Neutralise the Bootstrap col-* sizing on the cards so the
+          CSS grid controls the columns (was col-lg-6 = 50%). */
+    #categoryList.responsive-category-grid > [class*="col-"],
+    #itemlist > [class*="col-"] {
+        flex: 0 0 auto;
+        width: auto;
+        max-width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 6 — DESKTOP: Design1 item cards, two per row
+   ------------------------------------------------------------
+   Everything above targets #categoryList / #itemlist, which only
+   exist on the Design2/3/5 menu. Design1 (set per brand from
+   tblbrand.Layout, NOT from the DesignTheme app setting) renders a
+   completely different menu out of CreateCategorySlider():
+
+       #divCreateCategorySlider   the Owl category strip
+       #subCategoryItems          the item list underneath
+
+   so none of the rules above ever applied to it. Each item there is
+   a block-level ".sub-category" wrapper, which is why one card took
+   the full column width and looked stretched on a wide screen.
+
+   Laying the container out as a wrapping flex row puts two cards
+   side by side. Flex rather than grid because this container mixes
+   two kinds of child (see below) and they need different widths.
+
+   Desktop only (>=992px); phone and tablet keep one card per row.
+   ============================================================ */
+@media (min-width: 992px) {
+
+    /* the top-level list, and the list revealed inside an expanded
+       sub-category accordion - both hold the same kind of card */
+    #subCategoryItems,
+    #subCategoryItems .sub-category-items {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        column-gap: 16px;   /* row spacing already comes from .mb-3 */
+    }
+
+    /* An item card and a sub-category accordion header are both
+       ".sub-category mb-3" - the markup gives them no distinguishing
+       class. The accordion is the only one that carries an id
+       (id="subCategory_<n>", needed by the collapse), so :not([id])
+       is what separates a real item card from an accordion row.
+       See CreateCategorySlider() in MainJs/ItemsViewNew/BindCartDetails.js. */
+    #subCategoryItems > .sub-category:not([id]),
+    #subCategoryItems .sub-category-items > .sub-category:not([id]) {
+        flex: 0 0 calc(50% - 8px);
+        max-width: calc(50% - 8px);
+    }
+
+    /* Accordion rows stay full width - they are section headers that
+       open a list underneath, not cards to be paired up. */
+    #subCategoryItems > .sub-category[id] {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* Two cards sharing a row should end at the same line even when one
+       title wraps; the card carries the background, so it fills the
+       stretched wrapper. */
+    #subCategoryItems .sub-category > .card {
+        height: 100%;
+    }
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 1 — MOBILE: minimum 2 categories per row
+   ------------------------------------------------------------
+   The category grid was collapsing to 1 card per row on phones.
+   Cause: the base ".responsive-category-grid" adds gap:12px on top
+   of the Bootstrap col-6 (50%) cards, so 50% + 50% + 12px overflows
+   the row and the 2nd card wraps. The item grid (#itemlist) is a
+   plain .form-row with no gap, which is why it correctly shows 2-up.
+   Removing the gap on mobile makes the category grid behave exactly
+   like the item grid. Scoped to <=767px — tablet & desktop untouched.
+   ============================================================ */
+@media (max-width: 767px) {
+    #categoryList.responsive-category-grid {
+        gap: 0;
+    }
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 2 — DESKTOP: Item Details uses the full screen
+   ------------------------------------------------------------
+   #divMainItemDetails was confined to the narrow left column (and,
+   on Design2, the 480px .main-content cap). On desktop we promote it
+   to a full-viewport overlay so the item details page takes over the
+   whole screen. It is toggled with display:none/block by OnItemClick,
+   so these rules only take effect while it is visible. No JS change
+   and NO mobile change (scoped to >=992px; phone view is left as-is).
+   ============================================================ */
+@media (min-width: 992px) {
+    #divMainItemDetails {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        max-width: 100vw !important;   /* beat the .main-content 480px cap */
+        height: 100vh;
+        max-height: 100vh;
+        margin: 0;
+        z-index: 1000;                 /* above the page, below BS modals (1050) */
+        overflow-x: hidden;
+        overflow-y: auto;
+        background-color: var(--product_details_background_color, #ffffff);
+        padding: 0 0 40px;
+    }
+
+    /* Full-screen overlay, but keep the details content centred and
+       readable on wide monitors. Raise this max-width (or set 100%)
+       if you want the content edge-to-edge. */
+    #divMainItemDetails .product-details-inner {
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    /* Centre the "related items" slider that sits below the price.
+       It is a sibling of .product-details-inner with a fixed 566px
+       width, so on the full-screen layout it was stuck to the left.
+       margin:auto centres it on the same axis as the content above.
+       (The owl slider inside is sized to 566px at init, so we centre
+       the container rather than resize it.) */
+    #divMainItemDetails .category-carousel {
+        margin-left: auto;
+        margin-right: auto;
+        float: none;
+    }
+
+    /* The item-details header (back arrow + category name) is
+       position:sticky (top:0). In this view it had no solid background
+       and was capped at 480px, so while scrolling the wider centred
+       item image showed through / past it (the image looked "cut" at
+       the header line). Give the header the full content width and a
+       solid page-coloured background so the image scrolls cleanly
+       behind it. Desktop only; mobile/tablet header is unchanged. */
+    #divMainItemDetails .item-list-title {
+        max-width: 100% !important;
+        width: 100%;
+        background-color: var(--product_details_background_color, #faf7f1);
+    }
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 9 -- DESKTOP: Design1 popup colours on #divMainItemDetails
+   ------------------------------------------------------------
+   #divMainItemDetails is one shared partial (ItemDetailsView.cshtml),
+   reused by every design. FOLLOW-UP FIX 2 above colours it (and its
+   sticky header) from --product_details_background_color - the DB
+   field that belongs to the admin 'Product details' section, which
+   only Design2/3 show in the editor (MenuColorsController.Fields /
+   Views/MenuColors/Index.cshtml applyColorSections()). On Design1 the
+   same #divMainItemDetails is rendered *inside* the #itemDetailModal
+   popup (see ItemsViewNew/Index.cshtml), whose own colours already
+   come from the 'Item Popup (Design 1)' section (--popup_* vars) -
+   so FOLLOW-UP FIX 2 was pulling Design1's desktop colour from a
+   section Design1's admin never even sees, instead of matching the
+   popup it lives inside.
+
+   body.design1 is the same hook Index.cshtml already uses to scope
+   #itemDetailModal's own desktop styling to Design1 (see its
+   '@@media (min-width: 992px) { body.design1 #itemDetailModal ... }'
+   block) - reusing it here keeps both rules in sync. It also beats
+   FOLLOW-UP FIX 2's bare-ID selectors on specificity (adding a class
+   + a type selector on top of the same ID always outranks the ID
+   alone), so no !important is needed and FOLLOW-UP FIX 2 above is
+   left untouched for Design2/3/5.
+
+   --popup_body_background_color   <-> #itemDetailModal .modal-content/.modal-body
+   --popup_header_background_color <-> #itemDetailModal .modal-header
+   (same two variables the popup itself uses, so the desktop view now
+   always matches whatever the popup looks like for this brand.)
+   ============================================================ */
+@media (min-width: 992px) {
+    body.design1 #divMainItemDetails {
+        background-color: var(--popup_body_background_color, #ffffff);
+    }
+
+    body.design1 #divMainItemDetails .item-list-title {
+        background-color: var(--popup_header_background_color, #ffffff);
+    }
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 3 — DESKTOP: header colour + footer full width
+   ------------------------------------------------------------
+   Both .top-header and .powered-by are position:fixed with
+   width:100% but capped at max-width:480px (phone width) and no
+   desktop override — so on desktop the navy header colour stopped
+   at 480px (white gap beside the language/feedback icons) and the
+   "Powered by" footer was a small 480px white box on the left.
+   Remove the cap on desktop so both span the full width. The
+   header's icons sit in a justify-content-between row, so they
+   spread to the edges exactly as they already do on mobile.
+   Desktop only — mobile/tablet are left untouched.
+   ============================================================ */
+@media (min-width: 992px) {
+    #divleftsideMenuListView .top-header {
+        max-width: 100% !important;
+    }
+
+    #divleftsideMenuListView .powered-by {
+        max-width: 100% !important;
+    }
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 4 — MOBILE: keep the "Powered by" footer visible
+   ------------------------------------------------------------
+   The footer (.powered-by) is position:fixed at the bottom, but on
+   mobile it was reported as not showing. Nothing in the CSS hides it,
+   so this rule pins it down explicitly — fixed, full width, at the
+   very bottom, above the content — to guarantee it renders on phones.
+   This is the ONLY mobile rule for the footer; desktop keeps the
+   full-width version from Fix 3 above.
+   ============================================================ */
+@media (max-width: 767px) {
+    #divleftsideMenuListView .powered-by {
+        display: block !important;
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        z-index: 60 !important;
+    }
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 5 — Category card background follows the theme
+   ------------------------------------------------------------
+   The category cards' background must track the theme variable
+   --category_page_card_primary_background_color. style.css sets it via
+   ".category-page-bg .card-primary", but that was not taking effect
+   (source-order / specificity). Reassert it here (loaded last) at higher
+   specificity so the "Category card background" colour always applies.
+   ============================================================ */
+#categoryList .card-primary,
+#SubcategoryList .card-primary {
+    background-color: var(--category_page_card_primary_background_color, #ffffff) !important;
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 7 — DESKTOP: centre the whole order flow
+   ------------------------------------------------------------
+   Covers the cart and every step after it:
+
+       #divCartView          Cart          (.cart-page)
+       #divCustomerInfo      User info     )
+       #divDeliveryService   Delivery      )
+       #divDeliveryAddress   Address       ) all .order-mode-page
+       #divPaymentView       Payment       )
+       #divOrderConfirmView  Review/place  )
+
+   They are all .main-content panels, so they inherited the 480px phone
+   cap and none of the desktop overrides further up (those name the
+   category / item panels by id and deliberately left everything else
+   alone). At 480px inside a 2/3-width column a panel sits hard against
+   the column's start edge - which reads as "stuck to the left" in
+   English and "stuck to the right" in Arabic, since the start edge
+   flips with the text direction. margin auto centres it in both.
+
+   Centring inside that column still would not be centred on the PAGE,
+   so while any of these panels is open the content column takes the
+   full width and the logo column steps aside. That is what the
+   "order-flow-open" class does; it is applied by the observer near the
+   bottom of ~/Views/ItemsViewNew/Index.cshtml.
+
+   The checkout steps are matched by their existing .order-mode-page
+   class rather than listed by id, so a new step added to the flow picks
+   this up for free. Note .cart-page alone would NOT be the right hook -
+   Reservation and Track Order also carry it and are not part of this
+   flow.
+
+   Desktop only (>=992px). Below that the logo column is already hidden
+   by Bootstrap's own .d-none and the panels are full width, so phone
+   and tablet need none of this and get none of it.
+   ============================================================ */
+@media (min-width: 992px) {
+
+    /* the brand logo / desktop background column */
+    #divleftsideMenuListView.order-flow-open > .row > #divDesktopSideArea {
+        display: none !important;   /* beats Bootstrap's .d-lg-block */
+    }
+
+    /* content column takes the width the logo column gave up, so
+       "centred" below means centred on the page rather than inside
+       a two-thirds column */
+    #divleftsideMenuListView.order-flow-open > .row > .wrapper {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    /* the panels themselves: wider than the 480px phone cap, and centred.
+       860px is a readable line length for the item and form rows - raise
+       or lower this one number to taste, nothing else depends on it. */
+    #divCartView.main-content,
+    .main-content.order-mode-page {
+        max-width: 860px !important;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* each panel's sticky header carries its own 480px cap, which would
+       leave it hanging off one side of the wider panel */
+    #divCartView .item-list-title,
+    .main-content.order-mode-page .item-list-title {
+        max-width: 100% !important;
+    }
+}
+
+/* ============================================================
+   FOLLOW-UP FIX 8 — DESKTOP: unify Item Details media size, Design1-4
+   ------------------------------------------------------------
+   ItemDetailsView.cshtml is one shared partial, but its main media
+   (image / carousel / video) had two different, inconsistent size
+   rules depending on which design rendered it:
+     - Design1: the file's own DesignTheme switch sets cssclass=""
+       specifically to keep ".product-details" OFF this design (an
+       earlier fix found capping the image's HEIGHT there broke a
+       separate button-visibility fix, so the cap was removed
+       entirely rather than tuned - see allergen_feature.md #7). With
+       no cap at all beyond the 1000px content column (Fix 2 above),
+       a large source photo rendered oversized.
+     - Design2/3/4/5 (".product-details .img-thumbnail" in style.css)
+       caps WIDTH to max-width:500px but sets no height, so its
+       object-fit:cover has nothing to fit against - each image's
+       own aspect ratio decided its rendered height, so items looked
+       inconsistently "big" or "small" next to each other.
+   Fix: target the media elements by ID rather than by the design-
+   dependent class, so the same box applies to Design1-4 equally:
+   width fills the existing 1000px content column - the same width
+   Design1 already rendered at, only Design2's narrower 500px cap
+   changes - height fixed to 70% of the viewport (raised from an
+   initial 50% per follow-up request), image centred and contained
+   (object-fit:contain, no cropping/stretching) so every item's photo
+   occupies the exact same visible area regardless of its own
+   dimensions. Covers all three media states (single image, the
+   multi-image slider, and video).
+
+   Background is forced transparent (see below) rather than left to
+   inherit, per follow-up request - the box is taller than most photos
+   at 70vh, so the letterboxed space around a contained image is the
+   majority of the box on many items, and needs to disappear into the
+   page rather than read as its own panel.
+
+   IDs beat class selectors on specificity regardless of source order,
+   so no !important is needed to win over .product-details .img-thumbnail
+   or Bootstrap's own .img-thumbnail (Design1's case).
+
+   Desktop only (>=992px); mobile/tablet keep their existing sizing.
+   ============================================================ */
+@media (min-width: 992px) {
+
+    /* Single image (the common case). Bootstrap's own .img-thumbnail
+       class (on this same <img>, see ItemDetailsView.cshtml) ships
+       background-color:#fff + a border - that white fill is what showed
+       behind a non-fully-covering (letterboxed) image. style.css's
+       ".product-details .img-thumbnail" (Design2-5) additionally adds a
+       drop box-shadow, which would otherwise render as a large shadowed
+       rectangle around the transparent box once the white fill is gone -
+       both are neutralised here by the same ID rule, on every design. */
+    #itemDetailsItemImage {
+        /* width:auto (not 100%) so the <img> BOX is the photo itself at this
+           height, instead of a full-column box with the photo letterboxed inside
+           it. object-fit:contain then has nothing left to letterbox, and the
+           .item-media-wrap shrink-wrap around it lands exactly on the photo -
+           which is what puts the allergen badge on the photo's top-left corner
+           rather than out in the empty column beside it. The photo renders at
+           exactly the same visible size either way. */
+        width: auto;
+        max-width: 100%;
+        height: 70vh;
+        object-fit: contain;
+        margin-left: auto;
+        margin-right: auto;
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+    /* Video */
+    #itemDetailsItemVideo {
+        width: 100%;
+        max-width: 100%;
+        height: 70vh;
+        margin-left: auto;
+        margin-right: auto;
+        background-color: transparent;
+    }
+
+        #itemDetailsItemVideo video {
+            width: 100%;
+            height: 100%;
+            max-height: none !important;   /* beat style.css's 290px cap */
+            object-fit: contain;
+            background-color: transparent;
+        }
+
+    /* Multi-image slider (ItemImageSlider.js) - same fixed box. The mobile
+       version sizes each slide off a padding-top aspect ratio (relative to
+       WIDTH), which would not land on 70vh on a wide screen, so replace it
+       with a direct height here. The absolutely-positioned img inside
+       (already width:100%;height:100%;object-fit:contain from
+       ItemDetailsView.cshtml's own <style> block) automatically fills
+       whatever height this box is given, so nothing else needs to change
+       for it to centre/contain too. */
+    #itemImageCarousel {
+        max-width: 100%;
+        background-color: transparent;
+    }
+
+        #itemImageCarousel .item-img-slide .imgwrap {
+            padding-top: 0;
+            height: 70vh;
+            background-color: transparent;
+        }
+}

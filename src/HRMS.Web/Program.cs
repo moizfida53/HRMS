@@ -1,3 +1,4 @@
+using HRMS.Web.Areas.Items.Legacy;
 using System.Threading.RateLimiting;
 using HRMS.Data;
 using HRMS.Web.Localization;
@@ -48,6 +49,10 @@ builder.Services.AddControllersWithViews(options =>
 })
 // [Display(Name)] and validation messages read their text from Core.UiLabels.
 .AddDataAnnotationsLocalization();
+
+// Items Management (QR Menu) ported from the old .NET Framework project:
+// Areas/Items - JSON binding, appsettings "QrMenu", wwwroot-qr (Areas/Items/Legacy).
+builder.Services.AddQrMenuLegacy(builder.Configuration);
 
 // The AJAX calls in organization.js send the token in this header.
 builder.Services.AddAntiforgery(options =>
@@ -261,6 +266,9 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+// The old QR Menu project's css/js/images (wwwroot-qr), after wwwroot.
+app.UseQrMenuStaticFiles();
+
 app.UseHrmsLanguage();             // UI culture from the Hrms-Lang cookie; keeps the label cache fresh
 app.UsePageNavigation();           // no record ids in the address bar - Security/PageNavigation.cs
 app.UseRouting();
@@ -269,8 +277,21 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Items Management keeps the old addresses (/Category/...) that its JavaScript calls.
+app.MapControllerRoute(
+    name: "qrmenu-items",
+    pattern: "{controller}/{action=Index}/{id?}",
+    defaults: new { area = "Items" },
+    constraints: new { controller = "Category" });
+
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller}/{action=Index}/{id?}");
+
+// "/" opens the application launcher (/apps) - after sign-in for anonymous visitors.
+// When the customer QR menu is moved over (Phase 4), "/" becomes its landing page.
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Dashboard}/{action=Index}/{id?}");
+    pattern: "{controller=Launcher}/{action=Index}/{id?}");
 
 app.Run();

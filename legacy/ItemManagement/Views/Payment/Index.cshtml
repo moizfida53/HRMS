@@ -1,0 +1,120 @@
+﻿@*@{
+        ViewData["Title"] = "Checkout";
+    }*@
+
+<div class="text-left">
+
+    @*@using (Html.BeginForm("Index", "payment", FormMethod.Post))
+        {*@
+    @*<p>
+            Amount: <input asp-for="@Model.Amount" />
+        </p>
+
+        <p>
+            Order Reference Number: <input asp-for="@Model.OrderReferenceNumber" />
+        </p>
+
+        <p>
+            Payment Type: <select asp-for="@Model.PaymentType" asp-items="Html.GetEnumSelectList<HesabePaymentType>()"></select>
+        </p>
+
+        <p>
+            Variable 1: <input asp-for="@Model.Variable1" />
+        </p>
+
+        <p>
+            Variable 2: <input asp-for="@Model.Variable2" />
+        </p>
+
+        <p>
+            Variable 3: <input asp-for="@Model.Variable3" />
+        </p>
+
+        <p>
+            Variable 4: <input asp-for="@Model.Variable4" />
+        </p>
+
+        <p>
+            Variable 5: <input asp-for="@Model.Variable5" />
+        </p>*@
+    <form id="paymentform">
+
+
+        <p>
+            Amount: <input id="Amount" name="Amount" type="text" />
+        </p>
+
+        <p>
+            Order Reference Number: <input id="OrderReferenceNumber" name="OrderReferenceNumber" type="text" />
+        </p>
+
+        <p>
+            Payment Type:<select id="PaymentType" name="PaymentType">
+                <option value="0">ChooseLater</option>
+                <option value="1">Knet</option>
+                <option value="2">MPGS</option>
+            </select>
+        </p>
+
+        <p>
+            Variable 1: <input id="Variable1" name="Variable1" type="text" />
+        </p>
+
+        <p>
+            Variable 2: <input id="Variable2" name="Variable2" type="text" />
+        </p>
+
+        <p>
+            Variable 3: <input id="Variable3" name="Variable3" type="text" />
+        </p>
+
+        <p>
+            Variable 4: <input id="Variable4" name="Variable4" type="text" />
+        </p>
+
+        <p>
+            Variable 5: <input id="Variable5" name="Variable5" type="text" />
+        </p>
+        <input type="button" value="Checkout" onclick="submitdata();" />
+        @*}*@
+    </form>
+</div>
+@*<script src="~/vendor/jquery/jquery.js"></script>
+    <script src="~/vendor/jquery/jquery-ui.min.js"></script>*@
+<script src="~/vendor/jquery/jquery.min.js"></script>
+<script type="text/javascript">
+    function submitdata() {
+        debugger;
+        var valdata = $("#paymentform").serialize();
+        //to get alert popup
+        //alert(valdata);
+        //$.ajax({
+        //    url: "/payment/Index",
+        //    type: "POST",
+        //    dataType: 'json',
+        //    contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+        //    data: valdata
+        //});
+
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+            data: valdata,
+            url: "/payment/Index",
+            success: function (result) {
+                debugger;
+                alert(result.url);
+                window.location.href = result.url;
+                if (result.message == "Success") {
+                    debugger;
+
+                    //window.location.replace(result.url);
+                }
+                else {
+
+                }
+            }
+        });
+    }
+</script>

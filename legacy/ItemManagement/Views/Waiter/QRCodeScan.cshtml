@@ -1,0 +1,47 @@
+﻿<div id="QRScanView">
+    <div id="main">
+        <div id="mainbody" style="display: inline;">
+            <table class="tsel" width="100%" border="0">
+                <tbody>
+                    <tr>
+                        <td width="50%" valign="top" align="center">
+                            <table class="tsel" border="0">
+                                <tbody>
+                                    <tr>
+                                        <div id="loadingMessage">🎥 Unable to access video stream (please make sure you have a webcam enabled)</div>
+                                        @*<td><img class="selector" id="webcamimg" src="../../Scripts/QRcodeNew/vid.png" onclick="setwebcam()" style="opacity: 1;" align="left"></td>
+        <td><img class="selector" id="qrimg" src="../../Scripts/QRcodeNew/cam.png" onclick="setimg()" style=" opacity: 0.2;" align="right"></td>*@
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" align="center">
+                                            <div id="outdiv">
+                                                @*<video id="v" autoplay="autoplay"></video>*@
+                                                <canvas id="canvas" hidden></canvas>
+                                                <div id="output" hidden>
+                                                    <div id="outputMessage">No QR code detected.</div>
+                                                    <div hidden><b>Data:</b> <span id="outputData"></span></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" align="center">
+                            <img src="../../Scripts/QRcodeNew/down.png">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" align="center">
+                            <div id="result">- scanning -</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @*<canvas id="qr-canvas" width="800" height="600" style=" width: 800px; height: 600px;"></canvas>
+    <script type="text/javascript">load();</script>*@
+</div>

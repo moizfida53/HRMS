@@ -1,0 +1,68 @@
+.arrowlistmenu	{
+	width: 180px; /*width of accordion menu*/
+	
+	}
+.arrowlistmenu h1	{
+	margin:0px;
+	padding:5px 0 0 15px;
+	font-size:18px;
+	height:30px;
+	color:#FFFFFF;
+	background:url(../images/nav2-bg.gif) repeat-x;
+	}
+.arrowlistmenu h3	{
+	margin:0px;
+	padding:0px;
+	}
+.arrowlistmenu .menuheader{ /*CSS class for menu headers in general (expanding or not!)*/
+	font: bold 12px Verdana;
+	color: #212121;
+	background:#FFFFFF;
+	margin-bottom:0px; /*bottom spacing between header and rest of content*/
+	padding:10px 0px 10px 10px; /*header text is indented 10px*/
+	cursor: pointer;
+	border-bottom:1px solid #e0e0e0;
+	background:url(../images/bu.png) right no-repeat;
+	}
+
+.arrowlistmenu .openheader{ /*CSS class to apply to expandable header when it's expanded*/
+	background:#FFFFFF
+	color:#000;
+	}
+
+.arrowlistmenu ul{ /*CSS for UL of each sub menu*/
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+	margin-bottom: 8px; /*bottom spacing between each UL and rest of content*/
+	}
+
+.arrowlistmenu ul li{
+	padding-bottom:0px; /*bottom spacing between menu items*/
+	}
+
+.arrowlistmenu ul li a{
+	color: #494949;
+	display: block;
+	padding:10px 0;
+	padding-left:15px; /*link text is indented 19px*/
+	text-decoration: none;
+	font-weight: bold;
+	font-size: 90%;
+	margin:0 0 0 10px;
+	background:url(../images/dot.png) left no-repeat;
+	border-bottom:1px solid #dadada;
+	}
+
+.arrowlistmenu ul li a:visited{
+	color: #494949;
+	}
+
+.arrowlistmenu ul li a:hover{ /*hover state CSS*/
+	color: #008aff;
+	background-color: #F3F3F3;
+	}
+.arrowlistmenu ul li a.active{ /*active state CSS*/
+ color: #008aff;
+ background-color: #F3F3F3;
+ }

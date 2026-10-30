@@ -1,0 +1,98 @@
+﻿@{
+    ViewBag.Title = "mainpage";
+}
+
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    @*---------------------------------------------Main page script---------------------------------------------------------------------------*@
+
+
+    <script src="~/Scripts/jquery-1.11.1.min.js"></script>
+
+    @*<a href="/Scripts/bootstrap.min.js.map"></a>
+        <script src="/Scripts/btrstarpjs.js"></script>
+        <link href="/css/csssfile1.css" rel="stylesheet" />*@
+    <link href="/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="/MainJs/Imagepage.js"></script>
+    <link href="/Content/tabletview/imagepage.css" rel="stylesheet" />
+    @*---------------------------------------------Main page script---------------------------------------------------------------------------*@
+
+
+    @*---------------------------------------------theme page script---------------------------------------------------------------------------*@
+
+    <script src="~/Scripts/bootstarp.js"></script>
+    <script src="~/Scripts/jquery.js"></script>
+    <link href="~/css/bootstarpnew.css" rel="stylesheet" />
+    <link type="text/css" href="~/css/jqx.base.css" rel="stylesheet" />
+    <script type="text/javascript" src="~/Scripts/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="~/Scripts/jqxcore.js"></script>
+    <script type="text/javascript" src="~/Scripts/jqxfileupload.js"></script>
+    <script type="text/javascript" src="~/Scripts/jqxbuttons.js"></script>
+
+    <script src="~/Content/jqx-all.js"></script>
+    <link href="~/Content/demotheme.css" rel="stylesheet" />
+    @*---------------------------------------------theme page script---------------------------------------------------------------------------*@
+
+
+    <title>Imagepage1</title>
+</head>
+<body>
+    @*<input type="text" id="fontclr" style="display:none;">*@
+
+    <div class="row">
+
+        <div id="themepagediv" >
+            <div id="Themepage ">
+                @Html.Action("Themechangepage")
+            </div>
+
+
+        </div>
+
+        <div id="Tabletview"  >
+            <div class="tablet" id="tabletDIV">
+
+                <div id="mainhomepage">
+                    @Html.Action("homepageview")
+                </div>
+
+                <div id="divbackbtn" style="display:none;">
+                
+                        
+                            <div class="w3-top" style="margin-left:26px;margin-top:22px; position:absolute">
+                                <div>
+
+                                    <button id="backbtn" data-back="main" onclick="btnbackclick();"> < BACK  </button>
+                                    @*class="w3-bar-item w3-button w3-padding-large"class="w3-bar w3-black w3-card"*@
+
+
+                                </div>
+                            </div>
+                       
+                        <div id="compnylogo" class="col-2">
+                            <img src="~/images/dar_yasmeen_small_logo.png" alt="cmplogo" width="100" height="100">
+                        </div>
+                   
+                </div>
+                <div id="category">
+                    @Html.Action("categoryview")
+                </div>
+                <div id="itempage">
+                    @Html.Action("itemview")
+                </div>
+                <div id="itemdetailpage">
+                    @Html.Action("itemdetail")
+                </div>
+
+
+
+            </div>
+        </div>
+
+
+
+    </div>
+</body>
+</html>

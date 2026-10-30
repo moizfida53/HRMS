@@ -1,0 +1,143 @@
+﻿@*
+    Areas/POS/Views/Auth/Login.cshtml   -   TMM branded
+
+    Split panel: brand on the left, form on the right. On a phone the brand
+    panel collapses to a slim header so the keyboard does not push the form
+    off screen - counter staff sign in on handsets as often as on the till.
+*@
+@{
+    Layout = null;
+    ViewBag.Title = "Sign in";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TMM POS &middot; Sign in</title>
+    <link href="~/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --tmm-teal:    #0E8A80;
+            --tmm-teal-dk: #0A6B63;
+            --tmm-ink:     #212322;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh; display: flex;
+            font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--tmm-ink); background: #fff;
+        }
+
+        /* ---- left: brand ---- */
+        .brand-pane {
+            flex: 0 0 44%; background: var(--tmm-ink); color: #fff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; position: relative; overflow: hidden;
+        }
+        /* a single teal accent, echoing the notch in the mark */
+        .brand-pane::after {
+            content: ""; position: absolute; right: -90px; bottom: -90px;
+            width: 300px; height: 300px; border-radius: 64px;
+            background: var(--tmm-teal); opacity: .16; transform: rotate(18deg);
+        }
+        .brand-pane .tmm-brand {
+            position: relative; z-index: 1;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+        /* Sized explicitly. An <img> with no dimensions collapses to 0 or
+           balloons to its intrinsic size depending on the browser. */
+        .brand-pane .tmm-brand-img { width: 104px; height: 104px; display: block; }
+        .brand-pane .wordmark {
+            font-size: 46px; font-weight: 700; letter-spacing: 11px;
+            margin: 22px 0 0 0; line-height: 1; color: #FFFFFF;
+        }
+        .brand-pane .tag {
+            margin-top: 12px; color: #9DAAA8; font-size: 13.5px; letter-spacing: .4px;
+        }
+
+        /* ---- right: form ---- */
+        .form-pane {
+            flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 40px 24px;
+        }
+        .form-box { width: 100%; max-width: 340px; }
+        .form-box h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+        .form-box p.sub { color: #6B7674; font-size: 13.5px; margin: 0 0 24px; }
+        .form-box label { font-size: 12.5px; font-weight: 600; color: #4A5250; margin-bottom: 4px; }
+        .form-control { border-color: #DCE1E0; padding: 10px 12px; height: auto; }
+        .form-control:focus {
+            border-color: var(--tmm-teal);
+            box-shadow: 0 0 0 3px rgba(14,138,128,.14);
+        }
+        .btn-signin {
+            background: var(--tmm-teal); border: 0; color: #fff; width: 100%;
+            padding: 11px; border-radius: 4px; font-weight: 600; font-size: 14.5px;
+        }
+        .btn-signin:hover  { background: var(--tmm-teal-dk); color: #fff; }
+        .alert-err {
+            background: #FDECEC; border: 1px solid #F5C6C6; color: #8E2020;
+            font-size: 13px; padding: 9px 12px; border-radius: 4px; margin-bottom: 16px;
+        }
+        .foot { margin-top: 26px; font-size: 11.5px; color: #99A3A1; }
+
+        @@media (max-width: 767px) {
+            body { flex-direction: column; }
+            .brand-pane { flex: 0 0 auto; padding: 22px; flex-direction: row; gap: 14px; }
+            .brand-pane::after { display: none; }
+            .brand-pane .wordmark { font-size: 26px; letter-spacing: 6px; margin: 0; }
+            .brand-pane .tmm-brand { flex-direction: row; align-items: center; gap: 14px; text-align: left; }
+            .brand-pane .tmm-brand-img { width: 44px; height: 44px; }
+            .brand-pane .tmm-brand-text { text-align: left; }
+            .brand-pane .tag { display: none; }
+            .form-pane { padding: 30px 22px; }
+        }
+    </style>
+</head>
+<body>
+
+    @* class is tmm-brand, NOT mark: Bootstrap 4 styles .mark as a text
+       highlighter (cream background + padding), which drew a box behind
+       the logo and made the white wordmark unreadable. *@
+    <aside class="brand-pane">
+        <div class="tmm-brand">
+            <img src="@Url.Content("~/Areas/POS/Content/tmm-logo-light.svg")" alt="TMM" class="tmm-brand-img" />
+            <div class="tmm-brand-text">
+                <div class="wordmark">TMM</div>
+                <div class="tag">Point of Sale</div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="form-pane">
+        <div class="form-box">
+            <h1>Sign in</h1>
+            <p class="sub">Manage orders, payments and deliveries</p>
+
+            @if (!string.IsNullOrEmpty(ViewBag.Error as string))
+            {
+                <div class="alert-err">@ViewBag.Error</div>
+            }
+
+            @using (Html.BeginForm("Login", "Auth", new { area = "POS" }, FormMethod.Post, new { autocomplete = "off" }))
+            {
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input class="form-control" id="username" name="username" required autofocus />
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input class="form-control" id="password" name="password" type="password" required />
+                </div>
+
+                <button type="submit" class="btn btn-signin">Sign in</button>
+            }
+
+            <div class="foot">&copy; @DateTime.Now.Year TMM</div>
+        </div>
+    </main>
+
+</body>
+</html>

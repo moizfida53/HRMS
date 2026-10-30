@@ -1,0 +1,561 @@
+﻿@{
+    ViewBag.Title = "Index";
+}
+
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+    <script src="../../Scripts/jquery-1.11.1.min.js"></script>
+    <link href="../../Content/ItemView/CartMenu.css" rel="stylesheet" />
+    <link defer="" href="../../Content/ItemView/ItemView.css" rel="stylesheet">
+    <style>
+        .jconfirm .jconfirm-cell {
+            display: block !important;
+            vertical-align: middle !important;
+            margin-left: 13rem !important;
+        }
+
+        /* For mobile phones: */
+        @@media only screen and (max-width: 768px) {
+            /*.clsScrollArea {
+                margin-top: 21rem !important;
+            }*/
+
+            .clsMobileBackgroudImage {
+                /*margin-top: -63px !important;*/
+                height: 21rem !important;
+            }
+            .toprowbackground {
+                background-color: white !important;
+                opacity: 0.8;
+            }
+        }
+
+        @@media only screen and (min-width: 600px) {
+            /* For tablets: */
+            .clsScrollArea {
+                margin-top: 21rem !important;
+            }
+
+            .clsMobileBackgroudImage {
+                margin-top: -63px !important;
+                height: 0px !important;
+            }
+        }
+
+        @@media only screen and (min-width: 768px) {
+            /* For desktop: */
+            .clsScrollArea {
+                margin-top: 58px !important;
+            }
+
+            .clsMobileBackgroudImage {
+                margin-top: -63px !important;
+                height: 0px !important;
+                display: none !important;
+            }
+            #TopRow {
+                background-color: white !important;
+            }
+        }
+
+
+        
+    </style>
+</head>
+<body style="height: 100% !important;">
+    <input type="hidden" id="hdnbrandId" value="@ViewBag.BrandId" />
+    <input type="hidden" id="hdnBranchId" value="@ViewBag.Branchid" />
+    @*@{ var iscart = ViewBag.IsCartVisible == true ? "true" : "false";}*@
+    @{ var iscart = @Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsCartVisible"]) == true ? "true" : "false";}
+    
+    <input type="hidden" id="hdnIsCartVisible" value="@ViewBag.IsCrtVisible" />
+    <div class="app-root app-root-ios ios platform-core enable-hover" ng-version="5.2.11">
+        <div app-viewport=""></div>
+
+        <ng-component class="app-root">
+            <div class="desktop-view-container">
+
+                <div class="fd-ionic-nav">
+                    <div id="snackbar">Item Added in Cart..</div>
+                    @*<page-loader class="ion-page show-page" style="z-index: 100;" hidden="">
+                            <ion-content class="content content-ios" style="">
+                                <div class="fixed-content"></div><div class="scroll-content">
+                                    <div class="loading-container">
+                                        <lottie-animation-view style="margin: auto;">
+                                            <div style="width: 300px; height: 300px; overflow: hidden; margin: 0px auto;">
+                                                <canvas style="width: 100%; height: 100%; transform-origin: 0px 0px 0px;" width="375" height="375"></canvas>
+                                            </div>
+                                        </lottie-animation-view>
+                                    </div>
+                                </div>
+                            </ion-content>
+                        </page-loader>*@
+
+                    <div class="ion-page show-page" style="z-index: 101;">
+                        <div class="content content-ios has-infinite-scroll">
+                            @*style="background-color: rgb(255, 255, 255);"*@
+                            <div id="TopRow" class="row" style="height: 59px;">
+                                <div class="col" style="display: flex; align-self: center;">
+                                    <div class="language-selector-container">
+                                        <input id="selectedLang" type="hidden" value="EN" />
+                                        <div class="dropdown">
+                                            <button id="Btnlang" class="dropbtn">EN</button>
+                                            <div class="dropdown-content">
+                                                <a onclick="selectLanguage('EN');">EN</a>
+                                                <a onclick="selectLanguage('AR');">AR</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col" style="display: flex; justify-content: center;">
+                                    <a id="btnMenu" onclick="ShowMenuclick();" class="Menubtn" style="display:none;">
+                                        <label>MENU</label>
+                                    </a>
+                                    <a id="btnbackFromQccode" onclick="displaycartview();" class="Menubtn" style="display:none;">
+                                        <label>BACK</label>
+                                    </a>
+                                </div>
+                                <div class="col">
+                                    @if (@ViewBag.IsCartVisible)
+                                    {
+                                        <a id="btncart" href="#0" onclick="displaycartview();" class="cd-cart items-added">
+                                            <span id="cartCount">0</span>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                            <div id="scrolldiv" onscroll="myFunction();" class="scroll-content clsScrollArea" style="background-color:white; margin-bottom: 0px;">
+                                <div id="desktop-view" class="clsMobileBackgroudImage">
+                                    <div class="container" style="flex-direction: column-reverse;">
+                                        <div class="desktop-view-image-container">
+                                            @if (!string.IsNullOrEmpty(@ViewBag.BrandHomePageImage))
+                                            {
+                                                <img alt="" class="desktop-view-shop-image"
+                                                     src="~/Images/@ViewBag.BrandHomePageImage"
+                                                     style="height: 21rem;width: 100%;object-fit: cover;">
+                                            }
+                                            else
+                                            {
+                                                <img alt="" class="desktop-view-shop-image"
+                                                     src="~/Images/HomePageUpdated.png"
+                                                     style="height: 21rem;width: 100%;object-fit: cover;">
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="MenuList">
+                                    @*<div class="menu-type-container">
+                                            <ion-slides centeredslides="true" slidesperview="1" class="slides slides-ios slides-0">
+                                                <div class="swiper-container swiper-container-horizontal">
+                                                    <div class="swiper-wrapper" style="transition-duration: 0ms; transform: translate3d(0px, 0px, 0px);">
+                                                        <ion-slide class="menu-slide-container swiper-slide swiper-slide-active" style="width: 483px; margin-right: -235px;">
+                                                            <div class="slide-zoom">
+                                                                <ion-segment class="segment segment-ios">
+                                                                    <div class="type-segment-container">
+                                                                        <div class="menu-type-container">
+                                                                            <h1 class="menu-type-header" style="color: rgb(230, 3, 75); max-width: initial;"></h1>
+                                                                            <h2 class="menu-type-desc-1" style="color: rgb(87, 89, 98);"></h2>
+                                                                        </div>
+                                                                    </div>
+                                                                </ion-segment>
+                                                            </div>
+                                                        </ion-slide>
+                                                    </div><div class="swiper-pagination hide swiper-pagination-clickable swiper-pagination-bullets">
+                                                        <button class="swiper-pagination-bullet swiper-pagination-bullet-active" aria-label="Go to slide 1" data-slide-index="0"></button>
+                                                    </div>
+                                                </div>
+                                            </ion-slides>
+                                        </div>*@
+
+                                    <div class="menu-container">
+                                        <ion-slides class="section-slides slides slides-ios slides-1" slidesperview="1" spacebetween="0">
+                                            <div class="swiper-container swiper-container-horizontal">
+                                                <div class="swiper-wrapper" style="transition-duration: 0ms; transform: translate3d(0px, 0px, 0px);">
+                                                    <ion-slide class="section-slide swiper-slide swiper-slide-active" style="width:100% !important;">
+                                                        <div class="slide-zoom">
+
+                                                            <ion-segment id="categoryList" class="menu-segment segment segment-ios ng-untouched ng-pristine ng-valid" style="padding-right: 5px; padding-left: 6px;">
+                                                                @*<span class="menu-segment-container" style="padding-left: 0px; padding-right: 0px; margin: 0.5rem 0.5rem 0.5rem 0rem;">
+                                                                        <img class="segment-img" src="https://finedine.imgix.net/4Jimw916g/c98b6eb9-b0b5-45a3-bcb5-db918df8b096.jpeg">
+                                                                        <ion-segment-button class="master-menu-segment-button segment-button" role="button" tappable="" style="border-bottom: medium none; color: rgb(87, 89, 98);" aria-pressed="false">
+                                                                            <span class="menu-category" style="">Zuppa (Soup)</span>
+                                                                            <div class="button-effect"></div>
+                                                                        </ion-segment-button>
+                                                                    </span>*@
+
+                                                            </ion-segment>
+                                                        </div>
+                                                    </ion-slide>
+                                                </div><div class="swiper-pagination hide swiper-pagination-clickable swiper-pagination-bullets"><button class="swiper-pagination-bullet swiper-pagination-bullet-active" aria-label="Go to slide 1" data-slide-index="0"></button></div>
+                                            </div>
+                                        </ion-slides>
+                                    </div>
+
+                                    <div class="master-menu-section-item-list" style="direction: ltr;">
+                                        <div>
+                                            <menu-list>
+                                                <div class="section-item-list">
+                                                    @*<h1 id="selectedCateName" class="subsection-preview-header" style="color: rgb(87, 89, 98);">
+                                                            Test Category
+                                                        </h1>*@
+                                                    @*<dd class="subsection-description" style="color: rgb(87, 89, 98);">
+                                                            New dishes tuned up under 500 calories in collaboration with certified dietitian @@Bodarwish
+                                                        </dd>*@
+
+                                                    <div id="itemlist">
+
+                                                        @*<div id="Item_2" class="ng-tns-c0-81 ng-star-inserted">
+                                                                <input id="hdnItemINGREDIENT_2" type="hidden" value=" A decadent velvety chicken cream soup garnished with sour croutons, herbs and a hint of olive oil">
+                                                                <input id="hdnITEM_NAME_2" type="hidden" value="Masgouf Soup ">
+                                                                <input id="hdnItem_IMAGENAME_2" type="hidden" value="masgouf_soup.jpg">
+                                                                <input id="hdnItem_PRICE_2" type="hidden" value="KD. 2.250">
+                                                                <button id="btnItem_2" class="menu-item-anchor" prevent-double-click="">
+                                                                    <div class="menu-item item item-block" style="background-color: rgb(255, 255, 255); opacity: 1;">
+                                                                        <div onclick="OnItemClick(2);" class="menu-item-thumbnail ng-tns-c0-81 ng-star-inserted" item-start="" style="align-self: flex-start;">
+                                                                            <img class="ng-tns-c0-81" src="../images/masgouf_soup.jpg?fit=crop&amp;w=90&amp;h=90&amp;q=100&amp;fm=jpg" width="100" height="100">
+                                                                        </div>
+                                                                        <div class="item-inner">
+                                                                            <div class="input-wrapper">
+                                                                                <div class="label label-ios ng-star-inserted" style="">
+                                                                                    <div style="padding: 5px;" class="ng-tns-c0-81">
+                                                                                        <div style="width:100% !important">
+                                                                                            <h1 onclick="OnItemClick(2);" class="menu-item-header" style="color: rgb(87, 89, 98); float:left;">Masgouf Soup </h1>
+                                                                                            <div onclick="addItemclick(2);" class="addbutton" style="float:right !important; margin-right:5px;">+</div>
+                                                                                        </div>
+                                                                                        <div style="clear:both !important;"></div>
+                                                                                        <div onclick="OnItemClick(2);" class="ng-tns-c0-81">
+                                                                                            <div class="menu-item-footer ng-star-inserted">
+                                                                                                <span class="item-currency ng-star-inserted" style="color: rgb(230, 3, 75);">KD. 2.250<span class="pricing-list-item-price-info" style="color: rgb(87, 89, 98);"></span></span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <label onclick="OnItemClick(2);" class="menu-ingredient" style="color: rgb(87, 89, 98);"> A decadent velvety chicken cream soup garnished with sour croutons, herbs and a hint of olive oil</label>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div><div class="button-effect"></div>
+                                                                    </div>
+                                                                </button>
+                                                            </div>*@
+
+                                                        @*<div id="Item_2" class="ng-tns-c0-81 ng-star-inserted">
+                                                                <input id="hdnItemINGREDIENT_2" type="hidden" value=" A decadent velvety chicken cream soup garnished with sour croutons, herbs and a hint of olive oil">
+                                                                <input id="hdnITEM_NAME_2" type="hidden" value="Masgouf Soup "><input id="hdnItem_IMAGENAME_2" type="hidden" value="masgouf_soup.jpg"><input id="hdnItem_PRICE_2" type="hidden" value="KD. 2.250">
+                                                                <button id="btnItem_2" class="menu-item-anchor">
+                                                                    <div class="menu-item item item-block" style="background-color: rgb(255, 255, 255); opacity: 1;">
+                                                                        <div onclick="OnItemClick(2);" class="menu-item-thumbnail ng-tns-c0-81 ng-star-inserted" item-start="" style="align-self: flex-start;">
+                                                                            <img class="ng-tns-c0-81" src="../images/masgouf_soup.jpg?fit=crop&amp;w=90&amp;h=90&amp;q=100&amp;fm=jpg" width="100" height="100">
+                                                                        </div>
+                                                                        <div class="item-inner">
+                                                                            <div class="input-wrapper">
+                                                                                <div class="label label-ios ng-star-inserted" style="">
+                                                                                    <div style="padding-left: 0px;" class="ng-tns-c0-81">
+                                                                                        <h1 onclick="OnItemClick(2);" class="menu-item-header" style="color: rgb(87, 89, 98); width:90%;float:left;">Masgouf Soup </h1>
+                                                                                        <div href="#" onclick="addItemclick();" class="addbutton">+</div>
+                                                                                        <div onclick="OnItemClick(2);" class="ng-tns-c0-81">
+                                                                                            <div class="menu-item-footer ng-star-inserted">
+                                                                                                <span class="item-currency ng-star-inserted" style="color: rgb(230, 3, 75);">
+                                                                                                    KD. 2.250<span class="pricing-list-item-price-info" style="color: rgb(87, 89, 98);">
+                                                                                                    </span>
+                                                                                                </span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <label onclick="OnItemClick(2);" class="menu-ingredient" style="color: rgb(87, 89, 98);"> A decadent velvety chicken cream soup garnished with sour croutons, herbs and a hint of olive oil</label>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div><div class="button-effect"></div>
+                                                                    </div>
+                                                                </button>
+                                                            </div>*@
+
+                                                        @*<menu-item class="ng-tns-c0-81 ng-star-inserted">
+                                                                <button class="menu-item-anchor" prevent-double-click="">
+                                                                    <ion-item class="menu-item item item-block" style="background-color: rgb(255, 255, 255); opacity: 1;">
+                                                                        <ion-thumbnail class="menu-item-thumbnail ng-tns-c0-81 ng-star-inserted" item-start="" style="align-self: flex-start;">
+                                                                            <img class="ng-tns-c0-81" src="https://finedine.imgix.net/HJzFe12M-/9c3e9e87-1589-4c51-982c-027abe56831e.jpg?fit=crop&amp;w=90&amp;h=90&amp;q=100&amp;fm=jpg" width="100" height="100">
+                                                                        </ion-thumbnail><div class="item-inner">
+                                                                            <div class="input-wrapper">
+                                                                                <ion-label class="label label-ios ng-star-inserted" style="">
+
+                                                                                    <div style="padding-left: 0px;" class="ng-tns-c0-81">
+                                                                                        <h1 class="menu-item-header" style="color: rgb(87, 89, 98);">
+                                                                                            Lentil Soup
+                                                                                        </h1>
+
+                                                                                        <pricing-list class="ng-tns-c0-81">
+                                                                                            <div class="menu-item-footer ng-star-inserted">
+
+                                                                                                <span class="item-currency ng-star-inserted" style="color: rgb(230, 3, 75);">
+                                                                                                    KD2
+                                                                                                    <span class="pricing-list-item-price-info" style="color: rgb(87, 89, 98);">
+                                                                                                    </span>
+                                                                                                </span>
+
+
+                                                                                            </div>
+                                                                                        </pricing-list>
+                                                                                    </div>
+                                                                                </ion-label>
+                                                                            </div>
+                                                                        </div><div class="button-effect"></div>
+                                                                    </ion-item>
+                                                                </button>
+                                                            </menu-item>*@
+                                                    </div>
+                                                    <ion-infinite-scroll threshold="20%">
+                                                        <ion-infinite-scroll-content state="disabled">
+                                                            <div class="infinite-loading">
+                                                                <div class="infinite-loading-spinner">
+                                                                    <ion-spinner class="spinner spinner-ios spinner-ios-ios">
+                                                                        <svg viewBox="0 0 64 64" style="transform: rotate(180deg); animation-delay: -1000ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(210deg); animation-delay: -916.667ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(240deg); animation-delay: -833.333ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(270deg); animation-delay: -750ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(300deg); animation-delay: -666.667ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(330deg); animation-delay: -583.333ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(0deg); animation-delay: -500ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(30deg); animation-delay: -416.667ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(60deg); animation-delay: -333.333ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(90deg); animation-delay: -250ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(120deg); animation-delay: -166.667ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg><svg viewBox="0 0 64 64" style="transform: rotate(150deg); animation-delay: -83.3333ms; animation-duration: 1000ms;"><line transform="translate(32,32)" y1="17" y2="29"></line></svg>
+                                                                    </ion-spinner>
+                                                                </div>
+                                                            </div>
+                                                        </ion-infinite-scroll-content>
+                                                    </ion-infinite-scroll>
+
+                                                    <dd class="subsection-note" style="color: rgb(87, 89, 98);">
+
+                                                    </dd>
+                                                </div>
+                                            </menu-list>
+                                        </div>
+
+                                    </div>
+                                </div>
+                                <div id="CartView" style="display:none;">
+                                    <div id="cartItemList" class="row">
+                                        <div id="cartitemsMainDiv" style="width:100%;">
+                                            @*<div id="cartCate" class="cart_catHeader">
+                                                                                        SOUP
+                                                                                    </div>
+                                                                                    <div id="cartCateItems">
+                                                                                        <div id="Item_2" class="ng-tns-c0-81 ng-star-inserted">
+                                                        <input id="hdnItemINGREDIENT_2" type="hidden" value=" Classic hearty lentil soup finalized with the earthy tones of herbs and lime">
+                                                        <input id="hdnITEM_NAME_2" type="hidden" value="Lentil Soup">
+                                                        <input id="hdnItem_IMAGENAME_2" type="hidden" value="final_lentil_soup.jpeg">
+                                                        <input id="hdnItem_PRICE_2" type="hidden" value="KD. 1.850">
+                                                        <button id="btnItem_2" class="menu-item-anchor" prevent-double-click="">
+                                                            <div class="menu-item item item-block" style="background-color: rgb(255, 255, 255); opacity: 1;">
+                                                                <div onclick="OnItemClick(2);" class="menu-item-thumbnail ng-tns-c0-81 ng-star-inserted" item-start="" style="align-self: flex-start;">
+                                                                    <img class="ng-tns-c0-81" src="../images/final_lentil_soup.jpeg?fit=crop&amp;w=90&amp;h=90&amp;q=100&amp;fm=jpg" width="100" height="100">
+                                                                </div>
+                                                                <div class="item-inner">
+                                                                    <div class="input-wrapper">
+                                                                        <div class="label label-ios ng-star-inserted" style="">
+                                                                            <div style="padding: 5px;" class="ng-tns-c0-81">
+                                                                                <div style="width:100% !important;">
+                                                                                    <h1 onclick="OnItemClick(2);" class="menu-item-header" style="color: rgb(87, 89, 98);float:left;">Masgouf Soup</h1>
+                                                                                    <div style="line-height: 30px;float:right !important; margin-right:5px;">
+                                                                                        <div style="width:32px;float:left;" onclick="addItemclick(2);" class="addbutton">+</div>
+                                                                                        <div style="width:22px;float:left;text-align:center">2</div>
+                                                                                        <div style="width:32px;float:left;" onclick="Minusecardclick(2);" class="addbutton">-</div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div style="clear:both !important;"></div>
+                                                                                <div onclick="OnItemClick(2);" class="ng-tns-c0-81">
+                                                                                    <div class="menu-item-footer ng-star-inserted">
+                                                                                        <span class="item-currency ng-star-inserted" style="color: rgb(230, 3, 75);">
+                                                                                            KD. 2.250
+                                                                                            <span class="pricing-list-item-price-info" style="color: rgb(87, 89, 98);"></span>
+                                                                                        </span>
+                                                                                        <span class="item-currency ng-star-inserted" style="color: rgb(230, 3, 75);float:right; height:30px;">
+                                                                                            KD. 5.000
+                                                                                            <span class="pricing-list-item-price-info" style="color: rgb(87, 89, 98);"></span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <input type="text" id="comments" placeholder="Comments" multiple style="width:100%;" />
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div><div class="button-effect"></div>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                    <div id="Item_130" class="ng-tns-c0-81 ng-star-inserted">
+                                                        <input id="hdnItemINGREDIENT_130" type="hidden" value=" Classic hearty lentil soup finalized with the earthy tones of herbs and lime">
+                                                        <input id="hdnITEM_NAME_130" type="hidden" value="Lentil Soup">
+                                                        <input id="hdnItem_IMAGENAME_130" type="hidden" value="final_lentil_soup.jpeg">
+                                                        <input id="hdnItem_PRICE_130" type="hidden" value="KD. 1.850">
+                                                        <button id="btnItem_130" class="menu-item-anchor" prevent-double-click="">
+                                                            <div class="menu-item item item-block" style="background-color: rgb(255, 255, 255); opacity: 1;">
+                                                                <div onclick="OnItemClick(130);" class="menu-item-thumbnail ng-tns-c0-81 ng-star-inserted" item-start="" style="align-self: flex-start;">
+                                                                    <img class="ng-tns-c0-81" src="../images/final_lentil_soup.jpeg?fit=crop&amp;w=90&amp;h=90&amp;q=100&amp;fm=jpg" width="100" height="100">
+                                                                </div>
+                                                                <div class="item-inner">
+                                                                    <div class="input-wrapper">
+                                                                        <div class="label label-ios ng-star-inserted" style="">
+                                                                            <div style="padding: 5px;" class="ng-tns-c0-81">
+                                                                                <div style="width:100% !important;">
+                                                                                    <h1 onclick="OnItemClick(130);" class="menu-item-header" style="color: rgb(87, 89, 98);float:left;">Masgouf Soup</h1>
+                                                                                    <div style="line-height: 30px;float:right !important; margin-right:5px;">
+                                                                                        <div style="width:32px;float:left;" onclick="addItemclick(130);" class="addbutton">+</div>
+                                                                                        <div style="width:22px;float:left;text-align:center">2</div>
+                                                                                        <div style="width:32px;float:left;" onclick="Minusecardclick(130);" class="addbutton">-</div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div style="clear:both !important;"></div>
+                                                                                <div onclick="OnItemClick(2);" class="ng-tns-c0-81">
+                                                                                    <div class="menu-item-footer ng-star-inserted">
+                                                                                        <span class="item-currency ng-star-inserted" style="color: rgb(230, 3, 75);">
+                                                                                            KD. 2.250
+                                                                                            <span class="pricing-list-item-price-info" style="color: rgb(87, 89, 98);"></span>
+                                                                                        </span>
+                                                                                        <span class="item-currency ng-star-inserted" style="color: rgb(230, 3, 75);float:right; height:30px;">
+                                                                                            KD. 5.000
+                                                                                            <span class="pricing-list-item-price-info" style="color: rgb(87, 89, 98);"></span>
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div>
+                                                                                    <input type="text" id="comments" placeholder="Comments" multiple style="width:100%;" />
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div><div class="button-effect"></div>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                </div>*@
+                                        </div>
+                                    </div>
+                                    @*position: absolute;bottom: 0px;*@
+                                    <footer id="cartFooter" style="width: 100%;margin:0px;display:none;" class="bg-contrast-lower yx-lo yx-lg yx-ih">
+                                        <p class="flex justify-between" style="font-weight: 600;font-size: 21px;">
+                                            <span>Subtotal:</span>
+                                            <span id="divSubtotal">KD. 0.000</span>
+                                            <input id="hdnSubtotal" type="hidden" value="0" />
+                                        </p>
+                                        @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsGenerateQRCode"]) == true)
+                                        {
+                                            <a href="#0" id="btnGenerateOrder" style="width:49%;" class="btn btn--primary btn--md yx-dy margin-y-xs">Generate Order</a>
+                                        }
+                                        @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == true)
+                                        {
+                                            <a href="#0" id="btnCheckOut" style="width:49%;" class="btn btn--primary btn--md yx-dy margin-y-xs">Check out</a>
+                                        }
+                                        <a href="#0" onclick="clearCart();" style="width:49%;background-color:hsl(42, 78%, 50%);" class="btn btn--primary btn--md yx-dy margin-y-xs">Clear Cart</a>
+                                    </footer>
+                                </div>
+                                <div id="divQRCodeMain" style="display:none;text-align:center;margin-top:2rem;">
+                                    <div id="divqr"></div>
+                                    <div style="font-weight: bold;font-size: 27px;margin-top: 41px;color: orange;">
+                                        Show this Qr code to Waiter.
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <div id="myModal" class="modal">
+                                <!-- Modal content -->
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <span class="close">&times;</span>
+                                        <h2 id="ItemDetailsName" style="margin-top: 0.8rem !important;"></h2>
+                                    </div>
+                                    <div class="modal-body">
+                                        <img id="itemDetailsImage" class="item-detail-image ng-tns-c1-8 ng-trigger ng-trigger-fadeAnimation ng-star-inserted" style="display: inline; opacity: 1;"
+                                             src="">
+                                        <div class="item-detail-content-wrapper ng-tns-c1-8" margin="15px 11px 0 19px" style="direction: ltr; margin-top: 10px;">
+                                            @* <ion-row id="ItemDetailsName" class="item-headline row ng-tns-c1-8 ng-star-inserted" style="padding-top: 10px; color: rgb(87, 89, 98);">Shroom's Zuppa</ion-row>*@
+                                            <ion-row class="item-price justify-center row ng-tns-c1-8 ng-star-inserted" style="color: rgb(87, 89, 98);">
+                                                <span id="ItemDetailsPrice" class="item-currency" style="color: rgb(230, 3, 75);">
+                                                    KD2.450
+                                                </span>
+                                            </ion-row>
+                                            <ion-row class="item-body row">
+                                                <div id="ItemDescription" class="description-container" style="color: rgb(87, 89, 98);">Creamy mushroom soup</div>
+                                            </ion-row>
+                                            <modifier-list class="ng-tns-c1-8">
+                                                <ion-list class="modifier-list list list-ios">
+                                                    <form novalidate="" class="ng-untouched ng-pristine ng-valid"></form>
+                                                </ion-list>
+                                            </modifier-list>
+                                            <ion-infinite-scroll class="ng-tns-c1-8"></ion-infinite-scroll>
+                                        </div>
+                                    </div>
+                                    @*<div class="modal-footer">
+                                            <h3>Modal Footer</h3>
+                                        </div>*@
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="cart-container" style="background-color: rgb(255, 255, 255);" hidden="">
+
+                            <a>
+                                <svg class="cart-icon" height="22" width="23" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M8.784 7.823v-.009.01zm7.257.344l-2.169 2.169a3.567 3.567 0 01-.917.664H22.5V8.433a.268.268 0 00-.268-.266h-6.19zM9.748 11a3.587 3.587 0 01-.92-.666 3.546 3.546 0 01-1.027-2.167H.767a.266.266 0 00-.267.266V11h9.248zm2.38-2.41l6.46-6.46a.266.266 0 00.002-.377L17.414.577a.27.27 0 00-.379 0l-6.46 6.46a1.098 1.098 0 001.553 1.553zm0 0s0 0 0 0h0zm8.575 4.688H2.297l1.796 7.395h0c.07.288.403.55.699.55h13.416c.296 0 .63-.262.699-.55l1.796-7.395zM3.12 20.908s0 0 0 0h0z" fill="none" fill-rule="evenodd" style="stroke: rgb(87, 89, 98);"></path>
+                                </svg>
+                            </a>
+                        </div>
+
+                        @*<ion-footer no-border="" class="footer footer-ios">
+                                <ion-toolbar class="toolbar toolbar-ios" style="">
+                                    <div class="toolbar-background toolbar-background-ios"></div><div class="toolbar-content toolbar-content-ios">
+                                        <ion-title justify-content-center="" class="title title-ios">
+                                            <div class="toolbar-title toolbar-title-ios">
+                                                <span class="fineDine-copyright" style="font-family: &quot;Nunito Sans&quot;; color: rgb(230, 3, 75);">
+                                                    Powered by
+                                                </span>
+
+                                            </div>
+                                        </ion-title>
+                                    </div>
+                                </ion-toolbar>
+                            </ion-footer>*@
+                    </div><div class="nav-decor"></div>
+                </div>
+
+                <div id="desktop-view">
+                    <div class="container" style="flex-direction: column-reverse;">
+                        <div class="desktop-view-image-container">
+                            @*<img alt="" class="desktop-view-shop-image" src="~/Content/images/HomePageUpdated.png">*@
+                            @if (!string.IsNullOrEmpty(@ViewBag.BrandHomePageImage))
+                            {
+                                <img alt="" class="desktop-view-shop-image"
+                                     src="~/Images/@ViewBag.BrandHomePageImage"
+                                     style="width: 100%;object-fit: cover;">
+                            }
+                            else
+                            {
+                                <img alt="" class="desktop-view-shop-image"
+                                     src="~/Images/HomePageUpdated.png"
+                                     style="width: 100%;object-fit: cover;">
+                            }
+                        </div>
+
+                        @*<div class="divider"></div>
+                            <div style="text-align: center;">
+                                <h1 class="shop-name"></h1>
+                            </div>*@
+                    </div>
+                </div>
+            </div>
+        </ng-component><div overlay-portal=""></div><div overlay-portal=""></div>
+        <div class="loading-portal" overlay-portal=""></div>
+        <div class="toast-portal"></div><div class="click-block click-block-enabled"></div>
+    </div>
+
+    <link href="~/Content/jquery-confirm/jquery-confirm.css" rel="stylesheet" />
+    <script src="~/Content/jquery-confirm/jquery-confirm.js"></script>
+    <script src="~/Content/jquery-confirm/Jquery-confirm-custom.js"></script>
+
+    <script src="../../MainJs/ItemsView/Index.js"></script>
+    <script src="../../MainJs/ItemsView/BindCartDetails.js"></script>
+</body>
+</html>

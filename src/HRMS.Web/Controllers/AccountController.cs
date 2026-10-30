@@ -299,5 +299,5 @@ public sealed class AccountController : Controller
     private IActionResult RedirectToLocal(string? returnUrl) =>
         !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
             ? Redirect(returnUrl)
-            : RedirectToAction("Index", "Dashboard");
+            : RedirectToAction("Index", "Launcher");
 }

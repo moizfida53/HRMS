@@ -1,0 +1,14 @@
+﻿
+.mySlides {display: none;}
+img {vertical-align: middle;}
+
+/* Slideshow container */
+.slideshow-container {
+ text-align: center;  
+  position: relative;
+}
+body{
+    margin:0px
+}
+
+

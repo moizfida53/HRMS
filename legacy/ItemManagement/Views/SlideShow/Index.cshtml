@@ -1,0 +1,388 @@
+﻿@{
+    Layout = "~/Views/Shared/_LayoutNew.cshtml";
+}
+<link href="~/css/custom.css" rel="stylesheet" />
+<link href="~/assets/plugins/custom/datatables/datatables.bundle.css?v=7.0.5" rel="stylesheet" type="text/css" />
+<link href="~/Content/newfont-awesome.min.css" rel="stylesheet" />
+
+<style>
+    /*.chkIsSubCate {
+        float: right;
+    }
+
+    .branch_td1 {
+        width: 25px !important;
+        padding-right: 0px !important;*/
+    /*padding-left: 0px !important;*/
+    /*}
+
+    .branch_td2 {
+    }
+
+    .branch_td3 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+
+    .extraItem_td1 {
+        width: 25px !important;
+        padding-right: 0px !important;*/
+    /*padding-left: 0px !important;*/
+    /*}
+
+    .extraItem_td2 {
+    }
+
+    .extraItem_td3 {
+        width: 58px !important;
+    }
+
+    .extraItem_td4 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+
+    .comment_td1 {
+        width: 25px !important;
+        padding-right: 0px !important;*/
+    /*padding-left: 0px !important;*/
+    /*}
+
+    .comment_td2 {
+    }
+
+    .comment_td3 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+
+    .page-item.active .page-link {
+        background-color: #ffb023 !important;
+        border-color: #ffb023 !important;
+    }
+
+    .page-link {
+        color: black !important;
+    }
+
+    .displayNone {
+        display: none;
+    }
+    .groupAssignmentEdit {
+        margin-left: -8px !important;
+        width: 35px !important;
+        height: 30px !important;
+    }
+    .btnSortingModifier {
+        font-size: 25px;
+        color: white;
+        padding: 0px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+    }*/
+</style>
+<main class="main-content item-management">
+
+    <!-- Category Management Section -->
+    <div class="container-fluid h-100 item-management-list" id="divCategoryList">
+        <div class="item-management-heading d-flex">
+            @*<a href="#" title="Back" class="back-btn"><img src="~/Images/back-arrow.svg" alt=""></a>*@
+            <h2>Slide Shows</h2>
+        </div>
+
+        <div class="row ml-n2 mr-n2 uk-sortable catDroppable">
+            <div class="col-3">
+                <div class="form-group">
+                    <label>Select Brand</label>
+                    <select id="ddBrand" class="form-control" name="ItemComments[]" required></select>
+                    <div class="invalid-feedback">
+                        Please select a valid brand.
+                    </div>
+                </div>
+                <div class="col-md-6 upload-file-block mb-3">
+                    <div class="form-group">
+                        <input type="hidden" id="hdnImageFileName" value="" />
+                        <label>Select Image</label>
+                        <div class="custom-file">
+                            <input id="imageFileUpload" type="file" name="ImageFileUpload" class="custom-file-input">
+                            <label id="lblImageuploadName" class="custom-file-label text-truncate" for="customFile">Choose file</label>
+                        </div>
+                    </div>
+                    <div class="d-flex align-content-start">
+                        <img src="https://placehold.it/75x75" id="Imagepreview" class="img-thumbnail">
+                        <button id="btnImageUpload" type="submit" class="btn btn-primary ml-2" style="min-width:100px;"><span>Upload</span></button>
+                    </div>
+                </div>
+            </div>
+            <div id="WebSlideShowsTable"></div>
+            @*<div class="modal-footer">
+                    <button id="ItemAddButton" type="button" class="btn btn-primary" onclick="SaveItem(false);">Save</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>*@
+        </div>
+    </div>
+
+    <div class="right-navigation">
+
+    </div>
+</main>
+
+<script src="~/js/jquery.ui.touch-punch.js"></script>
+<script src="~/js/jquery.ui.touch-punch.min.js"></script>
+<script src="~/assets/plugins/custom/datatables/datatables.bundle.js?v=7.0.5"></script>
+<script src="https://cdn.datatables.net/rowreorder/1.2.8/js/dataTables.rowReorder.min.js"></script>
+<script src="../../Scripts/RowSorter.js"></script>
+@*<script src="~/MainJs/Items.js"></script>*@
+<script>
+    function gebi(id) {
+        return document.getElementById(id);
+    }
+    $(document).ready(function () {
+        GetBrands();
+        //GetImageSlideShows();
+    })
+    function GetBrands() {
+        $.ajax({
+            type: "GET",
+            cache: false,
+            async: false,
+            url: "/Category/GetBrands",
+            success: function (result) {
+                var Brands = result.dtgrdBrand;
+                FillBrands(Brands);
+            }
+        });
+
+    }
+    function FillBrands(Brands) {
+        var flgfirst = 0;
+        for (var i = 0; i < Brands.length; i++) {
+            var opt = new Option(Brands[i].BrandName, Brands[i].BrandID);
+            $('#ddBrand').append(opt);
+            if (flgfirst == 0) {
+                CreateWebSlideShowTable(Brands[i].BrandID);
+            }
+        };
+
+        $("#ddBrand").on('change', function (event) {
+            debugger;
+            //var args = event.args;
+            //if (args) {
+            //    // index represents the item's index.
+            //    var index = args.index;
+            //    var item = args.item;
+
+            //    // get item's label and value.
+            //    //var label = item.label;
+            //    //var value = item.value;
+            //    if (item != null) {
+            //        CreateWebSlideShowTable(item.value);
+            //    }
+            //    //var type = args.type; // keyboard, mouse or null depending on how the item was selected.
+            //}
+            CreateWebSlideShowTable($("#ddBrand").val());
+        });
+    }
+    function CreateWebSlideShowTable(BrandID) {
+        debugger;
+        if (BrandID == "") {
+            alert("Please Select Brand");
+            return;
+        }
+        var Data;
+        var obji = { brandID: BrandID }
+        $.ajax({
+            type: "POST",
+            cache: false,
+            data: JSON.stringify(obji),
+            url: "/mobile/GetWebImageSlideShow",
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (result) {
+                debugger;
+                Data = result.dtItems;
+
+                var myTableDiv = document.getElementById("WebSlideShowsTable");
+                t = "";
+
+                $("#WebSlideShowsTable").html(myTableDiv);
+                var table = document.createElement('TABLE');
+                table.border = '1';
+                table.classList.add("DragDropCategory");
+                table.id = "tblWebSlideShows"
+                table.className = "DragDropCategory";
+                var tableBody = document.createElement('TBODY');
+                table.appendChild(tableBody);
+
+                var thead = document.createElement('thead');
+
+                table.appendChild(thead);
+                thead.appendChild(document.createElement("th"));
+
+                var orderArrayHeader = ["Image Name", "Delete"];
+
+                for (var i = 0; i < orderArrayHeader.length; i++) {
+                    thead.appendChild(document.createElement("th")).
+                        appendChild(document.createTextNode(orderArrayHeader[i]));
+                }
+
+
+                for (var i = 0; i < Data.length; i++) {
+                    var tr = document.createElement('TR');
+                    tableBody.appendChild(tr);
+
+                    var Drag = document.createElement('TD');
+                    Drag.appendChild(document.createTextNode(""));
+                    Drag.classList.add("sorter");
+                    tr.appendChild(Drag);
+
+                    var IMAGENAME = document.createElement('TD');
+                    IMAGENAME.appendChild(document.createTextNode(Data[i].IMAGENAME));
+                    tr.appendChild(IMAGENAME);
+                    tr.dataset.IMAGENAME = Data[i].IMAGENAME;
+                    tr.dataset.ImageId = Data[i].ID;
+
+                    var Delete = document.createElement('TD');
+                    var btn = document.createElement('input');
+                    btn.type = "button";
+                    btn.value = "Delete Image";
+                    btn.id = Data[i].ID;
+                    btn.onclick = (function () {
+                        var txt;
+                        var r = confirm("Are you sure you want to Delete the Image!");
+                        if (r == true) {
+                            var Imageid = this.id;
+
+                            var value = {
+                                "CAT_NUM": Imageid,
+                            };
+
+                            //            var obj = JSON.stringify(value);
+                            $.ajax({
+                                type: "GET",
+                                url: "/Items/DelteWebSlideShow",
+                                contentType: 'application/json',
+                                data: value,
+                                success: function (result) {
+                                    CreateWebSlideShowTable(BrandID);
+                                }
+                            });
+
+                        } else {
+
+                        }
+                        document.getElementById("demo").innerHTML = txt;
+
+
+                    })
+                    Delete.appendChild(btn);
+                    tr.appendChild(Delete);
+
+
+                    tr.onclick = function () {
+                        $('tr').removeClass('high-light');
+                        $(this).addClass("high-light");
+                        CreateSlideShowImage("#imgSlideShows", this.dataset.IMAGENAME);
+                    };
+                }
+                myTableDiv.appendChild(table);
+
+                RowSorter(gebi('tblWebSlideShows'), {
+                    handler: 'td.sorter',
+                    onDrop: function (tbody, row, new_index, old_index) {
+                        debugger;
+                        var table = tbody.nodeName === 'TBODY' ? tbody.parentNode : tbody;
+                        var value = [];
+
+                        for (var i = 0; i < tbody.childNodes.length; i++) {
+                            value[i] = {
+                                "CAT_NUM": tbody.childNodes[i].dataset.ImageId,
+                                "SEQ_NUM": tbody.childNodes[i].rowIndex,
+                            };
+                        }
+                        var obji = { value: value }
+                        $.ajax({
+                            type: "POST",
+                            url: "/items/updateWebSlideShowSequence",
+                            data: JSON.stringify(obji),
+                            contentType: "application/json; charset=utf-8",
+                            dataType: "json",
+                            success: function (result) {
+                                CreateWebSlideShowTable(BrandID);
+                            }
+                        });
+                    }
+                });
+                //end of Ajax Call
+            }
+
+        });
+    }
+    $("#btnImageUpload").click(function () {
+        $('.loading').show();
+        //var filename = $("#imageFileUpload").val();
+        var fileUpload = $("#imageFileUpload").get(0);
+        var files = fileUpload.files;
+
+        // Create FormData object  
+        var fileData = new FormData();
+
+        // Looping over all files and add it to FormData object  
+        for (var i = 0; i < files.length; i++) {
+            fileData.append(files[i].name, files[i]);
+        }
+
+        debugger;
+        $.ajax({
+            type: "POST",
+            url: "/SlideShow/UploadFile",
+            //enctype: 'multipart/form-data',
+            //data: {
+            //    file: filename
+            //},
+            contentType: false, // Not to set any content header  
+            processData: false, // Not to process data  
+            data: fileData,
+            success: function (result) {
+                debugger;
+                if (result.Message == "Success") {
+                    $('#Imagepreview').attr('src', "../images/webSlide/" + result.FileName);
+                    $('#hdnImageFileName').val(result.FileName);
+                    AddFileNameonDatabase(result.FileName, $("#ddBrand").val());
+                }
+                //alert("Image Uploaded.");
+                $('.loading').hide();
+            },
+
+        }).always(function (jqXHROrData, textStatus, jqXHROrErrorThrown) {
+            debugger;
+            $('.loading').hide();
+        });
+    });
+    function AddFileNameonDatabase(ImageName, brandID) {
+        debugger;
+        var obji = {
+            "ImageName": ImageName,
+            "brandID": brandID
+        }
+        $.ajax({
+            type: "POST",
+            url: "/SlideShow/AddWebSlideShowImage",
+            data: JSON.stringify(obji),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (result) {
+                debugger;
+                if (result.Message == "Success") {
+                    CreateWebSlideShowTable($("#ddBrand").val());
+                }
+            },
+            error: function (data, data2, data3) {
+                $('#warning').modal("toggle");
+            }
+        });
+    }
+</script>

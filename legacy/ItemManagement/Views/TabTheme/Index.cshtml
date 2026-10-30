@@ -1,0 +1,204 @@
+@using System.Linq
+@{
+    Layout = "~/Views/Shared/_LayoutNew.cshtml";
+    var imageFields = ViewBag.ImageFields as string[][] ?? new string[0][];
+    var colorFields = ViewBag.ColorFields as string[][] ?? new string[0][];
+}
+
+<style>
+    .tt-wrap { max-width: 1100px; margin: 22px auto 0; padding: 0 18px 96px; }
+    .tt-title { font-size: 22px; font-weight: 700; margin-bottom: 14px; color: #08203e; }
+    .tt-section { background: #fff; border: 1px solid #e6e6e6; border-radius: 8px; padding: 16px 18px; margin-bottom: 18px; }
+    .tt-section h4 { font-size: 16px; font-weight: 700; margin: 0 0 14px; color: #08203e; }
+    .tt-field-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .tt-field-row:last-child { margin-bottom: 0; }
+    .tt-field-row label { flex: 0 0 130px; font-size: 14px; font-weight: 600; color: #333; margin: 0; }
+    .tt-select, .tt-text { flex: 1 1 auto; max-width: 420px; border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; font-size: 14px; }
+    .tt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px 20px; }
+    .tt-field { display: flex; align-items: center; gap: 10px; }
+        .tt-field label { flex: 1 1 auto; font-size: 13px; color: #333; margin: 0; }
+    .tt-swatch { width: 40px; height: 34px; border: 1px solid #ccc; border-radius: 6px; padding: 2px; cursor: pointer; background: #fff; flex: 0 0 auto; }
+    .tt-hex { width: 104px; border: 1px solid #ccc; border-radius: 6px; padding: 6px 8px; font-family: monospace; flex: 0 0 auto; }
+    .tt-img-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+    .tt-img-item { display: flex; flex-direction: column; gap: 8px; border: 1px solid #eee; border-radius: 8px; padding: 12px; }
+    .tt-img-label { font-size: 13px; font-weight: 700; color: #333; }
+    .tt-img-prev { width: 100%; height: 120px; border: 1px solid #e3e3e3; border-radius: 8px; object-fit: contain; background: #f6f6f6; }
+    .tt-img-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tt-file { font-size: 12px; max-width: 150px; }
+    .tt-img-msg { font-size: 12px; font-weight: 600; min-height: 15px; }
+    .tt-bar { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #e6e6e6; padding: 12px 24px; text-align: right; z-index: 20; }
+    .tt-msg { display: inline-block; margin-right: 14px; font-weight: 600; }
+</style>
+
+<div class="tt-wrap">
+    <h2 class="tt-title">TAB Theme</h2>
+
+    <div class="tt-section">
+        <div class="tt-field-row">
+            <label for="ddlTheme">Theme</label>
+            <select id="ddlTheme" class="tt-select"></select>
+        </div>
+        <div class="tt-field-row">
+            <label for="ThemeName">Theme name</label>
+            <input type="text" id="ThemeName" name="ThemeName" class="tt-text" autocomplete="off" />
+        </div>
+        <input type="hidden" id="ThemeID" name="ThemeID" value="" />
+    </div>
+
+    <form id="frmTabTheme" onsubmit="return false;">
+        <div class="tt-section">
+            <h4>Images</h4>
+            <div class="tt-img-grid">
+                @foreach (var f in imageFields)
+                {
+                    <div class="tt-img-item">
+                        <div class="tt-img-label">@f[1]</div>
+                        <img class="tt-img-prev" id="prev_@f[0]" alt="" onerror="this.removeAttribute('src')" />
+                        <input type="hidden" class="tt-imgval" id="@f[0]" name="@f[0]" value="" />
+                        <div class="tt-img-actions">
+                            <input type="file" class="tt-file" id="file_@f[0]" accept="image/*" />
+                            <button type="button" class="btn btn-sm btn-primary tt-upload" data-imgfor="@f[0]">Upload</button>
+                        </div>
+                        <div class="tt-img-msg" id="msg_@f[0]"></div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="tt-section">
+            <h4>Colours</h4>
+            <div class="tt-grid">
+                @foreach (var f in colorFields)
+                {
+                    <div class="tt-field">
+                        <label for="@f[0]">@f[1]</label>
+                        <input type="color" class="tt-swatch" data-target="@f[0]" value="#000000" title="@f[0]" />
+                        <input type="text" class="tt-hex" id="@f[0]" name="@f[0]" value="" placeholder="#000000" autocomplete="off" />
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="tt-bar">
+            <span id="ttMsg" class="tt-msg"></span>
+            <button type="button" id="btnSaveTheme" class="btn btn-primary">Save</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    var TT_THEMES = @Html.Raw(ViewBag.ThemesJson);
+    var TT_COLORS = [@Html.Raw(string.Join(", ", colorFields.Select(f => "'" + f[0] + "'")))];
+    var TT_IMAGES = [@Html.Raw(string.Join(", ", imageFields.Select(f => "'" + f[0] + "'")))];
+
+    $(function () {
+        var $ddl = $('#ddlTheme');
+
+        function label(t) { return (t.ThemeName || ('Theme ' + t.ThemeID)) + ' (#' + t.ThemeID + ')'; }
+
+        function findTheme(id) {
+            for (var i = 0; i < TT_THEMES.length; i++) {
+                if (String(TT_THEMES[i].ThemeID) === String(id)) return TT_THEMES[i];
+            }
+            return null;
+        }
+
+        function toHex6(v) {
+            v = (v || '').trim();
+            if (/^#[0-9A-Fa-f]{6}$/.test(v)) return v;
+            if (/^#[0-9A-Fa-f]{3}$/.test(v)) return '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+            return '#000000';
+        }
+
+        function populate(t) {
+            if (!t) { return; }
+            $('#ThemeID').val(t.ThemeID);
+            $('#ThemeName').val(t.ThemeName || '');
+            TT_COLORS.forEach(function (name) {
+                var v = t[name] || '';
+                $('#' + name).val(v);
+                $('.tt-swatch[data-target="' + name + '"]').val(toHex6(v));
+            });
+            TT_IMAGES.forEach(function (name) {
+                var fn = t[name] || '';
+                $('#' + name).val(fn);
+                var prev = document.getElementById('prev_' + name);
+                if (prev) { if (fn) { prev.src = '/images/' + fn; } else { prev.removeAttribute('src'); } }
+                $('#msg_' + name).text('');
+            });
+        }
+
+        // build the dropdown
+        TT_THEMES.forEach(function (t) {
+            $ddl.append($('<option>').val(t.ThemeID).text(label(t)));
+        });
+        $ddl.on('change', function () { populate(findTheme(this.value)); });
+
+        if (TT_THEMES.length) { $ddl.val(TT_THEMES[0].ThemeID); populate(TT_THEMES[0]); }
+        else { $ddl.append($('<option>').text('No themes found')); }
+
+        // colour picker <-> hex text
+        $('.tt-swatch').on('input change', function () {
+            var t = document.getElementById($(this).data('target'));
+            if (t) { t.value = this.value; }
+        });
+        $('.tt-hex').on('input change', function () {
+            var v = $.trim(this.value);
+            if (/^#[0-9A-Fa-f]{6}$/.test(v)) { $('.tt-swatch[data-target="' + this.id + '"]').val(v); }
+        });
+
+        // image upload -> ~/images, filename stored in the hidden field (saved on Save)
+        $('.tt-upload').on('click', function () {
+            var name = $(this).data('imgfor');
+            var input = document.getElementById('file_' + name);
+            var $msg = $('#msg_' + name);
+            if (!input || !input.files || !input.files.length) { $msg.css('color', 'red').text('Choose a file first.'); return; }
+            var fd = new FormData();
+            fd.append('file', input.files[0]);
+            var $b = $(this);
+            $b.prop('disabled', true); $msg.css('color', '#333').text('Uploading...');
+            $.ajax({
+                type: 'POST', url: '/TabTheme/UploadThemeImage', data: fd, processData: false, contentType: false,
+                success: function (r) {
+                    if (r && r.Message === 'Success') {
+                        $('#' + name).val(r.fileName);
+                        var prev = document.getElementById('prev_' + name);
+                        if (prev) { prev.src = r.url + '?t=' + Date.now(); }
+                        $msg.css('color', 'green').text('Uploaded — click Save to keep.');
+                    } else {
+                        $msg.css('color', 'red').text(r && r.Message ? r.Message : 'Upload failed.');
+                    }
+                },
+                error: function () { $msg.css('color', 'red').text('Upload failed.'); },
+                complete: function () { $b.prop('disabled', false); }
+            });
+        });
+
+        // save the selected theme
+        $('#btnSaveTheme').on('click', function () {
+            var $btn = $(this), $msg = $('#ttMsg');
+            var id = $('#ThemeID').val();
+            if (!id) { $msg.css('color', 'red').text('Select a theme first.'); return; }
+            var data = { ThemeID: id, ThemeName: $('#ThemeName').val() };
+            TT_COLORS.forEach(function (n) { data[n] = $.trim($('#' + n).val()); });
+            TT_IMAGES.forEach(function (n) { data[n] = $('#' + n).val(); });
+            $btn.prop('disabled', true); $msg.css('color', '#333').text('Saving...');
+            $.ajax({
+                type: 'POST', url: '/TabTheme/Save', data: data,
+                success: function (r) {
+                    if (r && r.Message === 'Success') {
+                        $msg.css('color', 'green').text('Saved.');
+                        var t = findTheme(id);
+                        if (t) {
+                            for (var k in data) { t[k] = data[k]; }
+                            $('#ddlTheme option[value="' + id + '"]').text(label(t));
+                        }
+                    } else if (r && r.Message === 'Unauthorized') { $msg.css('color', 'red').text('Not authorized.'); }
+                    else { $msg.css('color', 'red').text('Save failed.'); }
+                },
+                error: function () { $msg.css('color', 'red').text('Save failed.'); },
+                complete: function () { $btn.prop('disabled', false); }
+            });
+        });
+    });
+</script>

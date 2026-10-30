@@ -1,0 +1,446 @@
+﻿<%@ Master Language="C#" Inherits="System.Web.Mvc.ViewMasterPage" %>
+
+<!DOCTYPE html>
+<html>
+<head runat="server">
+
+    <meta name="viewport" content="width=device-width" />
+    <title>
+        <asp:ContentPlaceHolder ID="TitleContent" runat="server" />
+    </title>
+    <link href="../../css/style.css" rel="stylesheet" type="text/css" />
+    <link href="../../css/StyleSheet.css" rel="stylesheet" type="text/css" />
+    <script src="../../Scripts/jquery-1.11.1.min.js" type="text/javascript"></script>
+
+    <script src="../../Scripts/jqxcore.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxbuttons.js" type="text/javascript"></script>
+
+    <script src="../../Scripts/jqxdropdownbutton.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxcheckbox.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxmenu.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxlistbox.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxdropdownlist.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxtabs.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxscrollbar.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxgrid.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxgrid.selection.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxgrid.filter.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxgrid.columnsresize.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxgrid.pager.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxdata.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxgrid.sort.js" type="text/javascript"></script>
+    <script src="../../Scripts/jsrender.min.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxfileupload.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxgrid.edit.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxcombobox.js" type="text/javascript"></script>
+    <script src="../../Scripts/jqxwindow.js" type="text/javascript"></script>
+
+    <script src="../../vendor/Pivot/d3.min.js"></script>
+    <script src="../../vendor/pivot/c3.min.js"></script>
+    <script src="../../vendor/pivot/pivot.js"></script>
+    <link href="../../css/Pivot/pivot.css" rel="stylesheet" />
+    <script src="../../vendor/pivot/c3_renderers.js"></script>
+    <script src="../../vendor/pivot/nrecopivottableext.js"></script>
+    <link href="../../css/pivot/nrecopivottableext.css" rel="stylesheet" />
+
+    <script src="../../vendor/pivot/jquery.csv-0.71.min.js"></script>
+    <link href="../../css/custom.css" rel="stylesheet" type="text/css" />
+
+    <link href="../../css/KMLoader.css" rel="stylesheet" />
+    <script src="../../MainJs/KMLoader.js"></script>
+    <link href="../../css/loader-Montserrat.css" rel="stylesheet" />
+    <style class="INLINE_PEN_STYLESHEET_ID">
+        /*@@import url(https://fonts.googleapis.com/css?family=Montserrat);*/
+
+
+        .wrap {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+        }
+
+        .text {
+            color: #fbae17;
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .bounceball {
+            position: relative;
+            display: inline-block;
+            height: 45px;
+            width: 30px;
+        }
+
+            .bounceball:before {
+                position: absolute;
+                content: "";
+                display: block;
+                top: 0;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                background-color: #fbae17;
+                -webkit-transform-origin: 50%;
+                transform-origin: 50%;
+                -webkit-animation: bounce 500ms alternate infinite ease;
+                animation: bounce 500ms alternate infinite ease;
+            }
+
+        @-webkit-keyframes bounce {
+            0% {
+                top: 50px;
+                height: 5px;
+                border-radius: 60px 60px 20px 20px;
+                -webkit-transform: scaleX(2);
+                transform: scaleX(2);
+            }
+
+            35% {
+                height: 15px;
+                border-radius: 50%;
+                -webkit-transform: scaleX(1);
+                transform: scaleX(1);
+            }
+
+            100% {
+                top: 0;
+            }
+        }
+
+        @keyframes bounce {
+            0% {
+                top: 50px;
+                height: 5px;
+                border-radius: 60px 60px 20px 20px;
+                -webkit-transform: scaleX(2);
+                transform: scaleX(2);
+            }
+
+            35% {
+                height: 15px;
+                border-radius: 50%;
+                -webkit-transform: scaleX(1);
+                transform: scaleX(1);
+            }
+
+            100% {
+                top: 0;
+            }
+        }
+    </style>
+    <style>
+        .jqx-tabs-headerWrapper {
+            height: 48px !important;
+        }
+
+        .jqx-tabs-title {
+            border-radius: 1px 10px !important;
+            font-weight: inherit !important;
+            font-size: 14px !important;
+        }
+
+        .jqx-widget-header {
+            background: #949494 !important;
+        }
+
+        .jqx-tabs-title {
+            height: 31px !important;
+            margin-left: 10px !important;
+        }
+
+        .default {
+            background-color: #dddddd;
+        }
+
+        .jqx-tabs-title-selected-top {
+            background: -webkit-linear-gradient(top, #ffcc86 5%, #fe9606 100%) !important;
+            background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ffcc86), color-stop(1, #ededed)) !important;
+            background: -moz-linear-gradient(top, #ffcc86 5%, #fe9606 100%) !important;
+            background: -webkit-linear-gradient(top, #ffcc86 5%, #fe9606 100%) !important;
+            background: -o-linear-gradient(top, #ffcc86 5%, #fe9606 100%) !important;
+            background: -ms-linear-gradient(top, #ffcc86 5%, #fe9606 100%) !important;
+            background: linear-gradient(to bottom, #ffcc86 5%, #fe9606 100%) !important;
+        }
+
+
+        .myButton3 {
+            margin: 1em 0 0.5em 0;
+            font-weight: normal;
+            position: relative;
+            text-shadow: 0 -1px rgba(0,0,0,0.6);
+            font-size: 22px;
+            line-height: 30px;
+            background: #355681;
+            background: rgba(53,86,129, 0.8);
+            border: 1px solid #fff;
+            padding: 5px 15px;
+            color: white;
+            border-radius: 0 10px 0 10px;
+            box-shadow: inset 0 0 5px rgba(53,86,129, 0.5);
+            font-family: 'Muli', sans-serif;
+        }
+
+
+        .gradientBoxesWithOuterShadows {
+            background-color: white; /* outer shadows  (note the rgba is red, green, blue, alpha) */
+            -webkit-box-shadow: 0px 0px 12px rgba(0, 0, 0, 0.4);
+            -moz-box-shadow: 0px 1px 6px rgba(23, 69, 88, .5); /* rounded corners */
+            -webkit-border-radius: 12px;
+            -moz-border-radius: 7px;
+            border-radius: 7px; /* gradients */
+            background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, white), color-stop(15%, white), color-stop(100%, #D7E9F5));
+            background: -moz-linear-gradient(top, white 0%, white 55%, #D5E4F3 130%);
+        }
+
+
+        .myButton {
+            -moz-box-shadow: inset 0px 1px 0px 0px #54a3f7;
+            -webkit-box-shadow: inset 0px 1px 0px 0px #54a3f7;
+            box-shadow: inset 0px 1px 0px 0px #54a3f7;
+            background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #007dc1), color-stop(1, #0061a7));
+            background: -moz-linear-gradient(top, #007dc1 5%, #0061a7 100%);
+            background: -webkit-linear-gradient(top, #007dc1 5%, #0061a7 100%);
+            background: -o-linear-gradient(top, #007dc1 5%, #0061a7 100%);
+            background: -ms-linear-gradient(top, #007dc1 5%, #0061a7 100%);
+            background: linear-gradient(to bottom, #007dc1 5%, #0061a7 100%);
+            filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#007dc1', endColorstr='#0061a7',GradientType=0);
+            background-color: #007dc1;
+            -moz-border-radius: 3px;
+            -webkit-border-radius: 3px;
+            border-radius: 3px;
+            border: 1px solid #124d77;
+            display: inline-block;
+            cursor: pointer;
+            color: #ffffff;
+            font-family: Arial;
+            font-size: 13px;
+            padding: 6px 24px;
+            text-decoration: none;
+            text-shadow: 0px 1px 0px #154682;
+        }
+
+            .myButton:hover {
+                background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #0061a7), color-stop(1, #007dc1));
+                background: -moz-linear-gradient(top, #0061a7 5%, #007dc1 100%);
+                background: -webkit-linear-gradient(top, #0061a7 5%, #007dc1 100%);
+                background: -o-linear-gradient(top, #0061a7 5%, #007dc1 100%);
+                background: -ms-linear-gradient(top, #0061a7 5%, #007dc1 100%);
+                background: linear-gradient(to bottom, #0061a7 5%, #007dc1 100%);
+                filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#0061a7', endColorstr='#007dc1',GradientType=0);
+                background-color: #0061a7;
+            }
+
+            .myButton:active {
+                position: relative;
+                top: 1px;
+            }
+
+        .myButton1 {
+            background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #ededed), color-stop(1, #dfdfdf));
+            background: -moz-linear-gradient(top, #ededed 5%, #dfdfdf 100%);
+            background: -webkit-linear-gradient(top, #ededed 5%, #dfdfdf 100%);
+            background: -o-linear-gradient(top, #ededed 5%, #dfdfdf 100%);
+            background: -ms-linear-gradient(top, #ededed 5%, #dfdfdf 100%);
+            background: linear-gradient(to bottom, #ededed 5%, #dfdfdf 100%);
+            filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ededed', endColorstr='#dfdfdf',GradientType=0);
+            background-color: #ededed;
+            border: 4px solid #dcdcdc;
+            cursor: select;
+            color: #000;
+            font-family: Verdana;
+            font-size: 13px;
+            padding: 6px 48px;
+            text-decoration: none;
+        }
+
+            .myButton1:hover {
+                background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #dfdfdf), color-stop(1, #ededed));
+                background: -moz-linear-gradient(top, #dfdfdf 5%, #ededed 100%);
+                background: -webkit-linear-gradient(top, #dfdfdf 5%, #ededed 100%);
+                background: -o-linear-gradient(top, #dfdfdf 5%, #ededed 100%);
+                background: -ms-linear-gradient(top, #dfdfdf 5%, #ededed 100%);
+                background: linear-gradient(to bottom, #dfdfdf 5%, #ededed 100%);
+                filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#dfdfdf', endColorstr='#ededed',GradientType=0);
+                background-color: #dfdfdf;
+            }
+
+        .green {
+            color: black;
+            background-color: #b6ff00;
+        }
+
+        .yellow {
+            color: black;
+            background-color: yellow;
+        }
+
+        .red {
+            color: black;
+            background-color: #e83636;
+        }
+
+        .green:not(.jqx-grid-cell-hover):not(.jqx-grid-cell-selected), .jqx-widget .green:not(.jqx-grid-cell-hover):not(.jqx-grid-cell-selected) {
+            color: black;
+            background-color: #b6ff00;
+        }
+
+        .yellow:not(.jqx-grid-cell-hover):not(.jqx-grid-cell-selected), .jqx-widget .yellow:not(.jqx-grid-cell-hover):not(.jqx-grid-cell-selected) {
+            color: black;
+            background-color: yellow;
+        }
+
+        .red:not(.jqx-grid-cell-hover):not(.jqx-grid-cell-selected), .jqx-widget .red:not(.jqx-grid-cell-hover):not(.jqx-grid-cell-selected) {
+            color: black;
+            background-color: #e83636;
+        }
+    </style>
+</head>
+<body class='default'>
+    <div id="loadingDiv" class="loaderbouncing" style="display: none;">
+        <div class="wrap" style="">
+            <div class="loading">
+                <div class="bounceball"></div>
+                <div class="text">Please Wait...</div>
+            </div>
+        </div>
+    </div>
+    <div class="headerTMM">
+        <div class="headerTMM">
+            <div class="w3-row">
+                <div class="w3-col s2">
+                    <table width="100%">
+                        <tr>
+                            <td style="float: left;">
+                                <img src="../../images/OneWorldLogo2.png" />
+                            </td>
+
+                            <td style="float: right;">
+                                <button id="btnLogout" class="myLogout" onclick="window.location.replace('/Login')"><span>Logout</span></button>
+                            </td>
+                            <td style="float: right;">
+                                <button id="btntheme" style="display: none;" class="myLogout" onclick="window.location.replace('/image/mainpage')"><span>Theme</span></button>
+                            </td>
+                            <td style="float: right;">
+                                <button id="btnMainGenerateqr" style="display: none;" class="myLogout" onclick="OpenGenerateQrCode()"><span>Generate QR</span></button>
+                            </td>
+                            <td style="float: right; margin-right: 10px;">
+                                <button id="btnFeedBackReport" class="myLogout" onclick="window.location.replace('/FeedBackReport/Index')"><span>FeedBack Report</span></button>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+
+            </div>
+
+            <div>
+                <asp:ContentPlaceHolder ID="MainContent" runat="server">
+                </asp:ContentPlaceHolder>
+            </div>
+
+            <div class="footer">
+                <p>ONE WORLD UNITED - COPYRIGHT © 2017 </p>
+            </div>
+        </div>
+    </div>
+    <%--style="overflow:hidden;"--%>
+    <script type="text/javascript">
+        var RoleID, ThemeUser;
+        var OtherLanguages;
+        var FeedBack;
+        $(document).ready(function () {
+            $(document)
+                .ajaxStart(function () {
+                    debugger;
+                    showLoading();
+                });
+            $(document).ajaxStop(function () {
+                hideLoading();
+            });
+            $(document).ajaxError(function () {
+                hideLoading();
+            });
+
+            RoleID = "<%= Html.Raw(ViewData["RoleID"]) %>";
+            OtherLanguages = "<%= Html.Raw(ViewData["OtherLanguages"]) %>";
+            FeedBack = "<%= Html.Raw(ViewData["FeedBack"]) %>";
+            $("#ItemsTab").hide();
+            $("#btnBrands").hide();
+            $("#AdminTab").hide();
+            $("#FeedBackTab").hide();
+            $("#ThemesTab").hide();
+            $("#SlideShowsTab").hide();
+            $("#WebSlideShowsTab").hide();
+            $("#btnFeedBackReport").hide();
+
+            debugger;
+            switch (RoleID) {
+                case "1": {
+                    $("#ItemsTab").show();
+                    $("#AdminTab").show();
+                    $("#btnBrands").show();
+                    $("#btntheme").show();
+                    $("#btnMainGenerateqr").show();
+
+                    if (FeedBack == 1) {
+                        $("#FeedBackTab").show();
+                        $("#btnFeedBackReport").show();
+                    }
+
+                    $("#SlideShowsTab").show();
+                    $("#ThemesTab").show();
+                    $("#WebSlideShowsTab").show();
+                } break;
+                case "3": {
+                    $("#ThemesTab").show();
+                    $('#jqxTabs').jqxTabs({ selectedItem: 3 });
+                }
+                    break;
+                case "4": {
+                    $("#WebSlideShowsTab").show();
+                    $("#SlideShowsTab").show();
+                    $("#ItemsTab").show();
+                    $('#jqxTabs').jqxTabs({ selectedItem: 0 });
+                    if (FeedBack == 1) {
+                        $("#btnFeedBackReport").show();
+                    }
+                } break;
+
+
+            }
+
+            if (OtherLanguages == "False") {
+                document.getElementById("Languageingr").style.display = 'none';
+                document.getElementById("itemNameLanguage").style.display = 'none';
+                $("#chklang").hide();
+                $("#CatLanguage").hide();
+                $("#Languageingr").hide();
+                $("#itemNameLanguage").hide();
+
+            }
+
+
+        })
+
+    </script>
+
+    <script>
+
+        function KeepAlive() {
+
+            $.ajax({
+                type: "GET",
+                cache: false,
+                url: "/Order/KeepAlive",
+                success: function (result) {
+
+                }
+            });
+        }
+
+    </script>
+</body>
+</html>

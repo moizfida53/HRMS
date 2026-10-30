@@ -1,0 +1,320 @@
+/* ============================================================================
+   design5.css  ·  Design5 customer-menu layout (Starbucks-style)
+   ----------------------------------------------------------------------------
+   EVERY rule is scoped to body.design5, so Design1-4 are completely unaffected
+   (this file is safe to always link — it does nothing unless the page is D5).
+   All colours are CSS variables; per-brand values are injected by
+   ItemsViewNewController.LoadMenuColors (same pattern as the other designs),
+   with the fallbacks below used until then.
+   ============================================================================ */
+body.design5{
+  --d5-page-bg:#ffffff;   --d5-title:#141414;     --d5-accent:#2e7d5b;   --d5-subtitle:#9a9a9a;
+  --d5-panel:#2e7d5b;     --d5-panel2:#24684a;
+  --d5-cat-bg:#ffffff;    --d5-cat-icon:#2e7d5b;  --d5-cat-text:#eafff5; --d5-cat-ring:#ffd66b;
+  --d5-item-name:#ffffff; --d5-item-price:#ffffff;--d5-halo:rgba(255,255,255,.14);
+  --d5-dot:rgba(255,255,255,.45); --d5-dot-on:#ffffff;  --d5-hdr-icon:#333333;
+}
+
+/* Design5 renders its own block inside #divCategoryList; hide the stock banner and
+   the normal category grid/animation for D5 (they still exist for Design1-4). */
+body.design5 .brand-logo-banner{ display:none !important; }
+body.design5 #divCategoryList > .animation{ display:none !important; }
+
+/* full-height phone-style column, centred on wider screens */
+body.design5 .d5-root{
+  display:flex; flex-direction:column; min-height:100vh; max-width:520px; margin:0 auto;
+  background:var(--d5-page-bg); overflow:hidden;
+}
+
+/* ---- title = current item name + description (no logo above it) ---- */
+body.design5 .d5-title{ text-align:center; padding:10px 22px 2px; flex:0 0 auto; }
+body.design5 .d5-title h1{ margin:0; font-weight:800; font-size:24px; line-height:1.12; color:var(--d5-accent);
+  text-transform:capitalize; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+body.design5 .d5-title p{ margin:4px 0 0; font-size:12px; line-height:1.35; color:var(--d5-subtitle);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+/* ---- category-change reveal: the item NAME slides in from the LEFT and the
+   INGREDIENTS from the RIGHT, both settling in their normal (centred) place.
+   Applied by D5AnimateMeta() in Design5.js on every category change — it removes
+   and re-adds the class so the animation restarts each time. Covers both the
+   top-bar copy (mobile/iPad) and the right-panel copy (>=992px desktop). ---- */
+@keyframes d5SlideInFromLeft{ from{ opacity:0; transform:translateX(-45px); } to{ opacity:1; transform:translateX(0); } }
+@keyframes d5SlideInFromRight{ from{ opacity:0; transform:translateX(45px); } to{ opacity:1; transform:translateX(0); } }
+body.design5 .d5-anim-left{ animation:d5SlideInFromLeft .55s cubic-bezier(.22,.8,.3,1) both; }
+body.design5 .d5-anim-right{ animation:d5SlideInFromRight .55s cubic-bezier(.22,.8,.3,1) both; }
+@media (prefers-reduced-motion: reduce){
+  body.design5 .d5-anim-left, body.design5 .d5-anim-right{ animation:none; }
+}
+
+/* ---- coloured dome panel ---- */
+body.design5 .d5-panel{
+  position:relative; flex:1 1 auto; display:flex; flex-direction:column; overflow:hidden;
+  background:linear-gradient(180deg,var(--d5-panel),var(--d5-panel2));
+  border-radius:50% 50% 0 0 / 122px 122px 0 0;   /* circular dome top */
+}
+
+/* ---- category carousel: bubbles ride a circular arc; drag left / right ---- */
+body.design5 .d5-arc{ position:relative; height:150px; flex:0 0 auto; overflow:hidden;
+  touch-action:pan-y; cursor:grab; -webkit-user-select:none; user-select:none; }
+body.design5 .d5-arc:active{ cursor:grabbing; }
+body.design5 .d5-arc-strip{ position:absolute; inset:0; }
+body.design5 .d5-cat{ position:absolute; left:0; top:0; text-align:center; cursor:pointer;
+  transition:transform .4s cubic-bezier(.22,.8,.3,1), opacity .3s ease; will-change:transform, opacity; }
+body.design5 .d5-arc.d5-dragging .d5-cat{ transition:none; }
+body.design5 .d5-cat .d5-bubble{
+  width:70px; height:70px; border-radius:50%; margin:0 auto; overflow:hidden; background:var(--d5-cat-bg);
+  display:flex; align-items:center; justify-content:center; box-shadow:0 8px 18px rgba(0,0,0,.22);
+  transition:box-shadow .2s, transform .2s;
+}
+body.design5 .d5-cat .d5-bubble img{ width:100%; height:100%; object-fit:cover; }
+body.design5 .d5-cat .d5-lbl{ display:inline-block; max-width:106px; margin:8px auto 0; font-size:12px; font-weight:700; letter-spacing:.2px; text-transform:uppercase;
+  color:var(--d5-cat-text); text-shadow:0 1px 4px rgba(0,0,0,.35); line-height:1.12; max-height:2.24em; overflow:hidden; white-space:normal; overflow-wrap:break-word; }
+body.design5 .d5-cat.active .d5-bubble{ box-shadow:0 0 0 3px var(--d5-cat-ring),0 8px 18px rgba(0,0,0,.28); transform:scale(1.08); }
+
+/* ---- item carousel: big CIRCULAR hero, neighbours curve in close on the arc ---- */
+body.design5 .d5-carousel{ position:relative; flex:1 1 auto; min-height:380px; overflow:visible; touch-action:pan-y; cursor:grab; }
+body.design5 .d5-carousel:active{ cursor:grabbing; }
+body.design5 .d5-track{ position:absolute; inset:0; transition:opacity .25s ease; }
+/* set while a category change is in flight: the outgoing items fade out during
+   the fetch instead of vanishing, then the new ones bloom in (see D5BuildCups) */
+body.design5 .d5-track.d5-swapping{ opacity:0; }
+body.design5 .d5-cup{
+  position:absolute; left:50%; bottom:0; margin-left:-90px; width:180px; height:180px; cursor:pointer;
+  transform-origin:bottom center; transition:transform .5s cubic-bezier(.22,.8,.3,1),opacity .35s ease; will-change:transform,opacity;
+}
+body.design5 .d5-carousel.d5-dragging .d5-cup{ transition:none; }
+body.design5 .d5-cup img{ display:block; width:180px; height:180px; border-radius:50%; object-fit:cover;
+  box-shadow:0 18px 26px rgba(0,0,0,.34); }
+body.design5 .d5-halo{ position:absolute; left:50%; bottom:96px; width:320px; height:320px; margin-left:-160px;
+  border-radius:50%; background:var(--d5-halo); z-index:0; }
+body.design5 .d5-meta{ position:absolute; left:0; right:0; bottom:40px; text-align:center; z-index:4; pointer-events:none; }
+body.design5 .d5-meta .d5-pr{ font-size:20px; font-weight:800; color:var(--d5-item-price); }
+body.design5 .d5-dots{ position:absolute; left:0; right:0; bottom:16px; display:flex; gap:6px; justify-content:center; z-index:4; }
+body.design5 .d5-dots i{ width:6px; height:6px; border-radius:50%; background:var(--d5-dot); transition:.2s; }
+body.design5 .d5-dots i.on{ background:var(--d5-dot-on); width:16px; border-radius:6px; }
+
+/* ============================================================================
+   Design5 · Desktop & iPad (>=768px): STRAIGHT slider (curve removed).
+   ----------------------------------------------------------------------------
+   The category arc and the item "carousel" keep the SAME drag-to-slide engine
+   and easing animation as on phones — only their geometry changes: Design5.js
+   lays them on a STRAIGHT line instead of a circle (see the `d5IsWide()` branches
+   in D5CatLayout / D5ItemLayout). The selected item stays the big centred CIRCLE
+   (as on mobile); its neighbours sit smaller to the left/right on the same
+   baseline and slide in/out. It is all transform-based, so there are NO
+   scrollbars. Here we only need to widen the phone column and flatten the dome —
+   the absolute-positioned bubbles/cups, halo, price and dots are untouched.
+   Scoped to body.design5 and gated on >=768px, so phones and Design1-4 are
+   completely unaffected.
+   ============================================================================ */
+@media (min-width: 768px){
+  /* widen the 520px phone column so the straight slider uses the responsive width */
+  body.design5 .d5-root{ max-width:1200px; width:100%; }
+  /* flatten the dome — no curve — but keep the panel tall for the big hero */
+  body.design5 .d5-panel{ border-radius:0; }
+
+  /* HEADER ROW: item name + ingredients right-aligned. The left of the bar is
+     intentionally empty. (.d5-topbar now wraps only .d5-title — the brand logo
+     was removed from it; on phones it's a plain block, so mobile just shows the
+     centred title.) */
+  body.design5 .d5-topbar{ display:flex; flex-direction:row; align-items:center; justify-content:flex-end; gap:16px; padding:10px 30px 8px; background:var(--d5-page-bg); }
+  body.design5 .d5-topbar .d5-title{ flex:0 1 auto; min-width:0; text-align:right; padding:0; margin:0; }
+  body.design5 .d5-topbar .d5-title h1{ font-size:26px; }
+  body.design5 .d5-topbar .d5-title p{ font-size:13px; margin-top:2px; }
+
+  /* categories now sit at the very top of the panel (title moved to the header);
+     keep both slider containers scrollbar-free */
+  body.design5 .d5-arc, body.design5 .d5-carousel{ overflow:hidden; }
+  /* trim the category row a little so the big item hero gets more height */
+  body.design5 .d5-arc{ height:120px; }
+
+  /* FILL the left column with green all the way down — removes the tall white gap
+     that .main-content adds (it sets padding-bottom:200px on the white .d5-root).
+     We fit the root under the fixed 48px header and paint it green so whatever
+     bottom padding remains reads as panel green, not white. */
+  body.design5 .d5-root{ min-height:calc(100vh - 48px); padding-bottom:52px; background:var(--d5-panel2); }
+  /* the footer sits over the green now — make it blend (no white bar, no gap) */
+  body.design5 .powered-by{ background:transparent !important; }
+  body.design5 .powered-by, body.design5 .powered-by a, body.design5 .powered-by span{ color:#ffffff !important; }
+}
+
+/* ============================================================================
+   Design5 · TWO-COLUMN desktop (>=992px, Bootstrap lg — the right column
+   `d-lg-block` becomes visible here). The selected item's name + ingredients
+   move OUT of the top bar and into the RIGHT column (.d5-side), replacing the
+   brand logo. Price stays under the item circle on the green menu. Between 768
+   and 991px (iPad portrait, right column hidden) the name stays in the top bar.
+   ============================================================================ */
+@media (min-width: 992px){
+  /* logo AND name/ingredients now live in the right panel, so hide the whole top
+     bar — the green categories then start right under the site header. */
+  body.design5 .d5-topbar{ display:none; }
+
+  /* The green .d5-root fills the column, but the panel/carousel weren't stretching
+     to fill it (carousel sat at its min-height:380 with empty green below). Force
+     the whole chain to fill the height so the big item hero uses the whole area. */
+  body.design5 .d5-panel{ min-height:calc(100vh - 100px); }
+  body.design5 .d5-carousel{ min-height:calc(100vh - 224px); }
+
+  /* right-hand panel: brand logo on top, then the selected item's name +
+     ingredients (replaces the brand DesktopImage for Design5). */
+  body.design5 .d5-side{
+    position:relative; height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    padding:40px 42px; background:var(--d5-page-bg);
+  }
+  body.design5 .d5-side-logo{ margin-bottom:22px; }
+  body.design5 .d5-side-logo img{ max-height:210px; max-width:82%; object-fit:contain; }
+  body.design5 .d5-side-info{ max-width:88%; }
+  body.design5 .d5-side-info h1{
+    margin:0; font-weight:800; font-size:34px; line-height:1.15;
+    color:var(--d5-accent); text-transform:capitalize;
+  }
+  body.design5 .d5-side-info p{
+    margin:16px 0 0; font-size:16px; line-height:1.55; color:var(--d5-subtitle);
+  }
+}
+
+/* ============================================================================
+   Design5 · ITEM DETAILS view (#divMainItemDetails / .product-details)
+   ----------------------------------------------------------------------------
+   ItemDetailsView.cshtml is SHARED by Design2/3/4/5 (and by the Design1 modal),
+   so every rule below is scoped to body.design5 — the other designs keep the
+   stock centred-card layout untouched.
+
+   Layout: a full-bleed hero image across the top taking --d5-hero-h of the
+   viewport, with the back button and the allergen button floating ON it (both
+   are taken out of the flow, so they can't push the image down) and the
+   category name beside the back arrow hidden. The item name sits a little below
+   the hero with the ingredients pulled up tight under it, so the vertical space
+   goes to the image. The hero uses object-fit:cover — it fills the whole area
+   and is CROPPED rather than stretched, so the picture is never distorted.
+   Change --d5-hero-h below to give the image more or less of the screen.
+   ============================================================================ */
+body.design5 .product-details{ --d5-hero-h:55vh; }
+body.design5 .product-details .product-details-inner{ position:relative; }
+
+/* --- SCROLLING. Every other screen in this app scrolls inside its own
+   .main-content box (max-height:calc(100vh - 48px); overflow:auto) — the page
+   body itself does not scroll. ItemDetailsView.cshtml only gets that class on
+   Design2 (`main-content active product-details`); Design3/4/5 get a bare
+   `product-details`, so on Design5 the details view had no scroller at all and
+   everything past the fold was unreachable. Give it the same box. --- */
+body.design5 .product-details{
+  max-height:calc(100vh - 48px);
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;      /* momentum scrolling on iOS */
+  padding-bottom:90px;                   /* clears the fixed footer / cart bar */
+}
+
+/* --- back button floats over the hero and STAYS PUT while the page scrolls;
+   the category name next to it is gone.
+   position:sticky (not absolute) is what pins it: it stays in the flow, so it
+   sticks to the top of the scrolling .product-details box for the whole page.
+   The negative margin-bottom then hands its 64px of height back to the image, so
+   it still sits ON the photo rather than above it. Keep the height and the
+   negative margin equal if you retune the padding. --- */
+body.design5 .product-details .item-list-title{
+  position:sticky; top:0; z-index:6;
+  display:flex; align-items:center;
+  height:64px; margin:0 0 -64px;            /* 40px button + 2x12px padding */
+  width:100%; max-width:100% !important; padding:12px 14px;
+  background:transparent !important; box-shadow:none !important;
+  pointer-events:none;                      /* only the button itself stays clickable */
+}
+body.design5 .product-details .item-list-title h2{ display:none !important; }
+body.design5 .product-details .item-list-title .back-btn{
+  pointer-events:auto; width:40px; height:40px; border-radius:50% !important;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,.42);               /* legible on light AND dark photos */
+}
+body.design5 .product-details .item-list-title .back-btn .fa{ color:#fff !important; font-size:20px; }
+body.design5 .product-details .item-list-title .back-btn:hover{ background:rgba(0,0,0,.6); opacity:1; }
+
+/* --- allergen button: bottom-right of the hero; its dropup opens over the image --- */
+body.design5 .product-details #divItemDetailsAllergen{
+  position:absolute; top:calc(var(--d5-hero-h) - 60px); right:12px; z-index:6;
+  margin:0 !important;
+}
+
+/* --- the hero itself (single image) --- */
+body.design5 .product-details #itemDetailsItemImage{
+  width:100%; max-width:100%; height:var(--d5-hero-h); min-height:200px;
+  object-fit:cover; object-position:center;
+  margin:0 !important; padding:0 !important;
+  border:0 !important; border-radius:0 !important; box-shadow:none !important;
+}
+
+/* --- same hero treatment for the multi-image slider --- */
+body.design5 .product-details #itemImageCarousel{ max-width:100%; margin:0 !important; }
+body.design5 .product-details .item-img-track{ border-radius:0; box-shadow:none; }
+body.design5 .product-details .item-img-slide .imgwrap{
+  padding-top:0; height:var(--d5-hero-h); min-height:200px;   /* fixed height replaces the 4:3 padding box */
+}
+body.design5 .product-details .item-img-slide .imgwrap img{ object-fit:cover; border-radius:0; }
+body.design5 .product-details .item-img-dots{           /* dots move ONTO the image */
+  position:absolute; left:0; right:0; bottom:12px; margin:0; z-index:5;
+}
+body.design5 .product-details .item-img-dots .dot{ background:rgba(255,255,255,.55); }
+body.design5 .product-details .item-img-dots .dot.active{ background:#ffffff; }
+
+/* --- and for items that carry a video instead of an image --- */
+body.design5 .product-details .video-responsive{ max-width:100%; margin:0 !important; }
+body.design5 .product-details .video-responsive video{
+  width:100%; max-width:100%; height:var(--d5-hero-h); max-height:none; min-height:200px;
+  object-fit:cover; border-radius:0 !important;
+}
+
+/* --- name dropped just below the hero, ingredients pulled up tight under it --- */
+body.design5 .product-details #divitemDetailsItemName{ margin-top:20px; padding-bottom:0; }
+body.design5 .product-details #divitemDetailsIngredient{
+  padding-top:6px !important;               /* beats the .pt-3 utility class on the element */
+  margin-bottom:14px;
+}
+
+/* --- free-text comment box hidden (the textarea stays in the DOM, just unseen,
+       so the cart code that reads #commentsItemDetailsView still works) --- */
+body.design5 #divItemDetailsCommentBox{ display:none !important; }
+
+/* --- ADD-TO-CART control, centred, on its own line right under the ingredients.
+   D5PairPriceAndAddToCart() in Design5.js lifts the add-to-cart row up into
+   #d5PriceAddRow, which it anchors at #MainDivitemdetPrice — the item's own
+   price heading. That price is HIDDEN here (it still anchors the row, and the
+   Unit/Extra/Total bar further down the page is a different element and keeps
+   its own full-width line). --- */
+body.design5 #d5PriceAddRow{
+  display:flex; align-items:center; justify-content:center;
+  padding:0 4px; margin:0 0 16px;
+}
+body.design5 #d5PriceAddRow #MainDivitemdetPrice{
+  display:none !important;     /* !important: BindCartDetails.js .show()s it inline */
+}
+body.design5 #d5PriceAddRow > .row{ flex:0 0 auto; margin:0; }
+body.design5 #d5PriceAddRow > .row > .col-auto{ padding:0 !important; }
+
+/* ============================================================================
+   Design5 · SPLASH SCREEN (tblBrand.BrandHomePageImage)
+   ----------------------------------------------------------------------------
+   Full-screen overlay shown on first load. The markup (Index.cshtml) is just the
+   empty box — it paints opaque immediately so the menu never flashes behind it —
+   and D5Splash() in Design5.js fills it with the image pieces, then removes it.
+   Each piece flies in from a random direction and settles into its slot, so the
+   picture assembles itself. The image is fitted whole (object-fit:contain — never
+   cropped or stretched), so this background colour is what shows in any leftover
+   space beside or above it. Retune D5_SPLASH_MS / _COLS in Design5.js.
+   ============================================================================ */
+body.design5 .d5-splash{
+  position:fixed; top:0; right:0; bottom:0; left:0; z-index:99999;
+  background:var(--d5-page-bg,#ffffff); overflow:hidden;
+  transition:opacity .45s ease;          /* keep in step with D5_SPLASH_FADE */
+}
+body.design5 .d5-splash.d5-splash-out{ opacity:0; pointer-events:none; }
+body.design5 .d5-splash-piece{
+  position:absolute; opacity:0; background-repeat:no-repeat;
+  will-change:transform,opacity; backface-visibility:hidden;
+  transition:transform .9s cubic-bezier(.2,.75,.25,1), opacity .55s ease;
+}
+@media (prefers-reduced-motion: reduce){
+  /* no flying pieces — the image just fades up in place */
+  body.design5 .d5-splash-piece{ transition:opacity .3s ease; transform:none !important; }
+}

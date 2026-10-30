@@ -26,4 +26,15 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Items Management (QR Menu) ported from the old .NET Framework project - Areas/Items -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- the old project's css/js/fonts/images, served after wwwroot (Areas/Items/Legacy) -->
+    <Content Include="wwwroot-qr\**" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

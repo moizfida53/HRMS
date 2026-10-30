@@ -1,0 +1,85 @@
+        /* ---------------- order details modal ----------------
+           Custom classes, not Bootstrap's .modal: this app already had a class
+           collision with Bootstrap's .mark, and .modal / .close carry their own
+           baggage too. Own names, own behaviour. */
+        .pos-modal-scrim {
+            position: fixed; inset: 0; background: rgba(33,35,34,.55);
+            z-index: 1060; display: none;
+        }
+        .pos-modal-scrim.open { display: block; }
+
+        .pos-modal {
+            position: fixed; z-index: 1065; top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(.98);
+            width: 1080px; max-width: 95vw; max-height: 92vh;
+            background: var(--pos-surface); border-radius: 8px;
+            box-shadow: 0 18px 50px rgba(0,0,0,.3);
+            display: none; flex-direction: column;
+            opacity: 0; transition: opacity .12s ease-out, transform .12s ease-out;
+        }
+        .pos-modal.open { display: flex; opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+        .pm-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px; border-bottom: 1px solid var(--pos-border);
+        }
+        .pm-head h5 { margin: 0; font-size: 19px; font-weight: 600; color: var(--tmm-ink); }
+        .pm-head .x {
+            background: none; border: 0; font-size: 24px; line-height: 1;
+            color: var(--pos-muted); cursor: pointer; padding: 0 4px;
+        }
+        .pm-head .x:hover { color: var(--tmm-ink); }
+
+        /* summary strip - brand tint, not the cream of the reference */
+        .pm-summary {
+            display: flex; flex-wrap: wrap; gap: 8px 28px;
+            padding: 16px 20px; background: var(--tmm-teal-lt);
+            border-bottom: 1px solid #CFE6E3;
+        }
+        .pm-summary .cell { min-width: 120px; }
+        .pm-summary .lbl {
+            font-size: 12.5px; color: #5C6B69; margin-bottom: 3px; white-space: nowrap;
+        }
+        .pm-summary .val { font-size: 19px; font-weight: 600; color: var(--tmm-ink); line-height: 1.1; }
+        .pm-summary .cell.final { margin-left: auto; text-align: right; }
+        .pm-summary .cell.final .lbl { color: var(--tmm-teal-dk); font-weight: 600; }
+        .pm-summary .cell.final .val { font-size: 26px; color: var(--tmm-teal-dk); font-weight: 700; }
+        .pm-summary .cell.disc .val { color: var(--tmm-teal); }
+
+        .pm-body { padding: 16px 20px; overflow-y: auto; flex: 1 1 auto; min-height: 140px; }
+        .pm-body table { width: 100%; }
+        .pm-body table thead th {
+            font-size: 12.5px; font-weight: 600; color: #4A5250;
+            border-bottom: 2px solid var(--pos-border); padding: 8px 10px; white-space: nowrap;
+        }
+        .pm-body table tbody td { padding: 9px 10px; border-bottom: 1px solid #EEF1F0; font-size: 13.5px; }
+        .pm-body table tbody tr.sub td { color: var(--pos-muted); font-size: 12.5px; }
+        .pm-count { font-size: 12.5px; color: var(--pos-muted); margin-top: 10px; }
+
+        .pm-foot {
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+            padding: 14px 20px; border-top: 1px solid var(--pos-border); background: #FAFBFB;
+        }
+        .pm-btn {
+            min-width: 132px; border: 0; border-radius: 6px; padding: 12px 16px;
+            font-size: 13.5px; font-weight: 600; cursor: pointer;
+            display: inline-flex; flex-direction: column; align-items: center; gap: 5px;
+            line-height: 1.2; transition: filter .12s;
+        }
+        .pm-btn .i { font-size: 17px; line-height: 1; }
+        .pm-btn:hover:not(:disabled) { filter: brightness(.95); }
+        .pm-btn:disabled { opacity: .4; cursor: default; }
+
+        /* Only Pay is solid: one primary action per dialog, so the eye is not
+           asked to choose between five equally loud buttons. */
+        .pm-btn.pay     { background: var(--tmm-teal);  color: #fff; }
+        .pm-btn.cancel  { background: #FDECEC; color: #A32F2F; }
+        .pm-btn.modify  { background: #EDF1F1; color: var(--tmm-ink); }
+        .pm-btn.pickup  { background: var(--tmm-teal-lt); color: var(--tmm-teal-dk); }
+        .pm-btn.print   { background: #F2EFE6; color: #7A6A3F; }
+
+        @@media (max-width: 767px) {
+            .pos-modal { width: 96vw; max-height: 94vh; }
+            .pm-summary .cell.final { margin-left: 0; text-align: left; }
+            .pm-btn { min-width: 0; flex: 1 1 44%; }
+        }

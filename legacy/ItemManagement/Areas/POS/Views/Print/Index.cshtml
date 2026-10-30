@@ -1,0 +1,164 @@
+@{
+    ViewBag.Title = "Printer Settings";
+    Layout = "~/Areas/POS/Views/Shared/_LayoutPOS.cshtml";
+}
+
+@* -----------------------------------------------------------------------------
+   Printer Settings: the network printers of a branch, what each one prints
+   (Invoice / Order) and, for Order printers, which categories.
+
+   The printers are on the restaurant's LAN and this site is on a VPS, so jobs
+   are sent by the browser to the Print Agent on a PC in the restaurant -
+   the status pill at the top shows whether this browser can reach it.
+----------------------------------------------------------------------------- *@
+<style>
+    .pr-wrap { padding: 18px 22px 40px; max-width: 1180px; margin: 0 auto; }
+    .pr-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .pr-toolbar h4 { margin: 0; font-size: 19px; font-weight: 700; flex: 1 1 auto; }
+    .pr-toolbar select { border: 1px solid var(--pos-border); border-radius: 6px; padding: 8px 10px; font-size: 13.5px; background: #fff; }
+    .pr-add { background: var(--tmm-teal); color: #fff; border: 0; border-radius: 6px; padding: 9px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+    .pr-add:hover { background: var(--tmm-teal-dk); }
+
+    .pr-agent { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #fff; border: 1px solid var(--pos-border);
+                border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+    .pr-dot { width: 10px; height: 10px; border-radius: 50%; background: #B8C0BE; flex: 0 0 auto; }
+    .pr-agent.ok .pr-dot  { background: #1A9A5C; }
+    .pr-agent.bad .pr-dot { background: #D33A43; }
+    .pr-agent input { border: 1px solid var(--pos-border); border-radius: 6px; padding: 5px 9px; font-size: 13px; width: 230px; }
+    .pr-agent .sp { flex: 1 1 auto; }
+    .pr-link { background: none; border: 0; color: var(--tmm-teal-dk); font-weight: 600; cursor: pointer; padding: 4px 6px; }
+
+    .pr-card { background: #fff; border: 1px solid var(--pos-border); border-radius: 8px; overflow: hidden; }
+    #prTable { width: 100%; margin: 0; }
+    #prTable th { font-size: 12.5px; font-weight: 600; color: #4A5250; border-bottom: 2px solid var(--pos-border); padding: 10px 14px; white-space: nowrap; }
+    #prTable td { padding: 10px 14px; border-bottom: 1px solid #EEF1F0; font-size: 13.5px; vertical-align: middle; }
+    #prTable tr:last-child td { border-bottom: 0; }
+    .pr-name { font-weight: 600; }
+    .pr-ip { color: var(--pos-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    .pr-badge { display: inline-block; padding: 2px 9px; border-radius: 11px; font-size: 12px; font-weight: 600; margin: 1px 4px 1px 0; white-space: nowrap; }
+    .pr-badge.inv { background: #E6F3F2; color: #0A6B63; }
+    .pr-badge.ord { background: #FFF4D6; color: #5C4400; }
+    .pr-badge.off { background: #EEF1F0; color: #6B7674; }
+    .pr-cats { max-width: 360px; font-size: 12.5px; color: #3B4A43; }
+    .pr-btn { background: #EDF1F1; border: 0; border-radius: 5px; padding: 6px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; margin-right: 4px; }
+    .pr-btn:hover { background: #E0E6E5; }
+    .pr-btn.del { color: #A32F2F; }
+    .pr-empty { padding: 34px 20px; text-align: center; color: var(--pos-muted); }
+
+    #prModal { width: 640px; }
+    .pr-form { padding: 18px 22px 6px; }
+    .pr-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .pr-row.three { grid-template-columns: 1.4fr 1fr 1fr; }
+    .pr-field { margin-bottom: 12px; }
+    .pr-field label.l { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+    .pr-field .in { width: 100%; border: 1px solid var(--pos-border); border-radius: 6px; padding: 9px 11px; font-size: 13.5px; background: #fff; }
+    .pr-field .in:focus { outline: none; border-color: var(--tmm-teal); }
+    .pr-checks { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .pr-check { display: flex; align-items: center; gap: 9px; border: 1px solid var(--pos-border); border-radius: 8px; padding: 10px 14px; cursor: pointer; margin: 0; font-weight: 600; font-size: 13.5px; flex: 1 1 200px; }
+    .pr-check input { width: 18px; height: 18px; margin: 0; flex: 0 0 auto; }
+    .pr-check.on { border-color: var(--tmm-teal); background: var(--tmm-teal-lt); }
+    .pr-catbox { border: 1px solid var(--pos-border); border-radius: 8px; padding: 10px 12px 6px; margin-bottom: 12px; }
+    .pr-catbox .top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+    .pr-catbox .top label { margin: 0; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+    .pr-catbox .top input[type=search] { flex: 1 1 160px; border: 1px solid var(--pos-border); border-radius: 6px; padding: 5px 9px; font-size: 13px; }
+    .pr-catlist { max-height: 210px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; padding-bottom: 6px; }
+    .pr-catlist label { display: flex; gap: 8px; align-items: center; margin: 0; padding: 5px 6px; border-radius: 5px; font-size: 13px; font-weight: 400; cursor: pointer; }
+    .pr-catlist label:hover { background: #F3F6F4; }
+    .pr-catlist.off { opacity: .45; pointer-events: none; }
+    .pr-error { margin: 0 22px 12px; padding: 8px 12px; border-radius: 6px; background: #FDECEC; color: #A32F2F; font-size: 12.5px; display: none; }
+    .pr-foot { display: flex; gap: 10px; padding: 12px 22px 18px; justify-content: flex-end; flex-wrap: wrap; }
+    .pr-foot .go { background: var(--tmm-teal); color: #fff; border: 0; border-radius: 6px; padding: 9px 20px; font-weight: 600; cursor: pointer; }
+    .pr-foot .go:disabled { opacity: .6; }
+    .pr-foot .ghost { background: #EDF1F1; border: 0; border-radius: 6px; padding: 9px 16px; font-weight: 600; cursor: pointer; }
+    @@media (max-width: 640px) { .pr-row, .pr-row.three, .pr-catlist { grid-template-columns: 1fr; } #prModal { width: 96vw; } }
+</style>
+
+<div class="pr-wrap">
+    <div class="pr-toolbar">
+        <h4>Printer Settings</h4>
+        <select id="prBranch" aria-label="Branch"></select>
+        <button type="button" class="pr-add" id="prAdd">+ Add Printer</button>
+    </div>
+
+    <div class="pr-agent" id="prAgent">
+        <span class="pr-dot"></span>
+        <span id="prAgentText">Checking the Print Agent&hellip;</span>
+        <span class="sp"></span>
+        <input type="text" id="prAgentUrl" spellcheck="false" aria-label="Print Agent address" />
+        <button type="button" class="pr-link" id="prAgentCheck">Check</button>
+    </div>
+
+    <div class="pr-card">
+        <table id="prTable">
+            <thead>
+                <tr>
+                    <th>Printer</th><th>Prints</th><th>Order categories</th><th>Paper</th><th style="width:230px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div class="pr-empty" id="prEmpty" hidden>No printers yet for this branch. Press <b>+ Add Printer</b>.</div>
+    </div>
+</div>
+
+<div class="pos-modal-scrim" id="prScrim"></div>
+<div class="pos-modal" id="prModal" role="dialog" aria-modal="true" aria-labelledby="prTitle" aria-hidden="true">
+    <div class="pm-head">
+        <div class="who"><h5 id="prTitle">Add Printer</h5></div>
+        <button class="x" id="prClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="pr-form">
+        <input type="hidden" id="prId" value="0" />
+        <div class="pr-field">
+            <label class="l" for="prName">Printer name</label>
+            <input class="in" id="prName" maxlength="100" autocomplete="off" placeholder="e.g. Kitchen, Bar, Cashier" />
+        </div>
+        <div class="pr-row three">
+            <div class="pr-field"><label class="l" for="prIp">IP address</label>
+                <input class="in" id="prIp" maxlength="45" autocomplete="off" inputmode="decimal" placeholder="192.168.1.50" /></div>
+            <div class="pr-field"><label class="l" for="prPort">Port</label>
+                <input class="in" id="prPort" type="number" min="1" max="65535" value="9100" /></div>
+            <div class="pr-field"><label class="l" for="prPaper">Paper</label>
+                <select class="in" id="prPaper"><option value="80">80 mm</option><option value="58">58 mm</option></select></div>
+        </div>
+
+        <div class="pr-checks">
+            <label class="pr-check" id="prInvWrap"><input type="checkbox" id="prInv" /> Print Invoice <small style="font-weight:400;color:#6B7674">(cash / bill printer)</small></label>
+            <label class="pr-check" id="prOrdWrap"><input type="checkbox" id="prOrd" /> Print Order <small style="font-weight:400;color:#6B7674">(kitchen / bar)</small></label>
+        </div>
+
+        <div class="pr-catbox" id="prCatBox" hidden>
+            <div class="top">
+                <label><input type="checkbox" id="prAllCats" checked /> All categories</label>
+                <input type="search" id="prCatSearch" placeholder="Search category&hellip;" aria-label="Search category" />
+            </div>
+            <div class="pr-catlist off" id="prCatList"></div>
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600;"><input type="checkbox" id="prActive" checked /> Active</label>
+    </div>
+    <div class="pr-error" id="prError"></div>
+    <div class="pr-foot">
+        <button type="button" class="ghost" id="prTest">Test print</button>
+        <span style="flex:1"></span>
+        <button type="button" class="ghost" id="prCancel">Cancel</button>
+        <button type="button" class="go" id="prSave">Save</button>
+    </div>
+</div>
+
+<script>
+    window.POS_PRINT_CFG = {
+        urls: {
+            jobs:     '@Url.Action("Jobs", "Print", new { area = "POS" })',
+            markSent: '@Url.Action("MarkSent", "Print", new { area = "POS" })'
+        }
+    };
+    window.PRINTERS_CFG = {
+        urls: {
+            settings: '@Url.Action("Settings", "Print", new { area = "POS" })',
+            save:     '@Url.Action("Save", "Print", new { area = "POS" })',
+            del:      '@Url.Action("Delete", "Print", new { area = "POS" })'
+        }
+    };
+</script>
+<script src="@Asset.V("~/Areas/POS/Scripts/pos.print.js")"></script>
+<script src="@Asset.V("~/Areas/POS/Scripts/pos.printers.js")"></script>

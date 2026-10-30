@@ -1,0 +1,903 @@
+﻿@using Jar.Helper   @* Asset.V() - css/js cache-buster, Helper\AssetVersion.cs *@
+@*Start Map related links*@
+<script src='//www.orangesmile.com/tmp/OpenLayers-2.13.1/OpenLayers.js'></script>
+<!-- return map header here -->
+@*<link rel='stylesheet' href='https://unpkg.com/leaflet@1.3.4/dist/leaflet.css' integrity='sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==' crossorigin='' />
+    <script src='https://unpkg.com/leaflet@1.3.4/dist/leaflet.js' integrity='sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==' crossorigin=''></script>*@
+
+<!-- Load Leaflet from CDN -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+      integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+      crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+        integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+        crossorigin=""></script>
+
+<!-- Load Esri Leaflet from CDN -->
+<script src="https://unpkg.com/esri-leaflet@2.5.0/dist/esri-leaflet.js"
+        integrity="sha512-ucw7Grpc+iEQZa711gcjgMBnmd9qju1CICsRaryvX7HJklK0pGl/prxKvtHwpgm5ZHdvAil7YPxI1oWPOWK3UQ=="
+        crossorigin=""></script>
+
+<!-- Load Esri Leaflet Geocoder from CDN -->
+<link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder@2.3.3/dist/esri-leaflet-geocoder.css"
+      integrity="sha512-IM3Hs+feyi40yZhDH6kV8vQMg4Fh20s9OzInIIAc4nx7aMYMfo+IenRUekoYsHZqGkREUgx0VvlEsgm7nCDW9g=="
+      crossorigin="">
+<script src="https://unpkg.com/esri-leaflet-geocoder@2.3.3/dist/esri-leaflet-geocoder.js"
+        integrity="sha512-HrFUyCEtIpxZloTgEKKMq4RFYhxjJkCiF5sDxuAokklOeZ68U2NPfh4MFtyIVWlsKtVbK5GD2/JzFyAfvT5ejA=="
+        crossorigin=""></script>
+@*<script src="~/Content/maps/leaflet-realtime.js"></script>*@
+
+@*End Map related links*@
+
+
+<!-- Main Content ===========================================================-->
+<div id="divDeliveryAddress" class="main-content active cart-page order-mode-page" style="display:none;">
+    <div class="item-list-title mb-2">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-auto">
+                <a title="back" class="btn btn-sm back-btn" onclick="DeliveryAddressPrevious();">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="col-auto">
+                <h2 id="lblDADeliveryAddress">Delivery Address</h2>
+            </div>
+        </div>
+    </div>
+    <div class="animation">
+        <form id="formDeliveryAddress" class="container-fluid ">
+            @*was-validated*@
+            <div class="card p-3 mb-4">
+                <div class="form-group">
+                    <div class="input-group">
+                        @*<div class="input-group-prepend">
+                        <div class="input-group-text">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                <circle cx="10" cy="10" r="7" />
+                                <line x1="21" y1="21" x2="15" y2="15" />
+                            </svg>
+                        </div>
+                    </div>*@
+                        @*<input type="text" class="form-control" placeholder="Search Area">*@
+
+                        <select id="AddressArea" name="AddressArea"
+                                class="form-control form-control-solid form-control-lg"
+                                onchange="ddrAreaChangeBindDelCharg(this);" required>
+                        </select>
+                    </div>
+                </div>
+                <div id="divAddressMap" class="map" style="width:100%;height:300px">
+                    @*<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d437709.36695678247!2d55.49824198966928!3d24.26017056735914!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f43496ad9c645%3A0xbde66e5084295162!2sDubai%20-%20United%20Arab%20Emirates!5e1!3m2!1sen!2sin!4v1613209403569!5m2!1sen!2sin" width="100%" height="300px" frameborder="0" style="border:0;" allowfullscreen="" aria-hidden="false" tabindex="0"></iframe>*@
+                </div>
+            </div>
+            <div class="card mb-4">
+                <nav class="checkout-nav nav nav-pills nav-justified" id="nav-tab" role="tablist">
+                    <a id="CustAddressHome" class="nav-item nav-link active" title="Home" data-toggle="tab" href="#nav-home" role="tab" aria-controls="nav-home" aria-selected="true" onclick="AddressTypeClick('Home')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <polyline points="5 12 3 12 12 3 21 12 19 12" />
+                            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+                            <rect x="10" y="12" width="4" height="4" />
+                        </svg>
+                        <label id="lblADHome">Home</label>
+                    </a>
+                    <a id="CustAddressApartment" class="nav-item nav-link" title="Apartment" data-toggle="tab" href="#nav-apartment" role="tab" aria-controls="nav-apartment" aria-selected="false" onclick="AddressTypeClick('Apartment')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-building" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <line x1="3" y1="21" x2="21" y2="21" />
+                            <line x1="9" y1="8" x2="10" y2="8" />
+                            <line x1="9" y1="12" x2="10" y2="12" />
+                            <line x1="9" y1="16" x2="10" y2="16" />
+                            <line x1="14" y1="8" x2="15" y2="8" />
+                            <line x1="14" y1="12" x2="15" y2="12" />
+                            <line x1="14" y1="16" x2="15" y2="16" />
+                            <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16" />
+                        </svg>
+                        <label id="lblADApartment">Apartment</label>
+                    </a>
+                    <a id="CustAddressOffice" class="nav-item nav-link" title="Office" data-toggle="tab" href="#nav-office" role="tab" aria-controls="nav-office" aria-selected="false" onclick="AddressTypeClick('Office')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-briefcase" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <rect x="3" y="7" width="18" height="13" rx="2" />
+                            <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="12" y1="12" x2="12" y2="12.01" />
+                            <path d="M3 13a20 20 0 0 0 18 0" />
+                        </svg>
+                        <label id="lblADOffice">Office</label>
+                    </a>
+                </nav>
+            </div>
+            <div class="tab-content mb-3" id="nav-tabContent">
+                <!-- Home =====================================-->
+                <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-delivery">
+                    <div class="row">
+                        <div class="form-group col-6">
+                            <label id="lblADHomeBlock">Block</label>
+                            <input id="txtHomeBlock" class="form-control HomeFields" type="text" name="" placeholder="Block" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADHomeStreet">Street</label>
+                            <input id="txtHomeStreet" class="form-control HomeFields" type="text" name="" placeholder="Street" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADHomeHouseNo">House No.</label>
+                            <input id="txtHomeFlat" class="form-control HomeFields" type="text" name="" placeholder="House No." required>
+                        </div>
+                        @*<div class="form-group col-6">
+                        <label>Avenue</label>
+                        <input class="form-control" type="text" name="" placeholder="Search">
+                    </div>*@
+                        <div class="form-group col-12">
+                            <label id="lblADHomeLandmark">Landmark (Optional)</label>
+                            <input id="txtHouseLandmark" class="form-control" type="text" name="" placeholder="Landmark">
+                        </div>
+                    </div>
+                </div>
+                <!-- Flat =========================== -->
+                <div class="tab-pane fade pl-0 pr-0" id="nav-apartment" role="tabpanel" aria-labelledby="nav-apartment">
+                    <div class="row">
+                        <div class="form-group col-6">
+                            <label id="lblADAppartBlock">Block</label>
+                            <input id="txtApartmentBlock" class="form-control ApartmentFields" type="text" name="" placeholder="Block">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADAppartStreet">Street</label>
+                            <input id="txtApartmentStreet" class="form-control ApartmentFields" type="text" name="" placeholder="Street">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADAppartBuilding">Building</label>
+                            <input id="txtApartmentBuilding" class="form-control ApartmentFields" type="text" name="" placeholder="Building">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADAppartFloor">Floor</label>
+                            <input id="txtApartmentFloor" class="form-control ApartmentFields" type="text" name="" placeholder="Floor">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADAppartFlatNo">Flat No.</label>
+                            <input id="txtApartmentFlatNo" class="form-control ApartmentFields" type="text" name="" placeholder="Flat No.">
+                        </div>
+                        @*<div class="form-group col-6">
+                        <label>Avenue</label>
+                        <input class="form-control" type="text" name="" placeholder="Search">
+                    </div>*@
+                        <div class="form-group col-12">
+                            <label id="lblADAppartLandmark">Landmark (Optional)</label>
+                            <input id="txtApartmentLandmark" class="form-control" type="text" name="" placeholder="Landmark">
+                        </div>
+                    </div>
+                </div>
+                <!-- Office ============================ -->
+                <div class="tab-pane fade pl-0 pr-0" id="nav-office" role="tabpanel" aria-labelledby="nav-office">
+                    <div class="row">
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeBlock">Block</label>
+                            <input id="txtOfficeBlock" class="form-control OfficeFields" type="text" name="" placeholder="Block">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeStreet">Street</label>
+                            <input id="txtOfficeStreet" class="form-control OfficeFields" type="text" name="" placeholder="Street">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeBuilding">Building</label>
+                            <input id="txtOfficeBuilding" class="form-control OfficeFields" type="text" name="" placeholder="Building">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeFloor">Floor</label>
+                            <input id="txtOfficeFloor" class="form-control OfficeFields" type="text" name="" placeholder="Floor">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeFlatNo">Flat No.</label>
+                            <input id="txtOfficeFlat" class="form-control OfficeFields" type="text" name="" placeholder="Flat No.">
+                        </div>
+                        @*<div class="form-group col-6">
+                        <label>Avenue</label>
+                        <input class="form-control" type="text" name="" placeholder="Search">
+                    </div>*@
+                        <div class="form-group col-12">
+                            <label id="lblADOfficeLandmark">Landmark (Optional)</label>
+                            <input id="txtOfficeLandmark" class="form-control" type="text" name="" placeholder="Landmark">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button class="btn btn-secondary" onclick="DeliveryAddressPrevious();">
+                    <span id="DelAddressbtnPrevious">Previous</span>
+                </button>
+                <button class="btn btn-primary" type="button" onclick="DeliveryAddressNext();">
+                    <span id="DelAddressbtnNext">Next</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- End Main Content ===========================================================-->
+
+<script src="@Asset.V("~/MainJs/ItemsViewNew/DeliveryAddress.js")"></script>
+
+<script>
+    var marker = null;
+
+    //$(document).ready(function () {
+    //    createMap(null);
+    //});
+    var mapboxUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=__MAPBOX_ACCESS_TOKEN__';
+    var mapboxAttribution = 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+        '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+        'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>';
+
+    /*var mapboxUrl='http://{s}.tile.osm.org/{z}/{x}/{y}.png';
+    var mapboxAttribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors';*/
+    var LeafIcon = L.Icon.extend({
+        options: {
+            //shadowUrl: 'leaf-shadow.png',
+            //iconSize:     [45, 40],
+            //shadowSize:   [50, 64],
+            iconAnchor: [30, 40],
+            //shadowAnchor: [4, 62],
+            popupAnchor: [-3, -35]
+        }
+    });
+
+
+
+    //var CustomerAddressMap = new L.Map('divAddressMap', {
+    //    //center: [0, 0],
+    //    zoom: 2,
+    //    layers: [
+    //        new L.TileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //            'attribution': 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'
+    //        })
+    //    ]
+    //}).setView([29.378586, 47.990341], 12);;
+    debugger
+    var CustomerAddressMap = new L.Map('divAddressMap', {
+        //center: [0, 0],
+        zoom: 2,
+        layers: [
+            new L.TileLayer('https://{s}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png', {
+                'attribution': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            })
+        ]
+    }).setView([29.378586, 47.990341], 12);;
+
+    var arcgisOnline = L.esri.Geocoding.arcgisOnlineProvider();
+
+    L.esri.Geocoding.geosearch({
+        providers: [
+            arcgisOnline,
+            L.esri.Geocoding.featureLayerProvider({
+                url: 'https://services.arcgis.com/uCXeTVveQzP4IIcx/arcgis/rest/services/gisday/FeatureServer/0/',
+                searchFields: ['Name', 'AddressArea'],
+                label: 'GIS Day Events',
+                bufferRadius: 5000,
+                formatSuggestion: function (feature) {
+                    return feature.properties.Name + ' - ' + feature.properties.Organization;
+                }
+            })
+        ]
+    }).addTo(CustomerAddressMap);
+    //var map = L.map('map').setView([51.505, -0.09], 13);
+
+
+    //var DriverMarkinlayersToRemove = [];
+    //var polylinelayersToRemove = [];
+    function createCustomerAddressMap(objdata) {
+        var curlat = 29.378586;
+        var curlong = 47.990341;
+        debugger;
+        if ("geolocation" in navigator) { //check geolocation available
+            debugger;
+            //try to get user current location using getCurrentPosition() method
+            navigator.geolocation.getCurrentPosition(function (position) {
+                debugger;
+                curlat = position.coords.latitude;
+                curlong = position.coords.longitude;
+                CustomerAddressMap.setView([curlat, curlong], 20);
+                if (marker !== null) {
+                    CustomerAddressMap.removeLayer(marker);
+                }
+                marker = L.marker([curlat, curlong]).addTo(CustomerAddressMap);
+                //$("#result").html("Found your location <br />Lat : " + position.coords.latitude + " </br>Lang :" + position.coords.longitude);
+
+                ///////////////////////Begin Set current location values in the textboxes////////////////////
+                latlng = {}
+                latlng["lat"] = curlat;
+                latlng["lng"] = curlong;
+
+                bindAddressData(latlng);
+                ///////////////////////End Set current location values in the textboxes////////////////////
+
+            });
+        } else {
+            debugger;
+            console.log("Browser doesn't support geolocation!");
+        }
+
+        setClickOnmapclick(CustomerAddressMap);
+    }
+
+
+    function setClickOnmapclick(CustomerAddressMap) {
+        debugger;
+        CustomerAddressMap.on('click', function (e) {
+            debugger;
+            latlng = {}
+            latlng["lat"] = e.latlng.lat;
+            latlng["lng"] = e.latlng.lng;
+
+            bindAddressData(latlng);
+        });
+    }
+
+    // =====================================================================
+    //  bindAddressData - rewritten
+    //
+    //  WHAT WAS WRONG
+    //  --------------
+    //  1. RACE. Two independent reverse-geocode calls ran in parallel. The
+    //     Arabic one assigned areaArb inside its callback; the English one
+    //     READ areaArb inside its callback. Nothing ordered them, so areaArb
+    //     was almost always still "" when the match ran. Arabic matching
+    //     therefore never worked at all.
+    //
+    //  2. EXACT TEXT MATCH. Selection compared $(option).text() == areaEng.
+    //     ESRI returns 'Al Salmiyah' / 'AL SALMIYA' where tblArea holds
+    //     'Salmiya', and the option text carries markup whitespace that was
+    //     never trimmed. Equality essentially never held.
+    //
+    //  3. EMPTY MATCHES THE PLACEHOLDER. When both names came back empty the
+    //     filter compared "" == "" and happily selected the 'Select' option,
+    //     so a real failure looked like a deliberate reset.
+    //
+    //  4. NO CHANGE EVENT. .prop('selected', true) does not fire change, so
+    //     the delivery-charge recalculation that reads data-val never ran.
+    //     Even on the rare match, the charge stayed at zero.
+    //
+    //  Matching now happens on the SERVER (sp_POS_ResolveArea): polygon first,
+    //  then a normalised name comparison, then nearest centre. The browser
+    //  only sets the value it is given.
+    // =====================================================================
+    // =====================================================================
+    //  bindAddressData - map tap / current location -> address fields
+    //
+    //  ESRI does not return a tidy Kuwaiti address. Two specific quirks drive
+    //  everything below:
+    //
+    //    * Block is usually NOT in data.Block for Kuwait. It turns up inside
+    //      District / Sector / Subregion, sometimes as the bare number, and
+    //      sometimes only as the text "Block 4" buried in Match_addr.
+    //
+    //    * Address has the building number glued to the front, which is why
+    //      Street was reading "13 11 Street - Lane 1" for building 13 on
+    //      11 Street. AddNum carries that same number separately, so it can be
+    //      stripped from the front and put in the House No. / Building field
+    //      where it belongs.
+    //
+    //  The raw payload is kept on window.__lastEsriAddress and logged, so if a
+    //  specific address still fills badly the exact field values are one
+    //  console line away.
+    // =====================================================================
+    // =====================================================================
+    //  bindAddressData - map tap / current location -> address fields
+    //
+    //  WHY THE BLOCK WAS STILL EMPTY
+    //  -----------------------------
+    //  The original page made TWO reverse-geocode calls: one with no language
+    //  (ESRI answers in the local dataset) and one with .language("eng").
+    //  When the race between them was fixed, the local-language call went with
+    //  it -- and for Kuwait that is the call that tends to carry block-level
+    //  detail. The English response is better for street names but frequently
+    //  omits the block entirely.
+    //
+    //  Both calls are back, run in parallel but JOINED properly: applyAddress
+    //  only runs once both have returned, so neither can read a value the
+    //  other has not written yet. Street comes from English, block is taken
+    //  from whichever response actually has it, and the Arabic area name is
+    //  passed to the server as a second matching hint.
+    //
+    //  Append ?addrdebug=1 to the URL to see both raw payloads on screen.
+    // =====================================================================
+    // =====================================================================
+    //  bindAddressData - map tap / current location -> address fields
+    //
+    //  WHAT WENT WRONG IN THE LAST VERSION (and why Area stopped working)
+    //  -----------------------------------------------------------------
+    //  I added a second ESRI reverse call and made the code wait for BOTH
+    //  before writing anything:
+    //
+    //      var pending = 2;  function settle(){ if(--pending>0) return; ... }
+    //
+    //  If that second call never invokes its callback - throttled, blocked,
+    //  no token, network error swallowed by the library - then `pending` never
+    //  reaches 0 and applyAddress NEVER RUNS. Not just the block: the area,
+    //  the street and the building number all silently stop populating.
+    //  A dependency that only ever added a bonus field was allowed to gate
+    //  the entire feature. That was the mistake.
+    //
+    //  STRUCTURE NOW
+    //  -------------
+    //  One English reverse geocode drives everything, exactly as in the
+    //  version you confirmed working. Area, Street and Building are written
+    //  the moment it returns - nothing can delay or block them.
+    //
+    //  The block lookup is a SEPARATE, OPTIONAL, TIME-LIMITED step that runs
+    //  afterwards and only ever touches the Block box. If it fails, times out
+    //  or returns nothing, everything else is already on screen.
+    // =====================================================================
+    function bindAddressData(objlatlng) {
+        var svc = L.esri.Geocoding.geocodeService();
+
+        // Move the pin immediately; it should never lag the tap.
+        if (marker !== null) {
+            CustomerAddressMap.removeLayer(marker);
+        }
+        marker = L.marker([objlatlng.lat, objlatlng.lng]).addTo(CustomerAddressMap);
+
+        $('#hdnlat').val(objlatlng.lat);
+        $('#hdnlong').val(objlatlng.lng);
+
+        svc.reverse()
+           .latlng([objlatlng.lat, objlatlng.lng])
+           .language("eng")
+           .run(function (err, res) {
+               applyAddress(objlatlng, (res && res.address) ? res.address : null);
+           });
+    }
+
+    function applyAddress(objlatlng, d) {
+        window.__lastEsriAddress = d;
+        if (window.console && console.log) { console.log('[address] ESRI', d); }
+        renderAddrDebug(d, null);
+
+        if (!d) {
+            // Coordinates are still valid even when the geocoder is not.
+            resolveAreaFromServer(objlatlng, null, null);
+            lookupBlock(objlatlng);
+            return;
+        }
+
+        var buildingNo = txt(d["AddNum"]);
+        var block      = extractBlock(d);
+        var street     = extractStreet(d, buildingNo, block);
+
+        var landmark = txt(d["PlaceName"]);
+        if (landmark && (landmark === street || landmark === block)) landmark = "";
+
+        setIfPresent('#txtHomeBlock',         block);
+        setIfPresent('#txtHomeStreet',        street);
+        setIfPresent('#txtHomeFlat',          buildingNo);      // "House No."
+        setIfPresent('#txtHouseLandmark',     landmark);
+
+        setIfPresent('#txtApartmentBlock',    block);
+        setIfPresent('#txtApartmentStreet',   street);
+        setIfPresent('#txtApartmentBuilding', buildingNo);
+        setIfPresent('#txtApartmentLandmark', landmark);
+
+        setIfPresent('#txtOfficeBlock',       block);
+        setIfPresent('#txtOfficeStreet',      street);
+        setIfPresent('#txtOfficeBuilding',    buildingNo);
+        setIfPresent('#txtOfficeLandmark',    landmark);
+
+        // Area first - this is the important one and it runs unconditionally.
+        resolveAreaFromServer(objlatlng,
+                              txt(d["Neighborhood"]),
+                              txt(d["District"]) || txt(d["City"]));
+
+        // Block is a bonus. Only chase it if ESRI had nothing.
+        if (!block) lookupBlock(objlatlng);
+    }
+
+    // ---------------------------------------------------------------------
+    //  Optional block lookup.
+    //
+    //  You are using OpenStreetMap tiles, and OSM's own geocoder (Nominatim)
+    //  carries Kuwaiti block detail that the ESRI world geocoder generally
+    //  does not - typically in neighbourhood / suburb / city_district.
+    //
+    //  It is called through the server (/ItemsView/ReverseGeocodeBlock) rather
+    //  than from the browser, because Nominatim's usage policy requires a real
+    //  User-Agent and rate limiting, and results can be cached there instead
+    //  of every customer hitting it directly.
+    //
+    //  Hard 3s timeout. If it is slow, the customer types the block themselves
+    //  - which is exactly what they do today - rather than staring at a form
+    //  that appears frozen.
+    // ---------------------------------------------------------------------
+    // ---------------------------------------------------------------------
+    //  Optional block lookup (OpenStreetMap / Nominatim, via the server).
+    //
+    //  Hard 3s cap. If it is slow the customer types the block themselves --
+    //  which is what they do today -- rather than facing a form that looks
+    //  frozen. Nothing on the checkout path depends on this succeeding.
+    // ---------------------------------------------------------------------
+    function lookupBlock(objlatlng) {
+        var dbg = window.location.search.indexOf('addrdebug=1') >= 0;
+
+        $.ajax({
+            type: "Post",
+            url: "/ItemsView/ReverseGeocodeBlock",
+            data: { lat: objlatlng.lat, lng: objlatlng.lng, debug: dbg ? 1 : 0 },
+            cache: false,
+            timeout: 3000
+        }).done(function (res) {
+            if (res && res.Message === "Success" && res.Block) {
+                setIfPresent('#txtHomeBlock', res.Block);
+                setIfPresent('#txtApartmentBlock', res.Block);
+                setIfPresent('#txtOfficeBlock', res.Block);
+                showBlockHint("");
+            } else {
+                showBlockHint("Block could not be detected - please enter it.");
+            }
+
+            // Surface WHY, so this stops being guesswork.
+            if (dbg) {
+                appendAddrDebug('BLOCK LOOKUP: ' + JSON.stringify(res, null, 1));
+            }
+        }).fail(function (xhr, status) {
+            showBlockHint("Block could not be detected - please enter it.");
+            if (dbg) {
+                appendAddrDebug('BLOCK LOOKUP FAILED: ' + status + ' ' + (xhr && xhr.responseText || ''));
+            }
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    //  Block extraction from the ESRI payload.
+    // ---------------------------------------------------------------------
+    function extractBlock(d) {
+        if (!d) return "";
+
+        // 1. The documented field, when ESRI populates it.
+        var b = txt(d["Block"]);
+        if (b) return stripBlockWord(b);
+
+        // 2. "Block 4" / "Blk 4" / "قطعة 4" wherever it hides.
+        var re = /(?:block|blk|qitaa|قطعة|قطعه|القطعة)\s*[:\-]?\s*([0-9]+[A-Za-z]?)/i;
+        var keys = ["District", "Sector", "Subregion", "Neighborhood", "MetroArea",
+                    "Match_addr", "LongLabel", "ShortLabel", "Address", "PlaceName", "Territory"];
+        for (var k = 0; k < keys.length; k++) {
+            var m = re.exec(txt(d[keys[k]]));
+            if (m) return m[1];
+        }
+
+        // 3. Kuwaiti labels are comma-delimited and often carry the block as a
+        //    segment that is nothing but a number:
+        //      "13 11 Street - Lane 1, 4, Salmiya, Hawalli, Kuwait"
+        //    Only a whole segment counts - pulling a loose digit out of a
+        //    longer string would put a wrong block on a delivery.
+        var label = txt(d["LongLabel"]) || txt(d["Match_addr"]);
+        if (label) {
+            var parts = label.split(',');
+            for (var p = 1; p < parts.length; p++) {     // skip the street segment
+                var seg = txt(parts[p]);
+                if (/^[0-9]{1,3}[A-Za-z]?$/.test(seg)) return seg;
+            }
+        }
+
+        // 4. A field that is entirely a number.
+        var bare = ["District", "Sector", "Subregion"];
+        for (var i = 0; i < bare.length; i++) {
+            var v = txt(d[bare[i]]);
+            if (/^[0-9]{1,3}[A-Za-z]?$/.test(v)) return v;
+        }
+
+        return "";
+    }
+
+    function extractStreet(d, buildingNo, block) {
+        var s = txt(d["Address"]) || txt(d["ShortLabel"]);
+        if (!s) return "";
+
+        // ESRI glues the building number to the front:
+        //   "13 11 Street - Lane 1"  ->  "11 Street - Lane 1"
+        // The lookahead stops building 1 from mangling "11 Street".
+        if (buildingNo) {
+            s = s.replace(new RegExp('^\\s*' + escapeRe(buildingNo) + '(?![0-9])\\s*[,\\-]?\\s*'), '');
+        }
+
+        s = s.replace(/^\s*(?:block|blk)\s*[:\-]?\s*[0-9]+[A-Za-z]?\s*[,\-]?\s*/i, '');
+        if (block) {
+            s = s.replace(new RegExp('^\\s*' + escapeRe(block) + '(?![0-9])\\s*[,\\-]\\s*'), '');
+        }
+
+        return s.replace(/^[\s,\-]+/, '').replace(/[\s,\-]+$/, '');
+    }
+
+    // ---------------------------------------------------------------------
+    //  On-screen diagnostic: append ?addrdebug=1 to the URL.
+    //  Console logging is easy to miss on a phone, which is where this screen
+    //  is actually used.
+    // ---------------------------------------------------------------------
+    // ---------------------------------------------------------------------
+    //  On-screen diagnostic: append ?addrdebug=1 to the URL.
+    //  Console logging is easy to miss on a phone, which is where this screen
+    //  is actually used.
+    // ---------------------------------------------------------------------
+    function ensureAddrDebugPanel() {
+        if (window.location.search.indexOf('addrdebug=1') < 0) return null;
+        var $d = $('#addrDebugPanel');
+        if ($d.length === 0) {
+            $d = $('<pre id="addrDebugPanel" style="max-height:240px;overflow:auto;'
+                 + 'background:#111;color:#0f0;font-size:11px;padding:8px;margin-top:8px;'
+                 + 'white-space:pre-wrap;"></pre>');
+            $('#AddressArea').closest('.form-group, div').append($d);
+        }
+        return $d;
+    }
+
+    function renderAddrDebug(esri, osm) {
+        var $d = ensureAddrDebugPanel();
+        if (!$d) return;
+        $d.text('ESRI:\n' + JSON.stringify(esri, null, 1) +
+                (osm ? '\n\nOSM:\n' + JSON.stringify(osm, null, 1) : ''));
+    }
+
+    function appendAddrDebug(line) {
+        var $d = ensureAddrDebugPanel();
+        if (!$d) return;
+        $d.text($d.text() + '\n\n' + line);
+    }
+
+    function txt(v) {
+        return (v === null || v === undefined) ? '' : String(v).trim();
+    }
+
+    function stripBlockWord(v) {
+        var m = /([0-9]+[A-Za-z]?)/.exec(v);
+        return m ? m[1] : txt(v);
+    }
+
+    function escapeRe(s) {
+        return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // Only overwrite when there is something to write. Blanking a field the
+    // customer already typed because the geocoder had no value is worse than
+    // leaving it alone.
+    function setIfPresent(sel, val) {
+        if (val !== null && val !== undefined && String(val).length > 0) {
+            $(sel).val(val);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    //  Server-side area resolution.
+    // ---------------------------------------------------------------------
+    function resolveAreaFromServer(objlatlng, hint1, hint2) {
+        $.ajax({
+            type: "Post",
+            url: "/ItemsView/ResolveArea",
+            data: {
+                lat:       objlatlng.lat,
+                lng:       objlatlng.lng,
+                areaHint:  hint1 || "",
+                areaHint2: hint2 || "",
+                branchId:  parseInt($('#hdnBranchId').val(), 10) || 0
+            },
+            cache: false
+        }).done(function (res) {
+
+            if (!res || res.Message !== "Success" || !res.AreaID) {
+                // Leave the dropdown untouched. An unresolved pin means the
+                // customer picks the area themselves -- which is correct, and
+                // far better than guessing.
+                showAreaHint("Could not detect the area automatically. Please select it.");
+                return;
+            }
+
+            var $sel = $('#AddressArea');
+
+            // The option must actually exist: the list is filtered by branch,
+            // so a pin can legitimately land in an area this branch does not
+            // serve.
+            if ($sel.find("option[value='" + res.AreaID + "']").length === 0) {
+                showAreaHint("We do not deliver to " + (res.AreaName || "this area") + " from this branch.");
+                return;
+            }
+
+            if (res.MatchType === "Nearest") {
+                // A distance guess is a suggestion, never a silent commitment.
+                showAreaHint("Nearest area looks like " + res.AreaName + ". Please confirm.");
+                return;
+            }
+
+            if (res.ServedByBranch === false) {
+                showAreaHint("This branch does not deliver to " + res.AreaName + ".");
+                return;
+            }
+
+            // .val() + .change() -- change is what triggers the delivery-charge
+            // recalculation that reads the option's data-val attribute.
+            $sel.val(String(res.AreaID)).trigger('change');
+            showAreaHint("");
+        }).fail(function () {
+            showAreaHint("Could not detect the area automatically. Please select it.");
+        });
+    }
+
+    function showAreaHint(msg) {
+        var $h = $('#areaAutoHint');
+        if ($h.length === 0) {
+            $h = $('<div id="areaAutoHint" class="text-muted" style="font-size:12px;margin-top:4px;"></div>');
+            $('#AddressArea').after($h);
+        }
+        $h.text(msg || "").toggle(!!msg);
+    }
+
+    // ---------------------------------------------------------------------
+    //  Hints now sit under the BLOCK field, not next to the Area dropdown.
+    //  A message about the block belongs beside the box the customer has to
+    //  fill in, and one is rendered under each address type so it is visible
+    //  whichever tab is open.
+    // ---------------------------------------------------------------------
+    function showBlockHint(msg) {
+        var targets = ['#txtHomeBlock', '#txtApartmentBlock', '#txtOfficeBlock'];
+        for (var i = 0; i < targets.length; i++) {
+            var $inp = $(targets[i]);
+            if ($inp.length === 0) continue;
+
+            var hintId = 'blockHint_' + targets[i].replace('#', '');
+            var $h = $('#' + hintId);
+            if ($h.length === 0) {
+                $h = $('<div class="blockAutoHint" id="' + hintId + '" '
+                     + 'style="font-size:12px;margin-top:4px;color:#b26a00;"></div>');
+                $inp.after($h);
+            }
+            $h.text(msg || "").toggle(!!msg);
+        }
+    }
+
+    var _areaMaster = null;      // [{value, text, dataVal}]
+    var _areaFiltering = false;  // stops our own edits retriggering the cache
+
+    function cacheAreaOptions() {
+        if (_areaFiltering) return;
+        var opts = [];
+        $('#AddressArea option').each(function () {
+            opts.push({
+                value: $(this).val(),
+                text: $(this).text(),
+                dataVal: $(this).attr('data-val')
+            });
+        });
+        // Never cache a list we already filtered down to nothing.
+        if (opts.length > 0) _areaMaster = opts;
+    }
+
+    function filterAreaOptions(term) {
+        if (!_areaMaster) cacheAreaOptions();
+        if (!_areaMaster) return;
+
+        var $sel = $('#AddressArea');
+        var current = $sel.val();
+        var q = (term || '').trim().toLowerCase();
+
+        _areaFiltering = true;
+        $sel.empty();
+
+        var shown = 0;
+        for (var i = 0; i < _areaMaster.length; i++) {
+            var o = _areaMaster[i];
+            // Always keep the placeholder, and always keep the option that is
+            // currently chosen -- dropping it would silently clear the
+            // customer's selection while they type.
+            var isPlaceholder = (o.value === '' || o.value === null);
+            var isCurrent = (o.value === current && current !== '' && current !== null);
+
+            if (q === '' || isPlaceholder || isCurrent ||
+                o.text.toLowerCase().indexOf(q) >= 0) {
+                var $o = $('<option>').val(o.value).text(o.text);
+                if (o.dataVal !== undefined && o.dataVal !== null) $o.attr('data-val', o.dataVal);
+                $sel.append($o);
+                if (!isPlaceholder) shown++;
+            }
+        }
+
+        $sel.val(current);
+        _areaFiltering = false;
+
+        $('#areaFilterCount').text(q === '' ? '' : shown + ' match' + (shown === 1 ? '' : 'es'));
+    }
+
+    function initAreaFilter() {
+        var $sel = $('#AddressArea');
+        if ($sel.length === 0 || $('#areaFilterBox').length > 0) return;
+
+        var $box = $('<input type="text" id="areaFilterBox" class="form-control" '
+                   + 'placeholder="Type to search area..." autocomplete="off" '
+                   + 'style="margin-bottom:6px;" />');
+        var $cnt = $('<div id="areaFilterCount" class="text-muted" '
+                   + 'style="font-size:11px;margin-top:2px;"></div>');
+
+        $sel.before($box);
+        $sel.after($cnt);
+
+        var t = null;
+        $box.on('input', function () {
+            var v = this.value;
+            clearTimeout(t);                       // 150ms: 121 areas is small,
+            t = setTimeout(function () {           // but this keeps typing smooth
+                filterAreaOptions(v);              // on low-end counter hardware
+            }, 150);
+        });
+
+        // Enter picks the only remaining match - the fast path when someone
+        // types four letters and there is exactly one area left.
+        $box.on('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            var $real = $('#AddressArea option').filter(function () {
+                return $(this).val() !== '' && $(this).val() !== null;
+            });
+            if ($real.length === 1) {
+                $('#AddressArea').val($real.first().val()).trigger('change');
+                $box.val('');
+                filterAreaOptions('');
+            }
+        });
+
+        // The list is rebuilt by BindCartDetails.js after the areas load, so
+        // re-snapshot when that happens instead of caching a stale or empty
+        // list on first paint.
+        if (window.MutationObserver) {
+            new MutationObserver(function () {
+                if (!_areaFiltering) {
+                    _areaMaster = null;
+                    cacheAreaOptions();
+                }
+            }).observe($sel[0], { childList: true });
+        }
+
+        cacheAreaOptions();
+    }
+
+    $(function () { initAreaFilter(); });
+
+    function AddressTypeClick(addrType) {
+        debugger;
+        $('.ApartmentFields').each(function (index) {
+            var attr = $(this).attr('required');
+            if (typeof attr !== typeof undefined && attr !== false) {
+                $(this).removeAttr("required");
+            }
+        });
+        $('.OfficeFields').each(function (index) {
+            var attr = $(this).attr('required');
+            if (typeof attr !== typeof undefined && attr !== false) {
+                $(this).removeAttr("required");
+            }
+        });
+        $('.HomeFields').each(function (index) {
+            var attr = $(this).attr('required');
+            if (typeof attr !== typeof undefined && attr !== false) {
+                $(this).removeAttr("required");
+            }
+        });
+        if (addrType == "Home") {
+            $('.HomeFields').each(function (index) {
+                var attr = $(this).attr('required');
+                if (typeof attr == typeof undefined || attr == false) {
+                    $(this).attr("required", "");
+                }
+            });
+        }
+        if (addrType == "Apartment") {
+            $('.ApartmentFields').each(function (index) {
+                var attr = $(this).attr('required');
+                if (typeof attr == typeof undefined || attr == false) {
+                    $(this).attr("required", "");
+                }
+            });
+        }
+        if (addrType == "Office") {
+            $('.OfficeFields').each(function (index) {
+                var attr = $(this).attr('required');
+                if (typeof attr == typeof undefined || attr == false) {
+                    $(this).attr("required", "");
+                }
+            });
+        }
+    }
+</script>

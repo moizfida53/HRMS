@@ -1,0 +1,328 @@
+﻿@{
+    //ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_LayoutNew.cshtml";
+}
+
+@*<link href="../vendor/jqwidgets/styles/jqx.base.css" rel="stylesheet" />
+    <link href="../DashboardContent/DateRangePicker/daterangepicker.css" rel="stylesheet" />
+
+    <!-- CSS Files -->
+    <link href="../DashboardContent/material-dashboard.css" rel="stylesheet">
+    <!-- CSS Just for demo purpose, don't include it in your project -->
+    <link href="../DashboardContent/demo.css" rel="stylesheet">*@
+<!DOCTYPE html>
+<html class="perfect-scrollbar-on" lang="en">
+<head>
+    <link href="~/DashboardContent/material-dashboard.css" rel="stylesheet">
+    <link href="~/DashboardContent/demo.css" rel="stylesheet">
+    <link href="~/assets/plugins/custom/datatables/datatables.bundle.css?v=7.0.5" rel="stylesheet" type="text/css" />
+    
+    <style>
+        .wrapper {
+            height: auto !important;
+        }
+
+        .selectbox {
+            background: #fff;
+            color: #1d3b4a;
+            padding: 8px;
+            line-height: 18px;
+            border-radius: 4px;
+            border-width: 0 1px 4px;
+        }
+
+        .valueHeader {
+            font-size: 25px !important;
+        }
+        .dataTables_info
+        {
+            color:black;
+        }
+
+        .card-stats .card-header.card-header-icon i {
+            font-size: 21px !important;
+            line-height: 0px !important;
+            width: 56px;
+            height: 56px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="">
+    <div class="wrapper ">
+        <div class="main-panel ps-container ps-theme-default ps-active-y" style="width:100% !important">
+            <div class="content">
+                <div class="container-fluid" style="margin-top:40px;">
+                    <div class="row">
+                        <div class="col-6">
+                            <div id="reportrange" style="background: #8c8a8a;cursor: pointer;padding: 5px 10px;border: 1px solid #ccc;color: white;font-weight: bold;">
+                                <i class="fa fa-calendar"></i>&nbsp;
+                                <span></span> <i class="fa fa-caret-down"></i>
+                            </div>
+                            <input id="FromDate" style="display:none;" />
+                            <input id="ToDate" style="display:none;" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-4 col-md-6 col-sm-6">
+                            <div class="card card-stats">
+                                <div class="card-header card-header-success card-header-icon">
+                                    <div class="card-icon">
+                                        <i class="material-icons">Customer Visits</i>
+                                    </div>
+                                    <p class="card-category valueHeader">Total Count</p>
+                                    <h3 id="TotalCustomers" class="card-title">
+                                        -
+                                        @*<small>KD</small>*@
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-sm-6">
+                            <div class="card card-stats">
+                                <div class="card-header card-header-warning card-header-icon">
+                                    <div class="card-icon">
+                                        <i class="material-icons">Top Category</i>
+                                    </div>
+                                    <p class="card-category valueHeader" id="TopCategory">Top Category</p>
+                                    <h3 id="TopCategoryCount" class="card-title">
+                                        -
+                                        @*<small>KD</small>*@
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 col-sm-6">
+                            <div class="card card-stats">
+                                <div class="card-header card-header-danger card-header-icon">
+                                    <div class="card-icon">
+                                        <i class="material-icons">Top Item</i>
+                                    </div>
+                                    <p class="card-category valueHeader" id="TopItem">Top Item</p>
+                                    <h3 id="TopItemCount" class="card-title">
+                                        -
+                                        @*<small>KD</small>*@
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+                        @*<div class="col-lg-3 col-md-6 col-sm-6">
+                <div class="card card-stats">
+                    <div class="card-header card-header-info card-header-icon">
+                        <div class="card-icon">
+                            <i class="material-icons">money</i>
+                        </div>
+
+                        <p class="card-category">Total waste</p>
+                        <h3 id="divAllBranchTotalWaste" class="card-title">
+                            0.000
+                            <small>KD</small>
+                        </h3>
+                    </div>
+                </div>
+            </div>*@
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card card-chart">
+                                <div class="card-header card-header-success1" style="border: 7px solid #66bb6a;">
+                                    <div class="ct-chart" id="FirstChart" style="width:100%; height:400px">
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="card-title">Branch wise visit</h4>
+                                    <p class="card-category">
+                                        @*<span class="text-success"><i class="fa fa-long-arrow-up"></i> 55% </span> increase in today sales.*@
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card card-chart">
+                                <div class="card-header card-header-warning1" style="border: 7px solid #ffa726">
+                                    <div class="ct-chart" id="SecondChart" style="width:100%; height:400px">
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="card-title">Mobile Type wise visits</h4>
+                                    @*<p class="card-category">Last Week Data</p>*@
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card card-chart">
+                                <div class="card-header card-header-danger1" style="border: 7px solid #ef5350;">
+                                    <div class="ct-chart" id="ThirdChart" style="width:100%; height:400px">
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="card-title">Category visits</h4>
+                                    @*<p class="card-category">Last Week Data</p>*@
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card card-chart">
+                                <div class="card-header card-header-info1" style="border: 7px solid #26c6da;background:white;">
+                                    <div class="ct-chart" id="FourthChart" style="width:100%; height:370px">
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="card-title">Top 5 Items</h4>
+                                    @*<p class="card-category">Last Week Data</p>*@
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card card-chart">
+                                <div class="card-header card-header-danger1" style="margin-top:20px !important;">
+                                    <div class="ct-chart" id="CategoryVisitListData" style="width:100%; height:auto">
+                                        <table class="table table-hover table-checkable" id="grd_CategoryVisit">
+                                            <thead>
+                                                <tr>
+                                                    <th>Category Name</th>
+                                                    <th>Visits</th>
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="card-title">Category visits</h4>
+                                    @*<p class="card-category">Last Week Data</p>*@
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card card-chart">
+                                <div class="card-header card-header-info1" style="margin-top:20px !important;">
+                                    <div class="ct-chart" id="ItemsVisitListData" style="width:100%; height:auto">
+                                        <table class="table table-hover table-checkable" id="grd_ItemsVisit">
+                                            <thead>
+                                                <tr>
+                                                    <th>Item Name</th>
+                                                    <th>Category Name</th>
+                                                    <th>Visits</th>
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h4 class="card-title">Items visits</h4>
+                                    @*<p class="card-category">Last Week Data</p>*@
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @*<div class="ps-scrollbar-x-rail" style="left: 0px; bottom: 0px;">
+                    <div class="ps-scrollbar-x" tabindex="0" style="left: 0px; width: 0px;">
+                    </div>
+                </div><div class="ps-scrollbar-y-rail" style="top: 0px; right: 0px; height: 750px;">
+                    <div class="ps-scrollbar-y" tabindex="0" style="top: 0px; height: 479px;width:27px;"></div>
+                </div>*@
+        </div>
+    </div>
+    <div class="fixed-plugin" style="display:none;">
+        <div class="dropdown show-dropdown open">
+            <a href="#" data-toggle="dropdown">
+                <i class="fa fa-cog fa-2x"> </i>
+            </a>
+            <ul class="dropdown-menu">
+                <li class="header-title"> Sidebar Filters</li>
+                <li class="adjustments-line">
+                    <a href="javascript:void(0)" class="switch-trigger active-color">
+                        <div class="badge-colors ml-auto mr-auto">
+                            <span class="badge filter badge-purple" data-color="purple"></span>
+                            <span class="badge filter badge-azure" data-color="azure"></span>
+                            <span class="badge filter badge-green" data-color="green"></span>
+                            <span class="badge filter badge-warning" data-color="orange"></span>
+                            <span class="badge filter badge-danger" data-color="danger"></span>
+                            <span class="badge filter badge-rose active" data-color="rose"></span>
+                        </div>
+                        <div class="clearfix"></div>
+                    </a>
+                </li>
+                <li class="header-title">Images</li>
+                <li class="active">
+                    <a class="img-holder switch-trigger" href="javascript:void(0)">
+                        <img src="~/DashboardContent/sidebar-1.jpg" alt="">
+                    </a>
+                </li>
+                <li>
+                    <a class="img-holder switch-trigger" href="javascript:void(0)">
+                        <img src="~/DashboardContent/sidebar-2.jpg" alt="">
+                    </a>
+                </li>
+                <li>
+                    <a class="img-holder switch-trigger" href="javascript:void(0)">
+                        <img src="~/DashboardContent/sidebar-3.jpg" alt="">
+                    </a>
+                </li>
+                <li>
+                    <a class="img-holder switch-trigger" href="javascript:void(0)">
+                        <img src="~/DashboardContent/sidebar-4.jpg" alt="">
+                    </a>
+                </li>
+                <li class="button-container">
+                    <a href="" target="_blank" class="btn btn-primary btn-block">Free Download</a>
+                </li>
+                <!-- <li class="header-title">Want more components?</li>
+                    <li class="button-container">
+                        <a href="" target="_blank" class="btn btn-warning btn-block">
+                          Get the pro version
+                        </a>
+                    </li> -->
+                <li class="button-container">
+                    <a href="" target="_blank" class="btn btn-default btn-block">
+                        View Documentation
+                    </a>
+                </li>
+                <li class="button-container github-star">
+                    <span></span>
+                </li>
+                <li class="header-title">Thank you for 95 shares!</li>
+                <li class="button-container text-center">
+                    <button id="twitter" class="btn btn-round btn-twitter sharrre"><i class="fa fa-twitter"></i> · 45</button>
+                    <button id="facebook" class="btn btn-round btn-facebook sharrre"><i class="fa fa-facebook-f"></i> · 50</button>
+                    <br>
+                    <br>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <noscript>
+        <img height="1" width="1" style="display:none" src="" />
+    </noscript>
+    <script src="../Scripts/jquery-3.1.1.min.js"></script>
+    <script src="../MainJs/ItemViewDashboard.js"></script>
+    <script src="../DashboardContent/DateRangePicker/moment.min.js"></script>
+    <script src="../DashboardContent/DateRangePicker/daterangepicker.min.js"></script>>
+
+    <!-- Custom scripts for this template -->
+    <script type="text/javascript" src="../vendor/jqwidgets/jqxcore.js"></script>
+    <script type="text/javascript" src="../vendor/jqwidgets/jqxdata.js"></script>
+
+    <script type="text/javascript" src="../vendor/jqwidgets/jqxdraw.js"></script>
+    <script type="text/javascript" src="../vendor/jqwidgets/jqxchart.core.js"></script>
+
+
+    <script src="~/DashboardContent/DateRangePicker/moment.min.js"></script>
+    <script src="~/DashboardContent/DateRangePicker/daterangepicker.min.js"></script>
+    <link href="~/DashboardContent/DateRangePicker/daterangepicker.css" rel="stylesheet" />
+    <script src="~/assets/plugins/custom/datatables/datatables.bundle.js?v=7.0.5"></script>
+    
+</body>
+
+</html>
+
+

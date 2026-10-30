@@ -1,0 +1,4 @@
+{
+  "port": 9101,
+  "allowedOrigins": ["https://your-pos-domain.com"]
+}

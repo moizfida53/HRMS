@@ -1,0 +1,165 @@
+@{
+    Layout = "";
+}
+<!doctype html>
+<html>
+<head>
+    <base href="../../../../">
+    <meta charset="utf-8">
+    <title>Login &mdash; eTMM Menu</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,400i,600,700,800" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap-select.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/datepicker.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/owl.carousel.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/style.css" />
+
+    <script type="text/javascript" src="~/js/jquery.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="~/js/jquery.nicescroll.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-select.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-datepicker.js"></script>
+    <script type="text/javascript" src="~/js/owl.carousel.min.js"></script>
+    <script type="text/javascript" src="~/js/menu.js"></script>
+    <script type="text/javascript" src="~/js/general.js"></script>
+
+    <style>
+        /* ============================================================
+           eTMM Menu — Login  (self-contained; STATIC brand colours only,
+           no theme/DB variables so the button colour is never dynamic)
+           Palette from the logo:  gold #E0A63C · charcoal #1a1a1a · white
+           ============================================================ */
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; }
+
+            body.etmm-login {
+                font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+                position: relative;
+                overflow: hidden;
+                color: #1a1a1a;
+                /*background: radial-gradient(1100px 720px at 50% -18%, #3a352b 0%, #242424 42%, #141414 100%);*/
+                background: radial-gradient(1100px 720px at 50% -18%, #e1a93f 0%, #e1a93f 42%, #ffffff 100%);        }
+
+        #particles-js { position: fixed; inset: 0; z-index: 0; }
+
+        /* soft gold halo behind the card */
+        .etmm-glow {
+            position: fixed; left: 50%; top: 46%; transform: translate(-50%, -50%);
+            width: 620px; height: 620px; max-width: 90vw; max-height: 90vw; border-radius: 50%;
+            background: radial-gradient(circle, rgba(224,166,60,.20) 0%, rgba(224,166,60,0) 68%);
+            z-index: 1; pointer-events: none;
+        }
+
+        .etmm-wrap { position: relative; z-index: 2; width: 100%; max-width: 430px; }
+
+        .etmm-card {
+            background: #ffffff; border-radius: 18px; padding: 42px 38px 30px;
+            border-top: 4px solid #E0A63C;
+            box-shadow: 0 30px 80px rgba(0,0,0,.5), 0 1px 0 rgba(255,255,255,.7) inset;
+        }
+
+        .etmm-logo { text-align: center; margin-bottom: 24px; }
+        .etmm-logo img { max-width: 220px; width: 72%; height: auto; }
+
+        .etmm-title { text-align: center; font-size: 22px; font-weight: 800; margin: 0 0 5px; color: #1a1a1a; }
+        .etmm-sub { text-align: center; font-size: 13.5px; color: #8c8c8c; margin: 0 0 28px; }
+
+        .etmm-field { position: relative; margin-bottom: 16px; }
+        .etmm-field > .fa {
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            color: #c39a3a; font-size: 15px; pointer-events: none;
+        }
+        .etmm-field input {
+            width: 100%; height: 52px; border: 1.5px solid #e6e6e6; border-radius: 12px;
+            padding: 0 46px; font-size: 15px; color: #222; background: #fafafa; outline: none;
+            transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+        }
+        .etmm-field input::placeholder { color: #adadad; }
+        .etmm-field input:focus {
+            border-color: #E0A63C; background: #fff; box-shadow: 0 0 0 4px rgba(224,166,60,.16);
+        }
+
+        .etmm-eye {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            background: none; border: 0; color: #b3b3b3; cursor: pointer; font-size: 15px; padding: 8px; line-height: 1;
+        }
+        .etmm-eye:hover { color: #E0A63C; }
+
+        /* STATIC gold button — no var(), no theme colour */
+        .etmm-btn {
+            display: block; width: 100%; height: 52px; line-height: 52px; margin-top: 24px;
+            text-align: center; border: 0; border-radius: 12px; cursor: pointer; text-decoration: none;
+            font-size: 16px; font-weight: 800; letter-spacing: .5px; color: #1a1a1a;
+            background: linear-gradient(180deg, #EAB74E 0%, #E0A63C 55%, #CE9330 100%);
+            box-shadow: 0 12px 26px rgba(224,166,60,.42);
+            transition: filter .15s ease, box-shadow .15s ease, transform .06s ease;
+        }
+        .etmm-btn:hover { filter: brightness(1.05); box-shadow: 0 14px 30px rgba(224,166,60,.55); color: #1a1a1a; text-decoration: none; }
+        .etmm-btn:active { transform: translateY(1px); }
+
+        .etmm-foot { text-align: center; margin-top: 24px; font-size: 12px; color: #b9b9b9; }
+        .etmm-foot b { color: #8c8c8c; font-weight: 700; }
+
+        @@media (max-width: 480px) {
+            .etmm-card { padding: 32px 22px 24px; border-radius: 16px; }
+            .etmm-logo img { width: 64%; }
+            .etmm-title { font-size: 20px; }
+        }
+    </style>
+</head>
+<body class="etmm-login">
+    <div id="particles-js" style="display:none;"></div>
+    <div class="etmm-glow"></div>
+
+    <div class="etmm-wrap">
+        <div class="etmm-card">
+            <div class="etmm-logo">
+                <img src="images/tmm-logo.png" alt="eTMM Menu" onerror="this.style.display='none'" />
+            </div>
+            <h1 class="etmm-title">Welcome back</h1>
+            <p class="etmm-sub">Sign in to continue to your dashboard</p>
+
+            <form id="loginpage" class="etmm-form" onsubmit="return false;">
+                <div class="etmm-field">
+                    <i class="fa fa-user-o" aria-hidden="true"></i>
+                    <input id="txtUsername" type="text" placeholder="Username" autocomplete="username" />
+                </div>
+                <div class="etmm-field">
+                    <i class="fa fa-lock" aria-hidden="true"></i>
+                    <input id="txtPassword" type="password" placeholder="Password" autocomplete="current-password" />
+                    <button type="button" class="etmm-eye" id="etmmEye" aria-label="Show password"><i class="fa fa-eye" aria-hidden="true"></i></button>
+                </div>
+                <a id="kt_login_signin" onclick="Login()" href="#" class="etmm-btn"><span>Login</span></a>
+            </form>
+
+            <div class="etmm-foot">Powered by <b>eTMM&nbsp;Menu</b></div>
+        </div>
+    </div>
+
+    <script src="../MainJs/LoginJS.js"></script>
+    <script>
+        // password show / hide toggle
+        (function () {
+            var eye = document.getElementById('etmmEye');
+            if (!eye) { return; }
+            eye.addEventListener('click', function () {
+                var p = document.getElementById('txtPassword');
+                if (!p) { return; }
+                var reveal = p.type === 'password';
+                p.type = reveal ? 'text' : 'password';
+                var ic = eye.querySelector('i');
+                if (ic) { ic.className = reveal ? 'fa fa-eye-slash' : 'fa fa-eye'; }
+            });
+        })();
+    </script>
+</body>
+</html>

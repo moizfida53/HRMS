@@ -1,0 +1,59 @@
+:root {
+	--primary:#000;
+	--secondary:#000;
+	--secondary_text:#000;
+	--title_bg:#fff;
+	--title_text:#000;
+	--header_icon:#789ed2;
+	--btn-language_background_color:#fff;
+	--btn-language_text_color:#000;
+	--main_navigation_bg:#fff;
+	--main_navigation_icon_color:#789ed2;
+	--main_navigation_text_color:#789ed2;
+
+	/* Main Page Header */
+	--header_background_color:#000;
+	--header_icon_color:#fff;
+	--scroll_header_background_color:#000;
+	--scroll_header_icon_color:#fff;
+	
+	--fixd_item-list-title_background_color:#CFCFCF;
+	--fixd_item-list-title_text_color:#000;
+
+	/* Category Page-- */
+	--category_page_background_color:#789ed2;
+	--category_page_card_primary_background_color:#CFCFCF;
+	--category_page_categoryname_color:#000;
+
+	/* Item Page-- */
+	--item_page_background_color:#789ed2;
+	--item_page_category_title_bg_color:#fff;
+	--item_page_category_title_font_color:#000;
+	--item_page_item_background_color:#CFCFCF;
+	--item_page_itemname_color:#000;
+	--item_page_price_color:#000;
+	--item_page_plus_button_color:#000;
+	--item_page_plus_button_icon_color:#CFCFCF;
+
+	/* Product Details-- */
+	--product_details_title_font_color:#000;
+	--product_details_background_color:#789ed2;
+	--product_name:#000;
+	--product_details_text:#000;
+	--product_details_price:#000;
+	--product_details_price_text:#000;
+	--product_details_plus_button_color:#000;
+	--product_details_plus_button_icon_color:#fff;
+	--category_carousel_background_color:#000;	
+	/* Cart-- */
+	--cart_title_font_color:#000;
+	--cart_background_color:#789ed2;
+	--cart_category_name:#000;
+	--cart_item_name:#000;
+	--cart_item_price_color:#000;
+	--cart_item_background_color:#fff;
+	--cart_textarea_background_color:#f5f5f5; 
+	--cart_textarea_text_color:#000;
+	--cart_page_plus_button_color:#000;
+	--cart_page_plus_button_icon_color:#fff;
+}

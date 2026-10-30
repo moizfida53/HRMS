@@ -1,0 +1,105 @@
+﻿@{
+    //ViewBag.Title = "Reservation";
+    Layout = "";
+}
+
+<!-- Reservation Content ===========================================================-->
+<div id="divReservation" class="main-content active cart-page" style="display:none; height:100%;">
+    <div class="item-list-title mb-2">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-auto">
+                <a href="#" title="back" class="btn btn-sm back-btn" onclick="BackToSectionList();">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="col-auto">
+                <h2 id="lblReservationHeader">Reservation</h2>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid">
+            <div class="form-group guests-select">
+                <label id="lblNameOfGuests">Number of Guests</label>
+                <div class="d-flex item-select-block justify-content-between align-content-center">
+                    <a href="#" class="btn btn-primary icon-btn" onclick="MinusReservationGuest();">
+                        <i class="fa fa-minus" aria-hidden="true"></i>
+                    </a>
+                    <input id="txtReservationGuestCount" class="form-control onlyNumeric" type="text" name="" value="1">
+                    <a href="#" class="btn btn-primary icon-btn" onclick="AddReservationGuest();">
+                        <i class="fa fa-plus" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblScheduleDataAndTime">Schedule Data & Time</label>
+                <div class="date-pick">
+                    <div id="dtReservation" class="datepicker"></div>
+                </div>
+                @*<div class="date-pick">
+                <input type="text" class="form-control datepicker" readonly placeholder="Select date">
+                <i class="fa fa-calendar"></i>
+            </div>*@
+            </div>
+            <div class="form-group">
+                <button type="button" class="btn btn-outline-primary w-100 mb-1" onclick="onCheckAvailability();">
+                    <span id="btnlblCheckAvailability">Check Availability</span>
+                </button>
+            </div>
+            <div id="divAvailableTimeList" class="form-group times-select" style="display:none;">
+                <div class="card extra-item-block mb-4">
+                    <ul id="ulAvailableSlots" class="time-zone">
+                        @*<li>
+                            <input type="radio" id="10" value="10" name="extra-option" class="custom-control-input">
+                            <label for="10" class="item-name">
+                                10:00 PM
+                            </label>
+                        </li>
+                        <li>
+                            <input type="radio" id="11" value="11" name="extra-option" class="custom-control-input">
+                            <label for="11" class="item-name">
+                                11:00 PM
+                            </label>
+                        </li>
+                        <li>
+                            <input type="radio" id="12" value="12" name="extra-option" class="custom-control-input">
+                            <label for="12" class="item-name">
+                                12:00 PM
+                            </label>
+                        </li>
+                        <li>
+                            <input type="radio" id="01" value="01" name="extra-option" class="custom-control-input">
+                            <label for="01" class="item-name">
+                                01:00 AM
+                            </label>
+                        </li>
+                        <li>
+                            <input type="radio" id="02" value="02" name="extra-option" class="custom-control-input">
+                            <label for="02" class="item-name">
+                                02:00 AM
+                            </label>
+                        </li>*@
+                    </ul>
+                </div>
+            </div>
+
+            @*<div id="divIsavailable" class="avilabe-Success ml-auto mr-auto mb-3 mt-5" style="display:none">
+            <img class="img-fluid img-responsive" src="images/right.jpg" alt="">
+        </div>*@
+            <div class="reservation-times" style="display:none;">
+                <h3 class="title">
+                    Other Available Options
+                </h3>
+                <div class="form-group">
+                    <a href="#" class="times-zone">09:30 PM</a>
+                    <a href="#" class="times-zone active">10:30 PM</a>
+                </div>
+            </div>
+            <div class="form-group">
+                <a style="display:none;" id="btnReservationConfirm" href="#" class="btn btn-primary w-100 mt-3 mb-5" onclick="onReservationConfirmClick();">
+                    <span id="btnlblReservationConfirm">Confirm</span>
+                </a>
+            </div>
+    </div>
+</div>
+<script src="~/MainJs/ItemsViewNew/Reservation.js"></script>
+<!-- End Reservation Content ===========================================================-->

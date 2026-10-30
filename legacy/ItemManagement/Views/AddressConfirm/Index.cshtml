@@ -1,0 +1,152 @@
+﻿@{
+    Layout = "";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    @*<base href="../../../">*@
+    <meta charset="utf-8" />
+    <title>TMM</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="theme-color" content="var(--primary);">
+
+    <!--begin::Fonts-->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,400i,600,700,800" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap.min.css">
+
+    @*for rtl dynamically load*@
+    @*<link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap-rtl.min.css" />*@
+
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap-select.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/datepicker.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/owl.carousel.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/root.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/style.css" />
+
+    <link rel="stylesheet" type="text/css" href="~/Content/ItemView/TrackingOrder.css" />
+
+    @*for rtl dynamically load*@
+    @*<link rel="stylesheet" type="text/css" href="~/cssNew/rtl-style.css" />*@
+
+    <script type="text/javascript" src="~/js/jquery.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="~/js/jquery.nicescroll.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-select.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-datepicker.js"></script>
+    <script type="text/javascript" src="~/js/owl.carousel.min.js"></script>
+    <script type="text/javascript" src="~/js/menu.js"></script>
+    <script type="text/javascript" src="~/js/general.js"></script>
+
+
+    <style>
+        .img-Category {
+            background-size: 250px;
+            height: 167px;
+            object-fit: cover;
+        }
+
+        .img-Item {
+            background-size: 251px;
+            height: 167px;
+            object-fit: cover;
+        }
+
+        #lblItemInfoQty {
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <input id="selectedLang" type="hidden" value="EN" />
+    <input id="isAddressConfirmView" type="hidden" value="1" />
+    <div id="divleftsideMenuListView" class="container-fluid p-0 h-100">
+        <div class="row no-gutters h-100">
+            <div class="col-auto wrapper" style="padding-top:0px !important;">
+                <!-- End ReservationConfirm Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/AddressConfirm/DeliveryAddress.cshtml");
+                }
+                @{
+                    Html.RenderPartial("~/Views/AddressConfirm/UpdateStatus.cshtml");
+                }
+                <footer class="powered-by">
+                    Powered by TMM Emenu
+                </footer>
+            </div>
+            <div class="col desktop-background-images">
+                @*background-image:url('https://dm.tmm-menu.com/RightBackgroud.png')*@
+            </div>
+
+        </div>
+    </div>
+
+    <!--Alert Modal -->
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alertTitle"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div id="alertMessage" class="modal-body">
+
+                </div>
+                <div class="modal-footer">
+                    <button id="btnlblalertColse" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Loader display -->
+    <div class="loading-block" style="display:none;">
+        <div id="container">
+            <div class="divider" aria-hidden="true"></div>
+            <p class="loading-text" aria-label="Loading" style="direction: ltr;">
+                <span class="letter" aria-hidden="true">L</span>
+                <span class="letter" aria-hidden="true">o</span>
+                <span class="letter" aria-hidden="true">a</span>
+                <span class="letter" aria-hidden="true">d</span>
+                <span class="letter" aria-hidden="true">i</span>
+                <span class="letter" aria-hidden="true">n</span>
+                <span class="letter" aria-hidden="true">g</span>
+            </p>
+        </div>
+    </div>
+
+
+    <!--end::Header Mobile-->
+    <input type="hidden" id="vallblFistName" value="فاتورة المبلغ" />
+
+    <script src="../../MainJs/ItemsViewNew/Index.js"></script>
+    <script src="../../MainJs/ItemsViewNew/BindCartDetails.js"></script>
+    @*<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>*@
+
+    <!--begin::Global Config(global config for global JS scripts)-->
+    <script>var KTAppSettings = { "breakpoints": { "sm": 576, "md": 768, "lg": 992, "xl": 1200, "xxl": 1200 }, "colors": { "theme": { "base": { "white": "#ffffff", "primary": "#6993FF", "secondary": "#E5EAEE", "success": "#1BC5BD", "info": "#8950FC", "warning": "#FFA800", "danger": "#F64E60", "light": "#F3F6F9", "dark": "#212121" }, "light": { "white": "#ffffff", "primary": "#E1E9FF", "secondary": "#ECF0F3", "success": "#C9F7F5", "info": "#EEE5FF", "warning": "#FFF4DE", "danger": "#FFE2E5", "light": "#F3F6F9", "dark": "#D6D6E0" }, "inverse": { "white": "#ffffff", "primary": "#ffffff", "secondary": "#212121", "success": "#ffffff", "info": "#ffffff", "warning": "#ffffff", "danger": "#ffffff", "light": "#464E5F", "dark": "#ffffff" } }, "gray": { "gray-100": "#F3F6F9", "gray-200": "#ECF0F3", "gray-300": "#E5EAEE", "gray-400": "#D6D6E0", "gray-500": "#B5B5C3", "gray-600": "#80808F", "gray-700": "#464E5F", "gray-800": "#1B283F", "gray-900": "#212121" } }, "font-family": "Poppins" };</script>
+    <!--end::Global Config-->
+
+    <link href="../Content/jquery-confirm/jquery-confirm.css" rel="stylesheet" />
+    <script src="../Content/jquery-confirm/jquery-confirm.js"></script>
+    <script src="../Content/jquery-confirm/Jquery-confirm-custom.js"></script>
+
+    <script src="../MainJs/ItemsViewNew/QrCode.js"></script>
+
+    @********************Begin js for TPay Payment Api*************************@
+    <link rel="shortcut icon"
+          href="https://goSellJSLib.b-cdn.net/v1.6.0/imgs/tap-favicon.ico" />
+    <link href="https://goSellJSLib.b-cdn.net/v1.6.0/css/gosell.css"
+          rel="stylesheet" />
+    <script type="text/javascript"
+            src="https://goSellJSLib.b-cdn.net/v1.6.0/js/gosell.js"></script>
+    <div id="root"></div>
+    @********************End js for TPay Payment Api*************************@
+
+</body>
+</html>

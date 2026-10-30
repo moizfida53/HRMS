@@ -1,0 +1,25 @@
+@charset "utf-8";
+
+/* Category
+--------------------------------------------------------------------------------------------------------*/
+.category-accordion.accordion>.card {background-color: var(--Design_4_MainCategory_Internal_Background_Color); border-radius:6px; overflow: visible;}
+.category-accordion.accordion>.card>.card-header {background-color: var(--Design_4_MainCategory_Background_Color); border-radius:6px; box-shadow: rgb(0 0 0 / 15%) 2px 2px 10px;}
+.category-accordion .card-header .btn {color:var(--Design_4_MainCategory_Text_color); font-size:16px; font-weight:600; position: relative;}
+.category-accordion .accordion-body .card {box-shadow: rgb(0 0 0 / 15%) 2px 2px 10px;}
+.category-accordion .accordion-body .card .card-body{background-color: var(--Design_4_Item_background_color); padding:10px;}
+.category-accordion .accordion-body .card .product-img{width:100px;height:100px;overflow:hidden; border-radius:4px;}
+.category-accordion .accordion-body .card .product-img img{width:100px;height:100px;object-fit:cover;}
+.category-accordion .accordion-body .card .content-block{ width:calc(100% - 110px); padding:0 0 10px;}
+.category-accordion .accordion-body .media .media-body-title{color:var(--Design_4_Item_Name_Color);font-weight: 600; line-height: 21px;}
+.category-accordion .accordion-body .media .media-body-text {color: var(--Design_4_Item_details_Color); font-size: 14px; font-weight:400;} 
+.category-accordion .accordion-body .media .media-body .price{color: var(--Design_4_Item_Price_Color); font-size: 14px; font-weight: 600; line-height: 19px;}
+.category-accordion .card-header .btn svg path{stroke: var(--Design_4_MainCategory_arrow_color) !important;}
+
+.subcategory-accordion > .card {box-shadow:none !important;}
+.subcategory-accordion.accordion>.card>.card-header {background:var(--Design_4_SubCategory_Bg_Color); border-radius:6px; box-shadow:none;}
+.subcategory-accordion .card-header .btn {height:34px;}
+.subcategory-accordion .card-header .btn:after {display: none;}
+.subcategory-accordion .card-header .plus-icon { width:18px; height:18px; display: block;position: relative;}
+.subcategory-accordion .card-header .plus-icon:after {content:''; opacity:0; display: block; width:2px; height:15px; background-color:var(--Design_4_SubCategory_text_color); position: absolute; left:6px; top: 0;}
+.subcategory-accordion .card-header .plus-icon:before {content:''; display: block; width:15px; height:2px; background-color:var(--Design_4_SubCategory_text_color); position: absolute; left: 0; top:6px;}
+.subcategory-accordion .card-header .collapsed .plus-icon:after {content:''; opacity:1;}

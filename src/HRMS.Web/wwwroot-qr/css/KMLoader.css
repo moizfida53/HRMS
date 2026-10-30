@@ -1,0 +1,179 @@
+﻿/* old round loader css*/
+/*.loader {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border: 1rem solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 1rem solid #3498db;
+    width: 10rem;
+    height: 10rem;
+    -webkit-animation: spin 2s linear infinite;
+    animation: spin 2s linear infinite;
+    display: none;
+    overflow: show;
+    z-index: 5000;
+}
+
+@-webkit-keyframes spin {
+    0% {
+        -webkit-transform: rotate(0deg);
+    }
+
+    100% {
+        -webkit-transform: rotate(360deg);
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}*/
+
+.loaderbouncing {
+    position: absolute;
+    /*top: 50%;
+    left: 50%;
+    width: 15rem;
+    height: 10rem;*/
+    width: 100%;
+    height: 100%;
+    display: none;
+    overflow: show;
+    z-index: 5000;
+}
+
+.wrap {
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    border: 3px solid;
+    border-color: orange;
+    padding: 9px;
+    background: white;
+    font-weight: bold;
+}
+
+.text {
+    color: #fbae17;
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.bounceball {
+    position: relative;
+    display: inline-block;
+    height: 45px;
+    width: 30px;
+}
+
+    .bounceball:before {
+        position: absolute;
+        content: "";
+        display: block;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: #fbae17;
+        -webkit-transform-origin: 50%;
+        transform-origin: 50%;
+        -webkit-animation: bounce 500ms alternate infinite ease;
+        animation: bounce 500ms alternate infinite ease;
+    }
+
+@-webkit-keyframes bounce {
+    0% {
+        top: 50px;
+        height: 5px;
+        border-radius: 60px 60px 20px 20px;
+        -webkit-transform: scaleX(2);
+        transform: scaleX(2);
+    }
+
+    35% {
+        height: 15px;
+        border-radius: 50%;
+        -webkit-transform: scaleX(1);
+        transform: scaleX(1);
+    }
+
+    100% {
+        top: 0;
+    }
+}
+
+@keyframes bounce {
+    0% {
+        top: 50px;
+        height: 5px;
+        border-radius: 60px 60px 20px 20px;
+        -webkit-transform: scaleX(2);
+        transform: scaleX(2);
+    }
+
+    35% {
+        height: 15px;
+        border-radius: 50%;
+        -webkit-transform: scaleX(1);
+        transform: scaleX(1);
+    }
+
+    100% {
+        top: 0;
+    }
+}
+
+
+
+
+/*start bounceBall Loader Css*/
+.wrap {
+    position: absolute;
+    top: 50%;
+    left: 47%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    border: 1px solid;
+    border-color: var(--primary);
+    padding: 9px;
+    background: white;
+    font-weight: bold;
+    opacity: 0.8;
+}
+
+.text {
+    color: var(--primary);
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.bounceball {
+    position: relative;
+    display: inline-block;
+    height: 45px;
+    width: 30px;
+}
+
+    .bounceball:before {
+        position: absolute;
+        content: "";
+        display: block;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: var(--primary);
+        -webkit-transform-origin: 50%;
+        transform-origin: 50%;
+        -webkit-animation: bounce 500ms alternate infinite ease;
+        animation: bounce 500ms alternate infinite ease;
+    }
+
+/*End bounceBall Loader Css*/

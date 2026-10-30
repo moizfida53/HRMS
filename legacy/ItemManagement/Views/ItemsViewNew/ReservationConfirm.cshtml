@@ -1,0 +1,63 @@
+﻿@{
+    //ViewBag.Title = "Reservation";
+    Layout = "";
+}
+<style>
+    .qrcodemaindiv canvas {
+        width: 100px !important;
+    }
+</style>
+<!-- Reservation Confirm Content ===========================================================-->
+<div id="divReservationConfirm" class="main-content active cart-page" style="display:none;">
+    <div class="item-list-title mb-2">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-auto">
+                @*<a href="#" title="back" class="btn btn-sm back-btn" onclick="ShowDivReservationCustomerInfo();">
+                        <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                    </a>*@
+            </div>
+            <div class="col-auto">
+                <h2 id="lblReservationConfirmHeader">Reservation</h2>
+            </div>
+        </div>
+    </div>
+    <div class="animation">
+        <div class="container-fluid">
+            <form>
+                <div class="qr-code ml-auto mr-auto mb-3 mt-5">
+                    @*<img class="img-fluid img-responsive" src="images/qr_code.png" alt="">*@
+                    <div class="img-fluid img-responsive  qrcodemaindiv" id="ReservationConfirmQRCode"></div>
+                </div>
+                <ul class="reservation-info">
+                    <li> <label id="lblConfirmationIdConfirm">Confirmation Id</label><br /> <span id="lblReservationConfirmationId">02</span></li>
+                    <li> <label id="lblNameOfTable">Table Name</label><br /> <span id="lblSelectedTableName">02</span></li>
+                    <li><span id="lblConfirmReservationDate">14 Oct 2020</span></li>
+                    <li><span id="lblConfirmReservationSlot">9:00pm - 10:30pm</span></li>
+                </ul>
+                <h2 class="thanks-text w-100 mb-5 mt-5" id="ReservationConfirmThankyou">Thank you </h2>
+
+                <div class="card p-0 mb-4 ml-auto mr-auto">
+                    <h3 class="card-header confirm-note-title">Note</h3>
+                    <div class="card-body">
+                        <ol class="terms-and-conditions">
+                            <li>Please take a screenshot of the QR code for Reference </li>
+                            <li>We can hold your Reservation maximum for 10 minutes</li>
+                            <li>For any support, please call +965 67665968</li>
+                        </ol>
+                        <ol class="terms-and-conditions">
+                            <li>ررجى الاحتفاظ بصورة من صفحة الحجز لإبرازها وقت الحضور </li>
+                            <li>الرجاء الحضور بوقت الحجز المحدد او سوف يتم إلغاء الحجز  اذا تجاوز التأخير  ١٠ دقائق<</li>
+                            <li>لمساعدة والدعم يرجى الاتصال على رقم ٦٧٦٦٥٩٦٨</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <a href="#" class="btn btn-primary w-100 mb-4" onclick="BackToSectionList();">
+                        <span id="btnlblConfirmHome">Home</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- End Reservation Confirm Content ===========================================================-->

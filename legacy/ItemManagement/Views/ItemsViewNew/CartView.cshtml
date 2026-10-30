@@ -1,0 +1,131 @@
+﻿<!-- Cart View Content ===========================================================-->
+<div id="divCartView" class="main-content active cart-page actvie" style="display:none;">
+    <div class="item-list-title mb-2">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-auto">
+                <a href="#" onclick="BackToCategoryList()" title="back" class="btn btn-sm back-btn">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="col-auto">
+                <h2 id="lblheaderCart">Cart</h2>
+            </div>
+        </div>
+    </div>
+    <div class="animation">
+        <div class="container-fluid">
+            <div id="cartitemsMainDiv">
+                @*<h3 id="cartCate_" class="category-name">Breakfast</h3>
+                    <div id="cartCateItems_">
+                    <div class="media mb-3">
+                    <img class="mr-3 product-img" src="images/breakfast-sides.jpg" alt="Generic placeholder image">
+                    <div class="media-body">
+                    <h4 class="pb-0 ">Breakfast Sides</h4>
+                    <div class="row no-gutters align-items-center justify-content-between">
+                    <div class="col-auto">
+                    <span class="price">KD. 1.350</span>
+                    </div>
+                    <div class="col-auto">
+                    <div class="d-flex item-select-block">
+                    <a href="#" class="btn btn-primary icon-btn">
+                    <i class="fa fa-minus" aria-hidden="true"></i>
+                    </a>
+                    <input class="form-control" type="text" name="" value="2">
+                    <a href="#" class="btn btn-primary icon-btn">
+                    <i class="fa fa-plus" aria-hidden="true"></i>
+                    </a>
+                    </div>
+                    </div>
+                    </div>
+                    <textarea class="form-control" title="Comments"></textarea>
+                    </div>
+                    </div>
+                    <div class="media mb-3">
+                    <img class="mr-3 product-img" src="images/breakfast-basket.jpg" alt="Generic placeholder image">
+                    <div class="media-body">
+                    <h4 class="pb-0 ">Breakfast basket</h4>
+                    <div class="row no-gutters align-items-center justify-content-between">
+                    <div class="col-auto">
+                    <span class="price">KD. 1.350</span>
+                    </div>
+                    <div class="col-auto">
+                    <div class="d-flex item-select-block">
+                    <a href="#" class="btn btn-primary icon-btn">
+                    <i class="fa fa-minus" aria-hidden="true"></i>
+                    </a>
+                    <input class="form-control" type="text" name="" value="2">
+                    <a href="#" class="btn btn-primary icon-btn">
+                    <i class="fa fa-plus" aria-hidden="true"></i>
+                    </a>
+                    </div>
+                    </div>
+                    </div>
+                    <textarea class="form-control" title="Comments"></textarea>
+                    </div>
+                    </div>
+                    </div>
+
+
+                    <h3 id="cartCate_" class="category-name mt-4">Desserts</h3>
+                    <div id="cartCateItems_">
+                    <div class="media mb-3">
+                    <img class="mr-3 product-img" src="images/club-sandwich.jpg" alt="Generic placeholder image">
+                    <div class="media-body">
+                    <h4 class="pb-0 ">Club Sandwich</h4>
+                    <div class="row no-gutters align-items-center justify-content-between">
+                    <div class="col-auto">
+                    <span class="price">KD. 1.350</span>
+                    </div>
+                    <div class="col-auto">
+                    <div class="d-flex item-select-block">
+                    <a href="#" class="btn btn-primary icon-btn">
+                    <i class="fa fa-minus" aria-hidden="true"></i>
+                    </a>
+                    <input class="form-control" type="text" name="" value="2">
+                    <a href="#" class="btn btn-primary icon-btn">
+                    <i class="fa fa-plus" aria-hidden="true"></i>
+                    </a>
+                    </div>
+                    </div>
+                    </div>
+                    <textarea class="form-control" title="Comments"></textarea>
+
+                    </div>
+                    </div>
+                </div>*@
+
+            </div>
+
+
+
+            <div class="price-block text-center mt-5 ml-auto mr-auto mb-3">
+                <h2 class="price"><span id="spnTotal">Total</span><label id="divSubtotal">0.000</label></h2>
+                <input id="hdnSubtotal" type="hidden" value="0" />
+            </div>
+            <div class="clearfix text-center" style="margin-bottom:50px;">
+                <div class="w-auto m-auto pt-3 pb-4 mb-5">
+                    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsGenerateQRCode"]) == true && @ViewBag.LoginUser != "Waiter")
+                    {
+                        <button id="btnGenerateOrder" type="button" class="btn btn-primary mr-2 pl-3 pr-3 btnGenerateOrder"><span>Generate Order</span></button>
+                    }
+                    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == true && @ViewBag.LoginUser != "Waiter")
+                    {
+                        <button id="btnCheckout" type="button" class="btn btn-primary mr-2 pl-3 pr-3 btnCheckOut"><span>Check out</span></button>
+                    }
+
+
+                    @if (@ViewBag.LoginUser == "Waiter")  //waiter login
+                    {
+                        <button id="btnScanQRCode" onclick="btnScanQRCodeClick();" type="button" class="btn btn-primary mr-2 pl-3 pr-3"><span>Scan QR Code</span></button>
+                    }
+                    <button id="btnclearCart" onclick="clearCart();" type="button" class="btn btn-secondary pl-3 pr-3"><span>Clear Cart</span></button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    @*<footer class="powered-by">
+            Powered by TMM Emenu
+        </footer>*@
+</div>
+<!-- End Cart View Content ===========================================================-->

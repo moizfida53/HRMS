@@ -1,0 +1,1213 @@
+﻿@inherits System.Web.Mvc.WebViewPage<dynamic>
+@using System.Web.Mvc
+@using System.Web.Mvc.Html
+@using Jar.Helper   @* Asset.V() - css/js cache-buster, Helper\AssetVersion.cs *@
+@{
+    Layout = "";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    @*<base href="../../../">*@
+    <meta charset="utf-8" />
+    <title>TMM</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    @*  Home Screen app (Guided Access / kiosk). Common TMM name + icon for every
+        brand; the manifest's start page is this exact page, so the installed
+        icon reopens this brand/branch. See ItemsViewNewController.Manifest().
+        (The old theme-color held "var(--primary)" - meta tags cannot read CSS
+        variables, so browsers ignored it.) *@
+    <meta name="theme-color" content="#ffffff">
+    <meta name="application-name" content="TMM">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="TMM">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" sizes="180x180" href="@Asset.V("~/assets/media/logos/app-icons/apple-touch-icon.png")">
+    <link rel="icon" type="image/png" sizes="32x32" href="@Asset.V("~/assets/media/logos/app-icons/favicon-32.png")">
+    <link rel="icon" type="image/png" sizes="192x192" href="@Asset.V("~/assets/media/logos/app-icons/icon-192.png")">
+    @*  The manifest is what makes Chrome/Edge offer "Install app". It is only
+        emitted while Offline Mode is on (cookie QRMenuOfflineMode=1), so normal
+        customers never see an install prompt. Chrome's own banner is suppressed
+        below; OfflineMode.js shows the TMM install offer right after the menu
+        has been saved for offline use. *@
+    @if (Request.Cookies["QRMenuOfflineMode"] != null && Request.Cookies["QRMenuOfflineMode"].Value == "1")
+    {
+        <link rel="manifest" href="@Url.Content("~/ItemsViewNew/Manifest")?start=@Url.Encode(Request.Url.PathAndQuery)">
+    }
+    <script>
+        window.__tmmInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window.__tmmInstallPrompt = e;
+            try { document.dispatchEvent(new Event('tmm:installable')); } catch (x) { }
+        });
+    </script>
+
+    <!--begin::Fonts-->
+    @*<link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,400i,600,700,800" rel="stylesheet">*@
+    @*<link href="https://fonts.googleapis.com/css?family=Montserrat:100,300,400,500,700&display=swap" rel="stylesheet">*@
+    @*<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">*@
+
+    @*  CACHE BUSTING - Asset.V(), Helper\AssetVersion.cs
+
+        Every local css/js on this page is stamped with its own file
+        modification time, so a published change gets a new URL and the browser
+        fetches it instead of serving the copy it already has. Files that did
+        not change keep their URL and stay cached.
+
+        The old "?v=ViewBag.CssVersion" survives as a second token on the brand
+        css only. That value is the tblMenuTheme version - it moves when the
+        admin saves new colours, which the .css file's timestamp cannot see.  *@
+
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/bootstrap.min.css")">
+
+    @*for rtl dynamically load*@
+    @*<link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap-rtl.min.css" />*@
+
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/bootstrap-select.min.css")">
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/datepicker.css")">
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/owl.carousel.min.css")">
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/font-awesome.min.css")">
+    @*  Cast off ViewBag before calling Asset.V: a dynamic argument would push
+        overload resolution to runtime for no benefit.                        *@
+    @{
+        string brandCssPath = "~/cssNew/" + Convert.ToString(ViewBag.BrandCssFileName);
+        string themeVersion = Convert.ToString(ViewBag.CssVersion);
+    }
+    <link rel="stylesheet" type="text/css" href="@Asset.V(brandCssPath, themeVersion)">
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/style.css")" />
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/theme-01.css")">
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/root.css")" />
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/responsive-categories.css")" />
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/design5.css")" />
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/offline-mode.css")" />
+
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/Content/ItemView/TrackingOrder.css")" />
+
+    @*for rtl dynamically load*@
+    @*<link rel="stylesheet" type="text/css" href="~/cssNew/rtl-style.css" />*@
+
+    @*  The RTL/LTR stylesheets are swapped at runtime by selectLanguage() in
+        BindCartDetails.js, so they cannot be stamped in markup. Their versioned
+        URLs are handed to that script here instead.                          *@
+    <script>
+        var AssetUrls = {
+            bootstrap:    '@Html.Raw(Asset.V("~/cssNew/bootstrap.min.css"))',
+            bootstrapRtl: '@Html.Raw(Asset.V("~/cssNew/bootstrap-rtl.min.css"))',
+            rtlStyle:     '@Html.Raw(Asset.V("~/cssNew/rtl-style.css"))'
+        };
+    </script>
+
+    <script type="text/javascript" src="@Asset.V("~/js/jquery.js")"></script>
+    <script type="text/javascript" src="@Asset.V("~/js/bootstrap.bundle.min.js")"></script>
+    <script type="text/javascript" src="@Asset.V("~/js/jquery.nicescroll.min.js")"></script>
+    <script type="text/javascript" src="@Asset.V("~/js/bootstrap-select.min.js")"></script>
+    <script type="text/javascript" src="@Asset.V("~/js/bootstrap-datepicker.js")"></script>
+    <script type="text/javascript" src="@Asset.V("~/js/owl.carousel.min.js")"></script>
+    <script type="text/javascript" src="@Asset.V("~/js/menu.js")"></script>
+    <script type="text/javascript" src="@Asset.V("~/js/general.js")"></script>
+
+    <style>
+        .img-Category {
+            background-size: 250px;
+            height: 167px;
+            object-fit: cover;
+        }
+
+        .img-Item {
+            background-size: 251px;
+            height: 167px;
+            object-fit: cover;
+        }
+
+        .img-Allergen {
+            background-size: 25px;
+            height: 25px;
+            width: 25px;
+            object-fit: cover;
+        }
+
+        #lblItemInfoQty {
+            padding: 8px;
+        }
+
+        .clsSectionBrcImg {
+            float: left;
+            height: 56px;
+            width: 177px;
+            object-fit: contain;
+            margin-left: 50px;
+        }
+
+        .clsSectionBrcDiv {
+            /*margin-bottom:10px;*/
+            height: 60px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* Responsive Category Grid */
+        .responsive-category-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            width: 100%;
+        }
+
+            .responsive-category-grid .col-md-6 {
+                flex: 0 0 calc(50% - 6px);
+                max-width: calc(50% - 6px);
+            }
+    </style>
+    <style type="text/css">
+        .esri-truncated-attribution:hover {
+            white-space: normal;
+        }
+    </style>
+    <style type="text/css">
+        .esri-truncated-attribution {
+            vertical-align: -3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            transition: 0s white-space;
+            transition-delay: 1s;
+            max-width: -55px;
+        }
+
+        /* .category-page-bg .card-body h3 {
+            color: #212529;
+        }*/
+    </style>
+    <style>
+        .category-list .img-category {
+            height: 125px;
+            object-fit: cover;
+            background-size: 220px;
+            border-radius: 8px;
+        }
+
+        @@media (max-width:480px) {
+            .category-list .img-category {
+                height: 85px;
+            }
+        }
+
+        .category-list .card-body h3 {
+            font-size: 14px;
+        }
+
+        .sub-category .media-body-title {
+            font-weight: 700;
+        }
+
+        .sub-category .media-body-text {
+            font-size: 12px;
+            height: 39px;
+            overflow: hidden;
+            padding-bottom: 0;
+        }
+
+        .sub-category .price {
+            font-weight: 700;
+        }
+
+        .sub-category .sub-category-item .card-body {
+            padding: .75rem;
+        }
+
+        .sub-category {
+            /*background-color: var(--Design_4_MainCategory_Internal_Background_Color);*/
+            border-radius: 6px;
+            overflow: visible;
+            /*border: 1px solid rgba(0, 0, 0, .125);*/
+        }
+
+            .sub-category > .card {
+                border: 0;
+            }
+
+            .sub-category .parent-item .card-body {
+                padding: 0.25rem;
+                margin-top: 10px;
+            }
+
+            .sub-category .card-img {
+                /*padding: 15px 0 15px 15px;*/
+                height: 100% !important;
+            }
+
+            .sub-category .card-img-con {
+                width: 100%;
+                height: 145px;
+                overflow: hidden;
+                object-fit: cover;
+            }
+
+        .card-img {
+            object-fit: cover !important;
+        }
+
+        .sub-category .parent-item .card-img {
+            padding: 0;
+        }
+
+        .sub-category .parent-item .card-body .btn {
+            font-size: 22px;
+        }
+
+        .sub-category .btn-addtocart {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            padding: 0;
+            border-style: solid;
+            border-radius: 0 !important;
+            border-width: 0 0 63px 63px !important;
+            border-color: transparent transparent var(--Design_1_plus_button_background_color, var(--primary)) transparent !important;
+            /*for RTL(ARABIC)
+                        border-width: 63px 0px 0px 63px !important;
+                        border-color: transparent transparent transparent var(--primary) !important;
+        */
+            background-color: transparent !important;
+            color: var(--Design_1_plus_button_icon_color, #fff) !important;
+            height: 63px;
+            width: 63px;
+            text-indent: -35px;
+            font-size: 30px;
+            line-height: 81px;
+        }
+
+        .rtl .sub-category .btn-addtocart {
+            right: auto;
+            left: 0px;
+            border-width: 0 63px 63px 0 !important;
+        }
+
+        .sub-category .sub-category-item {
+            padding: .75rem;
+        }
+
+        .category-page-bg .card-primary {
+            background-color: transparent;
+            box-shadow: none;
+        }
+
+            .category-page-bg .card-primary.active-item {
+                /*background-color: var(--primary);*/
+                background-color: var(--Design_1_selected_category_background_color, rgb(255 255 255 / 21%));
+            }
+
+        .category-page-bg .active-item .card-body h3 {
+            color: var(--Design_1_selected_category_name_color, #fff);
+        }
+
+        .category-list .active-item .img-category {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .allergen-list li .icon-allergen {
+            height: 21px;
+            width: 21px;
+        }
+
+        /* Per-item Allergen icon (top-right of the item image). Shown when
+           tblbrand.ShowAllergen = 1; toggled via #hdnIsShowAllergen and
+           rendered by bindAllergensHtml() in BindCartDetails.js for all
+           Design1-Design4 layouts. */
+        .allergens {
+            top: 8px;
+            left: 8px;
+            right: auto;
+            z-index: 5;
+        }
+
+            /* Scoped to .position-absolute (the per-item card overlay icon uses
+               Bootstrap's .position-absolute utility class) so this badge styling
+               only affects that icon, not the Item Details popup's allergen button
+               (#divItemDetailsAllergen), which uses its own .allergens-on-image
+               class instead (see below) and keeps the site's original 40x40
+               .allergens .btn sizing from cssNew/style.css. */
+            .allergens.position-absolute .dropdown-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 28px;
+                padding: 0;
+                border-radius: 50%;
+                background-color: rgba(255, 255, 255, 0.9) !important;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+                color: var(--allergen_icon_color, #d9534f);
+                font-size: 15px;
+                line-height: 1;
+            }
+
+                .allergens.position-absolute .dropdown-toggle:after {
+                    display: none;
+                }
+
+            /* The toggle icon's <img> carries fixed width/height HTML attributes
+               that don't match every button size it's dropped into (28px on the
+               item card badge, 40px on the Item Details popup), which let the
+               image overflow its button. Force it to always fill its own button
+               instead of relying on those hard-coded attributes. */
+            .allergens .dropdown-toggle img {
+                width: 100%;
+                height: 100%;
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+                display: block;
+            }
+
+            /* Item Details popup: the free-text comment box is hidden across all
+               designs; #divItemDetailsCommentBox wraps it for exactly this. */
+            #divItemDetailsCommentBox {
+                display: none;
+            }
+
+            .allergens .dropdown-menu {
+                min-width: 190px;
+                max-height: 220px;
+                overflow-y: auto;
+                padding: 8px 12px;
+            }
+
+                .allergens .dropdown-menu li {
+                    list-style: none;
+                    margin-bottom: 4px;
+                }
+
+        /* Design1: allergen icon sits inline with the item name (top-right
+           corner of that row) instead of overlaid on the item image, and its
+           dropdown opens toward the left (dropdown-menu-right, set via
+           bindAllergensHtml's menuRight option) since it sits at the right
+           edge of the card. Declared after .allergens above so these win. */
+        .allergens-inline {
+            top: 0;
+            left: auto;
+            right: 0;
+        }
+
+        /* Item Details popup/page: the allergen icon overlays the top-left corner
+           of the item photo. A DEDICATED class instead of reusing Bootstrap's
+           .position-absolute utility - cssNew/style.css already has its own, much
+           older, unscoped ".allergens { z-index:9; bottom:8px; }" rule that used to
+           be harmless (it only affects positioned elements, and this div was
+           position:static before). Reusing .position-absolute here would make that
+           old rule active again alongside this one's top:8px, and with both top AND
+           bottom set on an absolutely-positioned element with no explicit height,
+           the browser stretches the div to fill the gap between them instead of
+           sizing it to its (small) content - plus it would wrongly also pick up the
+           28px per-item-card badge sizing above. Explicit bottom:auto here cancels
+           style.css's bottom:8px outright regardless of stylesheet load order. */
+        .allergens.allergens-on-image {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: auto;
+            bottom: auto;
+            z-index: 6;
+        }
+
+        /* The badge above is positioned against this wrapper, so the wrapper must
+           be exactly the visible photo - not the full content column. It holds the
+           image / carousel / video as siblings and is a plain block div, so it was
+           spanning the whole column while the photo inside it was narrower and
+           centred (mx-auto, plus object-fit:contain letterboxing on desktop). The
+           badge therefore landed 8px inside the COLUMN, i.e. in the empty space to
+           the left of the photo - which is exactly the "icon outside the image"
+           report, on both mobile and desktop. Shrink-wrapping the wrapper to its
+           content makes its top-left corner the photo's top-left corner, so the
+           badge's 8px/8px lands on the photo itself in every design.
+           (Paired with #itemDetailsItemImage width:auto on desktop in
+           cssNew/responsive-categories.css FOLLOW-UP FIX 8, so the image's own box
+           is the photo rather than a letterboxed 100%-wide box.) */
+        .item-media-wrap {
+            width: -webkit-fit-content;
+            width: fit-content;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+            /* A shrink-wrapped parent sizes itself from its children's intrinsic
+               width, and a percentage width on a child contributes nothing to that
+               - the multi-image slider (.item-img-carousel, width:100%, its slides
+               absolutely positioned) would collapse to zero inside the wrapper.
+               Give it the definite width it was already capped at so the wrapper
+               has something real to hug when a multi-image item is open. */
+            .item-media-wrap > #itemImageCarousel {
+                width: 500px;
+                max-width: 100%;
+            }
+
+        .product-details .img-thumbnail {
+            max-width: 320px;
+            box-shadow: none;
+        }
+
+        .modal-header {
+            background-color: var(--primary);
+            color: #fff;
+        }
+
+            .modal-header .close {
+                color: #fff;
+                opacity: 0.7;
+            }
+    </style>
+
+    @* Menu theme colours loaded from the database (tbl_Menu_Colors) on page load.
+       This :root block overrides the static brand-css variables above. If the
+       table/proc isn't set up yet, ViewBag.MenuColorsCss is empty and the brand
+       css continues to supply the colours (graceful fallback). *@
+    @if (!string.IsNullOrEmpty(Convert.ToString(ViewBag.MenuColorsCss)))
+    {
+        <style id="dbMenuColors">@Html.Raw(ViewBag.MenuColorsCss)</style>
+    }
+</head>
+<body class="@(ViewBag.DesignTheme == "Design5" ? "design5" : (ViewBag.DesignTheme == "Design1" ? "design1" : ""))">
+    @* Design5 splash: the brand's home-page image (tblBrand.BrandHomePageImage)
+       fills the screen, assembling itself out of scattered pieces, then fades
+       away after ~3s. Rendered inline as the first thing in <body> — not injected
+       by script — so it is opaque from the very first paint and the menu never
+       flashes underneath. D5Splash() in Design5.js builds the pieces and removes
+       it; it is a no-op on Design1-4 because this element only exists here. *@
+    @if (ViewBag.DesignTheme == "Design5" && !string.IsNullOrEmpty(Convert.ToString(ViewBag.BrandHomePageImage)))
+    {
+        <div id="d5Splash" class="d5-splash" role="presentation" aria-hidden="true"
+             data-src="@Url.Content("~/Images/" + Convert.ToString(ViewBag.BrandHomePageImage).Trim())"></div>
+    }
+    <input type="hidden" id="hdnbrandId" value="@ViewBag.BrandId" />
+    <input type="hidden" id="hdnBranchId" value="@ViewBag.Branchid" />
+    <input type="hidden" id="hdnisCartSelected" value="0" />
+    <input type="hidden" id="hdnToFormRedirect" value="@ViewBag.ToformRedirect" />
+    <input type="hidden" id="hdnIpAddress" value="" />
+    <input type="hidden" id="hdnCurrencyENG" value="@ViewBag.CurrencyENG" />
+    <input type="hidden" id="hdnCurrencyArab" value="@ViewBag.CurrencyArab" />
+    @*@{ var iscart = @Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsCartVisible"]) == true ? "true" : "false";}*@
+    <input type="hidden" id="hdnIsCartVisible" value="@ViewBag.IsCrtVisible" />
+    <input type="hidden" id="hdnCallcWebServiceUrl" value="@ViewBag.CallcWebServiceUrl" />
+    <input type="hidden" id="hdnKNETPublicKey" value="@ViewBag.KNETPublicKey" />
+    <input type="hidden" id="hdnKNETMerchantId" value="@ViewBag.KNETMerchantId" />
+    @* Which tblInvoicePaymentType.ID (if any) is the legacy Tap/goSell KNET
+       lightbox. 0 = none, and every method then goes through SubmitOrder, with
+       online ones redirecting to MyFatoorah. Set LegacyTapPaymentTypeID in
+       Web.config only if the Tap integration is still wanted. *@
+    <input type="hidden" id="hdnLegacyTapPayTypeID"
+           value="@(System.Configuration.ConfigurationManager.AppSettings["LegacyTapPaymentTypeID"] ?? "0")" />
+    <input type="hidden" id="hdnBrandIsExpired" value="@ViewBag.BrandIsExpired" />
+    <input type="hidden" id="hdnIsFromWaiterLogin" value="@ViewBag.IsFromWaiterLogin" />
+    <input type="hidden" id="hdnIsShowAllergen" value="@ViewBag.IsShowAllergen" />
+    <input type="hidden" id="hdnDecimalPlaces" value="@ViewBag.DecimalPlaces" />
+
+
+
+    @if (Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsDeliveryEnable"]) == true)
+    {
+        <input type="hidden" id="hdnIsDeliveryEnable" value="true" />
+    }
+    else
+    {
+        <input type="hidden" id="hdnIsDeliveryEnable" value="false" />
+    }
+
+    @if (Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsScheduleOrderEnabled"]) == true)
+    {
+        <input type="hidden" id="hdnIsScheduleOrderEnabled" value="true" />
+    }
+    else
+    {
+        <input type="hidden" id="hdnIsScheduleOrderEnabled" value="false" />
+    }
+
+
+    @*@if (System.Configuration.ConfigurationManager.AppSettings["DesignTheme"] == "Design3")*@
+    @if (@ViewBag.DesignTheme == "Design3")
+    {
+        <div id="divlandingpage" class="container-fluid p-0 h-100 landing-page">
+            @if (string.IsNullOrEmpty(@ViewBag.MobileImage))
+            {
+                <div class="landing-background-images">
+                    <!-- Start Header -->
+                    @{
+                        Html.RenderPartial("~/Views/ItemsViewNew/Header.cshtml");
+                    }
+                    <!-- End Header ======================================-->
+
+                    <div id="divSectionMenu" class="menu-btn-block">
+                        <div class="menu-btn-inner">
+                            <input type="hidden" id="hdndefaultOneBrandId" value="0" />
+                            <input type="hidden" id="hdndefaultOneBranchId" value="0" />
+
+                            <a id="btnSectionBranchMenu" onclick="btnSectionBranchMenuclick();" class="branch-menu" role="button" data-toggle="modal" data-target="#branch-menu">
+                                <span id="lblSectionMenuButton">Menu</span>
+                            </a>
+                            @if ((bool)ViewBag.isReservation)
+                            {
+                                <a id="btnMenuReservation" onclick="btnSectionReservationclick();" class="branch-menu" role="button">
+                                    <span id="lblReservationButton">Reservation</span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                    <div class="powered-by" style="max-width:100% !important">
+                        <a href="Https://www.tmm-menu.com" role="button">
+                            <span>Powered by TMM Emenu</span>
+                        </a>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="landing-background" style="background: url(../images/@ViewBag.MobileImage) no-repeat top center /cover; height:100vh;">
+                    <!-- Start Header -->
+                    @{
+                        Html.RenderPartial("~/Views/ItemsViewNew/Header.cshtml");
+                    }
+                    <!-- End Header ======================================-->
+
+                    <div id="divSectionMenu" class="menu-btn-block">
+                        <div class="menu-btn-inner">
+                            <input type="hidden" id="hdndefaultOneBrandId" value="0" />
+                            <input type="hidden" id="hdndefaultOneBranchId" value="0" />
+
+                            <a id="btnSectionBranchMenu" onclick="btnSectionBranchMenuclick();" class="branch-menu" role="button" data-toggle="modal" data-target="#branch-menu">
+                                <span id="lblSectionMenuButton">Menu</span>
+                            </a>
+                            @if ((bool)ViewBag.isReservation)
+                            {
+                                <a id="btnMenuReservation" onclick="btnSectionReservationclick();" class="branch-menu" role="button">
+                                    <span id="lblReservationButton">Reservation</span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                    <div class="powered-by" style="max-width: 100% !important">
+                        <a href="Https://www.tmm-menu.com" role="button">
+                            <span>Powered by TMM Emenu</span>
+                        </a>
+                    </div>
+                </div>
+            }
+
+
+        </div>
+    }
+
+
+    <div id="divleftsideMenuListView" class="container-fluid p-0 h-100">
+        <div class="row no-gutters h-100">
+            <div class="col-12 col-lg-7 col-xl-8 wrapper overflow-auto">
+                <!-- Start Header -->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/Header.cshtml");
+                }
+                <!-- End Header ======================================-->
+                @if (!string.IsNullOrEmpty(@ViewBag.BrandAlert))
+                {
+                    <div id="divBrandAlert" class="alert brand-alert-warning alert-dismissible fade show" role="alert1" style="margin-bottom: 0px !important; padding-right: 10px !important; ">
+                        <div>
+                            <p style="  ">
+                                @Html.Raw(ViewBag.BrandAlert)
+                            </p>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert1" aria-label="Close" onclick="BrandAlertClose();" style="margin-top:-45px;"></button>
+                    </div>
+                }
+
+                <!-- Main Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/MenuList.cshtml");
+                }
+                <!-- End Main Content ===========================================================-->
+                @if (ViewBag.DesignTheme != "Design1" && ViewBag.IsFromWaiterLogin != "true")
+                {
+                    <!-- Item Details Content ===========================================================-->
+                    {
+                        Html.RenderPartial("~/Views/ItemsViewNew/ItemDetailsView.cshtml");
+                    }
+                    <!-- End Item Details Content ===========================================================-->
+                }
+                <!-- Cart View Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/CartView.cshtml");
+                }
+                <!-- End Cart View Content ===========================================================-->
+                <!-- GenerateQr Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/GenerateQR.cshtml");
+                }
+                <!-- End GenerateQr Content ===========================================================-->
+                <!-- TrackingOrder Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/TrackingOrder.cshtml");
+                }
+                <!-- End TrackingOrder Content ===========================================================-->
+                @*Reservation Content ===========================================================*@
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/Reservation.cshtml");
+                }
+                @*End Reservation Content ===========================================================
+                    Reservation CustomerInfo Content ===========================================================*@
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/ReservationCustomerInfo.cshtml");
+                }
+                @*End Reservation CustomerInfo Content ===========================================================
+                    ReservationConfirm Content ===========================================================*@
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/ReservationConfirm.cshtml");
+                }
+                <!-- End ReservationConfirm Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/CheckoutViews/CheckOut.cshtml");
+                }
+                <footer class="powered-by">
+                    <a href="Https://www.tmm-menu.com" role="button">
+                        <span>Powered by TMM Emenu</span>
+                    </a>
+                </footer>
+            </div>
+            @* id is what the cart rules in cssNew/responsive-categories.css hook
+               onto to drop this column while the cart is open. *@
+            <div id="divDesktopSideArea" class="d-none d-lg-block col-lg-5 col-xl-4 h-100">
+                @if (ViewBag.DesignTheme == "Design5")
+                {
+                    <!-- Design5 desktop: the right column shows the SELECTED item's name +
+                         ingredients (replacing the brand logo). Populated by D5UpdateMeta. -->
+                    <div class="d5-side">
+                        @if (!string.IsNullOrEmpty(ViewBag.BannerImage))
+                        {
+                            <div class="d5-side-logo"><img src="../images/@ViewBag.BannerImage" alt="logo" /></div>
+                        }
+                        <div class="d5-side-info">
+                            <h1 id="d5ItemNameSide"></h1>
+                            <p id="d5ItemDescSide"></p>
+                        </div>
+                    </div>
+                }
+                else if (string.IsNullOrEmpty(@ViewBag.DesktopImage))
+                {
+                    <div class="desktop-background-images h-100"></div>
+                }
+                else
+                {
+                    <div style="background: url(../images/@ViewBag.DesktopImage) no-repeat top center/cover; height: 100vh;"></div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!--Branch selection Section Modal -->
+    <div class="modal fade branch-menu-modal" id="branch-menu" tabindex="-1" aria-labelledby="exampleModalLabel">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body" id="divMainSectionBranchList">
+                    @*<div class="card mb-4">
+                            <div class="card-header">
+                                Ahmadi Governorate
+                            </div>
+                            <div class="card-body">
+                                <a class="branches" href="CategoryList.html" title="">Elit pariatur commodo minim </a>
+                                <a class="branches" href="#" title="">laboris non nostrud </a>
+                                <a class="branches" href="#" title="">ullamco id proident do irure</a>
+                                <a class="branches" href="#" title="">sint ex ut dolor</a>
+                                <a class="branches" href="#" title="">anim ut occaecat</a>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                Ahmadi Governorate
+                            </div>
+                            <div class="card-body">
+                                <a class="branches" href="#" title="">Elit pariatur commodo minim </a>
+                                <a class="branches" href="#" title="">laboris non nostrud </a>
+                                <a class="branches" href="#" title="">ullamco id proident do irure</a>
+                                <a class="branches" href="#" title="">sint ex ut dolor</a>
+                                <a class="branches" href="#" title="">anim ut occaecat</a>
+                            </div>
+                        </div>*@
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button id="btnSectionDivClose" type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservation Section Modal -->
+    <div class="modal fade branch-menu-modal" id="reservationModel" tabindex="-1" aria-labelledby="exampleModalLabel">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body" id="divMainReservationBranchList">
+                    @*<div class="card mb-4">
+                            <div class="card-header">
+                                Ahmadi Governorate
+                            </div>
+                            <div class="card-body">
+                                <a class="branches" href="CategoryList.html" title="">Elit pariatur commodo minim </a>
+                                <a class="branches" href="#" title="">laboris non nostrud </a>
+                                <a class="branches" href="#" title="">ullamco id proident do irure</a>
+                                <a class="branches" href="#" title="">sint ex ut dolor</a>
+                                <a class="branches" href="#" title="">anim ut occaecat</a>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                Ahmadi Governorate
+                            </div>
+                            <div class="card-body">
+                                <a class="branches" href="#" title="">Elit pariatur commodo minim </a>
+                                <a class="branches" href="#" title="">laboris non nostrud </a>
+                                <a class="branches" href="#" title="">ullamco id proident do irure</a>
+                                <a class="branches" href="#" title="">sint ex ut dolor</a>
+                                <a class="branches" href="#" title="">anim ut occaecat</a>
+                            </div>
+                        </div>*@
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button id="btnSectionDivClose" type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!--Alert Modal -->
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alertTitle"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div id="alertMessage" class="modal-body">
+
+                </div>
+                <div class="modal-footer">
+                    <button id="btnlblalertColse" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    @*<button type="button" class="btn btn-primary">Save changes</button>*@
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Loader display -->
+    <div class="loading-block" style="display:none;">
+        <div id="container">
+            <div class="divider" aria-hidden="true"></div>
+            <p class="loading-text" aria-label="Loading" style="direction: ltr;">
+                <span class="letter" aria-hidden="true">L</span>
+                <span class="letter" aria-hidden="true">o</span>
+                <span class="letter" aria-hidden="true">a</span>
+                <span class="letter" aria-hidden="true">d</span>
+                <span class="letter" aria-hidden="true">i</span>
+                <span class="letter" aria-hidden="true">n</span>
+                <span class="letter" aria-hidden="true">g</span>
+            </p>
+        </div>
+    </div>
+
+    @*advisement-modal*@
+    <div id="advisement" class="modal fade " tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    @*<img id="advisementImage" class="advisement-banner" src="~/AdvertisementImages/adv1.jpg" alt="">*@
+                    <img id="advisementImage" class="advisement-banner" src="@ViewBag.PopupBannerImage" alt="">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (ViewBag.DesignTheme == "Design1" || ViewBag.DesignTheme == "Design4" || ViewBag.IsFromWaiterLogin == "true")
+    {
+        <div id="itemDetailModal" class="modal fade" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="divitemDetailsItemNameTitle" class="product-name pb-0">STILL&SPARKLING WATER</h2>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        @{
+                            Html.RenderPartial("~/Views/ItemsViewNew/ItemDetailsView.cshtml");
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <style>
+            /* ===== Item popup (modal) dynamic theme ==================================
+               Colours come from tblMenuTheme (:root --popup_* vars injected by
+               LoadMenuColors). Every value has a fallback matching the standard-theme
+               default, so the popup looks unchanged until an admin picks a colour in
+               /MenuColors (the "Item Popup (Design 1)" section, shown only for Design1).
+               Selectors are scoped to #itemDetailModal, so the full-page product-details
+               view used by Design2/3 is never affected.
+               ========================================================================= */
+
+            /* Header: background, title font, close (x) button */
+            #itemDetailModal .modal-header {
+                background-color: var(--popup_header_background_color, #ffffff);
+            }
+
+            #itemDetailModal .modal-header .product-name,
+            #itemDetailModal #divitemDetailsItemNameTitle {
+                color: var(--popup_header_font_color, #000000);
+            }
+
+            #itemDetailModal .modal-header .close,
+            #itemDetailModal .modal-header .close span {
+                color: var(--popup_close_button_color, #000000);
+                opacity: 1;
+                text-shadow: none;
+            }
+
+            /* Popup body background */
+            #itemDetailModal .modal-content,
+            #itemDetailModal .modal-body {
+                background-color: var(--popup_body_background_color, #ffffff);
+            }
+
+            /* Item description */
+            #itemDetailModal #divitemDetailsIngredient {
+                background-color: var(--popup_description_background_color, #ffffff);
+                color: var(--popup_description_text_color, #5c5c5c);
+                border-radius: 6px;
+                padding: 6px 10px;
+            }
+
+            /* Main price (currency + amount) */
+            #itemDetailModal #MainDivitemdetPrice {
+                background-color: var(--popup_price_background_color, #ffffff);
+                width: -webkit-fit-content;
+                width: fit-content;
+                max-width: 100%;
+                margin-left: auto;
+                margin-right: auto;
+                padding: 4px 16px;
+                border-radius: 8px;
+            }
+
+            #itemDetailModal #MainDivitemdetPrice,
+            #itemDetailModal #MainDivitemdetPrice em,
+            #itemDetailModal #MainDivitemdetPrice label {
+                color: var(--popup_price_color, #08203e);
+            }
+
+            /* Quantity bar (pill) + +/- buttons + number */
+            #itemDetailModal .item-select-block {
+                background-color: var(--popup_qty_pill_background_color, #a1bba4);
+            }
+
+            #itemDetailModal .item-select-block .icon-btn {
+                background-color: var(--popup_qty_button_background_color, #08203e) !important;
+                border-color: var(--popup_qty_button_background_color, #08203e) !important;
+            }
+
+                #itemDetailModal .item-select-block .icon-btn .fa {
+                    color: var(--popup_qty_button_icon_color, #ffffff);
+                }
+
+            #itemDetailModal .item-select-block .form-control {
+                color: var(--popup_qty_count_text_color, #000000);
+                background-color: transparent;
+            }
+
+            /* Add-to-cart button (also carries .item-select-block, so it comes after) */
+            #itemDetailModal .divAddtocartButton {
+                background-color: var(--popup_addcart_button_background_color, #08203e) !important;
+                border-color: var(--popup_addcart_button_background_color, #08203e) !important;
+                color: var(--popup_addcart_button_text_color, #ffffff) !important;
+            }
+
+                #itemDetailModal .divAddtocartButton * {
+                    color: var(--popup_addcart_button_text_color, #ffffff) !important;
+                }
+
+            /* Choice / extra option groups */
+            #itemDetailModal .extra-item-block {
+                background-color: var(--popup_choice_group_background_color, #ffffff);
+            }
+
+                #itemDetailModal .extra-item-block .modal-title,
+                #itemDetailModal .extra-item-block h3 {
+                    color: var(--popup_choice_title_color, #08203e);
+                }
+
+            #itemDetailModal .extra-option-list li,
+            #itemDetailModal .extra-option-list li .item-name {
+                color: var(--popup_choice_item_text_color, #333333);
+            }
+
+            /* Related-items carousel */
+            #itemDetailModal .category-carousel {
+                background-color: var(--popup_carousel_background_color, #08203e);
+            }
+
+                #itemDetailModal .category-carousel .card-primary {
+                    background-color: var(--popup_carousel_item_background_color, #ffffff);
+                }
+
+                    #itemDetailModal .category-carousel .card-primary .card-body h3,
+                    #itemDetailModal .category-carousel .card-primary .card-body h3 a {
+                        color: var(--popup_carousel_item_text_color, #000000);
+                    }
+
+            /* Allergen dropdown */
+            #itemDetailModal #divItemDetailsAllergen .dropdown-menu {
+                background-color: var(--popup_allergen_menu_background_color, #ffffff);
+            }
+
+                #itemDetailModal #divItemDetailsAllergen .dropdown-menu,
+                #itemDetailModal #divItemDetailsAllergen .dropdown-menu li,
+                #itemDetailModal #divItemDetailsAllergen .dropdown-menu li a {
+                    color: var(--popup_allergen_menu_text_color, #333333);
+                }
+        </style>
+
+        <style>
+        @@media (min-width: 992px) {
+            /* Design1 · DESKTOP ONLY (>=992px, the same breakpoint that reveals
+               #divDesktopSideArea). On a wide/desktop browser window this modal was
+               reported as showing like a bare full page with no way back. Rather than
+               fight it back into a tiny centered dialog, we lean into that and make it
+               behave like Design2's full-page item-details view instead: confined to
+               the same 480px app column (.wrapper) - so the decorative side panel
+               stays visible exactly like every other screen - no dark backdrop behind
+               it, and the small "x" restyled + reordered into an obvious round
+               Back-arrow button (same fa-arrow-left convention as Design2/5's
+               .back-btn) so there is always a clear way back to the menu. Mobile/narrow
+               widths are untouched - Design1 keeps its normal centered popup there. */
+            body.design1 #itemDetailModal .modal-dialog {
+                max-width: 480px;
+                width: 100%;
+                height: 100%;
+                min-height: 100vh;
+                margin: 0;
+            }
+
+                body.design1 #itemDetailModal .modal-content {
+                    height: 100%;
+                    min-height: 100vh;
+                    border: 0;
+                    border-radius: 0;
+                }
+
+            body.design1.modal-open .modal-backdrop {
+                display: none;
+            }
+
+            /* Back button: same DOM node as the close "x" (data-dismiss="modal"
+               still dismisses the modal normally) - only re-skinned. Fixed-position
+               (not just reordered inside the header) so it always floats on top of
+               the header/image regardless of their stacking - it was getting hidden
+               behind the item image before this. */
+            body.design1 #itemDetailModal .modal-header {
+                position: relative;
+                padding-left: 66px;
+            }
+
+            body.design1 #itemDetailModal .modal-header .close {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 10000;
+                float: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                min-width: 40px;
+                padding: 0;
+                margin: 0;
+                border-radius: 50%;
+                background-color: rgba(255, 255, 255, 0.85);
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+                opacity: 1;
+                font-size: 0;
+            }
+
+                body.design1 #itemDetailModal .modal-header .close span {
+                    display: none;
+                }
+
+                body.design1 #itemDetailModal .modal-header .close:before {
+                    content: "\f060";
+                    font-family: "FontAwesome";
+                    font-size: 18px;
+                    line-height: 1;
+                    color: var(--popup_close_button_color, #000000);
+                }
+        }
+        </style>
+    }
+
+    <!--end::Header Mobile-->
+    <input type="hidden" id="vallblFistName" value="فاتورة المبلغ" />
+
+    <script src="@Asset.V("~/MainJs/ItemsViewNew/Index.js")"></script>
+    <script src="@Asset.V("~/MainJs/ItemsViewNew/BindCartDetails.js")"></script>
+    <script src="@Asset.V("~/MainJs/ItemsViewNew/DeviceBackButton.js")"></script>
+    <script src="@Asset.V("~/MainJs/ItemsViewNew/FeedbackWizard.js")"></script>
+    <script src="@Asset.V("~/MainJs/ItemsViewNew/ItemImageSlider.js")"></script>
+    <script src="@Asset.V("~/MainJs/ItemsViewNew/Design5.js")"></script>
+    @*  Offline Mode - Header.cshtml "Offline/Online" link + sync icon. The worker
+        must live at the site root to control the landing page (scope "/"); its
+        Asset.V stamp makes browsers pick up a new version after a deploy. *@
+    <script>
+        var OfflineModeConfig = { swUrl: '@Html.Raw(Asset.V("~/offline-sw.js"))' };
+    </script>
+    <script src="@Asset.V("~/MainJs/ItemsViewNew/OfflineMode.js")"></script>
+    @*<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>*@
+
+    @*  ORDER-FLOW LAYOUT HOOK (desktop)
+
+        The cart and everything after it - customer info, delivery service,
+        address, payment, order confirmation - are centred on the page, and
+        the right-hand logo column steps aside while any of them is open.
+        The rules live in the "FOLLOW-UP FIX 7" block of
+        cssNew/responsive-categories.css and key off one class,
+        "order-flow-open", on #divleftsideMenuListView.
+
+        Those panels are shown and hidden from dozens of places across
+        Index.js, BindCartDetails.js, DeliveryService.js, DeliveryAddress.js,
+        Payment.cshtml and others. Rather than edit every one of them - and
+        depend on whoever adds the next one remembering to - this watches the
+        panels themselves and mirrors "is any of them visible" onto that one
+        class. Adding another step to the flow needs no change here either:
+        give its panel the existing .order-mode-page class (as the five
+        checkout panels already do) and it is picked up automatically.
+
+        Lives here rather than in one of the partials because this is the
+        view that owns #divleftsideMenuListView and renders all of them.   *@
+    <script>
+        (function () {
+            function wireOrderFlowClass() {
+                var root = document.getElementById('divleftsideMenuListView');
+                if (!root) { return; }
+
+                var panels = [].slice.call(
+                    document.querySelectorAll('#divCartView, .main-content.order-mode-page'));
+                if (!panels.length) { return; }
+
+                function sync() {
+                    // Computed style, not the inline style attribute: jQuery
+                    // .show() CLEARS "display" rather than setting it to
+                    // "block", so reading the attribute would miss an opening.
+                    var anyOpen = panels.some(function (p) {
+                        return window.getComputedStyle(p).display !== 'none';
+                    });
+                    root.classList.toggle('order-flow-open', anyOpen);
+                }
+
+                var observer = new MutationObserver(sync);
+                panels.forEach(function (p) {
+                    observer.observe(p, { attributes: true, attributeFilter: ['style', 'class'] });
+                });
+
+                sync();   // in case something opened a panel before this ran
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', wireOrderFlowClass);
+            } else {
+                wireOrderFlowClass();
+            }
+        })();
+    </script>
+
+    <!--begin::Global Config(global config for global JS scripts)-->
+    <script>var KTAppSettings = { "breakpoints": { "sm": 576, "md": 768, "lg": 992, "xl": 1200, "xxl": 1200 }, "colors": { "theme": { "base": { "white": "#ffffff", "primary": "#6993FF", "secondary": "#E5EAEE", "success": "#1BC5BD", "info": "#8950FC", "warning": "#FFA800", "danger": "#F64E60", "light": "#F3F6F9", "dark": "#212121" }, "light": { "white": "#ffffff", "primary": "#E1E9FF", "secondary": "#ECF0F3", "success": "#C9F7F5", "info": "#EEE5FF", "warning": "#FFF4DE", "danger": "#FFE2E5", "light": "#F3F6F9", "dark": "#D6D6E0" }, "inverse": { "white": "#ffffff", "primary": "#ffffff", "secondary": "#212121", "success": "#ffffff", "info": "#ffffff", "warning": "#ffffff", "danger": "#ffffff", "light": "#464E5F", "dark": "#ffffff" } }, "gray": { "gray-100": "#F3F6F9", "gray-200": "#ECF0F3", "gray-300": "#E5EAEE", "gray-400": "#D6D6E0", "gray-500": "#B5B5C3", "gray-600": "#80808F", "gray-700": "#464E5F", "gray-800": "#1B283F", "gray-900": "#212121" } }, "font-family": "Poppins" };</script>
+    <!--end::Global Config-->
+    <!--begin::Global Theme Bundle(used by all pages)-->
+    @*<script src="~/assets/plugins/global/plugins.bundle.js?v=7.0.5"></script>
+        <script src="~/assets/plugins/custom/prismjs/prismjs.bundle.js?v=7.0.5"></script>
+        <script src="~/assets/js/scripts.bundle.js?v=7.0.5"></script>*@
+    <!--end::Global Theme Bundle-->
+
+
+    <link href="@Asset.V("~/Content/jquery-confirm/jquery-confirm.css")" rel="stylesheet" />
+    <script src="@Asset.V("~/Content/jquery-confirm/jquery-confirm.js")"></script>
+    <script src="@Asset.V("~/Content/jquery-confirm/Jquery-confirm-custom.js")"></script>
+
+    <!--begin::Page Scripts(used by this page)-->
+    @*<script src="~/assets/js/pages/custom/wizard/wizard-4.js?v=7.0.5"></script>*@
+    <!--end::Page Scripts-->
+    @*<script src="~/MainJs/KMLoader.js"></script>*@
+    <script src="@Asset.V("~/MainJs/ItemsViewNew/QrCode.js")"></script>
+
+    @********************Begin js for TPay Payment Api*************************@
+    @*  Tap's favicon disabled - declared last, it replaced the TMM icon in the
+        browser tab. gosell.js does not need it.
+    <link rel="shortcut icon"
+          href="https://goSellJSLib.b-cdn.net/v1.6.0/imgs/tap-favicon.ico" />*@
+    <link href="https://goSellJSLib.b-cdn.net/v1.6.0/css/gosell.css"
+          rel="stylesheet" />
+    <script type="text/javascript"
+            src="https://goSellJSLib.b-cdn.net/v1.6.0/js/gosell.js"></script>
+    <div id="root"></div>
+    <script>
+        var decimalPlace = 2;
+        $(document).ready(function () {
+            decimalPlace = $('#hdnDecimalPlaces').val();
+        });
+    </script>
+    @********************End js for TPay Payment Api*************************@
+    @*<script>
+            //$(document).ready(function () {
+                //setTimeout(function () {
+                //var output = document.getElementById("output");
+                //var http = new XMLHttpRequest();
+                //var url = "../AdvertisementImages/adv1.jpg";
+                //if (url != "") {
+                //    $.ajax({
+                //        url: url,
+                //        type: 'HEAD',
+                //        cache: false,
+                //        error: function () {
+                //            //alert("File doesn't exists");
+                //        },
+                //        success: function () {
+                //            //alert('File exists');
+                //            $("#advisement").modal('show');
+                //        }
+                //    });
+                //}
+
+                //if (url.length === 0) {
+                //    //output.innerHTML = "Please enter File URL";
+                //} else {
+                //    http.open('HEAD', url, false);
+                //    http.send();
+                //    if (http.status === 200) {
+                //        //alert("File exists");
+                //        $("#advisement").modal('show');
+                //    } else {
+                //        //alert("File doesn't exists");
+                //    }
+                //}
+
+
+                //}, 1000);
+            //});
+
+        </script>*@
+</body>
+</html>

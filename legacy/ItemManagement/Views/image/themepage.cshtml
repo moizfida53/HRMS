@@ -1,0 +1,255 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>themedata</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="~/Scripts/bootstarp.js"></script>
+    <script src="~/Scripts/jquery.js"></script>
+    <link href="~/css/bootstarpnew.css" rel="stylesheet" />
+    <link type="text/css" href="~/css/jqx.base.css" rel="stylesheet" />
+    <script type="text/javascript" src="~/Scripts/jquery-1.11.1.min.js"></script>
+    <script type="text/javascript" src="~/Scripts/jqxcore.js"></script>
+    <script type="text/javascript" src="~/Scripts/jqxfileupload.js"></script>
+    <script type="text/javascript" src="~/Scripts/jqxbuttons.js"></script>
+
+    <script src="~/Content/jqx-all.js"></script>
+    <link href="~/Content/demotheme.css" rel="stylesheet" />
+    <script type="text/javascript">
+        var themeID;
+        $(document).ready(function () {
+            
+            uploadfile()
+            GetThemes();
+        });
+
+        function GetThemes() {
+
+            $.ajax({
+                type: "GET",
+                cache: false,
+                url: "/image/GetTheme",
+                success: function (result) {
+                    ThemeJson = result.dtgrdBrand;
+
+                  
+                    $('#lblimgitemcat').text(result.dtgrdBrand["0"].popUpBackground);
+                    $('#lblHomescreen').text(result.dtgrdBrand["0"].homeScreen);
+                    //$('#clrItemBackgroundColor').val(result.dtgrdBrand["0"].englishButton);
+                    $('#colourbutton').val(result.dtgrdBrand["0"].englishButton);
+                   // $('#clrArabibuttonColor').val(result.dtgrdBrand["0"].englishButton); 
+                    //$('#clrmenu').val(result.dtgrdBrand["0"].englishButton);
+                 CreateImage("#imgitemcatimage", result.dtgrdBrand["0"].popUpBackground)
+                 CreateImage("#imgHomescreen", result.dtgrdBrand["0"].homeScreen)
+                 themeID = result.dtgrdBrand["0"].themeID;
+                 
+                    },
+              
+            })
+        }
+
+        function CreateImage(imageid, image) {
+            try {
+                var p = "../../images/" + image;
+                var t;
+                t = "<div> <img src=" + p + "  width='87' height='58' />  </div>";
+                $(imageid).html(t);
+            } catch (err) {
+            }
+
+        }
+
+
+
+
+        function uploadfile() {
+            $('#jqxitemcatimage,#jqxHomescreen').jqxFileUpload({
+                width: 300,
+                uploadUrl: '/Items/UploadFile',
+                fileInputName: 'fileToUpload',
+                browseTemplate: 'success',
+                multipleFilesUpload: false,
+                localization: { browseButton: 'Select Image', uploadButton: 'Upload Image', cancelButton: 'Cancel' }
+            });
+
+            $('#jqxitemcatimage').on('uploadEnd', function (event) {
+                var args = event.args;
+                var fileName = args.file;
+                $("#lblimgitemcat").html(args.file);
+                CreateImage("#imgitemcatimage", fileName)
+            });
+            $('#jqxHomescreen').on('uploadEnd', function (event) {
+                var args = event.args;
+                var fileName = args.file;
+                $("#lblHomescreen").html(args.file);
+                CreateImage("#imgHomescreen", fileName)
+            });
+        }
+
+
+
+        function Updatetheme() {
+
+            if ($("#lblimgitemcat").html() == '') {
+
+                alert("Background image not found for category and image");
+                return;
+            }
+            if ($("#lblHomescreen").html() == '') {
+
+                alert("Background home");
+                return;
+            }
+           
+
+            var e = document.getElementById("catvalue");
+            var Cvalue = e.options[e.selectedIndex].value;
+           // var text = e.options[e.selectedIndex].text;
+            var b = document.getElementById("Itemvalue");
+            var Ivalue = b.options[b.selectedIndex].value;
+            // var text = b.options[e.selectedIndex].text;
+
+
+       
+            var value = {
+                "leftArrow": Cvalue,
+                "leftBottom": Ivalue,
+                "englishButton": $("#colourbutton").val(),
+                "popUpBackground": $('#lblimgitemcat').html(),
+                "homeScreen": $('#lblHomescreen').html(),
+                "themeID": themeID,
+              
+              
+
+            };
+
+            var obji = { value: value}
+
+            $.ajax({
+                type: "POST",
+                url: "/image/EditTheme",
+                data: JSON.stringify(obji),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                success: function (result) {
+                    alert(result.Message)
+                   // alert("theme updated successfully done !!")
+                }
+            });
+        }
+
+
+
+
+      
+
+
+
+    </script>
+</head>
+<body>
+  
+
+            <div class="theme">
+
+                <div>
+                    <input id="txtthemeID" type="hidden" />
+
+                </div>
+                <div>
+                    <table class="tableCSS">
+
+                        <tr>
+                            <td style="text-align: right;"><b>Item and category background image:</b> &nbsp </td>
+                            <td>
+                                <div id="jqxitemcatimage">
+                                    <div id="imgitemcatimage" style="float: left; margin-right: 10px;">
+                                    </div>
+                                    <b id="lblimgitemcat" style="display: none"></b>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right;">&nbsp <b>HomeScreen Image :</b> &nbsp </td>
+                            <td>
+                                <div id="jqxHomescreen">
+                                    <div id="imgHomescreen" style="float: left; margin-right: 10px;">
+                                    </div>
+                                    <b id="lblHomescreen" style="display: none"></b>
+                                </div>
+
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="text-align: right;"><b>Button background color :</b>   </td>
+                            <td>
+                                <input type="color" id="colourbutton" class="buttoncolor" />
+                            </td>
+                        </tr>
+
+
+                        <tr>
+                            <td style="text-align: right;"><b>No. category in row:</b>   </td>
+                            <td>
+                                <select class="btnclor" id="catvalue">
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="text-align: right;"><b>No. Items in row:</b>   </td>
+                            <td>
+                                <select class="btnclor" id="Itemvalue">
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+
+                                </select>
+                            </td>
+                        </tr>
+
+
+
+
+                        <tr>
+                            <td valign="middle" align="center" colspan="4">
+
+
+                                <input id="btnUpdatetheme" type="button" value="Save" onclick="Updatetheme()" class="addCSS" />
+
+                            </td>
+                        </tr>
+
+
+                    </table>
+                    <form>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label style="text-align: right;"><b>No. Items in row:</b>   </label>
+                        </div>
+                            
+                                <div class="col-md-3">
+                                    <select class="btnclor" id="Itemvalue">
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+
+                                    </select>
+                                </div>
+                                </div>
+                       
+                        </form>
+</div>
+
+            </div>
+
+
+  
+      
+</body>
+</html>

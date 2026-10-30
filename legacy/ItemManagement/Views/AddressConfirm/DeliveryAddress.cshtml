@@ -1,0 +1,768 @@
+﻿@*Start Map related links*@
+<script src='//www.orangesmile.com/tmp/OpenLayers-2.13.1/OpenLayers.js'></script>
+<!-- return map header here -->
+@*<link rel='stylesheet' href='https://unpkg.com/leaflet@1.3.4/dist/leaflet.css' integrity='sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==' crossorigin='' />
+    <script src='https://unpkg.com/leaflet@1.3.4/dist/leaflet.js' integrity='sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==' crossorigin=''></script>*@
+
+<!-- Load Leaflet from CDN -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+      integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+      crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+        integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+        crossorigin=""></script>
+
+<!-- Load Esri Leaflet from CDN -->
+<script src="https://unpkg.com/esri-leaflet@2.5.0/dist/esri-leaflet.js"
+        integrity="sha512-ucw7Grpc+iEQZa711gcjgMBnmd9qju1CICsRaryvX7HJklK0pGl/prxKvtHwpgm5ZHdvAil7YPxI1oWPOWK3UQ=="
+        crossorigin=""></script>
+
+<!-- Load Esri Leaflet Geocoder from CDN -->
+<link rel="stylesheet" href="https://unpkg.com/esri-leaflet-geocoder@2.3.3/dist/esri-leaflet-geocoder.css"
+      integrity="sha512-IM3Hs+feyi40yZhDH6kV8vQMg4Fh20s9OzInIIAc4nx7aMYMfo+IenRUekoYsHZqGkREUgx0VvlEsgm7nCDW9g=="
+      crossorigin="">
+<script src="https://unpkg.com/esri-leaflet-geocoder@2.3.3/dist/esri-leaflet-geocoder.js"
+        integrity="sha512-HrFUyCEtIpxZloTgEKKMq4RFYhxjJkCiF5sDxuAokklOeZ68U2NPfh4MFtyIVWlsKtVbK5GD2/JzFyAfvT5ejA=="
+        crossorigin=""></script>
+@*<script src="~/Content/maps/leaflet-realtime.js"></script>*@
+
+@*End Map related links*@
+
+
+<!-- Main Content ===========================================================-->
+<div id="divDeliveryAddress" class="main-content active cart-page order-mode-page">
+    <div class="item-list-title mb-2">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-auto">
+                <h2>Invoice No : </h2>
+            </div>
+            <div class="col-auto">
+
+                <h2 id="lblInvoiceNo"></h2>
+                <input id="hdnSelectedArea" type="hidden" value="0" />
+                <input id="hdnlat" type="hidden" value="" />
+                <input id="hdnlong" type="hidden" value="" />
+            </div>
+        </div>
+    </div>
+    <div class="animation">
+        <form id="formDeliveryAddress" class="container-fluid ">
+            @*was-validated*@
+            <div class="card p-3 mb-4">
+                <div class="form-group">
+                    <div class="input-group">
+                        @*<div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-search" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                        <circle cx="10" cy="10" r="7" />
+                                        <line x1="21" y1="21" x2="15" y2="15" />
+                                    </svg>
+                                </div>
+                            </div>*@
+                        @*<input type="text" class="form-control" placeholder="Search Area">*@
+
+                        <select id="AddressArea" name="AddressArea"
+                                class="form-control form-control-solid form-control-lg"
+                                onchange="ddrAreaChangeBindDelCharg(this);" required>
+                        </select>
+                    </div>
+                </div>
+                <div id="divAddressMap" class="map" style="width:100%;height:300px">
+                    @*<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d437709.36695678247!2d55.49824198966928!3d24.26017056735914!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e5f43496ad9c645%3A0xbde66e5084295162!2sDubai%20-%20United%20Arab%20Emirates!5e1!3m2!1sen!2sin!4v1613209403569!5m2!1sen!2sin" width="100%" height="300px" frameborder="0" style="border:0;" allowfullscreen="" aria-hidden="false" tabindex="0"></iframe>*@
+                </div>
+            </div>
+            <div class="card mb-4">
+                <nav class="checkout-nav nav nav-pills nav-justified" id="nav-tab" role="tablist">
+                    <a id="CustAddressHome" class="nav-item nav-link active" title="Home" data-toggle="tab" href="#nav-home" role="tab" aria-controls="nav-home" aria-selected="true" onclick="AddressTypeClick('Home')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <polyline points="5 12 3 12 12 3 21 12 19 12" />
+                            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+                            <rect x="10" y="12" width="4" height="4" />
+                        </svg>
+                        <label id="lblADHome">Home</label>
+                    </a>
+                    <a id="CustAddressApartment" class="nav-item nav-link" title="Apartment" data-toggle="tab" href="#nav-apartment" role="tab" aria-controls="nav-apartment" aria-selected="false" onclick="AddressTypeClick('Apartment')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-building" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <line x1="3" y1="21" x2="21" y2="21" />
+                            <line x1="9" y1="8" x2="10" y2="8" />
+                            <line x1="9" y1="12" x2="10" y2="12" />
+                            <line x1="9" y1="16" x2="10" y2="16" />
+                            <line x1="14" y1="8" x2="15" y2="8" />
+                            <line x1="14" y1="12" x2="15" y2="12" />
+                            <line x1="14" y1="16" x2="15" y2="16" />
+                            <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16" />
+                        </svg>
+                        <label id="lblADApartment">Apartment</label>
+                    </a>
+                    <a id="CustAddressOffice" class="nav-item nav-link" title="Office" data-toggle="tab" href="#nav-office" role="tab" aria-controls="nav-office" aria-selected="false" onclick="AddressTypeClick('Office')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-briefcase" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <rect x="3" y="7" width="18" height="13" rx="2" />
+                            <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="12" y1="12" x2="12" y2="12.01" />
+                            <path d="M3 13a20 20 0 0 0 18 0" />
+                        </svg>
+                        <label id="lblADOffice">Office</label>
+                    </a>
+                </nav>
+            </div>
+            <div class="tab-content mb-3" id="nav-tabContent">
+                <!-- Home =====================================-->
+                <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-delivery">
+                    <div class="row">
+                        <div class="form-group col-6">
+                            <label id="lblADHomeBlock">Block</label>
+                            <input id="txtHomeBlock" class="form-control HomeFields" type="text" name="" placeholder="Block" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADHomeStreet">Street</label>
+                            <input id="txtHomeStreet" class="form-control HomeFields" type="text" name="" placeholder="Street" required>
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADHomeHouseNo">House No.</label>
+                            <input id="txtHomeFlat" class="form-control HomeFields" type="text" name="" placeholder="House No." required>
+                        </div>
+                        @*<div class="form-group col-6">
+                                <label>Avenue</label>
+                                <input class="form-control" type="text" name="" placeholder="Search">
+                            </div>*@
+                        <div class="form-group col-12">
+                            <label id="lblADHomeLandmark">Landmark (Optional)</label>
+                            <input id="txtHouseLandmark" class="form-control" type="text" name="" placeholder="Landmark">
+                        </div>
+                    </div>
+                </div>
+                <!-- Flat =========================== -->
+                <div class="tab-pane fade pl-0 pr-0" id="nav-apartment" role="tabpanel" aria-labelledby="nav-apartment">
+                    <div class="row">
+                        <div class="form-group col-6">
+                            <label id="lblADAppartBlock">Block</label>
+                            <input id="txtApartmentBlock" class="form-control ApartmentFields" type="text" name="" placeholder="Block">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADAppartStreet">Street</label>
+                            <input id="txtApartmentStreet" class="form-control ApartmentFields" type="text" name="" placeholder="Street">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADAppartBuilding">Building</label>
+                            <input id="txtApartmentBuilding" class="form-control ApartmentFields" type="text" name="" placeholder="Building">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADAppartFloor">Floor</label>
+                            <input id="txtApartmentFloor" class="form-control ApartmentFields" type="text" name="" placeholder="Floor">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADAppartFlatNo">Flat No.</label>
+                            <input id="txtApartmentFlatNo" class="form-control ApartmentFields" type="text" name="" placeholder="Flat No.">
+                        </div>
+                        @*<div class="form-group col-6">
+                                <label>Avenue</label>
+                                <input class="form-control" type="text" name="" placeholder="Search">
+                            </div>*@
+                        <div class="form-group col-12">
+                            <label id="lblADAppartLandmark">Landmark (Optional)</label>
+                            <input id="txtApartmentLandmark" class="form-control" type="text" name="" placeholder="Landmark">
+                        </div>
+                    </div>
+                </div>
+                <!-- Office ============================ -->
+                <div class="tab-pane fade pl-0 pr-0" id="nav-office" role="tabpanel" aria-labelledby="nav-office">
+                    <div class="row">
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeBlock">Block</label>
+                            <input id="txtOfficeBlock" class="form-control OfficeFields" type="text" name="" placeholder="Block">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeStreet">Street</label>
+                            <input id="txtOfficeStreet" class="form-control OfficeFields" type="text" name="" placeholder="Street">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeBuilding">Building</label>
+                            <input id="txtOfficeBuilding" class="form-control OfficeFields" type="text" name="" placeholder="Building">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeFloor">Floor</label>
+                            <input id="txtOfficeFloor" class="form-control OfficeFields" type="text" name="" placeholder="Floor">
+                        </div>
+                        <div class="form-group col-6">
+                            <label id="lblADOfficeFlatNo">Flat No.</label>
+                            <input id="txtOfficeFlat" class="form-control OfficeFields" type="text" name="" placeholder="Flat No.">
+                        </div>
+                        @*<div class="form-group col-6">
+                                <label>Avenue</label>
+                                <input class="form-control" type="text" name="" placeholder="Search">
+                            </div>*@
+                        <div class="form-group col-12">
+                            <label id="lblADOfficeLandmark">Landmark (Optional)</label>
+                            <input id="txtOfficeLandmark" class="form-control" type="text" name="" placeholder="Landmark">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="justify-content-between">
+                <button class="btn btn-primary" type="button" onclick="SubmitData();" style="float:right">
+                    <span id="DelAddressbtnSubmit">Submit</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- End Main Content ===========================================================-->
+
+<script src="~/MainJs/ItemsViewNew/DeliveryAddress.js"></script>
+
+<script>
+    var marker = null;
+    var InvoiceNo = "";
+    var AddrInfo = {};
+    $(document).ready(function () {
+        debugger;
+        InvoiceNo = GetParameterValuesFromQueryString('InvoiceNo');
+        if (InvoiceNo != "" && InvoiceNo != undefined) {
+            $('#lblInvoiceNo').text(InvoiceNo);
+            createCustomerAddressMap();
+            createCustomerDetailsObject();
+            BindAddress(InvoiceNo);
+        }
+    });
+
+    function BindAddress(invoiceno) {
+        debugger
+        var obj = {
+            InoiceNumber: invoiceno
+        }
+        $.ajax({
+            type: "Post",
+            data: JSON.stringify(obj),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            cache: false,
+            url: "/AddressConfirm/GetInvoiceAddress",
+            success: function (result) {
+                debugger;
+                if (result.Message == "Success") {
+                    var dtAddr = JSON.parse(result.dtresult);
+                    if (dtAddr != null) {
+
+                        //if (CustomerDetails["DeliveryAddressType"] == "Home"
+                        //    || CustomerDetails["DeliveryAddressType"] == "Apartment"
+                        //    || CustomerDetails["DeliveryAddressType"] == "Office") {
+                        //$('#CustAddressHome').removeClass("active");
+                        //$('#CustAddressApartment').removeClass("active");
+                        //$('#CustAddressOffice').removeClass("active");
+
+                        //$('#nav-home').removeClass("active show");
+                        //$('nav-apartment').addClass("active show");
+                        //$('nav-office').addClass("active show");
+
+                        //}
+
+
+                        //if (dtAddr["DeliveryAddressType"] == "Home") {
+                        //$('#CustAddressHome').addClass("active");
+                        //$('#CustAddressHome').click();
+                        //$('#nav-home').addClass("active show");
+
+                        $('#txtHomeBlock').val(dtAddr[0]["Block"]);
+                        $('#txtHomeStreet').val(dtAddr[0]["Street"]);
+                        $('#txtHomeFlat').val(dtAddr[0]["Flat"]);
+                        $('#txtHouseLandmark').val(dtAddr[0]["AddressRemarks"]);
+                        //Custinfo["Building"] = $('#Building').val();
+                        //}
+
+                        //else if (dtAddr["DeliveryAddressType"] == "Apartment") {
+                        /*$('#CustAddressApartment').addClass("active");*/
+                        //$('#CustAddressApartment').click();
+                        //$('#nav-apartment').addClass("active show");
+
+                        $('#txtApartmentBlock').val(dtAddr[0]["Block"]);
+                        $('#txtApartmentStreet').val(dtAddr[0]["Street"]);
+                        $('#txtApartmentBuilding').val(dtAddr[0]["Building"]);
+                        $('#txtApartmentFloor').val(dtAddr[0]["Floor"]);
+                        $('#txtApartmentFlatNo').val(dtAddr[0]["Flat"]);
+                        $('#txtApartmentLandmark').val(dtAddr[0]["AddressRemarks"]);
+                        //}
+                        //else if (dtAddr["DeliveryAddressType"] == "Office") {
+                        //$('#CustAddressOffice').addClass("active");
+                        //$('#CustAddressOffice').click();
+                        //$('#nav-office').addClass("active show");
+
+                        $('#txtOfficeBlock').val(dtAddr[0]["Block"]);
+                        $('#txtOfficeStreet').val(dtAddr[0]["Street"]);
+                        $('#txtOfficeBuilding').val(dtAddr[0]["Building"]);
+                        $('#txtOfficeFloor').val(dtAddr[0]["Floor"]);
+                        $('#txtOfficeFlat').val(dtAddr[0]["Flat"]);
+                        $('#txtOfficeLandmark').val(dtAddr[0]["AddressRemarks"]);
+                        //}
+
+                        if (dtAddr[0]["Latitude"] != "" && dtAddr[0]["Longitude"] != "" && dtAddr[0]["Latitude"] != null && dtAddr[0]["Longitude"] != null) {
+                            $('#divOrderUpdateStatusView').show();
+                            $('#divDeliveryAddress').hide();
+                            $('#CustomerOrderNo').html(InvoiceNo);
+
+                            $('#lblOrderConfirmOrderAddre1').html("Address already updated.");
+                            $('#lblOrderConfirmOrderAddre2').html("");
+                        }
+                       
+                        //$('#hdnlat').val(dtAddr[0]["Latitude"]);
+                        //$('#hdnlong').val(dtAddr[0]["Longitude"]);
+
+                        ////set areaid
+                        //if ($('#pickup').hasClass("active")) {
+                        //    $('.clrbranchList').each(function (index) {
+                        //        $(this).removeClass("active");
+                        //        if (parseInt($(this).attr("data-arId")) == CustomerDetails["AreaID"]) {
+                        //            $(this).addclass("active");
+                        //        }
+                        //    });
+                        //}
+                        //else {
+                       
+                        /*}*/
+
+
+                        if (dtAddr[0]["Latitude"] != "" && dtAddr[0]["Longitude"] != "" && dtAddr[0]["Latitude"] != null && dtAddr[0]["Longitude"] != null) {
+                            if (marker !== null) {
+                                CustomerAddressMap.removeLayer(marker);
+                            }
+                            marker = L.marker([dtAddr[0]["Latitude"], dtAddr[0]["Longitude"]]).addTo(CustomerAddressMap);
+
+                            CustomerAddressMap.setView([dtAddr[0]["Latitude"], dtAddr[0]["Longitude"]], 16);
+                        }
+
+                        if (parseInt(dtAddr[0]["AreaID"]) > 0) {
+                            debugger;
+                            $('#hdnSelectedArea').val(dtAddr[0]["AreaID"]);
+                            $('#AddressArea').val(dtAddr[0]["AreaID"]);
+                        }
+
+                    }
+                }
+
+            }
+        });
+    }
+
+    function SubmitData() {
+        debugger;
+        if (InvoiceNo != "") {
+            FillCustinfoAndAddressInfo();
+
+            var objdata = {
+                InvoiceNo: InvoiceNo,
+                addressInfo: AddrInfo,
+            }
+
+            $.ajax({
+                type: "Post",
+                data: JSON.stringify(objdata),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                cache: false,
+                url: "/AddressConfirm/UpdateAddress",
+                success: function (result) {
+                    debugger;
+                    if (result.Message == "Success") {
+                        $('#divOrderUpdateStatusView').show();
+                        $('#divDeliveryAddress').hide();
+                        $('#CustomerOrderNo').html(InvoiceNo);
+                    }
+                    else {
+                        ShowNotification(result.Message);
+                    }
+                }
+            });
+
+        }
+
+    }
+    function FillCustinfoAndAddressInfo() {
+        debugger;
+        AddrInfo["id"] = 0;
+        AddrInfo["CustomerId"] = 0;
+        AddrInfo["Email"] = $('#txtCustomerEmailnew').val();
+        AddrInfo["HouseNo"] = "";                            
+        AddrInfo["AreaID"] = 1;
+        var selectedAddressIndex = 2;
+        $('.clSelectedDeliveryAddress').each(function (index) {
+            if ($(this).hasClass("active")) {
+                selectedAddressIndex = parseInt($(this).attr("data-val"));
+            }
+        });
+
+        if ($('#hdnIsFromWaiterLogin').val() == "true") {
+            AddrInfo["AreaID"] = 1;
+            AddrInfo["Block"] = "";
+            AddrInfo["Street"] = "";
+            AddrInfo["Building"] = "";
+            AddrInfo["Floor"] = "";
+            AddrInfo["Flat"] = "";
+            //Custinfo["Lane"] = data.Lane;
+            AddrInfo["Lat"] = "";
+            AddrInfo["Long"] = "";
+            AddrInfo["AddressRemark"] = "";
+        }
+        else {
+            if (selectedAddressIndex < 2) {
+                //bind from customerAddresses object
+                if (customerAddresses != null) {
+                    var data = customerAddresses[selectedAddressIndex];
+                    areaName = data.AreaName;
+                    AddrInfo["AreaID"] = data.AreaID;
+                    AddrInfo["Block"] = data.Block;
+                    AddrInfo["Street"] = data.Street;
+                    AddrInfo["Building"] = data.Building;
+                    AddrInfo["Floor"] = data.Floor;
+                    AddrInfo["Flat"] = data.flat;
+                    //Custinfo["Lane"] = data.Lane;
+                    AddrInfo["Lat"] = data.Latitude == null ? 0 : data.Latitude;
+                    AddrInfo["Long"] = data.Longitude == null ? 0 : data.Longitude;
+                    AddrInfo["AddressRemark"] = data.AddressRemarks;
+                    selectedbranchid = $('#hdnBranchId').val();
+                }
+            }
+            else {
+                AddrInfo["AreaID"] = $('#AddressArea').val();
+                areaName = $("#AddressArea option:selected").text();
+                if ($('#CustAddressHome').hasClass("active")) {
+                    AddrInfo["Block"] = $('#txtHomeBlock').val();
+                    AddrInfo["Street"] = $('#txtHomeStreet').val();
+                    AddrInfo["Flat"] = $('#txtHomeFlat').val();
+                    AddrInfo["AddressRemark"] = $('#txtHouseLandmark').val();
+                    //Custinfo["Building"] = $('#Building').val();
+                }
+
+                else if ($('#CustAddressApartment').hasClass("active")) {
+                    AddrInfo["Block"] = $('#txtApartmentBlock').val();
+                    AddrInfo["Street"] = $('#txtApartmentStreet').val();
+                    AddrInfo["Building"] = $('#txtApartmentBuilding').val();
+                    AddrInfo["Floor"] = $('#txtApartmentFloor').val();
+                    AddrInfo["Flat"] = $('#txtApartmentFlatNo').val();
+                    AddrInfo["AddressRemark"] = $('#txtApartmentLandmark').val();
+                }
+                else if ($('#CustAddressOffice').hasClass("active")) {
+                    AddrInfo["Block"] = $('#txtOfficeBlock').val();
+                    AddrInfo["Street"] = $('#txtOfficeStreet').val();
+                    AddrInfo["Building"] = $('#txtOfficeBuilding').val();
+                    AddrInfo["Floor"] = $('#txtOfficeFloor').val();
+                    AddrInfo["Flat"] = $('#txtOfficeFlat').val();
+                    AddrInfo["AddressRemark"] = $('#txtOfficeLandmark').val();
+                }
+
+                AddrInfo["Lat"] = $('#hdnlat').val();
+                AddrInfo["Long"] = $('#hdnlong').val();
+                //Custinfo["Floor"] = "";
+            }
+        }
+       
+
+
+        //////////////start bind last confrim view lables //////////////
+
+        var area = areaName.length > 0 ? "" + lblDSArea + ": " + areaName + ", " : "";
+        var block = AddrInfo["Block"] === undefined ? "" : AddrInfo["Block"].length > 0 ? "" + lblDSBlock + ": " + AddrInfo["Block"].replace("Block", "") + ", " : "";
+        var firstline = area + block;
+        //remove last commaseprate
+        firstline = firstline.slice(0, -2)
+
+        var Street = AddrInfo["Street"] === undefined ? "" : AddrInfo["Street"].length > 0 ? "" + lblDSStreet + ": " + AddrInfo["Street"].replace("Street", "") + ", " : "";
+        var Landmark = AddrInfo["AddressRemark"] === undefined ? "" : AddrInfo["AddressRemark"].length > 0 ? "" + lblADLandmark + ": " + AddrInfo["AddressRemark"] + ", " : "";
+        var building = AddrInfo["Building"] === undefined ? "" : AddrInfo["Building"].length > 0 ? "" + lblDSBuilding + ": " + AddrInfo["Building"] + ", " : "";
+        var floor = AddrInfo["Floor"] === undefined ? "" : AddrInfo["Floor"].length > 0 ? "" + lblDSFloor + ": " + AddrInfo["Floor"] + ", " : "";
+        var flat = AddrInfo["Flat"] === undefined ? "" : AddrInfo["Flat"].length > 0 ? "" + lblDSFlat + ": " + AddrInfo["Flat"] + ", " : "";
+
+        var secondline = Street + Landmark + building + floor + flat;
+        //remove last commaseprate
+        secondline = secondline.slice(0, -2)
+
+        //$('#lblOrderConfirmOrderCustomerName').html($('#txtCustomerFullname').val());
+        //$('#lblOrderConfirmOrderEmail').html($('#txtCustomerEmailnew').val());
+        //$('#lblOrderConfirmOrderMobile').html($('#txtCustomerPhoneNumber').val());
+        $('#lblOrderConfirmOrderAddre1').html(firstline);
+        $('#lblOrderConfirmOrderAddre2').html(secondline);
+        //////////////End bind last confrim view lables //////////////
+    }
+
+
+
+
+    var mapboxUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=__MAPBOX_ACCESS_TOKEN__';
+    var mapboxAttribution = 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+        '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+        'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>';
+
+    var LeafIcon = L.Icon.extend({
+        options: {
+            iconAnchor: [30, 40],
+            popupAnchor: [-3, -35]
+        }
+    });
+
+
+    debugger
+    var CustomerAddressMap = new L.Map('divAddressMap', {
+        //center: [0, 0],
+        zoom: 2,
+        layers: [
+            new L.TileLayer('https://{s}.tile.openstreetmap.de/tiles/osmde/{z}/{x}/{y}.png', {
+                'attribution': '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            })
+        ]
+    }).setView([29.378586, 47.990341], 12);
+
+    var arcgisOnline = L.esri.Geocoding.arcgisOnlineProvider();
+
+    L.esri.Geocoding.geosearch({
+        providers: [
+            arcgisOnline,
+            L.esri.Geocoding.featureLayerProvider({
+                url: 'https://services.arcgis.com/uCXeTVveQzP4IIcx/arcgis/rest/services/gisday/FeatureServer/0/',
+                searchFields: ['Name', 'AddressArea'],
+                label: 'GIS Day Events',
+                bufferRadius: 5000,
+                formatSuggestion: function (feature) {
+                    return feature.properties.Name + ' - ' + feature.properties.Organization;
+                }
+            })
+        ]
+    }).addTo(CustomerAddressMap);
+
+    function createCustomerAddressMap() {
+        var curlat = 29.378586;
+        var curlong = 47.990341;
+        debugger;
+        if ("geolocation" in navigator) { //check geolocation available
+            debugger;
+            //try to get user current location using getCurrentPosition() method
+            navigator.geolocation.getCurrentPosition(function (position) {
+                debugger;
+                curlat = position.coords.latitude;
+                curlong = position.coords.longitude;
+                CustomerAddressMap.setView([curlat, curlong], 20);
+                if (marker !== null) {
+                    CustomerAddressMap.removeLayer(marker);
+                }
+                marker = L.marker([curlat, curlong]).addTo(CustomerAddressMap);
+                //$("#result").html("Found your location <br />Lat : " + position.coords.latitude + " </br>Lang :" + position.coords.longitude);
+
+                ///////////////////////Begin Set current location values in the textboxes////////////////////
+                latlng = {}
+                latlng["lat"] = curlat;
+                latlng["lng"] = curlong;
+
+                bindAddressData(latlng);
+                ///////////////////////End Set current location values in the textboxes////////////////////
+            });
+        } else {
+            debugger;
+            console.log("Browser doesn't support geolocation!");
+        }
+
+        setClickOnmapclick(CustomerAddressMap);
+    }
+
+
+    function setClickOnmapclick(CustomerAddressMap) {
+        debugger;
+        CustomerAddressMap.on('click', function (e) {
+            debugger;
+            latlng = {}
+            latlng["lat"] = e.latlng.lat;
+            latlng["lng"] = e.latlng.lng;
+
+            bindAddressData(latlng);
+        });
+    }
+
+    function bindAddressData(objlatlng) {
+        debugger;
+        var geocodeService = L.esri.Geocoding.geocodeService();
+        var areaArb = "";
+        var areaEng = "";
+        geocodeService.reverse().latlng([objlatlng.lat, objlatlng.lng]).run(function (error, result) {
+            debugger;
+            areaArb = "";
+            if (result != null) {
+                if (result.address != null) {
+                    debugger;
+                    var data = result.address;
+                    var latlongdata = result.latlng;
+                    var strmsg = 'lat:' + latlongdata["lat"] + "\n" +
+                        'long:' + latlongdata["lng"] + "\n" +
+                        'AddNum:' + data["AddNum"] + "\n" +
+                        'Addr_type:' + data["Addr_type"] + "\n" +
+                        'Address:' + data["Address"] + "\n" +
+                        'Block:' + data["Block"] + "\n" +
+                        'City:' + data["City"] + "\n" +
+                        'CountryCode:' + data["CountryCode"] + "\n" +
+                        'District:' + data["District"] + "\n" +
+                        'LongLabel:' + data["LongLabel"] + "\n" +
+                        'Match_addr:' + data["Match_addr"] + "\n" +
+                        'MetroArea:' + data["MetroArea"] + "\n" +
+                        'Neighborhood:' + data["Neighborhood"] + "\n" +
+                        'PlaceName:' + data["PlaceName"] + "\n" +
+                        'Postal:' + data["Postal"] + "\n" +
+                        'PostalExt:' + data["PostalExt"] + "\n" +
+                        'Region:' + data["Region"] + "\n" +
+                        'Sector:' + data["Sector"] + "\n" +
+                        'ShortLabel:' + data["ShortLabel"] + "\n" +
+                        'Subregion:' + data["Subregion"] + "\n" +
+                        'Territory:' + data["Territory"] + "\n" +
+                        'Type:' + data["Type"];
+                    console.log(strmsg);
+                    areaArb = data["Neighborhood"];
+                }
+            }
+        });
+
+        geocodeService.reverse().latlng([objlatlng.lat, objlatlng.lng]).language("eng").run(function (error, result) {
+            debugger;
+            areaEng = "";
+            //$('#Block').val("");
+            //$('#Street').val("");
+            //$('#Landmark').val("");
+
+            $('#hdnlat').val("");
+            $('#hdnlong').val("");
+            $("#AddressArea").val("");
+            if ($('#CustAddressHome').hasClass("active")) {
+                $('#txtHomeBlock').val("");
+                $('#txtHomeStreet').val("");
+                $('#txtHouseLandmark').val("");
+            }
+            if ($('#CustAddressHome').hasClass("active")) {
+                $('#txtApartmentBlock').val("");
+                $('#txtApartmentStreet').val("");
+                $('#txtApartmentLandmark').val("");
+            }
+            if ($('#CustAddressHome').hasClass("active")) {
+                $('#txtOfficeBlock').val("");
+                $('#txtOfficeStreet').val("");
+                $('#txtOfficeLandmark').val("");
+            }
+
+
+
+
+            if (result != null) {
+                if (result.address != null) {
+                    //new L.Marker([e.latlng.lat, e.latlng.lng]).addTo(CustomerAddressMap);
+                    if (marker !== null) {
+                        CustomerAddressMap.removeLayer(marker);
+                    }
+                    marker = L.marker([objlatlng.lat, objlatlng.lng]).addTo(CustomerAddressMap);
+
+                    var data = result.address;
+                    var latlongdata = result.latlng;
+                    var strmsg = 'lat:' + latlongdata["lat"] + "\n" +
+                        'long:' + latlongdata["lng"] + "\n" +
+                        'AddNum:' + data["AddNum"] + "\n" +
+                        'Addr_type:' + data["Addr_type"] + "\n" +
+                        'Address:' + data["Address"] + "\n" +
+                        'Block:' + data["Block"] + "\n" +
+                        'City:' + data["City"] + "\n" +
+                        'CountryCode:' + data["CountryCode"] + "\n" +
+                        'District:' + data["District"] + "\n" +
+                        'LongLabel:' + data["LongLabel"] + "\n" +
+                        'Match_addr:' + data["Match_addr"] + "\n" +
+                        'MetroArea:' + data["MetroArea"] + "\n" +
+                        'Neighborhood:' + data["Neighborhood"] + "\n" +
+                        'PlaceName:' + data["PlaceName"] + "\n" +
+                        'Postal:' + data["Postal"] + "\n" +
+                        'PostalExt:' + data["PostalExt"] + "\n" +
+                        'Region:' + data["Region"] + "\n" +
+                        'Sector:' + data["Sector"] + "\n" +
+                        'ShortLabel:' + data["ShortLabel"] + "\n" +
+                        'Subregion:' + data["Subregion"] + "\n" +
+                        'Territory:' + data["Territory"] + "\n" +
+                        'Type:' + data["Type"];
+                    console.log(strmsg);
+                    areaEng = data["Neighborhood"];
+                    //alert(strmsg);
+
+                    $('#hdnlat').val(latlongdata["lat"]);
+                    $('#hdnlong').val(latlongdata["lng"]);
+
+                    //if ($('#CustAddressHome').hasClass("active")) {
+                    $('#txtHomeBlock').val(data["Block"]);
+                    $('#txtHomeStreet').val(data["Address"]);
+                    $('#txtHouseLandmark').val(data["PlaceName"]);
+                    //}
+                    //if ($('#CustAddressApartment').hasClass("active")) {
+                    $('#txtApartmentBlock').val(data["Block"]);
+                    $('#txtApartmentStreet').val(data["Address"]);
+                    $('#txtApartmentLandmark').val(data["PlaceName"]);
+                    //}
+                    //if ($('#CustAddressOffice').hasClass("active")) {
+                    $('#txtOfficeBlock').val(data["Block"]);
+                    $('#txtOfficeStreet').val(data["Address"]);
+                    if (data["PlaceName"] == "" && data["District"] != "") {
+                        data["PlaceName"] = data["District"]
+                    }
+                    $('#txtOfficeLandmark').val(data["PlaceName"]);
+                    //}
+
+
+                    debugger;
+                    //$("#AddressArea option:contains(" + area + ")").attr("selected", true);
+                    $("#AddressArea option").filter(function () {
+                        if ($(this).text() == areaEng || $(this).text() == areaArb) {
+                            return true;
+                        }
+                        else {
+                            return false;
+                        }
+                    }).prop('selected', true);
+                }
+            }
+        });
+    }
+    function AddressTypeClick(addrType) {
+        debugger;
+        $('.ApartmentFields').each(function (index) {
+            var attr = $(this).attr('required');
+            if (typeof attr !== typeof undefined && attr !== false) {
+                $(this).removeAttr("required");
+            }
+        });
+        $('.OfficeFields').each(function (index) {
+            var attr = $(this).attr('required');
+            if (typeof attr !== typeof undefined && attr !== false) {
+                $(this).removeAttr("required");
+            }
+        });
+        $('.HomeFields').each(function (index) {
+            var attr = $(this).attr('required');
+            if (typeof attr !== typeof undefined && attr !== false) {
+                $(this).removeAttr("required");
+            }
+        });
+        if (addrType == "Home") {
+            $('.HomeFields').each(function (index) {
+                var attr = $(this).attr('required');
+                if (typeof attr == typeof undefined || attr == false) {
+                    $(this).attr("required", "");
+                }
+            });
+        }
+        if (addrType == "Apartment") {
+            $('.ApartmentFields').each(function (index) {
+                var attr = $(this).attr('required');
+                if (typeof attr == typeof undefined || attr == false) {
+                    $(this).attr("required", "");
+                }
+            });
+        }
+        if (addrType == "Office") {
+            $('.OfficeFields').each(function (index) {
+                var attr = $(this).attr('required');
+                if (typeof attr == typeof undefined || attr == false) {
+                    $(this).attr("required", "");
+                }
+            });
+        }
+    }
+</script>

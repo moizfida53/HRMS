@@ -1,0 +1,254 @@
+﻿@using Jar.Helper   @* Asset.V() - css/js cache-buster, Helper\AssetVersion.cs *@
+<script type="text/javascript" src="@Asset.V("~/js/bootstrap-datepicker.js")"></script>
+
+<style>
+    .clSelectedDeliveryAddress {
+        cursor: default;
+    }
+</style>
+
+<!-- Main Content ===========================================================-->
+<div id="divDeliveryService" class="main-content active cart-page order-mode-page" style="display:none;">
+    <input id="hdnlat" type="hidden" />
+    <input id="hdnlong" type="hidden" />
+    <div class="item-list-title mb-2">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-auto">
+                <a title="back" class="btn btn-sm back-btn" onclick="DeliveryServicePrevious();">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="col-auto">
+                <h2 id="lblDeliveryService">Delivery Service</h2>
+            </div>
+        </div>
+    </div>
+    <div class="animation">
+        <div class="container-fluid">
+
+            <div class="mb-4">
+                <nav class="checkout-nav nav nav-pills nav-justified" id="nav-tab" role="tablist">
+                    <a class="nav-item nav-link active" title="Delivery" id="delivery" data-toggle="tab" href="#nav-delivery" role="tab" aria-controls="nav-delivery" aria-selected="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-truck-delivery" width="26" height="26" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <circle cx="7" cy="17" r="2" />
+                            <circle cx="17" cy="17" r="2" />
+                            <path d="M5 17h-2v-4m-1 -8h11v12m-4 0h6m4 0h2v-6h-8m0 -5h5l3 5" />
+                            <line x1="3" y1="9" x2="7" y2="9" />
+                        </svg>
+                        <label id="lblDSDelivery">Delivery</label>
+                    </a>
+                    <a class="nav-item nav-link" title="Pickup" id="pickup" data-toggle="tab" href="#nav-pickup" role="tab" aria-controls="nav-pickup" aria-selected="false">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-package" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3" />
+                            <line x1="12" y1="12" x2="20" y2="7.5" />
+                            <line x1="12" y1="12" x2="12" y2="21" />
+                            <line x1="12" y1="12" x2="4" y2="7.5" />
+                            <line x1="16" y1="5.25" x2="8" y2="9.75" />
+                        </svg>
+                        <label id="lblDSPickup">Pickup</label>
+                    </a>
+                </nav>
+            </div>
+            <div class="tab-content mb-3" id="nav-tabContent">
+                <div class="tab-pane delivery-tab-pane fade show active" id="nav-delivery" role="tabpanel" aria-labelledby="nav-delivery">
+                    <div class="card p-3 mb-4">
+                        <h3 class="delivery-title pb-3" id="lblDSOrderTime">What time Would you like your order ? </h3>
+                        <div class="form-group date-pick">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-event" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                            <rect x="4" y="5" width="16" height="16" rx="2" />
+                                            <line x1="16" y1="3" x2="16" y2="7" />
+                                            <line x1="8" y1="3" x2="8" y2="7" />
+                                            <line x1="4" y1="11" x2="20" y2="11" />
+                                            <rect x="8" y="15" width="2" height="2" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <input id="ISDeliveryDateToday" type="hidden" value="1" />
+                                <input id="txtDeliveryServiceDate" type="text" class="form-control datepicker pl-3" value="Today" placeholder="Date">
+                            </div>
+                        </div>
+                        <div class="form-group mb-0">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                            <circle cx="12" cy="12" r="9" />
+                                            <polyline points="12 7 12 12 15 15" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <select id="selDeliveryTimeSlot" class="form-control selectpicker pl-0">
+                                    @*<option value="01">08:30 PM</option>
+                                        <option value="02">09:30 PM</option>
+                                        <option value="03">10:30 PM</option>
+                                        <option value="04">11:30 PM</option>*@
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="delivery-title pb-3" id="lblDSChooseLocation">Choose Delivery Location</h3>
+                    <ul id="ulListAddresses" class="list-unstyled mb-5">
+                        @*<li class="media">
+                                <span class="icon-outer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-current-location" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                        <circle cx="12" cy="12" r="3" />
+                                        <circle cx="12" cy="12" r="8" />
+                                        <line x1="12" y1="2" x2="12" y2="4" />
+                                        <line x1="12" y1="20" x2="12" y2="22" />
+                                        <line x1="20" y1="12" x2="22" y2="12" />
+                                        <line x1="2" y1="12" x2="4" y2="12" />
+                                    </svg>
+                                </span>
+                                <div class="media-body pl-3 pr-3">
+                                    <h4 class="mt-0 mb-1">Delever to Current Location</h4>
+                                    <p>Enabal Device Location</p>
+                                </div>
+                            </li>
+                            <li class="media">
+                                <span class="icon-outer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-home-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                        <polyline points="5 12 3 12 12 3 21 12 19 12" />
+                                        <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+                                        <rect x="10" y="12" width="4" height="4" />
+                                    </svg>
+                                </span>
+                                <div class="media-body pl-3 pr-3">
+                                    <h4 class="mt-0 mb-1">Bungalow No.</h4>
+                                    <p>11 Street 1 lane, Salmiya</p>
+                                </div>
+                            </li>
+                            <li class="media">
+                                <span class="icon-outer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-building" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                        <line x1="3" y1="21" x2="21" y2="21" />
+                                        <line x1="9" y1="8" x2="10" y2="8" />
+                                        <line x1="9" y1="12" x2="10" y2="12" />
+                                        <line x1="9" y1="16" x2="10" y2="16" />
+                                        <line x1="14" y1="8" x2="15" y2="8" />
+                                        <line x1="14" y1="12" x2="15" y2="12" />
+                                        <line x1="14" y1="16" x2="15" y2="16" />
+                                        <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16" />
+                                    </svg>
+                                </span>
+                                <div class="media-body pl-3 pr-3">
+                                    <h4 class="mt-0 mb-1">Building No.</h4>
+                                    <p>11 Street 1 lane, Salmiya</p>
+                                </div>
+                            </li>
+                            <li class="media">
+                                <span class="icon-outer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-briefcase" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                        <rect x="3" y="7" width="18" height="13" rx="2" />
+                                        <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
+                                        <line x1="12" y1="12" x2="12" y2="12.01" />
+                                        <path d="M3 13a20 20 0 0 0 18 0" />
+                                    </svg>
+                                </span>
+                                <div class="media-body pl-3 pr-3">
+                                    <h4 class="mt-0 mb-1">Office No.</h4>
+                                    <p>11 Street 1 lane, Salmiya</p>
+                                </div>
+                            </li>
+
+                            <li class="media active">
+                                <span class="icon-outer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-map-pin" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                        <circle cx="12" cy="11" r="3" />
+                                        <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />
+                                    </svg>
+                                </span>
+                                <div class="media-body pl-3 pr-3">
+                                    <h4 class="mt-0 mb-1">Delever to Different Location</h4>
+                                    <p>Chooes Location the Map</p>
+                                </div>
+                            </li>*@
+                    </ul>
+                </div>
+                <!-- Pickup -->
+                <div class="tab-pane pickup-tab-pane fade mb-5" id="nav-pickup" role="tabpanel" aria-labelledby="nav-pickup">
+                    <div id="divPickupTimeSelection" class="card p-3 mb-4">
+                        <h3 class="delivery-title pb-3" id="lblDSOrderTime2">What time Would you like your order ? </h3>
+                        <div class="form-group date-pick">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-event" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                            <rect x="4" y="5" width="16" height="16" rx="2" />
+                                            <line x1="16" y1="3" x2="16" y2="7" />
+                                            <line x1="8" y1="3" x2="8" y2="7" />
+                                            <line x1="4" y1="11" x2="20" y2="11" />
+                                            <rect x="8" y="15" width="2" height="2" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <input id="txtDeliveryPickupServiceDate" type="text" class="form-control datepicker pl-3" value="Today" placeholder="Date">
+                            </div>
+                        </div>
+                        <div class="form-group mb-0">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <div class="input-group-text">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                            <circle cx="12" cy="12" r="9" />
+                                            <polyline points="12 7 12 12 15 15" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <select id="selPickupTimeSlot" class="form-control selectpicker pl-0">
+                                    @*<option value="01">08:30 PM</option>
+                                        <option value="02">09:30 PM</option>
+                                        <option value="03">10:30 PM</option>
+                                        <option value="04">11:30 PM</option>*@
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="divBranchListPickup">
+                        @*<a href="#" class="list-group-item list-group-item-action active">
+                                <h4>Pickup</h4>
+                                <p>11 Street 1 lane, Salmiya</p>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <h4>Gate Mall</h4>
+                                <p>11 Street 1 lane, Salmiya</p>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <h4>Pickup</h4>
+                                <p>11 Street 1 lane, Salmiya</p>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <h4>Pickup</h4>
+                                <p>11 Street 1 lane, Salmiya</p>
+                            </a>*@
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-secondary" onclick="DeliveryServicePrevious();">
+                        <span id="DelServbtnPrevious">Previous</span>
+                    </button>
+                    <button class="btn btn-primary" type="button" onclick="DeliveryServiceNext();">
+                        <span id="DelServbtnNext">Next</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- End Main Content ===========================================================-->
+
+<script src="@Asset.V("~/MainJs/ItemsViewNew/DeliveryService.js")"></script>

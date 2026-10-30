@@ -1,0 +1,192 @@
+﻿@using Jar.Helper   @* Asset.V() - css/js cache-buster, Helper\AssetVersion.cs; same helper the customer-facing ItemsViewNew landing page already uses *@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>e-Tmm | Item management</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Meta descriptions may be included in search results to concisely summarize page content.">
+    @*<link rel="shortcut icon" href="../Images/favicon.ico" />*@
+    @*<link rel="shortcut icon" href="~/assets/media/logos/favicon.ico" />*@
+
+
+    <!--begin::Global Theme Styles(used by all pages)-->
+    @*<link href="~/assets/plugins/global/plugins.bundle.css?v=7.0.5" rel="stylesheet" type="text/css" />*@
+    <!--end::Global Theme Styles-->
+    <!--begin::Global Theme Bundle(used by all pages)-->
+    @*<script src="~/assets/plugins/global/plugins.bundle.js?v=7.0.5"></script>*@
+    <!--end::Global Theme Bundle-->
+    <script src="@Asset.V("~/vendor/jquery/jquery.js")"></script>
+    <script src="@Asset.V("~/vendor/jquery/jquery-ui.min.js")"></script>
+
+    <script src="@Asset.V("~/js/popper.min.js")"></script>
+    <script src="@Asset.V("~/js/bootstrap.bundle.min.js")"></script>
+    <script src="@Asset.V("~/js/jquery.gridstrap.min.js")"></script>
+    <script src="@Asset.V("~/js/BsMultiSelect.min.js")"></script>
+    <script src="@Asset.V("~/js/bootstrap-select.min.js")"></script>
+    <script src="@Asset.V("~/js/bootstrap-datepicker.js")"></script>
+    <script src="@Asset.V("~/js/custom.js")"></script>
+
+
+
+    @*<script src="~/js/jquery.js"></script>*@
+
+
+    @*<script src="../assets/js/pages/crud/forms/widgets/select2.js"></script>*@
+    @*<script src="~/js/popper.min.js"></script>*@
+    <script src="@Asset.V("~/js/main.js")"></script>
+    @*<script src="~/vendor/jquery/jquery-ui.min.js"></script>*@
+
+    @* Arabic/English admin language switcher (labels come from tblLabelName) *@
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/rtl-admin.css")" />
+    <script src="@Asset.V("~/MainJs/AdminLang.js")"></script>
+</head>
+
+<body>
+    @using Jar.Controllers
+    @{
+        //var student = ViewData["Name"];
+        //int RoleID = Convert.ToInt16(ViewData["RoleID"].ToString());
+        //int WaiterID = Convert.ToInt32(Session["WaiterID"]);
+        //int BranchID = Convert.ToInt32(Session["BranchID"]);
+        int RoleID = 0;
+        int UserId = 0;
+        var BrandID = 0;
+        var Name = "";
+        var UserName = "";
+        var FeedBack = 0;
+        var MultipleBranch = 0;
+
+        if (Request.Cookies["eCommerceCook"] != null)
+        {
+            Name = Request.Cookies["eCommerceCook"]["Name"];
+            UserName = Request.Cookies["eCommerceCook"]["UserName"];
+            RoleID = Convert.ToInt16(Request.Cookies["eCommerceCook"]["RoleID"]);
+            UserId = Convert.ToInt32(Request.Cookies["eCommerceCook"]["WaiterID"]);
+            BrandID = Convert.ToInt32(Request.Cookies["eCommerceCook"]["BrandID"]);
+            FeedBack = Convert.ToInt32(Request.Cookies["eCommerceCook"]["FeedBack"]);
+            MultipleBranch = Convert.ToInt32(Request.Cookies["eCommerceCook"]["MultipleBranch"]);
+        }
+        else
+        {
+            { Response.Redirect("~/login/index"); }
+        }
+
+    }
+    <div class="wrapper">
+        <input type="hidden" id="hdnBrandId" value="@BrandID" />  @*Category/Items*@
+        <input type="hidden" id="hdnUserId" value="@UserId" />  @*Category/Items*@
+        <input type="hidden" id="hdnMultipleBranch" value="@MultipleBranch" /> 
+        <!-- loading ===================== -->
+        <div class="loading" style="display:none;">
+            <div class='peeek-loading'>
+                <ul>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                    <li></li>
+                </ul>
+            </div>
+        </div>
+        <!-- loading End===================== -->
+        <!-- Start Header -->
+        <header class="header">
+            <div class="container-fluid">
+                <div class="row justify-content-between align-items-center">
+                    <div class="col-auto">
+                        <a href="#" title="e-Tmm" class="logo"><img src="../Images/logo.png" alt="e-Tmm" style="height:44px;"></a>
+                    </div>
+                    <div class="col-auto">
+                        <ul class="header-right-bar d-flex align-items-center">
+                            <li class="language">
+                                <button type="button" id="btnAdminLang" class="lang-toggle" role="switch" aria-checked="false" title="التبديل إلى العربية / Switch to Arabic" onclick="return toggleAdminLang();">
+                                    <span class="lt-side lt-en">EN</span>
+                                    <span class="lt-track">
+                                        <span class="lt-knob">
+                                            <span class="lt-flag lt-flag-en">
+                                                <svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                                                    <clipPath id="ukClipA"><path d="M0,0 v30 h60 v-30 z" /></clipPath>
+                                                    <clipPath id="ukClipB"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z" /></clipPath>
+                                                    <g clip-path="url(#ukClipA)">
+                                                        <path d="M0,0 v30 h60 v-30 z" fill="#012169" />
+                                                        <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6" />
+                                                        <path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#ukClipB)" stroke="#C8102E" stroke-width="4" />
+                                                        <path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10" />
+                                                        <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6" />
+                                                    </g>
+                                                </svg>
+                                            </span>
+                                            <span class="lt-flag lt-flag-ar">
+                                                <svg viewBox="0 0 36 24" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+                                                    <rect width="36" height="24" fill="#fff" />
+                                                    <rect width="36" height="8" fill="#009639" />
+                                                    <rect y="16" width="36" height="8" fill="#000" />
+                                                    <rect width="9" height="24" fill="#CE1126" />
+                                                </svg>
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <span class="lt-side lt-ar">AR</span>
+                                </button>
+                            </li>
+                            <li class="user-block dropdown">
+                                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-expanded="false">
+                                    <img class="avatar-icon" src="../Images/avatar.svg" alt="">
+                                    @Name
+                                </a>
+
+                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuLink">
+                                    <span class="arrow"></span>
+                                    <div class="inner-block">
+                                        @*<a class="dropdown-item" href="#" title="My Profile"><img src="../Images/myprofile.svg" alt="My Profile">My Profile</a>*@
+                                        <a class="dropdown-item mb-2" title="Dashboard" href="/ItemViewDashboard/Index"><img src="../Images/change-password.svg" alt="Dashboard"><span data-lbl="adm_navDashboard">Dashboard</span></a>
+                                        <a class="dropdown-item mb-2" title="Item Management" href="/Category/Index"><img src="../Images/change-password.svg" alt="Item Management"><span data-lbl="adm_navItemManagement">Item Management</span></a>
+                                        <a class="dropdown-item mb-2" title="Reservation Master" href="/ReservationMaster/Index"><img src="../Images/change-password.svg" alt="Reservation Master"><span data-lbl="adm_navReservationMaster">Reservation Master</span></a>
+                                        <a class="dropdown-item mb-2" title="Slide Show" href="/SlideShow/Index"><img src="../Images/change-password.svg" alt="Slide Show"><span data-lbl="adm_navSlideShow">Slide Show</span></a>
+                                        <a class="dropdown-item mb-2" title="Change Password" data-toggle="modal" data-target="#WindowChangePassword" onclick="clearChangePassword();"><img src="../Images/change-password.svg" alt="Change Password"><span data-lbl="adm_navChangePassword">Change Password</span></a>
+                                        @if (FeedBack == 1)
+                                        {
+                                            <a id="btnFeedback" class="dropdown-item mb-2" href="/FeedBackReport/Index" title="FeedBack Report"><img src="../Images/feedback.svg" alt="FeedBack Report"><span data-lbl="adm_navFeedbackReport">FeedBack Report</span></a>
+                                        }
+                                        @if (RoleID == 1)
+                                        {
+                                            <a class="dropdown-item mb-2" title="Slide Shows" href="/SlideShow/Index"><img src="../Images/change-password.svg" alt="Slide Shows"><span data-lbl="adm_navWebSlideShows">Web Slide Shows</span></a>
+                                        }
+                                        @if (RoleID == 4)
+                                        {
+                                            <a class="dropdown-item mb-2" title="Menu Colors" href="/MenuColors/Index"><img src="../Images/change-password.svg" alt="Menu Colors"><span data-lbl="adm_navMenuColors">Menu Colors</span></a>
+                                            <a class="dropdown-item mb-2" title="TAB Theme" href="/TabTheme/Index"><img src="../Images/change-password.svg" alt="TAB Theme"><span data-lbl="adm_navTabTheme">TAB Theme</span></a>
+                                        }
+                                        <a href="~/Items/Logout" class="btn btn-secondary w-100" title="Logout"><span data-lbl="adm_navLogout">Logout</span></a>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- End Header -->
+        <!-- Main Content -->
+        @RenderBody()
+        <!-- End Main Content -->
+
+    </div>
+    
+    <script>
+        function clearChangePassword() {
+            $('#txtOldPassword').val("");
+            $('#txtNewPassword').val("");
+            $('#txtReTypePassword').val("");
+        }
+    </script>
+</body>
+</html>

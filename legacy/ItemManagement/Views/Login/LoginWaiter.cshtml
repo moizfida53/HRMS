@@ -1,0 +1,69 @@
+﻿@{
+    Layout = "";
+}
+<!doctype html>
+<html>
+<head>
+    <base href="../../../../">
+    <meta charset="utf-8">
+    <title></title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!-- <link rel="shortcut icon" href="images/favicon.ico"> -->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,400i,600,700,800" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap-select.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/datepicker.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/owl.carousel.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/font-awesome.min.css">
+    @*<link rel="stylesheet" type="text/css" href="~/cssNew/root.css">*@
+    <link rel="stylesheet" type="text/css" href="~/cssNew/@ViewBag.BrandCssFileName">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/style.css" />
+
+    <script type="text/javascript" src="~/js/jquery.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="~/js/jquery.nicescroll.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-select.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-datepicker.js"></script>
+    <script type="text/javascript" src="~/js/owl.carousel.min.js"></script>
+    <script type="text/javascript" src="~/js/menu.js"></script>
+    <script type="text/javascript" src="~/js/general.js"></script>
+</head>
+<body>
+    <div class="container-fluid p-0 h-100">
+        <div class="row no-gutters h-100">
+            <div class="col-auto wrapper">
+                <!-- Main Content ===========================================================-->
+                <div class="main-content active login-page">
+                    <div class="login-block	">
+                        <img src="images/logo.png" alt="">
+                    </div>
+                    <form id="loginpage" class="login-from">
+                        <div class="form-group">
+                            <div class="user-block">
+                                @*<input id="txtUsername" class="form-control" type="text" value="" name="" placeholder="Username">*@
+                                @*<i class="fa fa-user-o" aria-hidden="true"></i>*@
+                                <select id="ddrBranch" class="form-control" name="ddrBranch">
+                                    @*<option value="volvo">Volvo</option>
+                                    <option value="saab">Saab</option>
+                                    <option value="mercedes">Mercedes</option>
+                                    <option value="audi">Audi</option>*@
+                                </select>
+                            </div>
+                            <div class="user-block">
+                                <input id="txtPassword" class="form-control" type="password" value="" name="" placeholder="Password">
+                                <i class="fa fa-key" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                        <a id="kt_login_signin" onclick="Login()" href="#" class="btn login-btn"><span>Login</span></a>
+                    </form>
+                </div><!-- End Main Content ===========================================================-->
+            </div>
+            <div class="col desktop-background-images"></div>
+        </div>
+    </div>
+
+    <script src="../MainJs/LoginWaiter.js"></script>
+</body>
+</html>

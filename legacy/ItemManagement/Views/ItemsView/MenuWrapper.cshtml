@@ -1,0 +1,165 @@
+﻿<div class="header-navs header-navs-left" id="kt_header_navs">
+    <div id="MenuWrapperLogo" style="display:flex;margin-top:10px;">
+        <a style="margin:auto;">
+            @if (!string.IsNullOrEmpty(@ViewBag.BrandHomePageImage))
+            {
+                @*<img alt="" class="desktop-view-shop-image"
+                    src="~/Images/@ViewBag.BrandHomePageImage">*@
+                <img class="2" src="~/Images/@ViewBag.BrandHomePageImage"
+                     style="height:8rem;width:8rem;object-fit:cover;">
+            }
+            @*<img class="2" src="../assets/media/logos/logo-TMM1.png" style="height:8rem;">*@
+        </a>
+    </div>
+    @*<h1 _ngcontent-lre-c0="" class="site_title"><font style="vertical-align: inherit;"><font style="vertical-align: inherit;"> TMM </font></font></h1>*@
+    <!--begin::Tab Navs(for tablet and mobile modes)-->
+    @*<ul class="header-tabs p-5 p-lg-0 d-flex d-lg-none nav nav-bold nav-tabs" role="tablist">*@
+        <!--begin::Item-->
+        @*<li class="nav-item mr-2">
+            <a href="#" class="nav-link btn btn-clean menu-item active" data-toggle="tab" data-target="#kt_header_tab_1" role="tab" onclick="ShowMenuclick();">Home</a>
+        </li>*@
+        <!--end::Item-->
+        <!--begin::Item-->
+        @*<li class="nav-item mr-2">
+                <a href="#" class="nav-link btn btn-clean" data-toggle="tab" data-target="#kt_header_tab_2" role="tab">Reports</a>
+            </li>*@
+        <!--end::Item-->
+        <!--begin::Item-->
+        @*<li class="nav-item mr-2">
+                <a href="#" class="nav-link btn btn-clean" data-toggle="tab" data-target="#kt_header_tab_2" role="tab">Orders</a>
+            </li>*@
+        <!--end::Item-->
+        <!--begin::Item-->
+        @*<li class="nav-item mr-2">
+                <a href="#" class="nav-link btn btn-clean" data-toggle="tab" data-target="#kt_header_tab_2" role="tab">Help Ceter</a>
+            </li>*@
+        <!--end::Item-->
+    @*</ul>*@
+    <!--begin::Tab Navs-->
+    <!--begin::Tab Content-->
+    <div class="tab-content">
+        <!--begin::Tab Pane-->
+        <div class="tab-pane py-5 p-lg-0 show active" id="kt_header_tab_1">
+            <!--begin::Menu-->
+            <div id="kt_header_menu" class="header-menu header-menu-mobile header-menu-layout-default">
+                <!--begin::Nav-->
+                <ul class="menu-nav">
+                    <li class="menu-item menu-item-active" aria-haspopup="true">
+                        <a href="#" class="menu-link" onclick="ShowMenuclick();">
+                            <svg style="margin-right:10px;" height="30.651" viewBox="0 0 132.002 138.651" width="26.002" xmlns="http://www.w3.org/2000/svg"><g _ngcontent-lre-c0="" id="X1z2Is" transform="translate(-247.837 -337.606)"><g _ngcontent-lre-c0="" data-name="Group 4897" id="Group_4897"><path _ngcontent-lre-c0="" d="M256.338,476.257c-6.964-2.743-8.5-5.038-8.5-12.72q0-46.969,0-93.939c0-8.313,3.488-11.84,11.735-11.842q39.885-.011,79.771,0c8.448,0,11.834,3.448,11.835,12.016,0,31.21-.1,62.421.085,93.63.037,6.314-1.968,10.686-8.038,12.856Zm88.61-59.222q0-23.707,0-47.415c0-4.671-.916-5.569-5.537-5.57q-39.719,0-79.436,0c-5.216,0-5.728.522-5.728,5.9q0,46.953,0,93.906c0,5.305.7,6.013,6.054,6.015q39.1.012,78.2,0c5.687,0,6.445-.756,6.447-6.342Q344.953,440.28,344.948,417.035Z" data-name="Path 61716" fill="black" id="Path_61716"></path><path _ngcontent-lre-c0="" d="M289.615,337.606c5.4,1.021,10.783,2.147,16.2,3.046,21.726,3.6,43.468,7.1,65.193,10.707,6.637,1.1,9.719,5.58,8.6,12.425Q371.855,411.4,364.005,459c-.527,3.2-1.521,6.176-5.551,8.309.387-7.106.193-13.756,1.2-20.22,4-25.708,8.365-51.358,12.6-77.029.4-2.426.9-4.84,1.2-7.279.438-3.565-.4-4.759-3.833-5.337-8.988-1.517-17.99-2.951-26.985-4.428q-25.32-4.158-50.637-8.326c-.1-.017-.2-.062-.3-.081-6.013-1.149-6.606-.787-8.18,5.14h-5.938c-.079-6.072,2.6-10.174,8.34-12.144Z" data-name="Path 61717" fill="black" id="Path_61717"></path><path _ngcontent-lre-c0="" d="M327.793,434.776H271.384v-3.29h56.257Z" data-name="Path 61718" fill="black" id="Path_61718"></path><path _ngcontent-lre-c0="" d="M271.709,392.222v6.739H268.3V382.8c5.932-.979,4.338,5.447,7.307,7.22,2.739-1.943,1.462-7.777,7.114-7.323V398.9h-3.438v-6.489c-1.359,1.286-2.541,3.266-3.659,3.23C274.413,395.606,273.266,393.684,271.709,392.222Z" data-name="Path 61719" fill="black" id="Path_61719"></path><path _ngcontent-lre-c0="" d="M271.362,416.523v-3.1h56.262l.162,3.1Z" data-name="Path 61720" fill="black" id="Path_61720"></path><path _ngcontent-lre-c0="" d="M327.809,452.941H271.5v-3.183h56.138Z" data-name="Path 61721" fill="black" id="Path_61721"></path><path _ngcontent-lre-c0="" d="M314.593,399.093c-5.676.5-5.04-5.79-8.777-7.747v7.547H302.2V382.751c5.739-.567,5.1,5.691,8.805,7.74v-7.638h3.591Z" data-name="Path 61722" fill="black" id="Path_61722"></path><path _ngcontent-lre-c0="" d="M287.275,398.965V382.913h10.731v3.016l-7,.306v2.985h5.785l.2,3.123h-5.958l-.213,3.311h7.151l.177,3.311Z" data-name="Path 61723" fill="black" id="Path_61723"></path><path _ngcontent-lre-c0="" d="M318.742,382.768h3.577c0,2.891-.034,5.721.011,8.549.03,1.893-.407,4.331,2.435,4.434,2.973.107,2.487-2.359,2.51-4.247.034-2.844.009-5.69.009-8.668h3.562c0,3.873.16,7.739-.054,11.584-.157,2.813-2.758,4.728-5.84,4.771-3.306.047-5.927-1.936-6.152-5.171C318.548,390.373,318.742,386.694,318.742,382.768Z" data-name="Path 61724" fill="black" id="Path_61724"></path></g></g></svg>
+                            <span class="menu-text">MENU</span>
+                        </a>
+                    </li>
+                    <li class="menu-item menu-item-active" aria-haspopup="true">
+                        <a href="#" class="menu-link" onclick="onClickTrackOrder();">
+                            <svg fill="black" id="pathTrack" style="margin-right:10px;" height="30.651" width="26.002" viewBox="0 0 512 512" width="512" xmlns="http://www.w3.org/2000/svg"><g><g><path d="m426.26 380.616c-21.128 0-38.317-17.177-38.317-38.289s17.189-38.289 38.317-38.289c21.112 0 38.289 17.177 38.289 38.289s-17.177 38.289-38.289 38.289zm0-56.578c-10.101 0-18.317 8.204-18.317 18.289s8.217 18.289 18.317 18.289c10.085 0 18.289-8.204 18.289-18.289s-8.204-18.289-18.289-18.289z" /></g><g><path d="m181.09 171.09v-70.531h167.672c31.436 0 57.01 25.562 57.01 56.981 0 31.436-25.574 57.01-57.01 57.01h-68.908c-5.522 0-10 4.478-10 10s4.478 10 10 10h68.908c42.463 0 77.01-34.547 77.01-77.01 0-42.447-34.547-76.981-77.01-76.981h-167.672v-70.559c0-5.522-4.478-10-10-10h-161.09c-5.522 0-10 4.478-10 10v161.09c0 5.522 4.478 10 10 10h161.09c5.522 0 10-4.478 10-10zm-109.302-151.09h37.514v37.88l-13.496-8.318c-3.215-1.981-7.273-1.983-10.49-.002l-13.527 8.329v-37.889zm89.302 141.09h-141.09v-141.09h31.788v55.791c0 3.623 1.96 6.963 5.123 8.73 3.164 1.767 7.037 1.686 10.12-.216l23.524-14.486 23.499 14.484c1.606.99 3.426 1.487 5.247 1.487 1.678 0 3.358-.422 4.875-1.269 3.164-1.767 5.125-5.107 5.125-8.731v-55.79h31.788v141.09z" /><path d="m470.723 433.726c20.46-26.884 39.375-52.656 38.981-91.453-.027-46.004-37.45-83.418-83.444-83.418-46.01 0-83.445 37.419-83.473 83.423-.391 38.793 18.525 64.571 39 91.448-20.173 5.638-34.016 14.96-39.118 26.301h-249.332c-17.056 0-30.932-13.862-30.932-30.902 0-17.056 13.876-30.932 30.932-30.932h135.635c28.084 0 50.932-22.835 50.932-50.903 0-28.084-22.848-50.932-50.932-50.932h-126.763c-17.04 0-30.903-13.863-30.903-30.903s13.863-30.903 30.903-30.903h87.845c5.522 0 10-4.478 10-10s-4.478-10-10-10h-87.845c-28.068 0-50.903 22.835-50.903 50.903s22.835 50.903 50.903 50.903h126.763c17.056 0 30.932 13.876 30.932 30.932 0 17.04-13.876 30.903-30.932 30.903h-135.635c-28.084 0-50.932 22.848-50.932 50.932 0 28.067 22.848 50.902 50.932 50.902h249.319c3.862 8.653 12.812 16.199 26.142 21.823 15.514 6.545 35.921 10.15 57.462 10.15 21.529 0 41.928-3.605 57.438-10.151 18.25-7.704 28.302-19.005 28.302-31.824 0-15.81-15.447-29.077-41.277-36.299zm-107.937-91.293c.001-.035.001-.07.001-.105 0-34.999 28.474-63.473 63.473-63.473 34.983 0 63.444 28.474 63.444 63.473 0 .035 0 .07.001.105.348 32.909-16.681 55.266-36.397 81.151-2.057 2.7-22.108 26.604-22.108 26.604-1.729 1.997-3.525 3.161-4.941 3.204-1.954-.057-3.946-2.026-4.953-3.188 0 0-20.015-23.884-22.061-26.566-19.751-25.904-36.807-48.273-36.459-81.205zm63.474 149.567c-42.555 0-65.769-14.517-65.769-21.975 0-5.084 11.189-14.234 35.079-19.047l10.598 12.297c7.185 8.301 14.855 10.083 20.026 10.117h.064s.044 0 .065 0c5.157-.034 12.812-1.816 20.005-10.126l10.61-12.289c23.877 4.814 35.06 13.965 35.06 19.048.002 7.458-23.202 21.975-65.738 21.975z" /><path d="m224.953 224.55c0 5.522 4.478 10 10 10h.028c5.522 0 9.986-4.478 9.986-10s-4.492-10-10.015-10-9.999 4.477-9.999 10z" /></g></g></svg>
+                            <span class="menu-text">TRACK ORDER</span>
+                        </a>
+                    </li>
+                    <li class="menu-item menu-item-active" aria-haspopup="true">
+                        <a href="#" class="menu-link">
+                            <svg style="margin-right:10px;" height="26.469" viewBox="0 0 27.058 26.469" width="27.058" xmlns="http://www.w3.org/2000/svg"><g _ngcontent-lre-c0="" id="YCoGSs.tif_1_" transform="translate(-0.003)"><g _ngcontent-lre-c0="" data-name="Group 2281" id="Group_2281" transform="translate(0.003)"><path _ngcontent-lre-c0="" d="M13.52,92.688a25.9,25.9,0,0,1-8.6-1.327,10.986,10.986,0,0,1-3.246-1.713A4.058,4.058,0,0,1,.078,87.373,3.081,3.081,0,0,1,.88,84.6a7.786,7.786,0,0,1,2.735-1.932,18,18,0,0,1,3.492-1.158c.2-.047.27.045.362.178a54.007,54.007,0,0,0,4.723,5.925,1.686,1.686,0,0,0,2.663.013A54.237,54.237,0,0,0,19.583,81.7c.088-.127.157-.242.358-.193a15.821,15.821,0,0,1,4.579,1.73,5.593,5.593,0,0,1,2.155,2.08,2.852,2.852,0,0,1-.017,2.894,5.451,5.451,0,0,1-1.981,1.942,15.938,15.938,0,0,1-5.441,2A27.866,27.866,0,0,1,13.52,92.688Z" data-name="Path 59419" fill="black" id="Path_59419" transform="translate(-0.003 -66.22)"></path><path _ngcontent-lre-c0="" d="M36.539,0c4.547.021,7.924,2.928,8.545,6.849a7.132,7.132,0,0,1-.652,4.116,24.72,24.72,0,0,1-2.993,4.927c-1.245,1.616-2.572,3.168-3.872,4.74a.555.555,0,0,1-.965.013,49.572,49.572,0,0,1-5.717-7.5,15.92,15.92,0,0,1-1.573-3.295,6.712,6.712,0,0,1,.45-5.167A7.79,7.79,0,0,1,36.539,0Zm.534,11.576a3.49,3.49,0,1,0-3.484-3.5A3.5,3.5,0,0,0,37.073,11.576Z" data-name="Path 59420" fill="black" id="Path_59420" transform="translate(-23.554)"></path></g></g></svg>
+                            <span class="menu-text">CONTACT US</span>
+                        </a>
+                    </li>
+                    @*<li class="menu-item menu-item-active" aria-haspopup="true">
+                            <a href="#" class="menu-link">
+                                <i class="fas fa-info-circle theme-color" style="font-size: 24px;color: black;margin-right:10px;"></i>
+                                <span class="menu-text">ABOUT US</span>
+                            </a>
+                        </li>*@
+                    <li class="menu-item menu-item-active" aria-haspopup="true">
+                        <a href="#" class="menu-link">
+                            <i class="fas fa-sign-in-alt theme-color" style="font-size: 24px;color: black;margin-right:10px;"></i>
+                            <span class="menu-text">SIGN IN</span>
+                        </a>
+                    </li>
+                    <li class="menu-item menu-item-active" aria-haspopup="true">
+                        <a href="#" class="menu-link" onclick="selectLanguage(this);">
+                            <svg style="margin-right:10px;" height="30.903" id="x6pnhG_2_" viewBox="0 0 26.5 30.903" width="26.5" xmlns="http://www.w3.org/2000/svg"><g _ngcontent-lre-c0="" data-name="Group 2279" id="Group_2279" transform="translate(0)"><path _ngcontent-lre-c0="" d="M23.811,0a1.976,1.976,0,0,1,.137.5q.012,3.38,0,6.759c0,.23.061.338.285.4.655.193,1.3.417,1.955.61a.365.365,0,0,1,.312.417c-.011,1.87-.005,3.743-.005,5.613q0,6.173,0,12.343v.335c-.763-.24-1.487-.465-2.211-.695q-5.424-1.723-10.85-3.444a.932.932,0,0,0-.544.005Q6.829,24.87.782,26.912c-.705.232-.782.169-.782-.578V8.679c0-.732,0-.732.7-.964.666-.222,1.331-.454,2-.666a.349.349,0,0,0,.288-.4C2.977,4.667,2.982,2.684,2.982.7V.33c.151.05.269.09.388.132q4.5,1.6,9,3.185a.8.8,0,0,0,.483,0Q18.148,1.856,23.431.045A.2.2,0,0,0,23.507,0ZM.676,26.2a.973.973,0,0,0,.143-.016Q6.631,24.239,12.446,22.3c.174-.058.2-.151.2-.306q0-8.661-.005-17.322c0-.066-.013-.129-.021-.214-.082.024-.14.037-.2.055Q6.684,6.437.943,8.357c-.235.079-.272.2-.269.412Q.681,16.36.679,23.949C.676,24.691.676,25.433.676,26.2ZM18.991,9.435c-1.244,3.088-2.48,6.154-3.724,9.239l1.751.528c.261-.634.518-1.252.771-1.865a.458.458,0,0,1,.106,0c1.123.343,2.245.684,3.362,1.043a.467.467,0,0,1,.243.288c.182.615.341,1.239.512,1.857.024.09.074.219.14.24.536.182,1.08.341,1.664.52-.026-.116-.037-.172-.053-.227q-.5-1.8-.988-3.6-1-3.625-2-7.253a.431.431,0,0,0-.188-.269C20.071,9.762,19.543,9.609,18.991,9.435Zm4.263-2.1V.806L13.5,4.142l.008.063C16.748,5.246,19.989,6.286,23.254,7.332Z" data-name="Path 59411" fill="black" id="Path_59411" transform="translate(0)"></path><path _ngcontent-lre-c0="" d="M26.352,106.094c-.676-.14-1.363-.248-2.029-.431a13.311,13.311,0,0,1-3.745-1.545c-.37-.238-.465-.409-.33-.6.217-.314.452-.1.655.016a14.488,14.488,0,0,0,4.841,1.772,12.292,12.292,0,0,0,6.112-.629,13.043,13.043,0,0,0,2.491-1.241c-.24-.415-.468-.811-.721-1.252l2.715.222c-.309.922-.6,1.8-.927,2.76-.248-.4-.465-.758-.671-1.091-.695.346-1.366.708-2.058,1.02a13.667,13.667,0,0,1-3.571.948c-.079.013-.153.037-.232.055Z" data-name="Path 59412" fill="black" id="Path_59412" transform="translate(-14.857 -75.191)"></path><path _ngcontent-lre-c0="" d="M72.321,51.239c-.364-1.31-.711-2.562-1.059-3.817l-.066,0c-.42,1.022-.843,2.044-1.276,3.1C70.723,50.761,71.494,50.991,72.321,51.239Z" data-name="Path 59413" fill="black" id="Path_59413" transform="translate(-51.452 -34.895)"></path><path _ngcontent-lre-c0="" d="M15.457,44.1c-.291.079-.51.135-.729.2-.769.23-1.535.47-2.306.692-.164.048-.254.106-.272.3a.376.376,0,0,1-.219.269,3.894,3.894,0,0,1-1.027.114c-.428-.032-.61-.277-.663-.753a29.521,29.521,0,0,0,6.685-2.364,1.087,1.087,0,0,1-.079.874c-.7,1.289-1.4,2.575-2.1,3.862-.018.034-.037.071-.071.14.65.285,1.289.568,1.931.845.415.18.827.37,1.255.512a.706.706,0,0,1,.541.637c.018.156.053.309.092.528a10.631,10.631,0,0,1-3.975-2.3c-.174.254-.33.481-.486.711a29.652,29.652,0,0,1-3.3,4.028,1,1,0,0,1-.967.338A30.3,30.3,0,0,0,15.457,44.1Z" data-name="Path 59414" fill="black" id="Path_59414" transform="translate(-7.182 -31.311)"></path><path _ngcontent-lre-c0="" d="M17.51,37.995a2.908,2.908,0,0,0,1.791-.2c.291-.079.578-.166.874-.225a.345.345,0,0,1,.457.37.94.94,0,0,1-.119.454,2.212,2.212,0,0,1-2.161.718A1.305,1.305,0,0,1,17.51,37.995Z" data-name="Path 59415" fill="black" id="Path_59415" transform="translate(-12.885 -27.635)"></path><path _ngcontent-lre-c0="" d="M72.321,51.239l-2.4-.721c.433-1.051.853-2.076,1.276-3.1l.066,0C71.61,48.677,71.956,49.929,72.321,51.239Z" data-name="Path 59416" fill="black" id="Path_59416" transform="translate(-51.452 -34.895)"></path></g></svg>
+                            <span id="menu_LanguageLabel" class="menu-text">ARABIC</span>
+                        </a>
+                    </li>
+                    @*<li class="menu-item menu-item-submenu menu-item-rel" data-menu-toggle="click" aria-haspopup="true">
+                            <a href="javascript:;" class="menu-link menu-toggle">
+                                <span class="menu-text">Features</span>
+                                <span class="menu-desc"></span>
+                                <i class="menu-arrow"></i>
+                            </a>
+                            <div class="menu-submenu menu-submenu-classic menu-submenu-left">
+                                <ul class="menu-subnav">
+                                    <li class="menu-item menu-item-submenu" data-menu-toggle="hover" aria-haspopup="true">
+                                        <a href="javascript:;" class="menu-link menu-toggle">
+                                            <span class="svg-icon menu-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px" viewBox="0 0 24 24" version="1.1">
+                                                    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+                                                        <polygon points="0 0 24 0 24 24 0 24" />
+                                                        <path d="M18,8 L16,8 C15.4477153,8 15,7.55228475 15,7 C15,6.44771525 15.4477153,6 16,6 L18,6 L18,4 C18,3.44771525 18.4477153,3 19,3 C19.5522847,3 20,3.44771525 20,4 L20,6 L22,6 C22.5522847,6 23,6.44771525 23,7 C23,7.55228475 22.5522847,8 22,8 L20,8 L20,10 C20,10.5522847 19.5522847,11 19,11 C18.4477153,11 18,10.5522847 18,10 L18,8 Z M9,11 C6.790861,11 5,9.209139 5,7 C5,4.790861 6.790861,3 9,3 C11.209139,3 13,4.790861 13,7 C13,9.209139 11.209139,11 9,11 Z" fill="#000000" fill-rule="nonzero" opacity="0.3" />
+                                                        <path d="M0.00065168429,20.1992055 C0.388258525,15.4265159 4.26191235,13 8.98334134,13 C13.7712164,13 17.7048837,15.2931929 17.9979143,20.2 C18.0095879,20.3954741 17.9979143,21 17.2466999,21 C13.541124,21 8.03472472,21 0.727502227,21 C0.476712155,21 -0.0204617505,20.45918 0.00065168429,20.1992055 Z" fill="#000000" fill-rule="nonzero" />
+                                                    </g>
+                                                </svg>
+                                            </span>
+                                            <span class="menu-text">Bootstrap</span>
+                                            <i class="menu-arrow"></i>
+                                        </a>
+                                        <div class="menu-submenu menu-submenu-classic menu-submenu-right">
+                                            <ul class="menu-subnav">
+                                                <li class="menu-item" aria-haspopup="true">
+                                                    <a href="features/bootstrap/typography.html" class="menu-link">
+                                                        <i class="menu-bullet menu-bullet-dot">
+                                                            <span></span>
+                                                        </i>
+                                                        <span class="menu-text">Typography</span>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>*@
+                </ul>
+                <!--end::Nav-->
+                <ul class="social_media" style="text-align: center;margin-top: 40px;">
+                    <li _ngcontent-lre-c0="">
+                        <!---->
+                        <a _ngcontent-lre-c0="" target="_blank" href="">
+                            @*<img _ngcontent-lre-c0="" src="assets/img/socialmedia/facebook.png">*@
+                            <i class="fab fa-facebook-square theme-color" style="font-size: 25px;color: black;margin-right:10px;"></i>
+                        </a><!---->
+                        <a _ngcontent-lre-c0="" target="_blank" href="">
+                            @*<img _ngcontent-lre-c0="" src="assets/img/socialmedia/instagram.png">*@
+                            <i class="fab fa-instagram-square theme-color" style="font-size: 25px;color: black;margin-right:10px;"></i>
+                        </a><!----><!----><!---->
+                        <a _ngcontent-lre-c0="" data-action="share/whatsapp/share" href="">
+                            <i class="fab fa-whatsapp-square theme-color" style="font-size: 25px;color: black;margin-right:10px;"></i>
+                        </a><!---->
+                    </li>
+                </ul>
+                <p class="powered_text" style="text-align: center;font-size:1.5rem;">
+                    <font style="vertical-align: inherit;">
+                        <font style="vertical-align: inherit;">Powered by TMM EMenu</font>
+                    </font>
+                </p>
+            </div>
+            <!--end::Menu-->
+        </div>
+        <!--begin::Tab Pane-->
+        <!--begin::Tab Pane-->
+        <div class="tab-pane p-5 p-lg-0 justify-content-between" id="kt_header_tab_2">
+            <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center">
+                <!--begin::Actions-->
+                <a href="#" class="btn btn-light-success font-weight-bold mr-3 my-2 my-lg-0">Latest Orders</a>
+                <a href="#" class="btn btn-light-primary font-weight-bold my-2 my-lg-0">Customer Service</a>
+                <!--end::Actions-->
+            </div>
+            <div class="d-flex align-items-center">
+                <!--begin::Actions-->
+                <a href="#" class="btn btn-danger font-weight-bold my-2 my-lg-0">Generate Reports</a>
+                <!--end::Actions-->
+            </div>
+        </div>
+        <!--begin::Tab Pane-->
+    </div>
+    <!--end::Tab Content-->
+</div>

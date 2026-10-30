@@ -1,0 +1,1188 @@
+﻿<style>
+    .activePayment {
+        background-color: var(--delivery-tab-pane-list-bg-active) !important;
+        border-color: var(--delivery-tab-pane-list-bg-active);
+    }
+</style>
+
+<!-- Main Content ===========================================================-->
+<div id="divPaymentView" class="main-content active cart-page order-mode-page" style="display:none;">
+    <div class="animation">
+        <div class="container-fluid pt-3 payment-methods">
+            <div class="card p-3 mb-3">
+                <div class="heading mb-3">
+                    <span class="icon-outer">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="934pt" version="1.1" viewBox="0 0 934 934.99924" width="934pt">
+                            <g id="surface1">
+                                <path d="M 873.140625 420.765625 L 841.980469 420.765625 L 841.980469 171.4375 C 841.980469 162.824219 835 155.855469 826.394531 155.855469 L 732.007812 155.855469 L 701.019531 57.679688 C 699.71875 53.582031 696.796875 50.207031 692.945312 48.335938 C 689.078125 46.460938 684.613281 46.277344 680.597656 47.804688 L 553.695312 96.167969 L 496.695312 7.207031 C 494.453125 3.703125 490.902344 1.234375 486.828125 0.371094 C 482.765625 -0.542969 478.496094 0.25 475.039062 2.558594 L 241.074219 155.855469 L 109.578125 155.855469 C 49.367188 155.921875 0.574219 204.722656 0.5 264.933594 L 0.5 825.917969 C 0.574219 886.128906 49.367188 934.929688 109.578125 935 L 826.394531 935 C 835 935 841.980469 928.019531 841.980469 919.414062 L 841.980469 732.417969 L 873.140625 732.417969 C 907.570312 732.417969 935.476562 704.511719 935.476562 670.09375 L 935.476562 483.097656 C 935.476562 448.664062 907.570312 420.765625 873.140625 420.765625 Z M 873.140625 451.929688 C 890.355469 451.929688 904.308594 465.875 904.308594 483.097656 C 904.308594 500.308594 890.355469 514.257812 873.140625 514.257812 L 841.980469 514.257812 L 841.980469 451.929688 Z M 810.808594 187.023438 L 810.808594 342.847656 L 791.070312 342.847656 L 741.859375 187.023438 Z M 758.398438 342.847656 L 712.972656 342.847656 L 669.769531 213.257812 C 667.652344 206.894531 661.695312 202.59375 654.984375 202.597656 C 639.15625 202.648438 623.960938 196.359375 612.800781 185.136719 L 603.664062 176 C 599.367188 171.699219 592.953125 170.289062 587.242188 172.398438 L 126.195312 342.847656 L 109.578125 342.847656 C 88.800781 342.84375 68.886719 334.523438 54.296875 319.734375 L 676.277344 82.878906 Z M 680.125 342.847656 L 216.046875 342.847656 L 588.699219 205.089844 L 590.761719 207.167969 C 604.960938 221.445312 623.535156 230.5625 643.515625 233.042969 Z M 478.898438 37.28125 L 523.882812 107.542969 L 160.433594 245.953125 Z M 109.578125 187.023438 L 193.5 187.023438 L 36.207031 290.078125 C 33.304688 282.011719 31.765625 273.507812 31.667969 264.933594 C 31.722656 221.925781 66.574219 187.066406 109.578125 187.023438 Z M 810.808594 903.828125 L 109.578125 903.828125 C 66.574219 903.777344 31.722656 868.921875 31.667969 825.917969 L 31.667969 341.289062 C 31.816406 341.425781 31.976562 341.554688 32.117188 341.710938 C 33.335938 342.925781 34.625 344.042969 35.894531 345.199219 C 37.152344 346.351562 38.507812 347.671875 39.894531 348.828125 C 41.285156 349.984375 42.625 350.914062 43.992188 351.945312 C 45.363281 352.976562 46.832031 354.15625 48.324219 355.195312 C 49.820312 356.214844 51.269531 357.007812 52.738281 357.917969 C 54.207031 358.824219 55.769531 359.847656 57.410156 360.722656 C 59.050781 361.589844 60.605469 362.277344 62.210938 363.074219 C 63.816406 363.863281 65.332031 364.632812 66.980469 365.378906 C 68.632812 366.125 70.523438 366.703125 72.292969 367.339844 C 74.070312 367.980469 75.410156 368.589844 77.050781 369.082031 C 79.007812 369.710938 81.027344 370.152344 83.039062 370.644531 C 84.601562 371.015625 86.023438 371.492188 87.546875 371.800781 C 89.839844 372.28125 92.222656 372.558594 94.546875 372.890625 C 95.851562 373.066406 97.121094 373.339844 98.445312 373.480469 C 102.140625 373.847656 105.859375 374.023438 109.578125 374.019531 L 129.847656 374.019531 L 130.070312 374.613281 L 131.738281 374.019531 L 810.808594 374.019531 L 810.808594 514.257812 L 639.398438 514.257812 C 579.164062 514.257812 530.320312 563.09375 530.320312 623.339844 C 530.320312 683.582031 579.164062 732.417969 639.398438 732.417969 L 810.808594 732.417969 Z M 904.308594 670.09375 C 904.308594 687.304688 890.355469 701.253906 873.140625 701.253906 L 639.398438 701.253906 C 596.371094 701.253906 561.488281 666.371094 561.488281 623.339844 C 561.488281 580.304688 596.371094 545.429688 639.398438 545.429688 L 873.140625 545.429688 C 876.90625 545.390625 880.640625 545.007812 884.335938 544.289062 C 885.21875 544.136719 886.097656 543.960938 886.96875 543.75 C 890.492188 542.988281 893.945312 541.910156 897.28125 540.550781 L 897.8125 540.296875 C 900.042969 539.351562 902.207031 538.257812 904.308594 537.058594 Z M 904.308594 670.09375 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 336.65625 420.765625 L 398.992188 420.765625 L 398.992188 451.929688 L 336.65625 451.929688 Z M 336.65625 420.765625 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 212 420.765625 L 274.328125 420.765625 L 274.328125 451.929688 L 212 451.929688 Z M 212 420.765625 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 710.648438 420.765625 L 764.058594 420.765625 L 764.058594 451.929688 L 710.648438 451.929688 Z M 710.648438 420.765625 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 585.988281 420.765625 L 648.316406 420.765625 L 648.316406 451.929688 L 585.988281 451.929688 Z M 585.988281 420.765625 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 91.191406 418.582031 L 83.898438 448.8125 C 92.3125 450.847656 100.929688 451.898438 109.578125 451.929688 L 149.660156 451.929688 L 149.660156 420.765625 L 109.578125 420.765625 C 103.390625 420.75 97.21875 420.019531 91.191406 418.582031 Z M 91.191406 418.582031 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 461.320312 420.765625 L 523.652344 420.765625 L 523.652344 451.929688 L 461.320312 451.929688 Z M 461.320312 420.765625 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 91.191406 823.734375 L 83.898438 853.960938 C 92.3125 856 100.929688 857.054688 109.578125 857.085938 L 149.660156 857.085938 L 149.660156 825.917969 L 109.578125 825.917969 C 103.390625 825.898438 97.21875 825.179688 91.191406 823.734375 Z M 91.191406 823.734375 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 710.648438 825.917969 L 764.058594 825.917969 L 764.058594 857.085938 L 710.648438 857.085938 Z M 710.648438 825.917969 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 336.65625 825.917969 L 398.992188 825.917969 L 398.992188 857.085938 L 336.65625 857.085938 Z M 336.65625 825.917969 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 585.988281 825.917969 L 648.316406 825.917969 L 648.316406 857.085938 L 585.988281 857.085938 Z M 585.988281 825.917969 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 212 825.917969 L 274.328125 825.917969 L 274.328125 857.085938 L 212 857.085938 Z M 212 825.917969 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 461.320312 825.917969 L 523.652344 825.917969 L 523.652344 857.085938 L 461.320312 857.085938 Z M 461.320312 825.917969 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                                <path d="M 639.398438 576.59375 C 613.582031 576.59375 592.648438 597.519531 592.648438 623.339844 C 592.648438 649.152344 613.582031 670.09375 639.398438 670.09375 C 665.214844 670.09375 686.144531 649.152344 686.144531 623.339844 C 686.144531 597.519531 665.214844 576.59375 639.398438 576.59375 Z M 639.398438 638.925781 C 630.796875 638.925781 623.816406 631.945312 623.816406 623.339844 C 623.816406 614.730469 630.796875 607.757812 639.398438 607.757812 C 648.003906 607.757812 654.984375 614.730469 654.984375 623.339844 C 654.984375 631.945312 648.003906 638.925781 639.398438 638.925781 Z M 639.398438 638.925781 " style=" stroke:none;fill-rule:nonzero;fill:var(--svg-icon);fill-opacity:1;" />
+                            </g>
+                        </svg>
+                    </span>
+                    <h3 class="pb-2" id="lblPaymentMethods">Payment Methods</h3>
+                    <p class="pb-0" id="lblPaymentQuote">Choose your Preferred Payment Method</p>
+                </div>
+
+                <div class="form-row payment-options mb-2" id="divPaymentOptions">
+                    @* Filled by loadPaymentTypes() from tblInvoicePaymentType
+                       where IsOnline = 1. The hard-coded Cash / KNET buttons and
+                       the KNetPayment appSetting are gone: which methods appear,
+                       in what order, with which icon, is now data. *@
+                    <div class="col-12 text-muted" style="font-size:13px;">Loading payment methods&hellip;</div>
+                </div>
+                @* Holds the real tblInvoicePaymentType.ID of the chosen method *@
+                <div id="selectedPayementType" style="display:none;"></div>
+            </div>
+            <div id="mainDivDeliveryInfo" class="card pt-3 pb-3 mb-3">
+                <h3 class="sub-title pl-3 pr-3" id="lblPaymentDeliveryInfo">Delivery Info</h3>
+                <ul class="delivery-info">
+                    <li class="d-flex align-items-center mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-event mr-3 ml-3" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <rect x="4" y="5" width="16" height="16" rx="2" />
+                            <line x1="16" y1="3" x2="16" y2="7" />
+                            <line x1="8" y1="3" x2="8" y2="7" />
+                            <line x1="4" y1="11" x2="20" y2="11" />
+                            <rect x="8" y="15" width="2" height="2" />
+                        </svg>
+                        <label id="lblDelPaymentViewTime"></label> <span id="lblDelPaymentViewDate" class="pl-2 pr-2 date"></span>
+                    </li>
+                    <li class="d-flex align-items-center mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-phone-call mr-3 ml-3" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" />
+                            <path d="M15 7a2 2 0 0 1 2 2" />
+                            <path d="M15 3a6 6 0 0 1 6 6" />
+                        </svg>
+                        <label id="lblDelPaymentViewMobile"></label>
+                    </li>
+                    <li class="d-flex align-items-top mb-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-map-pin mr-3 ml-3" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <circle cx="12" cy="11" r="3" />
+                            <path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />
+                        </svg>
+                        <div>
+                            <h3 class="pb-1" id="lblDelPaymentViewAddr1"></h3>
+                            <p class="pb-0" id="lblDelPaymentViewAddr2"></p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div class="card p-3 mb-3">
+                <h3 class="sub-title" id="lblPaymentOrderRecap">Order Recap</h3>
+
+                <ul class="order-recap mb-4">
+                    <li class="d-flex justify-content-between">
+                        <span id="lblPaymentBillAmount">Bill Amount</span>
+                        <strong><label id="lblPaymentBillAmountCurrency">KD.</label> <label id="lblPaymentBillAmountVal">0.000</label></strong>
+                    </li>
+                    <li class="d-flex justify-content-between">
+                        <span id="lblPaymentDelivery">Delivery</span>
+                        <strong><label id="lblPaymentDeliveryChargeCurrency">KD.</label> <label id="lblPaymentDeliveryCharge">0.000</label></strong>
+                    </li>
+                    <li class="d-flex justify-content-between">
+                        <span id="lblPaymentDiscount">Discount</span>
+                        <strong><label id="lblPaymentDiscountChargeCurrency">KD.</label> <label id="lblPaymentDiscountCharge">0.000</label></strong>
+                    </li>
+                    <li class="net-amount d-flex justify-content-between">
+                        <span id="lblPaymentNetAmount">Net Amount</span>
+                        <strong><label id="lblPaymentNetAmountCurrency">KD.</label> <label id="lblPaymentNetAmountVal">0.000</label></strong>
+                    </li>
+                </ul>
+
+                <div class="d-flex justify-content-end">
+                    <input id="hdnDiscountTypeID" type="hidden" value="0" />
+                    <ul class="order-recap mb-4">
+                        <li class="net-amount d-flex justify-content-between">
+                            @*<span>Discount Coupon</span>*@
+                            <input placeholder="Promo Code" id="txtdiscountCoupon" type="text" class="form-control" style=" border: 1px solid;" />
+                            <a class="btn btn-light d-flex align-items-center" href="#" role="button" onclick="OnApplyDiscountCodeClick();">
+                                <span>Apply</span>
+                                @*<svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chevron-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <polyline points="9 6 15 12 9 18" />
+                        </svg>*@
+                            </a>
+                        </li>
+                        <li class="net-amount d-flex justify-content-between">
+                            <span>Discount Amount</span>
+                            <strong>
+                                <label id="lblPaymentNetAmountCurrency">KD.</label>
+                                <label id="lblDiscountAmount">0.000</label>
+                            </strong>
+                        </li>
+                    </ul>
+                </div>
+                <div class="justify-content-end">
+                    <ul class="order-recap mb-4">
+                        <li class="net-amount d-flex justify-content-between">
+                            <span>Final Amount</span>
+                            <strong><label id="lblPaymentNetAmountCurrency">KD.</label> <label id="lblfinalAmount">0.000</label></strong>
+                        </li>
+                    </ul>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <a class="btn btn-light d-flex align-items-center" data-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+                        <span id="lblPaymentViewDetails">View Details </span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-chevron-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <polyline points="9 6 15 12 9 18" />
+                        </svg>
+                    </a>
+                </div>
+                <div class="collapse order-list" id="collapseExample">
+                    <button class="btn ordar-list-hed btn-light pl-3 pr-3 w-100 align-items-center d-flex justify-content-between rounded-0" type="button" data-toggle="collapse" data-target="#collapseExample" aria-expanded="false" aria-controls="collapseExample">
+                        <span id="lblPaymentOrdarlist">Order List</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="icon m-0" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                            <polyline points="9 6 15 12 9 18" />
+                        </svg>
+                    </button>
+                    <div class="card-body">
+                        <ul id="ulDivItemsListOnPaymentview">
+                            @*<li class="d-flex justify-content-between">
+                        <span>Item</span>
+                        <span>2</span>
+                        <strong>23.000</strong>
+                    </li>
+                    <li class="d-flex justify-content-between">
+                        <span>Item</span>
+                        <span>2</span>
+                        <strong>23.000</strong>
+                    </li>
+                    <li class="d-flex justify-content-between">
+                        <span>Item</span>
+                        <span>2</span>
+                        <strong>23.000</strong>
+                    </li>
+                    <li class="d-flex justify-content-between">
+                        <span>Item</span>
+                        <span>2</span>
+                        <strong>23.000</strong>
+                    </li>*@
+                        </ul>
+                    </div>
+                    <div class="text-center">
+                        <a onclick="onChangeOrderClick();" class="btn btn-secondary w-50 mr-auto ml-auto mb-3">
+                            <span id="lblPaymentChangeOrder">Change Order</span>
+                        </a>
+                    </div>
+                    @*<button onclick="onChangeOrderClick();" class="btn ordar-list-hed btn-light pl-3 pr-3 w-100 align-items-center d-flex justify-content-between rounded-0" type="button">
+                <span>Change Order</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon m-0" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <polyline points="9 6 15 12 9 18" />
+                </svg>
+            </button>*@
+                </div>
+            </div>
+            <div class="d-flex justify-content-between mt-4">
+                @*<a class="btn btn-primary w-50"><span>Confirmation</span></a>*@
+                <button class="btn btn-secondary" onclick="PaymentPreviousClick();">
+                    <span id="DelPaymentPrevious">Previous</span>
+                </button>
+                <button class="btn btn-primary" type="button" onclick="PaymentNextClick();">
+                    <span id="lblPaymentConfirmation">Confirmation</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div><!-- End Main Content ===========================================================-->
+<input type="hidden" id="hdnPaymentRedirectLink" />
+<div id="root"></div>
+<script>
+    function PaymentPreviousClick() {
+        if ($('#hdnIsFromWaiterLogin').val() == "true") {
+            DeliveryServicePrevious()
+        }
+        else {
+            if (parseInt($('#hdnBranchId').val()) > 0 && $('#hdnIsDeliveryEnable').val() == "false") {
+                DeliveryServicePrevious();
+            }
+            else {
+                $('#divCategoryList').hide();
+                $('#divMainItemDetails').hide();
+                $('#divCartView').hide();
+                $('#divQRCodeMain').hide();
+                $('#TrackingOrder').hide();
+                $('#divReservation').hide();
+                $('#divReservationConfirm').hide();
+
+                //checkout views list
+                $('#divCustomerInfo').hide();
+                $('#divDeliveryService').show();
+                $('#divDeliveryAddress').hide();
+                $('#divPaymentView').hide();
+                $('#divOrderConfirmView').hide();
+            }
+        }
+    }
+    function PaymentNextClick() {
+        if ($('#selectedPayementType').html() != "") {
+            CustomerSubmitOrder();
+        }
+        else {
+            alert("Please select Payment Type");
+        }
+
+        //$('#divCategoryList').hide();
+        //$('#divMainItemDetails').hide();
+        //$('#divCartView').hide();
+        //$('#divQRCodeMain').hide();
+        //$('#TrackingOrder').hide();
+        //$('#divReservation').hide();
+        //$('#divReservationConfirm').hide();
+
+        ////checkout views list
+        //$('#divCustomerInfo').hide();
+        //$('#divDeliveryService').hide();
+        //$('#divDeliveryAddress').hide();
+        //$('#divPaymentView').hide();
+        //$('#divOrderConfirmView').show();
+
+    }
+    var Custinfo = {};
+    var AddrInfo = {};
+    var selectedbranchid = 1;
+    var deliveryDate = null;
+    var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    function CustomerSubmitOrder() {
+        debugger;
+        //isfromWaiterTemp = isfromWaiter;
+        FillCustinfoAndAddressInfo();
+
+        var objCartDetails = CartDetails;
+        var ObjDataCartDetails = [];
+        var tapPayAPIObject = [];
+
+        //set default 0
+        $('#lblPaymentDiscountCharge').text(round(0, decimalPlace).toFixed(decimalPlace));
+        $('#lblDiscountAmount').text(round(0, decimalPlace).toFixed(decimalPlace));
+
+
+        $.each(objCartDetails, function (i, obj) {
+            var strComment = "";
+            var item = {}
+            item["ItemId"] = obj.I;
+            item["HID"] = obj.O;
+            item["qty"] = obj.Q;
+            //item["UID"] = obj.UID;
+
+            //New inserted on 8 Nov 2021, same extra and choices selected then it is considered only single
+            item["UID"] = ObjDataCartDetails.length + 1;
+
+            //New inserted on 17-Dec-22, For callcenter tblorder add ParentOrderId value
+            item["CartItemUniqID"] = obj.UID;
+            item["ParentItemId"] = 0;
+
+            //start for comment
+            //strComment = obj.C;
+            strComment = $('#comments_' + obj.I + '_' + obj.UID).val();
+            $.each(CartComments, function (i, extraComments) {
+                if (extraComments.MainItemId == obj.I) {
+                    strComment += strComment != "" ? ", " : "";
+                    strComment += extraComments.Comment;
+                }
+            });
+            item["Comments"] = strComment;
+            //End for comment
+
+            item["CH"] = obj.CH;
+
+            ObjDataCartDetails.push(item);
+
+            $.each(CartExtraItems, function (i, eobj) {
+                if (eobj.MainItemId == obj.I && eobj.UID == obj.UID) {
+                    var eitem = {}
+                    eitem["ItemId"] = eobj.ExtraItemId;
+                    eitem["HID"] = 0;
+                    eitem["qty"] = 1 * parseInt(obj.Q);
+                    eitem["Comments"] = "";
+                    eitem["CH"] = 0;
+                    //eitem["UID"] = obj.UID;
+
+                    //New inserted on 8 Nov 2021, same extra and choices selected then it is considered only single
+                    eitem["UID"] = ObjDataCartDetails.length + 1;
+
+                    //New inserted on 17-Dec-22, For callcenter tblorder add ParentOrderId value
+                    eitem["CartItemUniqID"] = obj.UID;
+                    eitem["ParentItemId"] = obj.I;
+
+                    ObjDataCartDetails.push(eitem);
+                    
+                }
+            })
+
+
+
+            //if (parseInt(obj.CH) > 0) {
+            //    var citem = {}
+            //    citem["ItemId"] = obj.CH;
+            //    citem["HID"] = 0;
+            //    citem["qty"] = 1 * parseInt(obj.Q);
+            //    citem["Comments"] = "";
+            //    citem["CH"] = 0;
+            //    ObjDataCartDetails.push(citem);
+
+
+            //    var items = {}
+            //    items["id"] = obj.CH;
+            //    items["name"] = "Item_" + obj.CH;
+            //    items["description"] = "";
+            //    items["quantity"] = 1 * parseInt(obj.Q);
+            //    items["amount_per_unit"] = "0.000";
+            //    items["total_amount"] = "0.000";
+            //    tapPayAPIObject.push(items);
+            //}
+
+            $.each(CartChoicesItems, function (i, eobj) {
+                if (eobj.MainItemId == obj.I && eobj.UID == obj.UID) {
+                    var eitem = {}
+                    eitem["ItemId"] = eobj.ChoiceItemId;
+                    eitem["HID"] = 0;
+                    eitem["qty"] = 1 * parseInt(obj.Q);
+                    eitem["Comments"] = "";
+                    eitem["CH"] = 0;
+                    //eitem["UID"] = obj.UID;
+
+                    //New inserted on 8 Nov 2021, same extra and choices selected then it is considered only single
+                    eitem["UID"] = ObjDataCartDetails.length + 1;
+
+                    //New inserted on 17-Dec-22, For callcenter tblorder add ParentOrderId value
+                    eitem["CartItemUniqID"] = obj.UID;
+                    eitem["ParentItemId"] = obj.I;
+
+                    ObjDataCartDetails.push(eitem);
+                }
+            })
+
+        });
+
+        var objdata = {
+            orderDetails: ObjDataCartDetails,
+            customerInfo: Custinfo,
+            addressInfo: AddrInfo,
+            DeliveryDate: deliveryDate,
+            selectedPayementType: $('#selectedPayementType').html(),  // check enum InvoicePaymentTypes or tblInvoicePaymentType
+            branchid: selectedbranchid,
+            DiscountTypeID: $('#hdnDiscountTypeID').val(),
+            InvoiceDiscount: round($('#lblDiscountAmount').text(), decimalPlace).toFixed(decimalPlace) ,
+            DiscountCode: $('#txtdiscountCoupon').val().trim(),
+            //selectedPayementType: "Cash on delivery"
+        }
+        debugger;
+
+        // Route to the legacy Tap/goSell (KNET) lightbox ONLY for the payment
+        // type that is actually configured as that gateway.
+        //
+        // This used to read `selectedPayementType == "1"`, from the days when
+        // that box held a hard-coded 0/1 code meaning Cash/KNET. It now holds the
+        // real tblInvoicePaymentType.ID, and ID 1 is Cash on Delivery - which is
+        // why choosing Cash opened the Tap payment page. Nothing was ever wired
+        // to put KNET behind Cash; it was that stale comparison.
+        //
+        // Everything else, cash included, goes through SubmitOrder. If the order
+        // turns out to need an online payment the server says so in the response
+        // and SubmitOrderAjaxcall redirects to the gateway (MyFatoorah) from
+        // there - one path, decided by the database rather than by the browser.
+        var legacyTapId = parseInt($('#hdnLegacyTapPayTypeID').val()) || 0;
+        var chosenId    = parseInt($('#selectedPayementType').html()) || 0;
+
+        if (legacyTapId > 0 && chosenId === legacyTapId && window.goSell) {
+            createCookie("TpayOrderConfirm", JSON.stringify(objdata), 365);
+            var amount = parseFloat($('#lblfinalAmount').html());
+            configure_goSell(tapPayAPIObject, amount);
+            goSell.openLightBox();
+        }
+        else {
+            SubmitOrderAjaxcall(objdata);
+        }
+
+    }
+    function configure_goSell(tapPayAPIObject, amt) {
+        debugger;
+        var redirecturl = window.location.origin + "/Payment/APIResultRedirect";
+        var knetpublicKey = $('#hdnKNETPublicKey').val();
+        var knetMerchantId = $('#hdnKNETMerchantId').val();
+
+        var param = window.location.href.split("/");
+        if (param.length > 5) {
+            redirecturl += '/' + param[5].replace('#', '');
+        } 
+
+        goSell.config({
+            containerID: "root",
+            gateway: {
+                //publicKey: "pk_test_Vlk842B1EA7tDN5QbrfGjYzh",
+                //publicKey: "pk_test_EtHFV4BuPQokJT6jiROls87Y",
+                publicKey: knetpublicKey,
+                merchantId: knetMerchantId,
+                language: "en",
+                contactInfo: true,
+                supportedCurrencies: "all",
+                supportedPaymentMethods: "all",
+                saveCardOption: true,
+                customerCards: true,
+                notifications: "standard",
+                callback: (response) => {
+                    debugger;
+                    console.log("response", response);
+                },
+                onClose: () => {
+                    debugger;
+                    console.log("onClose Event");
+                },
+                backgroundImg: {
+                    url: "imgURL",
+                    opacity: "0.5",
+                },
+                labels: {
+                    cardNumber: "Card Number",
+                    expirationDate: "MM/YY",
+                    cvv: "CVV",
+                    cardHolder: "Name on Card",
+                    actionButton: "Pay",
+                },
+                style: {
+                    base: {
+                        color: "#535353",
+                        lineHeight: "18px",
+                        fontFamily: "sans-serif",
+                        fontSmoothing: "antialiased",
+                        fontSize: "16px",
+                        "::placeholder": {
+                            color: "rgba(0, 0, 0, 0.26)",
+                            fontSize: "15px",
+                        },
+                    },
+                    invalid: {
+                        color: "red",
+                        iconColor: "#fa755a ",
+                    },
+                },
+            },
+            customer: {
+                //id: null,
+                //first_name: "First Name",
+                //middle_name: "Middle Name",
+                //last_name: "Last Name",
+                //email: "demo@email.com",
+                //phone: {
+                //  country_code: "965",
+                //  number: "99999999",
+                //  },
+                id: null,
+                first_name: $('#txtCustomerFullname').val(),
+                middle_name: "",
+                last_name: "",
+                email: $('#txtCustomerEmailnew').val(),
+                phone: {
+                    country_code: "965",
+                    number: $('#txtCustomerPhoneNumber').val(),
+                },
+
+            },
+            order: {
+                amount: amt,
+                currency: "KWD",
+                items: tapPayAPIObject,
+                //items: [
+                //    {
+                //        id: 1,
+                //        name: "item1",
+                //        description: "item1 desc",
+                //        quantity: "1",
+                //        amount_per_unit: "00.000",
+                //        discount: {
+                //            type: "P",
+                //            value: "10%",
+                //        },
+                //        total_amount: "000.000",
+                //    },
+                //    {
+                //        id: 2,
+                //        name: "item2",
+                //        description: "item2 desc",
+                //        quantity: "2",
+                //        amount_per_unit: "00.000",
+                //        discount: {
+                //            type: "P",
+                //            value: "10%",
+                //        },
+                //        total_amount: "000.000",
+                //    },
+                //    {
+                //        id: 3,
+                //        name: "item3",
+                //        description: "item3 desc",
+                //        quantity: "1",
+                //        amount_per_unit: "00.000",
+                //        discount: {
+                //            type: "P",
+                //            value: "10%",
+                //        },
+                //        total_amount: "000.000",
+                //    },
+                //],
+                shipping: null,
+                taxes: null,
+            },
+            transaction: {
+                mode: "charge",
+                charge: {
+                    saveCard: false,
+                    threeDSecure: true,
+                    description: "Order Invoice",
+                    statement_descriptor: "Sample",
+                    reference: {
+                        transaction: "txn_0001",
+                        order: "ord_0001",
+                    },
+                    hashstring: "",
+                    metadata: {},
+                    receipt: {
+                        email: true,
+                        sms: true,
+                    },
+                    source: {
+                        id: 'src_kw.knet'
+                    },
+                    //redirect: "https://localhost:44365/Payment/APIResultRedirect",
+                    //redirect: "http://dm.tmm-menu.com/Payment/APIResultRedirect",
+                    //redirect: redirecturl + "/Payment/APIResultRedirect"
+                    redirect: redirecturl
+                    //post: null,
+                },
+            },
+        });
+
+    }
+    // Shows the order-placed screen. Split out so the online-payment failure
+    // paths can fall back to it instead of leaving the customer on a dead page.
+    function showOrderConfirmation() {
+        $('#advisement').modal('hide');
+        $('#divlandingpage').hide();
+        $('#divCategoryList').hide();
+        $('#divMainItemDetails').hide();
+        $('#divCartView').hide();
+        $('#divQRCodeMain').hide();
+        $('#TrackingOrder').hide();
+        $('#divReservation').hide();
+        $('#divReservationConfirm').hide();
+        $('#divCustomerInfo').hide();
+        $('#divDeliveryService').hide();
+        $('#divDeliveryAddress').hide();
+        $('#divPaymentView').hide();
+        $('#divOrderConfirmView').show();
+    }
+
+    function SubmitOrderAjaxcall(objdata) {
+        debugger;
+        $.ajax({
+            type: "Post",
+            data: JSON.stringify(objdata),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            cache: false,
+            url: "/ItemsView/SubmitOrder",
+            success: function (result) {
+                debugger;
+                if (result.Message == "Success") {
+
+                    // An online method must be paid before the customer sees a
+                    // confirmation screen. Showing "order placed" first and
+                    // redirecting after teaches people to close the tab, and the
+                    // order is then sitting unpaid.
+                    if (result.IsOnlinePayment && result.PayToken) {
+                        $('#lblPaymentConfirmation').html('Redirecting to payment...');
+                        $.ajax({
+                            type: "Post",
+                            url: "/ItemsView/StartOnlinePayment",
+                            data: { invoiceNo: result.InvoiceNo, payToken: result.PayToken },
+                            cache: false
+                        }).done(function (pr) {
+                            if (pr && pr.Message === "Success" && pr.PaymentUrl) {
+                                ClearcartData();
+                                ClearCheckoutData();
+                                // Same tab, not a popup: mobile browsers block
+                                // popups opened from an ajax callback, and the
+                                // customer must not lose the gateway page.
+                                window.location = pr.PaymentUrl;
+                            } else {
+                                alert('Your order ' + result.InvoiceNo + ' was created, but the payment page could not be opened.\n\n'
+                                    + ((pr && pr.Detail) || '') + '\n\nPlease contact the branch to pay.');
+                                showOrderConfirmation();
+                            }
+                        }).fail(function () {
+                            alert('Your order ' + result.InvoiceNo + ' was created, but the payment page could not be opened. Please contact the branch to pay.');
+                            showOrderConfirmation();
+                        });
+                        return;
+                    }
+
+                    $('#advisement').modal('hide');
+                    $('#divlandingpage').hide();
+                    $('#divCategoryList').hide();
+                    $('#divMainItemDetails').hide();
+                    $('#divCartView').hide();
+                    $('#divQRCodeMain').hide();
+                    $('#TrackingOrder').hide();
+                    $('#divReservation').hide();
+                    $('#divReservationConfirm').hide();
+
+                    //checkout views list
+                    $('#divCustomerInfo').hide();
+                    $('#divDeliveryService').hide();
+                    $('#divDeliveryAddress').hide();
+                    $('#divPaymentView').hide();
+                    $('#divOrderConfirmView').show();
+
+                    var resData = JSON.parse(result.dtresult);
+                    // The printed invoice number when the server sent one,
+                    // otherwise the invoice number itself - an install that has
+                    // not run POS_32 must still show the customer something.
+                    $('#CustomerOrderNo').html(resData[0].InvoiceNumShow || resData[0].InvoiceNo);
+                    if (resData[0].DeliveryDate != null) {
+                        var d = new Date(resData[0].DeliveryDate);
+                        var month = d.getMonth() + 1;
+                        var day = d.getDate();
+
+                        var output = (day < 10 ? '0' : '') + day + ' ' +
+                            (month < 10 ? '' : '') + months[month - 1] + ' ' +
+                            d.getFullYear() + ' ' + formatAMPM(d);
+
+                        $('#lblOrderConfirmOrderDate').html(output);
+                    }
+
+                    $('#lblOrderConfirmOrderTotal').html(round(resData[0].FinalAmount, decimalPlace).toFixed(decimalPlace));
+                    // Name the method the customer actually picked. The old test
+                    // was `selectedPayementType == "0"` from the 0/1 Cash/KNET
+                    // days, so every order now labelled itself KNET.
+                    var $chosen = $('.paymenttype.activePayment').first();
+                    var chosenName = $chosen.find('label').text();
+                    if (chosenName) {
+                        $('#lblOrderConfirmOrderPaymentType').html($('<div>').text(chosenName).html());
+                    }
+                    else if ($chosen.data('iscod') == 1) {
+                        $('#lblOrderConfirmOrderPaymentType').html($('#lblPaymentCash').html());
+                    }
+                    else {
+                        $('#lblOrderConfirmOrderPaymentType').html($('#lblPaymentKNET').html());
+                    }
+
+                    // The order is placed and the confirmation is already on
+                    // screen, so nothing about this customer should survive into
+                    // the next order on the same device: name, mobile, address,
+                    // basket and the saved cookie all go.
+                    //
+                    // (`document.cookie = ""` below was a no-op - assigning an
+                    // empty string to document.cookie deletes nothing.)
+                    ClearcartData();
+                    ClearCheckoutData();
+                }
+                else {
+                    // ShowNotification(result.Message);
+                }
+            }
+        });
+    }
+
+    //function RedirectFromOrderConfirm(dataResult) {
+    //    debugger;
+    //    var dataCustomerCookie = accessCookie("TpayOrderConfirm");
+    //    if (dataCustomerCookie != "" && dataCustomerCookie != undefined) {
+    //        $('#advisement').modal('hide');
+    //        $('#divlandingpage').hide();
+    //        $('#divCategoryList').hide();
+    //        $('#divMainItemDetails').hide();
+    //        $('#divCartView').hide();
+    //        $('#divQRCodeMain').hide();
+    //        $('#TrackingOrder').hide();
+    //        $('#divReservation').hide();
+    //        $('#divReservationConfirm').hide();
+
+    //        //checkout views list
+    //        $('#divCustomerInfo').hide();
+    //        $('#divDeliveryService').hide();
+    //        $('#divDeliveryAddress').hide();
+    //        $('#divPaymentView').hide();
+    //        $('#divOrderConfirmView').show();
+    //        $('#divleftsideMenuListView').show();
+
+    //        var resData = JSON.parse(dataCustomerCookie);
+    //        //var resData = JSON.parse(result.dtresult);
+    //        $('#CustomerOrderNo').html(resData[0].InvoiceNo);
+    //        if (resData[0].DeliveryDate != null) {
+    //            var d = new Date(resData[0].DeliveryDate);
+    //            var month = d.getMonth() + 1;
+    //            var day = d.getDate();
+
+    //            var output = (day < 10 ? '0' : '') + day + ' ' +
+    //                (month < 10 ? '' : '') + months[month - 1] + ' ' +
+    //                d.getFullYear() + ' ' + formatAMPM(d);
+
+    //            $('#lblOrderConfirmOrderDate').html(output);
+    //        }
+
+    //        $('#lblOrderConfirmOrderTotal').html(parseFloat(resData[0].FinalAmount).toFixed(3));
+    //        if (resData[0].PaymentType == "Cash") {
+    //            $('#lblOrderConfirmOrderPaymentType').html($('#lblPaymentCash').html());
+    //        }
+    //        else {
+    //            $('#lblOrderConfirmOrderPaymentType').html($('#lblPaymentKNET').html());
+    //        }
+
+    //        var val = JSON.stringify(CustomerDetails);
+    //        createCookie("CustomerDetailsCookie", val, 365);
+
+    //        ClearcartData();
+    //        $('#advisement').modal('hide');
+
+    //    }
+    //}
+    function FillCustinfoAndAddressInfo() {
+        debugger;
+        var areaName = "";
+        Custinfo["id"] = 0;
+        Custinfo["CustomerName"] = $('#txtCustomerFullname').val();
+        Custinfo["Mobile"] = $('#txtCustomerPhoneNumber').val();
+        Custinfo["CivilID"] = $('#txtCustomerCivilID').val();
+        Custinfo["TableNumber"] = $('#txtTableNumber').val();
+        Custinfo["NumberofGuests"] = $('#txtNumberofGuests').val();
+        Custinfo["ReOrder"] = $('#chkReOrder').is(':checked');
+        Custinfo["TakeAway"] = $('#chkTakeAway').is(':checked');
+        //Custinfo["Mobile2"] = "";
+
+
+
+        AddrInfo["id"] = 0;
+        AddrInfo["CustomerId"] = 0;
+        AddrInfo["Email"] = $('#txtCustomerEmailnew').val();
+        AddrInfo["HouseNo"] = "";
+        AddrInfo["AreaID"] = 1;
+        //if branch id exsit in Query string and webconfig IsDeliveryEnable false(means only pickup)
+        if (parseInt($('#hdnBranchId').val()) > 0 && $('#hdnIsDeliveryEnable').val() == "false") {
+            selectedbranchid = parseInt($('#hdnBranchId').val());
+            AddrInfo["AreaID"] = "1";
+            areaName = "Pickup";
+
+            // This branch is the single-branch, pickup-only deployment (a
+            // fixed branch in the URL and delivery switched off entirely -
+            // see BindBranchList() in DeliveryService.js, which forces the
+            // Pickup tab active and hides Delivery in this same setup). It
+            // used to always take "right now" here regardless of what the
+            // customer picked on the Pickup date/time fields, so a pickup
+            // scheduled for a future date silently went through as today.
+            // createDeliveryDate() is what the other two branches already
+            // use for exactly this field - same fallback to "now" when the
+            // field still reads "Today" and no time slot is chosen, but it
+            // actually looks at what the customer selected first.
+            deliveryDate = createDeliveryDate($('#txtDeliveryPickupServiceDate'), $('#selPickupTimeSlot'));
+        }
+        //check existing address selected then bind from the object else address wise
+        else if ($('#pickup').hasClass("active")) {
+            if ($('.clrbranchList').length > 0) {
+                $('.clrbranchList').each(function (index) {
+                    if ($(this).hasClass("active")) {
+                        selectedbranchid = parseInt($(this).attr("data-brId"));
+                        AddrInfo["AreaID"] = parseInt($(this).attr("data-arId"));
+                        areaName = $(this).attr("data-arName");
+                        //$('#selectedPayementType').html()
+                    }
+                });
+            }
+            
+
+            debugger;
+            deliveryDate = createDeliveryDate($('#txtDeliveryPickupServiceDate'), $('#selPickupTimeSlot'));
+            //////////////////start set date Time join///////////////
+            //var dt = null;
+            //if ($('#txtDeliveryPickupServiceDate').val() == "Today") {
+            //    dt = new Date();
+            //}
+            //else {
+            //    var from = $("#txtDeliveryPickupServiceDate").val().split(" ")
+            //    dt = new Date(from[2], from[1] - 1, from[0]);
+            //}
+
+
+            //if ($('#selPickupTimeSlot').val() == "0") {
+            //    deliveryDate = dt;
+            //}
+            //else {
+            //    deliveryDate = dt;
+            //    var tmptime = $('#selPickupTimeSlot').val().split(":");
+            //    //new Date(year, month, day, hour, minute, second, and millisecond)
+            //    var d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), tmptime[0], tmptime[1], 0, 0);
+            //    deliveryDate = d;
+            //}
+            ////////////////End set date Time join///////////////
+        }
+        else {
+            var selectedAddressIndex = 2;
+            $('.clSelectedDeliveryAddress').each(function (index) {
+                if ($(this).hasClass("active")) {
+                    selectedAddressIndex = parseInt($(this).attr("data-val"));
+                }
+            });
+
+            if (selectedAddressIndex < 2) {
+                //bind from customerAddresses object
+                if (customerAddresses != null) {
+                    var data = customerAddresses[selectedAddressIndex];
+                    areaName = data.AreaName;
+                    AddrInfo["AreaID"] = data.AreaID == "" ? 1 : data.AreaID; 
+                    AddrInfo["Block"] = data.Block;
+                    AddrInfo["Street"] = data.Street;
+                    AddrInfo["Building"] = data.Building;
+                    AddrInfo["Floor"] = data.Floor;
+                    AddrInfo["Flat"] = data.flat;
+                    //Custinfo["Lane"] = data.Lane;
+                    AddrInfo["Lat"] = data.Latitude == null ? 0 : data.Latitude;
+                    AddrInfo["Long"] = data.Longitude == null ? 0 : data.Longitude;
+                    AddrInfo["AddressRemark"] = data.AddressRemarks;
+                    selectedbranchid = $('#hdnBranchId').val();
+                }
+            }
+            else {
+                AddrInfo["AreaID"] = $('#AddressArea').val() == "" ? 0 : $('#AddressArea').val();
+                areaName = $("#AddressArea option:selected").text();
+                if ($('#CustAddressHome').hasClass("active")) {
+                    AddrInfo["Block"] = $('#txtHomeBlock').val();
+                    AddrInfo["Street"] = $('#txtHomeStreet').val();
+                    AddrInfo["Flat"] = $('#txtHomeFlat').val();
+                    AddrInfo["AddressRemark"] = $('#txtHouseLandmark').val();
+                    //Custinfo["Building"] = $('#Building').val();
+                }
+
+                else if ($('#CustAddressApartment').hasClass("active")) {
+                    AddrInfo["Block"] = $('#txtApartmentBlock').val();
+                    AddrInfo["Street"] = $('#txtApartmentStreet').val();
+                    AddrInfo["Building"] = $('#txtApartmentBuilding').val();
+                    AddrInfo["Floor"] = $('#txtApartmentFloor').val();
+                    AddrInfo["Flat"] = $('#txtApartmentFlatNo').val();
+                    AddrInfo["AddressRemark"] = $('#txtApartmentLandmark').val();
+                }
+                else if ($('#CustAddressOffice').hasClass("active")) {
+                    AddrInfo["Block"] = $('#txtOfficeBlock').val();
+                    AddrInfo["Street"] = $('#txtOfficeStreet').val();
+                    AddrInfo["Building"] = $('#txtOfficeBuilding').val();
+                    AddrInfo["Floor"] = $('#txtOfficeFloor').val();
+                    AddrInfo["Flat"] = $('#txtOfficeFlat').val();
+                    AddrInfo["AddressRemark"] = $('#txtOfficeLandmark').val();
+                }
+
+                AddrInfo["Lat"] = $('#hdnlat').val();
+                AddrInfo["Long"] = $('#hdnlong').val();
+                selectedbranchid = $('#hdnBranchId').val();
+                //Custinfo["Floor"] = "";
+            }
+
+
+            debugger;
+            deliveryDate = createDeliveryDate($('#txtDeliveryServiceDate'), $('#selDeliveryTimeSlot'));
+
+        }
+
+        //////////////start bind last confrim view lables //////////////
+
+        //var area = areaName.length > 0 ? "Area: " + areaName + ", ": "";
+        //var block = Custinfo["Block"] === undefined ? "" : Custinfo["Block"].length > 0 ? "Block: " + Custinfo["Block"].replace("Block", "") +", " : "";
+        //var firstline = area + block;
+        ////remove last commaseprate
+        //firstline =firstline.slice(0, -2)
+
+        //var Street = Custinfo["Street"] === undefined ? "" : Custinfo["Street"].length > 0 ? "Street: " + Custinfo["Street"].replace("Street", "") + ", " : "";
+        //var Landmark = Custinfo["AddressRemarks"] === undefined ? "" : Custinfo["AddressRemarks"].length > 0 ? "Landmark: " + Custinfo["AddressRemarks"] + ", " : "";
+        //var building = Custinfo["Building"] === undefined ? "" :  Custinfo["Building"].length > 0 ? "Building: " + Custinfo["Building"] + ", " : "";
+        //var floor = Custinfo["Floor"] === undefined ? "" : Custinfo["Floor"].length > 0 ? "Floor: " + Custinfo["Floor"] + ", ": "";
+        //var flat = Custinfo["Flat"] === undefined ? "" : Custinfo["Flat"].length > 0 ? "Flat: " + Custinfo["Flat"] + ", " : "";
+        //
+        var area = areaName.length > 0 ? "" + lblDSArea + ": " + areaName + ", " : "";
+        var block = AddrInfo["Block"] === undefined ? "" : AddrInfo["Block"].length > 0 ? "" + lblDSBlock + ": " + AddrInfo["Block"].replace("Block", "") + ", " : "";
+        var firstline = area + block;
+        //remove last commaseprate
+        firstline = firstline.slice(0, -2)
+
+        var Street = AddrInfo["Street"] === undefined ? "" : AddrInfo["Street"].length > 0 ? "" + lblDSStreet + ": " + AddrInfo["Street"].replace("Street", "") + ", " : "";
+        var Landmark = AddrInfo["AddressRemark"] === undefined ? "" : AddrInfo["AddressRemark"].length > 0 ? "" + lblADLandmark + ": " + AddrInfo["AddressRemark"] + ", " : "";
+        var building = AddrInfo["Building"] === undefined ? "" : AddrInfo["Building"].length > 0 ? "" + lblDSBuilding + ": " + AddrInfo["Building"] + ", " : "";
+        var floor = AddrInfo["Floor"] === undefined ? "" : AddrInfo["Floor"].length > 0 ? "" + lblDSFloor + ": " + AddrInfo["Floor"] + ", " : "";
+        var flat = AddrInfo["Flat"] === undefined ? "" : AddrInfo["Flat"].length > 0 ? "" + lblDSFlat + ": " + AddrInfo["Flat"] + ", " : "";
+
+        var secondline = Street + Landmark + building + floor + flat;
+        //remove last commaseprate
+        secondline = secondline.slice(0, -2)
+
+        $('#lblOrderConfirmOrderCustomerName').html($('#txtCustomerFullname').val());
+        $('#lblOrderConfirmOrderEmail').html($('#txtCustomerEmailnew').val());
+        $('#lblOrderConfirmOrderMobile').html($('#txtCustomerPhoneNumber').val());
+        $('#lblOrderConfirmOrderAddre1').html(firstline);
+        $('#lblOrderConfirmOrderAddre2').html(secondline);
+        //////////////End bind last confrim view lables //////////////
+
+
+        /////////////Start bind Payment view lables/////////////////
+        debugger;
+        var dt2 = new Date(deliveryDate);
+        var month2 = dt2.getMonth() + 1;
+        var day2 = dt2.getDate();
+        var output = (day2 < 10 ? '0' : '') + day2 + ' ' +
+            (month2 < 10 ? '' : '') + months[month2 - 1] + ' ' +
+            dt2.getFullYear() + ' ' + formatAMPM(dt2);
+
+        $('#lblDelPaymentViewTime').html(output);
+        $('#lblDelPaymentViewDate').html("");
+        $('#lblDelPaymentViewMobile').html($('#txtCustomerPhoneNumber').val());
+        $('#lblDelPaymentViewAddr1').html(firstline);
+        $('#lblDelPaymentViewAddr2').html(secondline);
+        /////////////End bind Payment view lables/////////////////
+
+    }
+
+    function createDeliveryDate(DateControl, Timecontrol) {
+        var returndate = null;
+        ////////////////start set date Time join///////////////
+        var dt = null;
+        if ($(DateControl).val() == "Today" || $(DateControl).val() == TodayLable) {
+            dt = new Date();
+        }
+        else {
+            //var from = $(DateControl).val().split(" ")
+            //dt = new Date(from[2], from[1] - 1, from[0]);
+            dt = new Date($(DateControl).val());
+        }
+
+
+        if ($(Timecontrol).val() == "0" || $(Timecontrol).val() == null) {
+            var currenttime = new Date();
+            var d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), currenttime.getHours(), currenttime.getMinutes(), 0, 0);
+            returndate = d;
+        }
+        else {
+            var cntname = $(Timecontrol).attr("id");
+            var tmptime = $('#' + cntname + " option:selected").attr("data-value").split(":");
+            //new Date(year, month, day, hour, minute, second, and millisecond)
+            var d = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), tmptime[0], tmptime[1], 0, 0);
+            returndate = d;
+        }
+        return returndate;
+        ////////////////End set date Time join///////////////
+
+    }
+
+    function formatAMPM(date) {
+        var hours = date.getHours();
+        var minutes = date.getMinutes();
+        var ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        minutes = minutes < 10 ? '0' + minutes : minutes;
+        var strTime = hours + ':' + minutes + '' + ampm;
+        return strTime;
+    }
+
+    function paymentselectionClick(obj, type) {
+        if (!obj) return;
+
+        $('.paymenttype').each(function () { $(this).removeClass('activePayment'); });
+        $(obj).addClass('activePayment');
+        $('#selectedPayementType').html(type);
+
+        // The button label follows whether money is taken now or on delivery,
+        // which is a property of the method rather than of its name.
+        var isCod = $(obj).data('iscod') == 1;
+        $('#lblPaymentConfirmation').html(isCod ? btnPaymentProcessOrder : btnPaymentProceedtoPayment);
+    }
+    // =====================================================================
+    //  Payment methods, loaded from tblInvoicePaymentType (IsOnline = 1).
+    //
+    //  #selectedPayementType now holds the REAL tblInvoicePaymentType.ID
+    //  rather than the old 0/1 code. SubmitOrder validates it against the
+    //  table, so an order is booked against the method the customer actually
+    //  chose instead of a hard-coded guess.
+    // =====================================================================
+    function loadPaymentTypes() {
+        $.ajax({
+            type: "Post",
+            url: "/ItemsView/GetPaymentTypes",
+            // Cash on delivery (tblInvoicePaymentType ID 1) is offered next to
+            // the online methods. With this false the list held only IsOnline
+            // rows, so cash could only ever appear if the cash row itself was
+            // flagged online - which is exactly the misconfiguration that sent
+            // cash orders to MyFatoorah.
+            data: { includeCOD: true },
+            cache: false
+        }).done(function (res) {
+            var $wrap = $('#divPaymentOptions');
+            if (!$wrap.length) return;
+
+            var rows = [];
+            if (res && res.Message === "Success" && res.dtresult) {
+                try { rows = JSON.parse(res.dtresult); } catch (e) { rows = []; }
+            }
+
+            if (!rows.length) {
+                // Better to say so than to show an empty row the customer
+                // cannot get past without knowing why.
+                $wrap.html('<div class="col-12"><div class="alert alert-warning mb-0" '
+                         + 'style="font-size:13px;">No payment method is available right now. '
+                         + 'Please contact the branch.</div></div>');
+                $('#selectedPayementType').html('');
+                $('#lblPaymentConfirmation').html(btnPaymentProcessOrder);
+                return;
+            }
+
+            var isAr = ($('#selectedLang').val() === 'AR');
+            var html = '';
+
+            $.each(rows, function (i, p) {
+                var name = isAr && p.PaymentTypeNameArb ? p.PaymentTypeNameArb : p.PaymentTypeName;
+                var img  = p.ImageUrl
+                         ? '<img src="' + p.ImageUrl + '" alt="" '
+                           // A missing file must not leave a broken-image icon
+                           // sitting in the middle of checkout.
+                           + 'onerror="this.style.display=\'none\';" />'
+                         : '';
+
+                html += '<div class="col-4">'
+                     +  '<a class="card paymenttype' + (i === 0 ? ' activePayment' : '') + '"'
+                     +  ' data-paytype="' + p.PaymentTypeID + '"'
+                     +  ' data-iscod="' + (p.IsCOD ? 1 : 0) + '"'
+                     +  ' onclick="paymentselectionClick(this,\'' + p.PaymentTypeID + '\');">'
+                     +  img
+                     +  '<label>' + $('<div>').text(name).html() + '</label>'
+                     +  '</a></div>';
+            });
+
+            $wrap.html(html);
+
+            // Pre-select the first method so the customer is never left on a
+            // page where Process Order does nothing and nothing looks wrong.
+            paymentselectionClick($wrap.find('.paymenttype').first()[0], String(rows[0].PaymentTypeID));
+        }).fail(function () {
+            $('#divPaymentOptions').html('<div class="col-12"><div class="alert alert-danger mb-0" '
+                + 'style="font-size:13px;">Could not load payment methods.</div></div>');
+        });
+    }
+
+    function onViewDetailsItemsOnPaymentView() {
+        loadPaymentTypes();
+        debugger;
+        var bindstr = "";
+        if (CartDetails.length > 0) {
+            debugger;
+            var ObjDataCartDetails = [];
+            var objCartDetails = CartDetails;
+            $.each(objCartDetails, function (i, obj) {
+                var item = {}
+                item["UID"] = obj.UID;
+                item["ItemId"] = obj.I;
+                item["HID"] = obj.O;
+                item["qty"] = obj.Q;
+                item["Comments"] = obj.C;
+                item["ChoiceId"] = obj.CH;
+                ObjDataCartDetails.push(item);
+            });
+            $.ajax({
+                type: "Post",
+                data: JSON.stringify(ObjDataCartDetails),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                cache: false,
+                url: "/ItemsView/GetCartViewItems",
+                success: function (result) {
+                    debugger;
+                    if (result.Message == "Success") {
+                        var Items = result.dtItems;
+                        $.each(Items, function (i, item) {
+                            bindstr += '<li class="d-flex justify-content-between">' +
+                                '<span>' + item.ITEM_NAME + '</span>' +
+                                '<span>' + item.qty + '</span>' +
+                                '<strong>' + round(parseFloat(item.qty) * parseFloat(item.PRICE), decimalPlace).toFixed(decimalPlace)+ '</strong>' +
+                                '</li>';
+                        });
+                        $('#ulDivItemsListOnPaymentview').html(bindstr);
+                    }
+                }
+            });
+        }
+    }
+    function onChangeOrderClick() {
+        $('#divCategoryList').hide();
+        $('#divMainItemDetails').hide();
+        $('#divCartView').show();
+        $('#divQRCodeMain').hide();
+        $('#TrackingOrder').hide();
+        $('#divReservation').hide();
+        $('#divReservationConfirm').hide();
+
+        //checkout views list
+        $('#divCustomerInfo').hide();
+        $('#divDeliveryService').hide();
+        $('#divDeliveryAddress').hide();
+        $('#divPaymentView').hide();
+        $('#divOrderConfirmView').hide();
+    }
+    function OnApplyDiscountCodeClick() {
+        if ($('#txtdiscountCoupon').val().trim() != "") {
+
+            var objdata = {
+                DiscountCode: $('#txtdiscountCoupon').val().trim(),
+            }
+            $.ajax({
+                type: "Post",
+                data: JSON.stringify(objdata),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                cache: false,
+                url: "/ItemsView/CheckDiscountCouponCode",
+                success: function (result) {
+                    debugger;
+                    if (result.Message == "Success") {
+                        var data = JSON.parse(result.dtresult);
+                        var IsDiscountPercent = data[0].IsDiscountPercent;
+                        var discountValue = data[0].DiscountValue;
+                        var netamount = round($('#lblPaymentNetAmountVal').text(), decimalPlace).toFixed(decimalPlace);
+                        $('#hdnDiscountTypeID').val(data[0].DiscountTypeId);
+                        if (IsDiscountPercent == true) {
+                            var disc = parseFloat((netamount * discountValue) / 100);
+                            $('#lblDiscountAmount').text(round(disc, decimalPlace).toFixed(decimalPlace));
+                            $('#lblfinalAmount').text(round(parseFloat(netamount - disc), decimalPlace).toFixed(decimalPlace));
+                        }
+                        else {
+                            $('#lblDiscountAmount').text(round(discountValue, decimalPlace).toFixed(decimalPlace));
+                            $('#lblfinalAmount').text(round(parseFloat(netamount - discountValue), decimalPlace).toFixed(decimalPlace));
+                        }
+                    }
+                    else {
+                        $('#txtdiscountCoupon').val("");
+                        $("#alertTitle").html("Message");
+                        $("#alertMessage").html("Please insert valid Coupon code");
+                        $("#alertModal").modal();
+                    }
+                }
+            });
+        }
+        else {
+            $("#alertTitle").html(Message);
+            $("#alertMessage").html("Please insert valid Coupon code");
+            $("#alertModal").modal();
+        }
+        
+    }
+</script>

@@ -1,0 +1,76 @@
+﻿
+@{
+    ViewBag.Title = "FeedbackData";
+   
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" http-equiv="X-UA-Compatible" content="IE=Edge" />
+
+    <script src="~/vendor/jquery/jquery.min.js"></script>
+
+    <script src="~/vendor/pivot/jquery-1.8.3.min.js"></script>
+    <link href="~/css/Pivot/c3.min.css" rel="stylesheet" />
+    <script src="~/vendor/pivot/d3.min.js"></script>
+    <script src="~/vendor/pivot/c3.min.js"></script>
+  
+    <script src="~/vendor/Pivot/pivot.js"></script>
+    <link href="~/css/Pivot/pivot.css" rel="stylesheet" />
+    <script src="~/vendor/Pivot/c3_renderers.js"></script>
+    <script src="~/vendor/Pivot/nrecopivottableext.js"></script>
+    <link href="~/css/Pivot/nrecopivottableext.css" rel="stylesheet" />
+    <script src="~/vendor/pivot/jquery.csv-0.71.min.js"></script>
+</head>
+<body>
+
+
+    <div class="content-wrapper">
+        <h2>Business Intelligence Report</h2>
+        <div class="container-fluid">
+
+            <div class="row">
+                <div class="col-2">
+                    Select Start Date
+                </div>
+                <div class="col-3">
+                    <div id="cmbStartDate">
+                        <input id="StartDate" type="date" value="button" />
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-2">
+                    Select End Date
+                </div>
+                <div class="col-3">
+                    <div id="cmbEndDate">
+                        <input id="EndDate" type="date" data-date-format="yyyy-MM-dd 23:59:59" value="button" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="row col-2 align-centre">
+
+                <button id="add" type="button" class="btn btnOrange btn-block" onclick="Search()">
+                    <span class="glyphicon glyphicon-plus"></span> Search
+                </button>
+                <button id="add" type="button" class="btn btnOrange btn-block" onclick="exporttoExcel()">
+                    <span class="glyphicon glyphicon-plus"></span> Exporttotexcel
+                </button>
+
+            </div>
+
+            <div id="output" style="margin:10px"></div>
+        </div>
+    </div>
+    <script src="~/vendor/pivot/jquery.csv-0.71.min.js"></script>
+    <script src="~/vendor/pivot/jquery-ui-1.9.2.custom.min.js"></script>
+    <script src="~/vendor/pivot/c3.min.js"></script>
+    <script src="~/vendor/pivot/d3.min.js"></script>
+    <script src="~/MainJs/PivotJS.js"></script>
+</body>
+</html>

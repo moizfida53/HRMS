@@ -1,0 +1,239 @@
+﻿@if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsChoiceBind"]) == true)
+{
+    <input type="hidden" id="hdnIsChoiceBind" value="true" />
+}
+else
+{
+    <input type="hidden" id="hdnIsChoiceBind" value="false" />
+}
+@if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsExtraItemsBind"]) == true)
+{
+    <input type="hidden" id="hdnIsExtraItemsBind" value="true" />
+}
+else
+{
+    <input type="hidden" id="hdnIsExtraItemsBind" value="false" />
+}
+
+@{
+    string cssclass = "";
+}
+@if (@ViewBag.DesignTheme == "Design1")
+{
+    cssclass = "";
+}
+else if (@ViewBag.DesignTheme == "Design2")
+{
+    cssclass = "main-content active product-details";
+}
+else
+{
+    cssclass = "product-details";
+}
+<style>
+    .modal-dialog {
+        max-width: 600px;
+    }
+
+    .category-carousel {
+        max-width: 566px !important;
+    }
+
+    /* ===== Item Details header: back arrow + category name ===== */
+    .product-details .item-list-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 14px 16px;
+        margin-bottom: 18px;
+    }
+
+        .product-details .item-list-title .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            padding: 0 !important;
+            border-radius: 8px !important;
+            transition: background-color .2s ease, opacity .2s ease;
+        }
+
+            .product-details .item-list-title .back-btn .fa {
+                font-size: 22px;
+                line-height: 1;
+            }
+
+            .product-details .item-list-title .back-btn:hover {
+                background-color: rgba(0, 0, 0, 0.06);
+                opacity: 1;
+            }
+
+        .product-details .item-list-title h2 {
+            margin: 0;
+            padding: 0 0 0 2px;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    @@media (min-width: 576px) {
+        .product-details .item-list-title h2 {
+            font-size: 26px;
+        }
+    }
+
+    /* ===== Item image slider (Instagram-style) ===== */
+    .item-img-carousel { position: relative; width: 100%; max-width: 500px; margin: 0 auto 30px; }
+    .item-img-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; border-radius: 8px; scrollbar-width: none; direction: ltr; box-shadow: 0px 5px 16px 0px rgba(122,122,122,0.2); }
+    .item-img-track::-webkit-scrollbar { display: none; }
+    .item-img-slide { flex: 0 0 100%; scroll-snap-align: center; }
+    .item-img-slide .imgwrap { position: relative; width: 100%; padding-top: 75%; }
+    .item-img-slide .imgwrap img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 8px; }
+    .item-img-counter { position: absolute; top: 10px; right: 10px; z-index: 3; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+    .rtl .item-img-counter { right: auto; left: 10px; }
+    .item-img-dots { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; }
+    .item-img-dots .dot { width: 7px; height: 7px; border-radius: 50%; background: #cfcfd4; cursor: pointer; transition: all .2s ease; }
+    .item-img-dots .dot.active { background: var(--primary, #E0532F); width: 20px; border-radius: 4px; }
+</style>
+<!-- Item Details Content ===========================================================-->
+<div id="divMainItemDetails" class="@cssclass " style="display:none;">
+    <div class="product-details-inner">
+        @* Design1 shows the item name + close in the modal header, so this in-body
+           title row is empty. It inherits position:sticky from .item-list-title and,
+           inside the scrollable modal, pins to the top and clips the image on scroll.
+           Hide it for Design1 - but as an inline style, not a "d-none" class: this div
+           already carries "d-flex", and Bootstrap declares .d-flex{display:flex!important}
+           AFTER .d-none{display:none!important} in bootstrap.min.css, so with equal
+           specificity and both !important, d-flex was winning the tie and the bar kept
+           showing (and clipping the image on scroll) despite d-none being applied. An
+           inline !important always beats a stylesheet !important regardless of source
+           order, so this actually hides it. (Hidden inputs below still work either way.) *@
+        <div class="item-list-title d-flex align-items-center" style="@(ViewBag.DesignTheme == "Design1" ? "display:none !important;" : "")">
+            <input id="hdnSelectedItemid" type="hidden" value="0" />
+            <input id="hdnSelectedHID" type="hidden" value="0" />
+            <input id="hdnSelectedUID" type="hidden" value="0" />
+
+            @if (ViewBag.DesignTheme != "Design1")
+            {
+                if (ViewBag.IsItemDetailsBackToCategory == "True")
+                {
+                    @*Back navigates to the Category list*@
+                    <a href="#" onclick="BackToCategoryList();" title="back" class="btn btn-sm back-btn">
+                        <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                    </a>
+                }
+                else
+                {
+                    @*Back navigates to the Item list*@
+                    <a href="#" onclick="backtoItemList();" title="back" class="btn btn-sm back-btn">
+                        <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                    </a>
+                }
+                @*Category name is populated by OnItemClick() via #divCatename*@
+                <h2 id="divItemDetailsViewTopItemName" class="pl-2 pr-2">Product-details</h2>
+            }
+        </div>
+        @*</div>*@
+        @*<div class="animation">
+            <div class="container-fluid">*@
+        @* Wraps whichever media (image / carousel / video) is currently shown so the
+           allergen icon can overlay its top-left corner regardless of which one is
+           active - previously the icon sat in the header above the media entirely. *@
+        <div class="position-relative item-media-wrap">
+            @if (@ViewBag.IsShowAllergen != null)
+            {
+                if ((int)@ViewBag.IsShowAllergen == 1)
+                {
+                    <div class="dropdown dropup allergens allergens-on-image" id="divItemDetailsAllergen">
+                        <button class="btn dropdown-toggle bg-transparent" type="button" data-toggle="dropdown" aria-expanded="false">
+                            <span class="allergens-icon">
+                                <img src="../../allergenImages/assign_allergen.png" width="38" height="38" />
+                            </span>
+                        </button>
+                        <div class="dropdown-menu">
+                            <ul id="ulItemsAllergensList">
+                            </ul>
+                        </div>
+                    </div>
+                }
+            }
+            <img id="itemDetailsItemImage" class="img-thumbnail rounded mx-auto d-block"
+                 src="images/breakfast-basket.jpg" alt="">
+            <div id="itemImageCarousel" class="item-img-carousel" style="display:none;"></div>
+            <div id="itemDetailsItemVideo" class="video-responsive" style="display:none;">
+                <video id="itemVideoImage" autoplay loop controls poster="Images/breakfast-basket.jpg">
+                    <source id="itemVideo" src="Images/mov_bbb.mp4" type="video/mp4">
+                </video>
+            </div>
+        </div>
+        @if (@ViewBag.DesignTheme != "Design1" && @ViewBag.IsFromWaiterLogin != "true")
+        {
+            <h2 id="divitemDetailsItemName" class="product-name">Breakfast basket</h2>
+        }
+        <p id="divitemDetailsIngredient" class="product-details-text pt-3" style="white-space: pre-wrap !important;">
+        </p>
+        <h2 id="MainDivitemdetPrice" class="product-name" style="display:none"><em id="divitemDetailsPriceCurrcode">KD. </em><label id="itemdetMaindivPrice">0.000</label></h2>
+        @*<div id="choiceitemsGroupMainDiv">
+
+            </div>
+            <div id="extraitemsGroupMainDiv">
+
+            </div>*@
+        <div id="choiceAndExtraitemsGroupMainDiv">
+
+        </div>
+
+
+        <div class="card extra-item-block mb-4" id="divmainExtraComments">
+            <h3 class="modal-title" id="lblSelectExtraComments">Select Comments</h3>
+            <ul class="extra-option-list" id="divExtraComments"></ul>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-auto pb-3">
+                <div class="d-flex item-select-block" id="btnDetailsViewAdditemContainer">
+
+                </div>
+            </div>
+        </div>
+        @if (@ViewBag.IsCrtVisible == 1)
+        {
+            @* Wrapper id so a design can hide the free-text comment box without
+               removing the textarea — OnItemClick()/the cart code still read
+               #commentsItemDetailsView (it just stays empty). Design5 hides it. *@
+            <div id="divItemDetailsCommentBox">
+                <textarea type="text" class="txtComment" id="commentsItemDetailsView" value="" placeholder="Comments" multiple style="width: 100%; border: 1px solid gray; margin-bottom: 10px;"></textarea>
+            </div>
+            <div id="divItemDetailsViewPriceInfo" class="item-details-price d-flex align-items-end justify-content-between">
+                <div class="price-block">
+                    <label id="lblUnitPrice">Unit price</label>
+                    <span class="price">  <em id="lblItemDetailsUnitPriceCurr">KD</em><label id="divitemDetailsPrice">2.758</label></span>
+                </div>
+                <div id="divExtraPrice" class="price-block extra-price">
+                    <label id="lblExtraprice">Extra price</label>
+                    <span class="price"><em id="lblItemDetailsExtraPriceCurr">KD</em><label id="divExtraitemDetailsPrice">2.758</label></span>
+                </div>
+                <div class="price-block total-price">
+                    <label id="lblTotalprice">Total price</label>
+                    <span class="price"><em id="lblItemDetailsTotalPriceCurr">KD</em><label id="divitemDetailsTotalPrice">0.000</label></span>
+                </div>
+            </div>
+        }
+        @*</div>
+            </div>*@
+    </div>
+    <div class="category-carousel">
+        <div class="owl-carousel" id="divScrollItemList">
+
+        </div>
+    </div>
+    @*<footer class="powered-by">
+            Powered by TMM Emenu
+        </footer>*@
+</div>
+<!-- End Item Details Content ===========================================================-->

@@ -1,0 +1,91 @@
+﻿<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+
+    <link rel="shortcut icon"
+          href="https://goSellJSLib.b-cdn.net/v1.6.0/imgs/tap-favicon.ico" />
+    <link href="https://goSellJSLib.b-cdn.net/v1.6.0/css/gosell.css"
+          rel="stylesheet" />
+</head>
+<body>
+    @*<script type="text/javascript" src="~/js/jquery.js"></script>*@
+    <script type="text/javascript"
+            src="https://goSellJSLib.b-cdn.net/v1.6.0/js/gosell.js"></script>
+
+    <div id="root">
+        <input type="hidden" id="hdnUrlString" value="@ViewBag.UrlString" />
+    </div>
+    <script>
+        goSell.showResult({
+            callback: response => {
+                debugger;
+
+                var param = window.location.href.split("/");
+                var urlstr = document.getElementById("hdnUrlString").value;  // $('#hdnUrlString').val();
+
+                var result = response.callback;
+                 //alert(JSON.stringify(response.callback));
+                if (response.callback.response.code == "000" || response.callback.response.message == "Captured") {
+                    //createCookie("TpayOrderResponse", JSON.stringify(response.callback), 365);
+                    if (param.length > 5) {
+
+                        //var strtemp = param[5].split("?").replace('#', '');
+                        
+                        if (urlstr.length > 0) {
+                            //alert("1");
+                            //alert('/ItemsViewNew/Index?id=' + urlstr + '&tap_id=' + result.id + '');
+                            window.location.href = '/ItemsViewNew/Index?id=' + urlstr + '&tap_id=' + result.id + '';
+                        }
+                        else {
+                            //alert("2");
+                            //alert('/ItemsViewNew/Index?tap_id=' + result.id + '');
+                            window.location.href = '/ItemsViewNew/Index?tap_id=' + result.id + '';
+                        }
+
+                    } else {
+                        //alert('/ItemsViewNew/Index?tap_id=' + result.id + '');
+                        //window.location.href = '/ItemsViewNew/Index';
+                       
+
+                        setTimeout(function () {
+                            window.location.href = '/ItemsViewNew/Index?tap_id=' + result.id + '';
+                        }, 10000);
+                    }
+                }
+                else {
+                    //alert(response.callback.response.message);
+                    setTimeout(function () {
+                        window.location.href = '/ItemsViewNew/Index';
+                    }, 10000);
+                   
+                }
+            }
+        });
+
+        //function createCookie(cookieName, cookieValue, daysToExpire) {
+        //    debugger;
+        //    var data = accessCookie(cookieName);
+        //    if (data != "") {
+        //        document.cookie = cookieName + "= ; expires = Thu, 01 Jan 1970 00:00:00 GMT"
+        //    }
+
+        //    var date = new Date();
+        //    date.setTime(date.getTime() + (daysToExpire * 24 * 60 * 60 * 1000));
+        //    document.cookie = cookieName + "=" + cookieValue + "; expires=" + date.toGMTString();
+        //}
+
+        //function accessCookie(cookieName) {
+        //    var name = cookieName + "=";
+        //    var allCookieArray = document.cookie.split(';');
+        //    for (var i = 0; i < allCookieArray.length; i++) {
+        //        var temp = allCookieArray[i].trim();
+        //        if (temp.indexOf(name) == 0)
+        //            return temp.substring(name.length, temp.length);
+        //    }
+        //    return "";
+        //}
+    </script>
+</body>
+</html>

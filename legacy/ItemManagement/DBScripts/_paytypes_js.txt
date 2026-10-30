@@ -1,0 +1,66 @@
+    // =====================================================================
+    //  Payment methods, loaded from tblInvoicePaymentType (IsOnline = 1).
+    //
+    //  #selectedPayementType now holds the REAL tblInvoicePaymentType.ID
+    //  rather than the old 0/1 code. SubmitOrder validates it against the
+    //  table, so an order is booked against the method the customer actually
+    //  chose instead of a hard-coded guess.
+    // =====================================================================
+    function loadPaymentTypes() {
+        $.ajax({
+            type: "Post",
+            url: "/ItemsView/GetPaymentTypes",
+            data: { includeCOD: false },     // set true to also offer cash on delivery
+            cache: false
+        }).done(function (res) {
+            var $wrap = $('#divPaymentOptions');
+            if (!$wrap.length) return;
+
+            var rows = [];
+            if (res && res.Message === "Success" && res.dtresult) {
+                try { rows = JSON.parse(res.dtresult); } catch (e) { rows = []; }
+            }
+
+            if (!rows.length) {
+                // Better to say so than to show an empty row the customer
+                // cannot get past without knowing why.
+                $wrap.html('<div class="col-12"><div class="alert alert-warning mb-0" '
+                         + 'style="font-size:13px;">No payment method is available right now. '
+                         + 'Please contact the branch.</div></div>');
+                $('#selectedPayementType').html('');
+                $('#lblPaymentConfirmation').html(btnPaymentProcessOrder);
+                return;
+            }
+
+            var isAr = ($('#selectedLang').val() === 'AR');
+            var html = '';
+
+            $.each(rows, function (i, p) {
+                var name = isAr && p.PaymentTypeNameArb ? p.PaymentTypeNameArb : p.PaymentTypeName;
+                var img  = p.ImageUrl
+                         ? '<img src="' + p.ImageUrl + '" alt="" '
+                           // A missing file must not leave a broken-image icon
+                           // sitting in the middle of checkout.
+                           + 'onerror="this.style.display=\'none\';" />'
+                         : '';
+
+                html += '<div class="col-4">'
+                     +  '<a class="card paymenttype' + (i === 0 ? ' activePayment' : '') + '"'
+                     +  ' data-paytype="' + p.PaymentTypeID + '"'
+                     +  ' data-iscod="' + (p.IsCOD ? 1 : 0) + '"'
+                     +  ' onclick="paymentselectionClick(this,\'' + p.PaymentTypeID + '\');">'
+                     +  img
+                     +  '<label>' + $('<div>').text(name).html() + '</label>'
+                     +  '</a></div>';
+            });
+
+            $wrap.html(html);
+
+            // Pre-select the first method so the customer is never left on a
+            // page where Process Order does nothing and nothing looks wrong.
+            paymentselectionClick($wrap.find('.paymenttype').first()[0], String(rows[0].PaymentTypeID));
+        }).fail(function () {
+            $('#divPaymentOptions').html('<div class="col-12"><div class="alert alert-danger mb-0" '
+                + 'style="font-size:13px;">Could not load payment methods.</div></div>');
+        });
+    }

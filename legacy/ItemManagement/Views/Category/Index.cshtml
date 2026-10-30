@@ -1,0 +1,1238 @@
+﻿@using Jar.Helper   @* Asset.V() - css/js cache-buster, Helper\AssetVersion.cs *@
+@{
+    // One view, two homes. Served from /Category it is the classic admin page
+    // and nothing about it changes. Served from /POS/Menu it renders inside the
+    // POS chrome instead - same markup, same scripts, same endpoints, only the
+    // shell around it differs. See Areas/POS/Controllers/MenuController.cs and
+    // Areas/POS/Views/Shared/_LayoutPOSAdmin.cshtml.
+    Layout = string.Equals(ViewContext.RouteData.DataTokens["area"] as string, "POS",
+                           StringComparison.OrdinalIgnoreCase)
+           ? "~/Areas/POS/Views/Shared/_LayoutPOSAdmin.cshtml"
+           : "~/Views/Shared/_LayoutNew.cshtml";
+}
+<link href="@Asset.V("~/assets/plugins/custom/datatables/datatables.bundle.css?v=7.0.5")" rel="stylesheet" type="text/css" />
+<link href="@Asset.V("~/Content/newfont-awesome.min.css")" rel="stylesheet" />
+<style>
+    .chkIsSubCate {
+        float: right;
+    }
+
+    .branch_td1 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        /*padding-left: 0px !important;*/
+    }
+
+    .branch_td2 {
+    }
+    .branch_tdShort {
+        width: 25px !important;
+        padding:0px !important;
+    }
+    .branch_tdStatus {
+        width: 25px !important;
+        padding: 0px !important;
+    }
+
+    .branch_td3 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+
+    .extraItem_td1 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        /*padding-left: 0px !important;*/
+    }
+
+    .extraItem_td2 {
+    }
+
+    .extraItem_td3 {
+        width: 58px !important;
+    }
+
+    .extraItem_td4 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+
+    .comment_td1 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        /*padding-left: 0px !important;*/
+    }
+
+    .comment_td2 {
+    }
+
+    .comment_td3 {
+        width: 25px !important;
+        padding-right: 0px !important;
+        padding-left: 0px !important;
+    }
+
+    .page-item.active .page-link {
+        background-color: #ffb023 !important;
+        border-color: #ffb023 !important;
+    }
+
+    .page-link {
+        color: black !important;
+    }
+
+    .displayNone {
+        display: none;
+    }
+    .groupAssignmentEdit {
+        margin-left: -8px !important;
+        width: 35px !important;
+        height: 30px !important;
+    }
+    .btnSortingModifier {
+        font-size: 25px;
+        color: white;
+        padding: 0px !important;
+        height: 30px !important;
+        min-width: 30px !important;
+    }
+</style>
+<main class="main-content item-management">
+    <input type="hidden" id="hdnIsCategoryOrItemsSelected" value="Category" />  @*Category/Items*@
+    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == true)
+    {
+        <input type="hidden" id="hdnIsEcommerce" value="true" />
+    }
+    else
+    {
+        <input type="hidden" id="hdnIsEcommerce" value="false" />
+    }
+
+
+    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsSubCategory"]) == true)
+    {
+        <input type="hidden" id="hdnIsSubCategoryProject" value="true" />
+    }
+    else
+    {
+        <input type="hidden" id="hdnIsSubCategoryProject" value="false" />
+    }
+
+    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsChoiceBind"]) == true)
+    {
+        <input type="hidden" id="hdnIsChoiceBind" value="true" />
+    }
+    else
+    {
+        <input type="hidden" id="hdnIsChoiceBind" value="false" />
+    }
+    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsExtraItemsBind"]) == true)
+    {
+        <input type="hidden" id="hdnIsExtraItemsBind" value="true" />
+    }
+    else
+    {
+        <input type="hidden" id="hdnIsExtraItemsBind" value="false" />
+    }
+
+
+
+    <!-- Category Management Section -->
+    <div class="container-fluid h-100 item-management-list" id="divCategoryList">
+        <div class="item-management-heading d-flex">
+            @*<a href="#" title="Back" class="back-btn"><img src="~/Images/back-arrow.svg" alt=""></a>*@
+            <h2 data-lbl="adm_secCategory">Category</h2>
+        </div>
+
+        <div class="row ml-n2 mr-n2 uk-sortable catDroppable" data-uk-sortable id="CategoryList">
+
+        </div>
+    </div>
+
+    <!--Sub Category Section -->
+    <div class="container-fluid h-100 item-management-list" id="divSubCategoryList" style="display:none;">
+        <input type="hidden" id="selectedSubCategoryId" value="0" />
+        <div class="item-management-heading d-flex">
+            <a href="#" title="Back" class="back-btn" onclick="BacktoCategoryList();"><img src="~/Images/back-arrow.svg" alt=""></a>
+            <h2 id="SubCategoryListHeaderLabel" data-lbl="adm_secSubCategory">Sub Category</h2>
+        </div>
+
+        <div class="row ml-n2 mr-n2 uk-sortable catDroppable" data-uk-sortable id="SubCategoryList">
+
+        </div>
+    </div>
+
+    <!-- Category Items Section -->
+    <div class="container-fluid h-100 item-management-list" id="divCategoryItemsList" style="display:none;">
+        <div class="item-management-heading d-flex">
+            <a href="#" title="Back" class="back-btn" onclick="BacktoCategoryList();"><img src="~/Images/back-arrow.svg" alt=""></a>
+            <h2 id="itemlistHeaderLabel" data-lbl="adm_secItem">Item</h2>
+        </div>
+
+        <div class="row ml-n2 mr-n2 catItemsDroppable" id="CategoryItemsList">
+
+        </div>
+    </div>
+    <!-- Item Management Right Navigation -->
+
+    <div class="right-navigation">
+        <div class="p-2">
+            <a onclick="clearAllSelection();" class="btn btn-icon btn-secondary w-100 text-left"> <img class="icon" src="../Images/clear.svg" ā alt=""> <span data-lbl="adm_btnClearAll">Clear All</span></a>
+        </div>
+        <div class="accordion" id="accordionExample">
+            <div class="card">
+                <div class="card-header" id="Branch-heading">
+                    <a class="card-title" data-lbl="adm_navBranch" role="button" data-toggle="collapse" data-target="#Branch" aria-expanded="true" aria-controls="Branch">
+                        Branch
+                    </a>
+                </div>
+
+                <div id="Branch" class="collapse show" aria-labelledby="Branch-heading" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <ul id="ulBranchList"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="divChoicesList" style="display:none;">
+                <div class="card-header" id="Choice-heading">
+                    <a class="card-title" data-lbl="adm_navChoices" role="button" data-toggle="collapse" data-target="#Choices" aria-expanded="false" aria-controls="Choices">
+                        Choices
+                    </a>
+                </div>
+
+                <div id="Choices" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <ul id="ulChoicesList"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="divExtraItemsList" style="display:none;">
+                <div class="card-header" id="Extra-heading">
+                    <a class="card-title" data-lbl="adm_navExtraItems" role="button" data-toggle="collapse" data-target="#Extra" aria-expanded="false" aria-controls="Extra">
+                        Extra Items
+                    </a>
+                </div>
+
+                <div id="Extra" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <ul id="ulExtraItemsList"></ul>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="card" id="divCommentsList" style="display:none;">
+                <div class="card-header" id="Comments-heading">
+                    <a class="card-title" data-lbl="adm_navComments" role="button" data-toggle="collapse" data-target="#Comments" aria-expanded="false" aria-controls="Comments">
+                        Comments
+                    </a>
+                </div>
+
+                <div id="Comments" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <ul id="ulItemCommentsList">
+                            <li>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="customRadio21" name="customRadio2" class="custom-control-input">
+                                    <label class="custom-control-label" for="customRadio21">Toggle this custom radio</label>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="customRadio22" name="customRadio2" class="custom-control-input">
+                                    <label class="custom-control-label" for="customRadio22">Or toggle this other custom radio</label>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="customRadio23" name="customRadio2" class="custom-control-input">
+                                    <label class="custom-control-label" for="customRadio23">Toggle this custom radio</label>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="customRadio24" name="customRadio2" class="custom-control-input">
+                                    <label class="custom-control-label" for="customRadio24">Or toggle this other custom radio</label>
+                                </div>
+                            </li>
+                            <li>
+                                <a href="#" class="btn btn-icon btn-secondary  w-100 text-left"><img class="icon" src="~/Images/add-b.svg" alt=""> <span data-lbl="adm_btnAddExtraItems">Add Extra Items</span></a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+            <div class="card" id="divGroupModifierList" style="display:none;">
+                <div class="card-header" id="Extra-heading">
+                    <a class="card-title" data-lbl="adm_navGroupModifier" role="button" data-toggle="collapse" data-target="#GroupModifier" aria-expanded="false" aria-controls="GroupModifier">
+                        Group Modifier
+                    </a>
+                </div>
+                <div id="GroupModifier" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <ul id="ulGroupModifierList"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card" id="divAllergensList" style="display:none;">
+                <div class="card-header" id="Extra-heading">
+                    <a class="card-title" data-lbl="adm_navAllergens" role="button" data-toggle="collapse" data-target="#Allergens" aria-expanded="false" aria-controls="Allergens">
+                        Allergens
+                    </a>
+                </div>
+                <div id="Allergens" class="collapse" aria-labelledby="headingOne" data-parent="#accordionExample">
+                    <div class="card-body">
+                        <ul id="ulAllergensList"></ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+
+@*//-------------------------------------------Start Category Add Popup----------------------------------------*@
+<div class="modal fade" id="WindowCategoryAdd" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h4 class="modal-title" id="AddCategoryTitle" data-lbl="adm_titleAddCategory">Add Category</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <form class="needs-validation" novalidate>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <div class="toggle-switch-outer">
+                            <label class="pb-0" data-lbl="adm_lblShowCategory">Show Category</label>
+                            <div class="toggle-switch-block">
+                                <label class="toggle-switch">
+                                    <input id="chkShowCategory" type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsSubCategory"]) == true)
+                        {
+                            <div class="toggle-switch-outer chkIsSubCate">
+                                <label class="pb-0" data-lbl="adm_lblIsSubCategory">Is Sub Category</label>
+                                <div class="toggle-switch-block">
+                                    <label class="toggle-switch">
+                                        <input id="chkIsSubCategory" type="checkbox" onclick="chkIsSubCategoryChange(this);">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    @*@if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsSubCategory"]) == true)
+                        {
+                            <div class="form-group">
+                                <div class="toggle-switch-outer">
+                                    <label class="pb-0" data-lbl="adm_lblIsSubCategory">Is Sub Category</label>
+                                    <div class="toggle-switch-block">
+                                        <label class="toggle-switch">
+                                            <input id="chkIsSubCategory" type="checkbox" onclick="chkIsSubCategoryChange(this);">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        }*@
+                    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsSubCategory"]) == true)
+                    {
+                        <div id="divddrMainCategoryList" class="form-group" style="display:none">
+                            <label data-lbl="adm_lblMainCategory">Main Category</label>
+                            <select id="ddMainCategoryList" class="form-control" name="MainCategory[]" required></select>
+                            <div class="invalid-feedback">
+                                <span data-lbl="adm_valMainCategory">Please select a valid Main Category.</span>
+                            </div>
+                        </div>
+                    }
+                    <div class="form-group">
+                        <label data-lbl="adm_lblSelectBrand">Select Brand</label>
+                        <select id="ddBrand" class="form-control" name="ItemComments[]" required></select>
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valSelectBrand">Please select a valid brand.</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label data-lbl="adm_lblAssignBranch">Assign Branch</label>
+                        <select id="ddBranch" class="form-control MultiSelect" name="Branchs[]" multiple="multiple" required></select>
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valAssignBranch">Please select a valid branch.</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label data-lbl="adm_lblCategoryName">Category Name</label>
+                        @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == false)
+                        {
+                            <input id="txtCategoryName" type="text" class="form-control" required />
+
+                        }
+                        else
+                        {
+                            <input id="txtCategoryName" type="text" class="form-control" readonly="readonly" />
+                        }
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valCategoryName">Please insert a valid category name.</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label data-lbl="adm_lblCategoryNameAr">Category Name(Arabic)</label>
+                        @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == false)
+                        {
+                            <input id="txtCategoryNameArabic" type="text" class="form-control" required />
+
+                        }
+                        else
+                        {
+                            <input id="txtCategoryNameArabic" type="text" class="form-control" readonly="readonly" />
+                        }
+
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valCategoryName">Please insert a valid category name.</span>
+                        </div>
+                    </div>
+
+                    @*-----------------------START Display None variables@*-----------------------*@
+                    <div style="display: none;">
+                        <b>Category Number:</b>
+                        <input id="txtCategoryNumber" type="text" />
+                    </div>
+                    <div style="display: none;">
+                        <b>Sequence Number:</b>
+                        <input id="txtSeqNo" type="text" />
+                    </div>
+                    <div id="CatLanguage" style="display: none;">
+                        <div>
+                            <b>Category Name (Mandarian):</b>
+                            <input id="txtCategoryNameMan" type="text" />
+                        </div>
+
+                        <div style="display: none;">
+                            <b>Category Name (Russian):</b>
+                            <input id="txtCategoryNameRus" type="text" />
+                        </div>
+                    </div>
+
+                    <div class="row" style="display: none;">
+                        <div class="col-lg-6">
+                            <b>Is Sub Category </b>
+                            <span style="margin-left: 20px">
+                                Yes<input type="radio" name="isSubCategory" id="subCategory" class="image" value="false" onclick="ShowMainCategory()" />
+                            </span>
+
+                            <span style="margin-left: 20px">
+                                No
+                                <input type="radio" name="isSubCategory" id="mainCategory" class="image" checked value="true" onclick="hideMainCategory()" />
+                            </span>
+                        </div>
+                        <div class="col-lg-6" id="mainCatDisplay" style="display: none;">
+                            <b>Select Main Category </b>
+                            <div style="margin-left: 10px">
+                                <div id="ddMainCategory"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @*-----------------------END Display None variables@*-----------------------*@
+                </div>
+                <div class="modal-footer">
+                    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsPermenantDelete"]) == true)
+                    {
+                        if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == false)
+                        {
+                            <button id="CatDeleteButton" type="button" class="btn btn-primary" onclick="DeleteCategory();" style="display:none;" data-lbl="adm_btnDelete">Delete</button>
+                        }
+                    }
+
+                    <button id="CatAddButton" type="button" class="btn btn-primary" onclick="SaveCategory();" data-lbl="adm_btnAdd">Add</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End Category Add Popup----------------------------------------*@
+
+@*//-------------------------------------------Start Category Item Add Popup----------------------------------------*@
+<div class="modal fade item-modal" id="WindowCategoryItemAdd" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-lg modal-md">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h2 class="modal-title" id="AddItemTitle" data-lbl="adm_titleAddItem">Add Item</h2>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../Images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="col-xl-7">
+                        <div class="form-row">
+                            <div class="col-lg-auto">
+                                <div class="card p-sm-4 p-3 mb-2 align-items-center" style="min-height:102px;">
+                                    <!-- Show Items toggle hidden per request - #chkShowItems kept in the DOM so
+                                         existing JS that reads/sets it keeps working, just not shown to the user -->
+                                    <div class="form-group mt-3" style="display:none;">
+                                        <div class="toggle-switch-outer">
+                                            <label class="pb-0" data-lbl="adm_lblShowItems">Show Items</label>
+                                            <div class="toggle-switch-block">
+                                                <label class="toggle-switch">
+                                                    <input id="chkShowItems" type="checkbox" name="select">
+                                                    <span class="slider"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Price moved here from the col-xl-5 card below -->
+                                    <div class="form-group w-100 mb-0">
+                                        <label data-lbl="adm_lblPrice">Price</label>
+                                        @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == false)
+                                        {
+                                            <input id="txtPrice" class="form-control numericOnly" type="text" name="" value="">
+                                        }
+                                        else
+                                        {
+                                            <input id="txtPrice" class="form-control numericOnly" type="text" name="" value="" readonly="readonly">
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg">
+                                <div class="card pl-3 pr-3 pt-3 pb-1 mb-2">
+                                    <div class="form-group">
+                                        <label data-lbl="adm_lblCategory">Category</label>
+                                        <bran id="ItemPopupCategoryName" class="form-control" readonly>Category</bran>
+                                        <select id="ddItemCategory" class="form-control" name="ItemComments[]" style="width:100%;"></select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-5">
+                        <!-- Was the Price card - now the Select Allergen control, shown only when
+                             the brand has ShowAllergen=1 (toggled in Category.js) -->
+                        <div class="card pl-3 pr-3 pt-3 pb-1 mb-2" id="divItemAllergensSection" style="display:none;">
+                            <div class="form-group">
+                                <label data-lbl="adm_lblSelectAllergen">Select Allergen</label>
+                                <select id="ddItemAllergens" class="form-control MultiSelect" name="ItemAllergens[]" multiple="multiple"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="col-xl-7 mb-2">
+                        <div class="card pl-3 pr-3 pt-3 pb-2 h-100">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label data-lbl="adm_lblItemNameEng">Item Name (English)</label>
+                                    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == false)
+                                    {
+                                        <input id="txtItemNameEng" class="form-control" type="text" name="" value="">
+
+                                    }
+                                    else
+                                    {
+                                        <input id="txtItemNameEng" class="form-control" type="text" name="" value="" readonly="readonly">
+                                    }
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label data-lbl="adm_lblItemNameAra">Item Name (Arabic)</label>
+                                    @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == false)
+                                    {
+                                        <input id="txtItemNameAra" class="form-control" type="text" name="" value="">
+
+                                    }
+                                    else
+                                    {
+                                        <input id="txtItemNameAra" class="form-control" type="text" name="" value="" readonly="readonly">
+                                    }
+
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label data-lbl="adm_lblIngredientEng">Ingredient (English)</label>
+                                    <textarea id="txtIngEng" class="form-control" rows="3"></textarea>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label data-lbl="adm_lblIngredientAra">Ingredient (Arabic)</label>
+                                    <textarea id="txtIngAra" class="form-control" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-5 mb-2">
+                        <div class="card pl-3 pr-3 pt-3 pb-1 mb-2">
+                            <div class="form-group">
+                                <label data-lbl="adm_lblAssignBranch">Assign Branch</label>
+                                <select id="ddItemBranch" class="form-control MultiSelect" name="ItemBranchs[]" multiple="multiple"></select>
+                            </div>
+                            <div id="divCreateItemChoiceList" class="form-group" style="display:none">
+                                <label data-lbl="adm_lblAssignChoice">Assign Choice</label>
+                                <select id="ddChoices" name="Choices[]" class="form-control MultiSelect" multiple="multiple"></select>
+                            </div>
+                            <div id="divCreateItemExtraItemsList" class="form-group" style="display:none">
+                                <label data-lbl="adm_lblAssignExtras">Assign Extras</label>
+                                <select id="ddExtraItems" name="ExtraItems[]" class="form-control MultiSelect" multiple="multiple"></select>
+                            </div>
+                            <div class="form-group">
+                                <label data-lbl="adm_lblAssignComments">Assign Comments</label>
+                                <select id="ddExtraComments" name="ExtraComments[]" class="form-control  MultiSelect" multiple="multiple"></select>
+                            </div>
+                            @*<div class="form-group">
+                                <label>Assign ModifierGroup</label>
+                                <select id="ddGroupModifier" name="ModifierGroup[]" class="form-control  MultiSelect" multiple="multiple"></select>
+                            </div>*@
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card pl-3 pr-3 pt-3 pb-1">
+                    <div class="form-row">
+                        <div class="col-md-6 upload-file-block mb-3">
+                            <div class="form-group">
+                                <input type="hidden" id="hdnImageFileName" value="" />
+                                <label data-lbl="adm_lblSelectImage3MB">Select Image (max 3MB File Size)</label>
+                                <div class="custom-file">
+                                    <input id="imageFileUpload" type="file" name="ImageFileUpload" class="custom-file-input">
+                                    <label id="lblImageuploadName" class="custom-file-label text-truncate" for="customFile" data-lbl="adm_lblChooseFile">Choose file</label>
+                                </div>
+                            </div>
+                            <div class="d-flex align-content-start">
+                                <img src="https://placehold.it/75x75" id="Imagepreview" class="img-thumbnail">
+                                <button id="btnImageUpload" type="submit" class="btn btn-primary ml-2"><span data-lbl="adm_btnUpload">Upload</span></button>
+                            </div>
+                        </div>
+                        <div class="col-md-6 upload-file-block">
+                            <div class="form-group">
+                                <input type="hidden" id="hdnVideoFileName" value="" />
+                                <label data-lbl="adm_lblSelectVideo">Select Video</label>
+                                <div class="custom-file">
+                                    <input id="videoFileUpload" name="VideoFileUpload" type="file" class="custom-file-input">
+                                    <label id="vdfilename" class="custom-file-label text-truncate" for="customFile" data-lbl="adm_lblChooseFile">Choose file</label>
+                                    <progress id="fileProgress" style="display: none"></progress>
+                                    <label id="lblVideoMessage"></label>
+                                </div>
+                            </div>
+                            <div class="d-flex align-content-start">
+                                @*for video no need to display priview*@
+                                @*<img src="https://placehold.it/75x75" id="preview" class="img-thumbnail">*@
+                                <button id="btnVideoUpload" type="submit" class="btn btn-primary ml-2"><span data-lbl="adm_btnUpload">Upload</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="card pl-3 pr-3 pt-3 pb-2 mt-2" id="divSecondaryImagesCard">
+                    <div class="form-group mb-2">
+                        <label class="mb-1" data-lbl="adm_lblSecondaryImages">Secondary Images (gallery)</label>
+                        <small id="lblSecondaryHint" class="d-block text-muted mb-2" data-lbl="adm_hintSecondary">Upload a primary image first to enable secondary images.</small>
+                        <div class="d-flex align-items-center">
+                            <div class="custom-file" style="max-width:320px;">
+                                <input id="secondaryImageUpload" type="file" name="SecondaryImageUpload" class="custom-file-input" accept="image/*" multiple disabled />
+                                <label id="lblSecondaryName" class="custom-file-label text-truncate" for="secondaryImageUpload" data-lbl="adm_lblChooseImages">Choose images</label>
+                            </div>
+                            <button id="btnSecondaryUpload" type="button" class="btn btn-primary ml-2" disabled><span data-lbl="adm_btnAdd">Add</span></button>
+                        </div>
+                    </div>
+                    <div id="divSecondaryImages" class="d-flex flex-wrap"></div>
+                </div>
+
+                @*-----------------------START Display None variables@*-----------------------*@
+                <div style="display: none;">
+                    <b>Item Id</b>
+                    <input id="txtItemID" type="text" />
+                </div>
+                <div style="display: none;">
+                    <b>Category Number:</b>
+                    <input id="ItemCategoryNumber" type="text" />
+                </div>
+                @*-----------------------END Display None variables@*-----------------------*@
+            </div>
+            <div class="modal-footer">
+                @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsPermenantDelete"]) == true)
+                {
+                    if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == false)
+                    {
+                        <button id="ItemDeleteButton" type="button" class="btn btn-primary" onclick="DeleteItem();" style="display:none;" data-lbl="adm_btnDelete">Delete</button>
+                    }
+                }
+                <button id="ItemAddButton" type="button" class="btn btn-primary" onclick="SaveItem(false);" data-lbl="adm_btnSave">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+            </div>
+            @*</form>*@
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End Category Item Add Popup----------------------------------------*@
+
+
+@*//-------------------------------------------Start Category Extra Item Add Popup----------------------------------------*@
+<div class="modal fade item-modal" id="WindowCategoryExtraItemAdd" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h2 class="modal-title" id="AddExtraItemTitle" data-lbl="adm_titleAddExtraItem">Add Extra Item</h2>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../Images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnselectedExtraItemId" value="0" />
+                <div class="form-row">
+                    <div class="col-ml-3">
+                        <div class="form-row">
+                            <div class="col-lg-auto">
+                                <div class="card p-sm-4 p-3 mb-2 align-items-center" style="min-height:102px;">
+                                    <div class="form-group mt-3">
+                                        <div class="toggle-switch-outer">
+
+                                            <label class="pb-0" data-lbl="adm_lblShowItems">Show Items</label>
+                                            <div class="toggle-switch-block">
+                                                <label class="toggle-switch">
+                                                    <input id="chkShowItemsExtra" type="checkbox" name="select">
+                                                    <span class="slider"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-7">
+                        <div class="card pl-3 pr-3 pt-3 pb-1 mb-2">
+                            <div class="form-group">
+                                <label data-lbl="adm_lblPrice">Price</label>
+                                <input id="txtExtraItemPrice" class="form-control numericOnly" type="text" name="" value="">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="col-xl-12">
+                        <div class="card pl-3 pr-3 pt-3 pb-4 mb-2">
+                            <div class="form-group">
+                                <label data-lbl="adm_lblItemNameEng">Item Name (English)</label>
+                                <input id="txtExtraItemNameEng" class="form-control" type="text" name="" value="">
+                            </div>
+                            <div class="form-group">
+                                <label data-lbl="adm_lblItemNameAra">Item Name (Arabic)</label>
+                                <input id="txtExtraItemNameAra" class="form-control" type="text" name="" value="">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-6" style="display:none">
+                        <div class="card pl-3 pr-3 pt-3 pb-4 mb-2">
+                            <div class="upload-file-block">
+                                <div class="form-group">
+                                    <input type="hidden" id="hdnExtreaItemImageFileName" value="" />
+                                    <label data-lbl="adm_lblSelectImage">Select Image</label>
+                                    <div class="custom-file">
+                                        <input id="imageFileUploadExtra" type="file" name="ExtraImageFileUpload" class="custom-file-input">
+                                        <label id="lblExtraItemImageuploadName" class="custom-file-label text-truncate" for="customFile">Choose file</label>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-content-start">
+                                    <img src="https://placehold.it/75x75" id="ExtraItemImagepreview" class="img-thumbnail">
+                                    <button id="btnExtraItemImageUpload" type="submit" class="btn btn-primary ml-2"><span data-lbl="adm_btnUpload">Upload</span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="ExtraItemAddButton" type="button" class="btn btn-primary" onclick="SaveItem(true);" data-lbl="adm_btnSave">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End Category Extra Item Add Popup----------------------------------------*@
+
+
+
+@*//-------------------------------------------Start Item Choices Add Popup----------------------------------------*@
+<div class="modal fade item-modal" id="WindowItemChoicesAdd" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h2 class="modal-title" id="AddItemChoicesTitle" data-lbl="adm_titleAddItemChoices">Add Item Choices</h2>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../Images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnselectedItemChoicesId" value="0" />
+                <div class="form-row">
+                    <div class="col-xl-12">
+                        <div class="card pl-3 pr-3 pt-3 pb-4 mb-2">
+                            <div class="col-lg-auto">
+                                <div class="card p-sm-4 p-3 mb-2 align-items-center" style="min-height:102px;">
+                                    <div class="form-group mt-3">
+                                        <div class="toggle-switch-outer">
+
+                                            <label class="pb-0" data-lbl="adm_lblShowChoice">Show Choice</label>
+                                            <div class="toggle-switch-block">
+                                                <label class="toggle-switch">
+                                                    <input id="chkShowItemsChoices" type="checkbox" name="select">
+                                                    <span class="slider"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @*<div class="col-xl-9">
+                        <div class="card pl-3 pr-3 pt-3 pb-1 mb-2">
+                            <div class="form-group">
+                                <label data-lbl="adm_lblPrice">Price</label>
+                                <input id="txtItemChoicePrice" class="form-control numericOnly" type="text" name="" value="">
+                            </div>
+                        </div>
+                    </div>*@
+                </div>
+                <div class="form-row">
+                    <div class="col-xl-12">
+                        <div class="card pl-3 pr-3 pt-3 pb-4 mb-2">
+                            <div class="form-group">
+                                <label data-lbl="adm_lblItemNameEng">Item Name (English)</label>
+                                <input id="txtItemChoiceNameEng" class="form-control" type="text" name="" value="">
+                            </div>
+                            <div class="form-group">
+                                <label data-lbl="adm_lblItemNameAra">Item Name (Arabic)</label>
+                                <input id="txtItemChoiceNameAra" class="form-control" type="text" name="" value="">
+                            </div>
+                        </div>
+                    </div>
+
+                    @*<div class="col-xl-6">
+                            <div class="card pl-3 pr-3 pt-3 pb-4 mb-2">
+                                <div class="upload-file-block">
+                                    <div class="form-group">
+                                        <input type="hidden" id="hdnExtreaItemImageFileName" value="" />
+                                        <label data-lbl="adm_lblSelectImage">Select Image</label>
+                                        <div class="custom-file">
+                                            <input id="imageFileUploadExtra" type="file" name="ExtraImageFileUpload" class="custom-file-input">
+                                            <label id="lblItemChoiceImageuploadName" class="custom-file-label text-truncate" for="customFile">Choose file</label>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-content-start">
+                                        <img src="https://placehold.it/75x75" id="ItemChoiceImagepreview" class="img-thumbnail">
+                                        <button id="btnItemChoiceImageUpload" type="submit" class="btn btn-primary ml-2"><span data-lbl="adm_btnUpload">Upload</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>*@
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="ItemChoiceAddButton" type="button" class="btn btn-primary" onclick="SaveItemChoices();" data-lbl="adm_btnSave">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End Item Choices Add Popup----------------------------------------*@
+
+
+@*//-------------------------------------------Start Add Comments Popup----------------------------------------*@
+<div class="modal fade" id="WindowAddComment" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h2 class="modal-title" id="AddCommentTitle" data-lbl="adm_titleAddNewComment">Add New Comment</h2>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../Images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label data-lbl="adm_lblCommentNameEng">Comment Name (English)</label>
+                    <input id="txtCommentNameEng" class="form-control" type="text" name="" value="">
+                </div>
+                <div class="form-group">
+                    <label data-lbl="adm_lblCommentNameAra">Comment Name (Arabic)</label>
+                    <input id="txtCommentNameAra" class="form-control" type="text" name="" value="">
+                </div>
+                <div style="display: none;">
+                    <input id="txtCommentid" type="text" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnCommentAdd" type="button" class="btn btn-primary" onclick="SaveComment();" data-lbl="adm_btnSave">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End Add Comments Popup----------------------------------------*@
+
+@*//-------------------------------------------Start GroupModifier Popup----------------------------------------*@
+<div class="modal fade item-modal" id="WindowGroupModifierAdd" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-lg modal-md">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h2 class="modal-title" id="AddGroupModifierTitle" data-lbl="adm_titleAddGroupModifier">Add Group Modifier</h2>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../Images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnselectedGroupModifierId" value="0" />
+                <div class="card pl-3 pr-3 pt-3 pb-1">
+
+                    <div class="form-row">
+                        @*<div class="col-lg-auto">
+                                <div class="card p-sm-4 p-3 mb-2 align-items-center" style="min-height:102px;">
+                                    <div class="form-group mt-3">
+                                        <div class="toggle-switch-outer">
+                                            <label class="pb-0" data-lbl="adm_lblShowItems">Show Items</label>
+                                            <div class="toggle-switch-block">
+                                                <label class="toggle-switch">
+                                                    <input id="chkShowItems" type="checkbox" name="select">
+                                                    <span class="slider"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>*@
+                        <div class="col-lg">
+                            <div class="card pl-3 pr-3 pt-3 pb-1 mb-2">
+                                <div class="form-group">
+                                    <label data-lbl="adm_lblModifierType">Modifier Type</label>
+                                    @*<bran id="GroupModifierTypeName" class="form-control" readonly>Group Modifier Type Name</bran>*@
+                                    <select id="ddGroupModifierType" class="form-control" name="GroupModifierType[]" style="width:30%;"></select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="card pl-3 pr-3 pt-3 pb-1">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label data-lbl="adm_lblGroupModNameEng">Group Modifier Name (English)</label>
+                            <input id="txtGroupModifierNameEng" class="form-control" type="text" name="" value="">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label data-lbl="adm_lblGroupModNameAra">Group Modifier Name (Arabic)</label>
+                            <input id="txtGroupModifierNameAra" class="form-control" type="text" name="" value="">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label data-lbl="adm_lblMinSelect">Minimum Select</label>
+                            <input id="txtGroupModifierMinSelect" class="form-control numericOnlyNotDecimal" type="text" name="" value="0" />
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label data-lbl="adm_lblMaxSelect">Maximum Select</label>
+                            <input id="txtGroupModifierMaxSelect" class="form-control numericOnlyNotDecimal" type="text" name="" value="0" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="col-xl-12 mb-2">
+                        <div class="card pl-3 pr-3 pt-3 pb-1">
+                            <div class="card pl-3 pr-3 pt-3 pb-1 mb-2">
+                                <div id="divGModifierCreateItemChoiceList" class="form-group">
+                                    <label data-lbl="adm_lblModifierGroups">Modifier Groups</label>
+                                    @*<select id="ddGroupModifierChoices" name="GroupModifierChoices[]" class="form-control MultiSelect" multiple="multiple"></select>*@
+                                    <div style="width:100%;display:block;font-size:14px !important;">
+                                        <div id="result"></div>
+                                        <table class="display table table-hover table-checkable " id="grd_GroupModifierList" style="width:100% !important">
+                                            <thead style="width:100% !important">
+                                                <tr>
+                                                    <th data-lbl="adm_thID">ID</th>
+                                                    <th data-lbl="adm_thSeqNum">Seq Num</th>
+                                                    <th data-lbl="adm_thSorting">Sorting</th>
+                                                    <th data-lbl="adm_thGroupNameEng">Group Name Eng</th>
+                                                    <th data-lbl="adm_thGroupNameArb">Group Name Arb</th>
+                                                    <th data-lbl="adm_thTypeID">Type ID</th>
+                                                    <th data-lbl="adm_thType">Type</th>
+                                                    <th data-lbl="adm_thMinSelect">Min Select</th>
+                                                    <th data-lbl="adm_thMaxSelect">Max Select</th>
+                                                    @*<th class="nowrap">Actions</th>*@
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @*-----------------------START Display None variables@*-----------------------*@
+                @*<div style="display: none;">
+                        <b>GroupModifier Id</b>
+                        <input id="txtGroupModifierId" type="text" />
+                    </div>
+                    <div style="display: none;">
+                        <b>GroupModifierType Id:</b>
+                        <input id="GroupModifierTypeId" type="text" />
+                    </div>*@
+                @*-----------------------END Display None variables@*-----------------------*@
+            </div>
+            <div class="modal-footer">
+                @if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsPermenantDelete"]) == true)
+                {
+                    if (@Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsEcommerce"]) == false)
+                    {
+                        <button id="GroupModifierDeleteButton" type="button" class="btn btn-primary" onclick="GroupModifierDeleteItem();" style="display:none;" data-lbl="adm_btnDelete">Delete</button>
+                    }
+                }
+                <button id="GroupModifierAddButton" type="button" class="btn btn-primary" onclick="SaveGroupModifier();" data-lbl="adm_btnSave">Save</button>
+                <button id="GroupModifierDeleteButton" type="button" class="btn btn-primary" onclick="DeleteGroupModifier();" style="display:none;" data-lbl="adm_btnDelete">Delete</button>
+                <button id="GroupModifierUpdateCancelButton" type="button" class="btn btn-primary" onclick="CancelUpdateGroupModifier();" style="display:none;" data-lbl="adm_btnCancel">Cancel</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+            </div>
+            @*</form>*@
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End GroupModifier Popup----------------------------------------*@
+
+@*//-------------------------------------------Start GroupModifier Popup----------------------------------------*@
+<div class="modal fade item-modal" id="WindowAssignGroupModifier" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-lg modal-md">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h2 class="modal-title" id="AssignGroupModifierTitle" data-lbl="adm_titleAssignGroupModifier">Assign Group Modifier</h2>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../Images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnGroupSelectMainItemId" value="0" />
+                <div id="divMainDivGroup" class="card pl-3 pr-3 pt-3 pb-1">
+                    <div class="form-row">
+                        <div class="form-group col-md-12" style="text-align: right; float: right;">
+                            <button id="btnCopyGroupModifierRow" type="button" class="btn btn-primary" onclick="CopyGroupModifierRow(0);" data-lbl="adm_btnAdd">Add</button>
+                        </div>
+                    </div>
+                    <div id="copyFormDiv" class="form-row" style="display:none">
+                        <div id="colGroup" class="form-group col-md-3">
+                            <label data-lbl="adm_lblSelectGroupModifier">Select Group Modifier</label>
+                            <select id="ddGroupModifierassignment" class="form-control drpGroupModifier" name="GroupModifierType[]"></select>
+                        </div>
+                        <div id="colChoiceExtra" class="form-group col-md-3">
+                            @*<label>Select Choices/Extras</label>
+                            <select id="ddGroupModifierChoices" name="GroupModifierChoices[]" class="form-control MultiSelect" multiple="multiple" style="display:none;"></select>
+                            <select id="ddGroupModifierExtraItems" name="GroupModifierExtraItems[]" class="form-control MultiSelect" multiple="multiple" style="display:none;"></select>*@
+                        </div>
+                        <div id="colRemove" class="form-group col-md-6">
+                            <button id="btnRemoveRow" type="button" class="btn btn-primary" onclick="RemoveGroupRow(this);" style="margin-top:27px;">-</button>
+                        </div>
+                    </div>
+                    <div id="destDivOfGroups" class="form-row">
+                        
+                    </div>
+                </div>
+
+
+            </div>
+            <div class="modal-footer">
+                <button id="GroupModifierAddButton" type="button" class="btn btn-primary" onclick="SaveAssignGroupModifier();" data-lbl="adm_btnSave">Save</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+            </div>
+            @*</form>*@
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End GroupModifier Popup----------------------------------------*@
+
+
+@*//-------------------------------------------Start Category Add Popup----------------------------------------*@
+<div class="modal fade" id="WindowBranchAdd" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h4 class="modal-title" id="AddBranchTitle" data-lbl="adm_titleAddBranch">Add Branch</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <form class="needs-validation" novalidate>
+                <div class="modal-body">
+                    <input type="hidden" id="hdnAddEditBranchid" value="0" />
+                    <div class="form-group">
+                        <div class="toggle-switch-outer">
+                            <label class="pb-0" data-lbl="adm_lblShowBranch">Show Branch</label>
+                            <div class="toggle-switch-block">
+                                <label class="toggle-switch">
+                                    <input id="chkShowBranch" type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label data-lbl="adm_lblBranchName">Branch Name</label>
+                        <input id="txtBranchName" type="text" class="form-control" required />
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valBranchName">Please insert a valid Branch Name.</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label data-lbl="adm_lblBranchNameAr">Branch Name(Arabic)</label>
+                        <input id="txtBranchNameArabic" type="text" class="form-control" required />
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valBranchName">Please insert a valid Branch Name.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="BranchAddButton" type="button" class="btn btn-primary" onclick="SaveBranch();" data-lbl="adm_btnSave">Save</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End Category Add Popup----------------------------------------*@
+
+@*//------------------------------------------------------Alert box-------------------------------------------------------------------*@
+<div class="modal fade alert-modal" id="alert" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            @*<div class="modal-header">
+                    <h4 class="modal-title" id="lblCallMessage">Message</h4>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p id="message"></p>
+                </div>*@<div class="modal-header">
+                <h4 class="modal-title" id="lblCallMessage"></h4>
+                <button type="button" class="close" data-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="message"></p>
+            </div>
+            <div class="modal-body pt-5">
+                <div class="mesg-box text-center">
+                    <div class="svg-box">
+                        <svg class="circular green-stroke">
+                            <circle class="path" cx="75" cy="75" r="50" fill="none" stroke-width="4.25" stroke-miterlimit="10" />
+                        </svg>
+                        <svg class="checkmark green-stroke">
+                            <g transform="matrix(0.79961,8.65821e-32,8.39584e-32,0.79961,-489.57,-205.679)">
+                                <path class="checkmark__check" fill="none" d="M616.306,283.025L634.087,300.805L673.361,261.53" />
+                            </g>
+                        </svg>
+                    </div>
+                    <h2 class="text-success" data-lbl="adm_msgSuccess">Success!</h2>
+                    <p id="message"></p>
+                </div>
+            </div>
+            <div class="modal-footer pb-4 justify-content-center">
+                <button id="btnCallAlertCloseModel" type="button" class="btn btn-primary" data-dismiss="modal" data-lbl="adm_btnOk">Ok</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal warning-->
+<div class="modal fade alert-modal" id="warning" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body pt-5">
+                <div class="mesg-box text-center">
+                    <div class="svg-box">
+                        <svg class="circular yellow-stroke">
+                            <circle class="path" cx="75" cy="75" r="50" fill="none" stroke-width="4" stroke-miterlimit="10" />
+                        </svg>
+                        <svg class="alert-sign yellow-stroke">
+                            <g transform="matrix(1,0,0,1,-615.516,-257.346)">
+                                <g transform="matrix(0.56541,-0.56541,0.56541,0.56541,93.7153,495.69)">
+                                    <path class="line" d="M634.087,300.805L673.361,261.53" fill="none" />
+                                </g>
+                                <g transform="matrix(2.27612,-2.46519e-32,0,2.27612,-792.339,-404.147)">
+                                    <circle class="dot" cx="621.52" cy="316.126" r="1.318" />
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                    <h2 class="text-warning" data-lbl="adm_msgWarning">Warning!</h2>
+                    <p id="warningMessage">Not success</p>
+                </div>
+            </div>
+            <div class="modal-footer pb-4 justify-content-center">
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#success" data-dismiss="modal" data-lbl="adm_btnOk">Ok</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*//-------------------------------------------Start Change Password Popup----------------------------------------*@
+<div class="modal fade" id="WindowChangePassword" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h4 class="modal-title" id="ChangePasswordTitle" data-lbl="adm_titleChangePassword">Change Password</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            @*<form class="needs-validation" novalidate>*@<form class="needs-validation" novalidate>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <input type="hidden" id="txtUserIDChangePassword" value="" />
+                        <label data-lbl="adm_lblOldPassword">Old Password</label>
+                        <input id="txtOldPassword" type="password" class="form-control" required />
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valPassword">Please insert a Password.</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label data-lbl="adm_lblNewPassword">New Password</label>
+                        <input id="txtNewPassword" type="password" class="form-control" required />
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valPassword">Please insert a Password.</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label data-lbl="adm_lblRetypePassword">Retype Password</label>
+                        <input id="txtReTypePassword" type="password" class="form-control" required />
+                        <div class="invalid-feedback">
+                            <span data-lbl="adm_valPassword">Please insert a Password.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="BtnChangePassword" type="button" class="btn btn-primary" onclick="ChangePassword();" data-lbl="adm_btnSave">Save</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" data-lbl="adm_btnClose">Close</button>
+                </div>
+                @*</form>*@
+            </form>
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End Change Password Popup----------------------------------------*@
+
+@*start js for Mobile ui not working drag drop*@
+@*<script src="~/js/jquery.ui.touch-punch.js"></script>*@
+<script src="@Asset.V("~/js/jquery.ui.touch-punch.js")"></script>
+<script src="@Asset.V("~/js/jquery.ui.touch-punch.min.js")"></script>
+@*End js for Mobile ui not working drag drop*@
+<script src="@Asset.V("~/assets/plugins/custom/datatables/datatables.bundle.js?v=7.0.5")"></script>
+@*<script src="https://cdn.datatables.net/rowreorder/1.2.8/js/dataTables.rowReorder.min.js"></script>*@
+
+<script src="@Asset.V("~/MainJs/Category.js")"></script>
+<script src="@Asset.V("~/MainJs/ItemImages.js")"></script>

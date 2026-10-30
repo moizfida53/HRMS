@@ -16,3 +16,22 @@ src/HRMS.Web/wwwroot/uploads/
 HRMS_Import_Questions.xlsx
 db/tools/import_hrms_data/*.json
 
+
+# Items Management (QR Menu) - wwwroot-qr holds the old project's static files.
+# Committed: its own scripts/styles (MainJs, js, css, cssNew, allergenImages).
+# NOT committed - copy them from the old project with tools/Copy-QrMenuAssets.ps1:
+#   * third-party UI kits under their own licences (assets = Metronic theme, DashboardContent,
+#     vendor, Content, Scripts, fonts, jqWidgets jqx-* files)
+#   * menu photos / uploads (client data, ~370 MB)
+src/HRMS.Web/wwwroot-qr/assets/
+src/HRMS.Web/wwwroot-qr/DashboardContent/
+src/HRMS.Web/wwwroot-qr/vendor/
+src/HRMS.Web/wwwroot-qr/Content/
+src/HRMS.Web/wwwroot-qr/Scripts/
+src/HRMS.Web/wwwroot-qr/fonts/
+src/HRMS.Web/wwwroot-qr/**/jqx*
+src/HRMS.Web/wwwroot-qr/images/
+src/HRMS.Web/wwwroot-qr/Images/
+src/HRMS.Web/wwwroot-qr/ThumbnailImages/
+src/HRMS.Web/wwwroot-qr/AdvertisementImages/
+src/HRMS.Web/wwwroot-qr/Video/

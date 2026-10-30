@@ -278,6 +278,17 @@ public sealed class SignInService : ISignInService
         }
 
         var ok = _hasher.Verify(password ?? string.Empty, user.PasswordHash, out needsRehash);
+
+        // QR Menu accounts moved from the old project (db/qrmenu-merge) have no HRMS hash
+        // yet - only the old plain [Password] or the old POS hash. Accept it this once;
+        // needsRehash then stores the HRMS hash, so the old password is never used again.
+        if (!ok && string.IsNullOrWhiteSpace(user.PasswordHash) && !string.IsNullOrEmpty(password))
+        {
+            ok = (!string.IsNullOrEmpty(user.Password) &&
+                  CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(password), Encoding.UTF8.GetBytes(user.Password)))
+                 || HRMS.Web.Areas.Items.Legacy.QrLegacyPassword.VerifyPosHash(user.UserId, password);
+            if (ok) needsRehash = true;
+        }
         fillPlain = ok && _policy.SimplePassword
                        && (password?.Length ?? 0) <= AuthenticationPolicyOptions.SimplePasswordMaxLength;
         return ok;

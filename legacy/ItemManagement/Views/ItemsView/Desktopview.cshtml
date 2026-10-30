@@ -1,0 +1,16 @@
+﻿<div id="desktopview" class="clsMobileBackgroudImage">
+    <div style="flex-direction: column-reverse;">
+        <div class="desktop-view-image-container">
+            @if (!string.IsNullOrEmpty(@ViewBag.BrandHomePageImage))
+            {
+                <img alt="" class="desktop-view-shop-image"
+                     src="~/Images/@ViewBag.BrandHomePageImage">
+            }
+            else
+            {
+                <img alt="" class="desktop-view-shop-image"
+                     src="~/Images/HomePageUpdated.png">
+            }
+        </div>
+    </div>
+</div>

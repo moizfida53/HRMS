@@ -1,0 +1,605 @@
+﻿@{
+    Layout = "";
+}
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    @*<base href="../../../">*@
+    <meta charset="utf-8" />
+    <title>TMM</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="theme-color" content="var(--primary);">
+
+    <!--begin::Fonts-->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700" />
+
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap.min.css">
+
+    @*for rtl dynamically load*@
+    @*<link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap-rtl.min.css" />*@
+
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap-select.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/datepicker.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/owl.carousel.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/root.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/style.css" />
+
+    @*for rtl dynamically load*@
+    @*<link rel="stylesheet" type="text/css" href="~/cssNew/rtl-style.css" />*@
+
+    <script type="text/javascript" src="~/js/jquery.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="~/js/jquery.nicescroll.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-select.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-datepicker.js"></script>
+    <script type="text/javascript" src="~/js/owl.carousel.min.js"></script>
+    <script type="text/javascript" src="~/js/menu.js"></script>
+    <script type="text/javascript" src="~/js/general.js"></script>
+    @*https://github.com/cozmo/jsQR*@
+    <script src="~/Scripts/QRCodeJs/jsQR.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Ropa+Sans" rel="stylesheet">
+
+    <style>
+        /*start for new qr code*/
+        #githubLink {
+            position: absolute;
+            right: 0;
+            top: 12px;
+            color: #2D99FF;
+        }
+
+        h1 {
+            margin: 10px 0;
+            font-size: 40px;
+        }
+
+        #loadingMessage {
+            text-align: center;
+            padding: 40px;
+            background-color: #eee;
+        }
+
+        #canvas {
+            width: 100%;
+        }
+
+        #output {
+            margin-top: 20px;
+            background: #eee;
+            padding: 10px;
+            padding-bottom: 0;
+        }
+
+            #output div {
+                padding-bottom: 10px;
+                word-wrap: break-word;
+            }
+
+        #noQRFound {
+            text-align: center;
+        }
+        /*End for new qr code*/
+
+
+        /*Start form Waiter view css only*/
+        img {
+            border: 0;
+        }
+
+        #main {
+            margin: 15px auto;
+            background: white;
+            overflow: auto;
+            width: 100%;
+        }
+
+        #header {
+            background: white;
+            margin-bottom: 15px;
+        }
+
+        #mainbody {
+            background: white;
+            width: 100%;
+            display: none;
+        }
+
+        #footer {
+            background: white;
+        }
+
+        #v {
+            /*width: 320px;
+            height: 240px;*/
+            width: 100%;
+            height: 100%;
+        }
+
+        #qr-canvas {
+            display: none;
+        }
+
+        #qrfile {
+            width: 320px;
+            height: 240px;
+        }
+
+        #mp1 {
+            text-align: center;
+            font-size: 35px;
+        }
+
+        #imghelp {
+            position: relative;
+            left: 0px;
+            top: -160px;
+            z-index: 100;
+            font: 18px arial,sans-serif;
+            background: #f0f0f0;
+            margin-left: 35px;
+            margin-right: 35px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            border-radius: 20px;
+        }
+
+        .selector {
+            margin: 0;
+            padding: 0;
+            cursor: pointer;
+            margin-bottom: -5px;
+        }
+
+        #outdiv {
+            /*width: 320px;
+            height: 240px;*/
+            width: 100%;
+            height: 100%;
+            border: solid;
+            border-width: 3px 3px 3px 3px;
+            border-color: var(--primary);
+        }
+
+
+
+        #footer a {
+            color: black;
+        }
+
+        .tsel {
+            padding: 0;
+        }
+        /*End form Waiter view css only*/
+
+        .img-Category {
+            background-size: 250px;
+            height: 167px;
+            object-fit: cover;
+        }
+
+        .img-Item {
+            background-size: 251px;
+            height: 167px;
+            object-fit: cover;
+        }
+
+        #lblItemInfoQty {
+            padding: 8px;
+        }
+    </style>
+    <script type="text/javascript">
+
+        var _gaq = _gaq || [];
+        _gaq.push(['_setAccount', 'UA-24451557-1']);
+        _gaq.push(['_trackPageview']);
+
+        (function () {
+            var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+            ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+            var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+        })();
+
+    </script>
+</head>
+<body>
+    <input type="hidden" id="hdnbrandId" value="@ViewBag.BrandId" />
+    <input type="hidden" id="hdnBranchId" value="@ViewBag.Branchid" />
+    <input type="hidden" id="hdnCurrencyENG" value="@ViewBag.CurrencyENG" />
+    <input type="hidden" id="hdnCurrencyArab" value="@ViewBag.CurrencyArab" />
+    @*@{ var iscart = @Convert.ToBoolean(System.Configuration.ConfigurationManager.AppSettings["IsCartVisible"]) == true ? "true" : "false";}*@
+    <input type="hidden" id="hdnIsCartVisible" value="@ViewBag.IsCrtVisible" />
+    <div id="snackbar" style="display:none;">Item Added in Cart..</div>
+
+    <div class="container-fluid p-0 h-100">
+        <div class="row no-gutters h-100">
+            <div class="col-auto wrapper">
+                <!-- Start Header -->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/Header.cshtml");
+                }
+                <!-- End Header ======================================-->
+
+                @{
+                    Html.RenderPartial("~/Views/Waiter/QRCodeScan.cshtml");
+                }
+
+                <!-- Main Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/MenuList.cshtml");
+                }
+                <!-- End Main Content ===========================================================-->
+                <!-- Item Details Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/ItemDetailsView.cshtml");
+                }
+                <!-- End Item Details Content ===========================================================-->
+                <!-- Cart View Content ===========================================================-->
+                @{
+                    Html.RenderPartial("~/Views/ItemsViewNew/CartView.cshtml");
+                }
+                <!-- End Cart View Content ===========================================================-->
+
+            </div>
+            <div class="col desktop-background-images">
+                @*background-image:url('https://dm.tmm-menu.com/RightBackgroud.png')*@
+            </div>
+        </div>
+    </div>
+
+    <!--Alert Modal -->
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alertTitle"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div id="alertMessage" class="modal-body">
+
+                </div>
+                <div class="modal-footer">
+                    <button id="btnlblalertColse" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    @*<button type="button" class="btn btn-primary">Save changes</button>*@
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--Loader display -->
+    <div class="loading-block" style="display:none;">
+        <div id="container">
+            <div class="divider" aria-hidden="true"></div>
+            <p class="loading-text" aria-label="Loading" style="direction: ltr;">
+                <span class="letter" aria-hidden="true">L</span>
+                <span class="letter" aria-hidden="true">o</span>
+                <span class="letter" aria-hidden="true">a</span>
+                <span class="letter" aria-hidden="true">d</span>
+                <span class="letter" aria-hidden="true">i</span>
+                <span class="letter" aria-hidden="true">n</span>
+                <span class="letter" aria-hidden="true">g</span>
+            </p>
+        </div>
+    </div>
+
+    <script src="../../MainJs/ItemsViewNew/Index.js"></script>
+    <script src="../../MainJs/ItemsViewNew/BindCartDetails.js"></script>
+
+    <link href="../Content/jquery-confirm/jquery-confirm.css" rel="stylesheet" />
+    <script src="../Content/jquery-confirm/jquery-confirm.js"></script>
+    <script src="../Content/jquery-confirm/Jquery-confirm-custom.js"></script>
+    <script src="~/MainJs/Waiter.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#divCategoryList').hide();
+
+        });
+        
+        var video = document.createElement("video");
+        var canvasElement = document.getElementById("canvas");
+        var canvas = canvasElement.getContext("2d");
+        var loadingMessage = document.getElementById("loadingMessage");
+        var outputContainer = document.getElementById("output");
+        var outputMessage = document.getElementById("outputMessage");
+        var outputData = document.getElementById("outputData");
+
+        function drawLine(begin, end, color) {
+            canvas.beginPath();
+            canvas.moveTo(begin.x, begin.y);
+            canvas.lineTo(end.x, end.y);
+            canvas.lineWidth = 4;
+            canvas.strokeStyle = color;
+            canvas.stroke();
+        }
+
+        // Use facingMode: environment to attemt to get the front camera on phones
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(function (stream) {
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true); // required to tell iOS safari we don't want fullscreen
+            video.play();
+            requestAnimationFrame(tick);
+        });
+
+        function tick() {
+            loadingMessage.innerText = "⌛ Loading video..."
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                loadingMessage.hidden = true;
+                canvasElement.hidden = false;
+                outputContainer.hidden = false;
+
+                canvasElement.height = video.videoHeight;
+                canvasElement.width = video.videoWidth;
+                canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                var imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                var code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+                if (code) {
+                    debugger;
+                    const stream = video.srcObject;
+                    const tracks = stream.getTracks();
+                    tracks[0].stop;
+                    tracks.forEach(track => track.stop());
+                    video.pause();
+                    
+                    drawLine(code.location.topLeftCorner, code.location.topRightCorner, "#FF3B58");
+                    drawLine(code.location.topRightCorner, code.location.bottomRightCorner, "#FF3B58");
+                    drawLine(code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
+                    drawLine(code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
+                    outputMessage.hidden = true;
+                    //outputData.parentElement.hidden = false;
+                    outputData.innerText = code.data;
+
+                    debugger;
+                    $('#btnbackFromItemList').show();
+                    $('#CartView').show();
+                    $('#cartFooter').show();
+                    $('#QRScanView').hide();
+                    $('#btnMenu').show();
+                    $('#btnMenuDesktop').show();
+                    $('#btncart').show();
+                    $('#MenuList').hide();
+
+
+                    //alert(htmlEntities(a));
+
+                    //string data represent below formate,each item split with ~*
+                    //itemid~qty~'Extraids'~'Commentsid'~'ItemTextComment'~*
+
+                    //generate string to object below formate
+                    //"item": [{ "I": 2, "O": 2, "Q": 1, "C": "" }, { "I": 3, "O": 3, "Q": 1, "C": "" }],
+                    //"comments": [{ "II": 2, "CI": 2 }, { "II": 2, "CI": 4 }, { "II": 3, "CI": 2 }, { "II": 3, "CI": 5 }],
+                    //"extraItems": [{ "II": 3, "EI": 10 }, { "II": 3, "EI": 13 }]
+
+                    //CartDetails = objdata.i;
+                    var itemdata = [];
+                    var extraitm = [];
+                    var choiceData = [];
+                    var cmtdata = [];
+
+                    //var tempItems = code.data.split("~*");
+                    //$.each(tempItems, function (i, obj) {
+                    //    if (obj == "") {
+                    //        return true;
+                    //    }
+                    //    var starobj = obj.split("~");
+
+                    //    var itemid = starobj[0];
+                    //    var qty = starobj[1];
+                    //    var extraitemsIds = starobj[2];
+                    //    var commentesIds = starobj[3];
+                    //    var itemTextcomment = starobj[4];
+
+                    //    if (itemTextcomment != null) {
+                    //        itemTextcomment = itemTextcomment.replace("'", "").replace("'", ""); 
+                    //    }
+
+                    //    // create itemsData object
+                    //    var itmdata = {};
+                    //    itmdata["I"] = parseInt(itemid);
+                    //    itmdata["O"] = 0;
+                    //    itmdata["Q"] = parseInt(qty);
+                    //    itmdata["C"] = itemTextcomment; 
+                    //    itemdata.push(itmdata);
+
+                    //    // create extraitemsData object
+                    //    if (extraitemsIds != null) {
+                    //        var objextraitems = extraitemsIds.replace("'", "").replace("'", "").split(",")
+                    //        $.each(objextraitems, function (exti, extobj) {
+                    //            var extitmdata = {};
+                    //            extitmdata["II"] = parseInt(itemid);
+                    //            extitmdata["EI"] = parseInt(extobj);
+                    //            extraitm.push(extitmdata);
+                    //        });
+                    //    }
+                       
+
+                    //    // create comments object
+                    //    if (commentesIds != null) {
+                    //        var objComments = commentesIds.replace("'", "").replace("'", "").split(",")
+                    //        $.each(objComments, function (cmti, cmtobj) {
+                    //            var cmt = {};
+                    //            cmt["II"] = parseInt(itemid);
+                    //            cmt["CI"] = parseInt(cmtobj);
+                    //            cmtdata.push(cmt);
+                    //        });
+                    //    }
+                    //});
+
+                    //function en(c) { var x = 'charCodeAt', b, e = {}, f = c.split(""), d = [], a = f[0], g = 256; for (b = 1; b < f.length; b++)c = f[b], null != e[a + c] ? a += c : (d.push(1 < a.length ? e[a] : a[x](0)), e[a + c] = g, g++, a = c); d.push(1 < a.length ? e[a] : a[x](0)); for (b = 0; b < d.length; b++)d[b] = String.fromCharCode(d[b]); return d.join("") }
+                    //function de(b) { var a, e = {}, d = b.split(""), c = f = d[0], g = [c], h = o = 256; for (b = 1; b < d.length; b++)a = d[b].charCodeAt(0), a = h > a ? d[b] : e[a] ? e[a] : f + c, g.push(a), c = a.charAt(0), e[o] = f + c, o++, f = a; return g.join("") }
+                    ////var compressed = en('1![{"UID":1,"I":80,"O":87,"Q":1,"C":"","CH":88}]1!2![{ "UID": 1, "MI": 80, "ExId": 82, "GId": 17 }]2!3![{ "UID": 1, "MI": 80, "ChId": 88, "GId": 18 }, { "UID": 1, "MI": 80, "ChId": 87, "GId": 18 }]3!');
+                    //var decompressedString = de(code.data);
+                    var decompressedString = code.data;
+
+                    if (decompressedString.includes("1!")) {
+                        itemdata = JSON.parse(decompressedString.substring(
+                            decompressedString.indexOf("1!") + 2,
+                            decompressedString.lastIndexOf("1!")));
+                    }
+                    
+                    if (decompressedString.includes("2!")) {
+                        extraitm = JSON.parse(decompressedString.substring(
+                            decompressedString.indexOf("2!") + 2,
+                            decompressedString.lastIndexOf("2!")));
+                    }
+                    if (decompressedString.includes("3!")) {
+                        choiceData = JSON.parse(decompressedString.substring(
+                            decompressedString.indexOf("3!") + 2,
+                            decompressedString.lastIndexOf("3!")));
+                    }
+                    if (decompressedString.includes("4!")) {
+                        cmtdata = JSON.parse(decompressedString.substring(
+                            decompressedString.indexOf("4!") + 2,
+                            decompressedString.lastIndexOf("4!")));
+                    }
+
+                    $.each(cmtdata, function (i, obj) {
+                        var citem = {};
+
+                        citem["UID"] = obj.UID;
+                        citem["MainItemId"] = obj.MI;
+                        citem["CommentId"] = obj.CmId;
+                        citem["Comment"] = obj.cm;
+                        CartComments.push(citem);
+                    });
+
+
+                    //var objdata = jQuery.parseJSON(decompressedString);
+                    CartDetails = itemdata;
+                    //var cmtdata = objdata.c;
+                    //var extraitm = objdata.e;
+                    debugger;
+                    BindCartCount(CartDetails);
+                    debugger;
+                    //write code for cmtdata id to object as it is CartComments object
+                    //GenerateCartCommentsObject(cmtdata);
+                    //write code for extraitm id to object as it is CartExtraItems object
+                    //GenerateExtraItemsObject(extraitm);
+                    GenerateExtraItemsAndChoicesObject(extraitm, choiceData);
+                    debugger;
+                    BindCart(CartDetails, CartComments, CartChoicesItems, CartExtraItems, false, false);
+                    displaycartview();
+                    $('#divCartView').show();
+                    //.stop();
+                } else {
+                    outputMessage.hidden = false;
+                    outputData.parentElement.hidden = true;
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+
+        //function GenerateCartCommentsObject(cmtdata) {
+        //    debugger;
+        //    CartComments = [];
+        //    if (cmtdata.length > 0) {
+        //        $.ajax({
+        //            type: "Post",
+        //            async: false,
+        //            data: JSON.stringify(cmtdata),
+        //            contentType: "application/json; charset=utf-8",
+        //            dataType: "json",
+        //            cache: false,
+        //            url: "/ItemsViewNew/GenerateCartCommentsObject",
+        //            success: function (result) {
+        //                debugger;
+        //                if (result.Message == "Success") {
+        //                    var Comments = result.dtComments;
+        //                    $.each(Comments, function (i, obj) {
+        //                        var cmt = {};
+        //                        cmt["MainItemId"] = obj.II;
+        //                        cmt["CommentId"] = obj.CI;
+        //                        cmt["Comment"] = obj.comments_eng;  // if arabic then obj.comments_arb
+        //                        CartComments.push(cmt);
+        //                    });
+        //                }
+        //            }
+        //        });
+        //    }
+        //}
+
+        //function GenerateExtraItemsObject(ExtraItemdata) {
+        //    debugger;
+        //    CartExtraItems = [];
+        //    if (ExtraItemdata.length > 0) {
+        //        $.ajax({
+        //            type: "Post",
+        //            async: false,
+        //            data: JSON.stringify(ExtraItemdata),
+        //            contentType: "application/json; charset=utf-8",
+        //            dataType: "json",
+        //            cache: false,
+        //            url: "/ItemsViewNew/GenerateExtraItemsObject",
+        //            success: function (result) {
+        //                debugger;
+        //                if (result.Message == "Success") {
+        //                    var ExtraItems = result.dtExtraItems;
+        //                    $.each(ExtraItems, function (i, obj) {
+        //                        var Eitem = {};
+        //                        Eitem["MainItemId"] = obj.II;
+        //                        Eitem["ExtraItemId"] = obj.EI;
+        //                        Eitem["ItemName"] = obj.ITEM_NAME;   // if arabic then obj.ITEM_NAME_ARABIC
+        //                        Eitem["Price"] = obj.PRICE;
+        //                        CartExtraItems.push(Eitem);
+        //                    });
+        //                }
+        //            }
+        //        });
+        //    }
+        //}
+        function GenerateExtraItemsAndChoicesObject(ExtraItemdata, choiceData) {
+            debugger;
+            CartExtraItems = [];
+            CartChoicesItems = [];
+            if (ExtraItemdata.length > 0 || choiceData.length > 0) {
+                var objdata = {
+                    extras: ExtraItemdata,
+                    choices: choiceData,
+                }
+                $.ajax({
+                    type: "Post",
+                    async: false,
+                    data: JSON.stringify(objdata),
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    cache: false,
+                    url: "/ItemsViewNew/GenerateExtraItemsAndChoicesObject",
+                    success: function (result) {
+                        debugger;
+                        if (result.Message == "Success") {
+                            var ExtraItems = JSON.parse(result.dtExtraItems);
+                            $.each(ExtraItems, function (i, obj) {
+                                var Eitem = {};
+                                
+                                Eitem["UID"] = obj.UID;
+                                Eitem["MainItemId"] = obj.MI;
+                                Eitem["ExtraItemId"] = obj.ExId;
+                                Eitem["GroupId"] = obj.GId;
+                                Eitem["ItemName"] = obj.ITEM_NAME;   // if arabic then obj.ITEM_NAME_ARABIC
+                                Eitem["Price"] = obj.PRICE;
+                                CartExtraItems.push(Eitem);
+                            });
+
+                            var ChoicesItems = JSON.parse(result.dtChoices);
+                            $.each(ChoicesItems, function (i, obj) {
+                                var chitem = {};
+                                chitem["UID"] = obj.UID;
+                                chitem["MainItemId"] = obj.MI;
+                                chitem["ChoiceItemId"] = obj.ChId;
+                                chitem["GroupId"] = obj.GId;
+                                chitem["ItemName"] = obj.ITEM_NAME;   // if arabic then obj.ITEM_NAME_ARABIC
+                                chitem["Price"] = obj.PRICE;
+                                CartChoicesItems.push(chitem);
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

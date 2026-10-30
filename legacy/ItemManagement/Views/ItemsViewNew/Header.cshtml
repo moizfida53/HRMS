@@ -1,0 +1,281 @@
+﻿<!-- Start Header -->
+@{
+    // Offline Mode (MainJs/ItemsViewNew/OfflineMode.js) - rendered from the cookie so
+    // the label/icon are right on first paint; the script keeps them in sync after.
+    var offlineModeCookie = Request.Cookies["QRMenuOfflineMode"];
+    bool offlineModeOn = offlineModeCookie != null && offlineModeCookie.Value == "1";
+}
+<style>
+    .clsSmilechecked {
+        background-color: gray;
+        padding: 5px;
+    }
+</style>
+<header class="header">
+    <div class="top-header">
+        <div class="container-fluid">
+            <div class="row justify-content-between align-items-center">
+                <div class="col-auto">
+                    <button class="nav-icon">
+                        <span class="one"></span>
+                        <span class="two"></span>
+                        <span class="three"></span>
+                    </button>
+                </div>
+                <div class="col-auto">
+                    <div class="d-flex align-items-center">
+                        <div class="mr-2 ml-3">
+                            <input id="selectedLang" type="hidden" value="EN" />
+                            @*<button id="selectedLang" class="btn btn-sm btn-language d-none" value="EN" onclick="selectLanguage(this);"><span class="text-icon">EN</span></button>*@
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-language ar-btn" value="AR" onclick="selectLanguage(this);">
+                                    <span id="Btnlang" class="text-icon Btnlang">ع</span>
+                                </button>
+                            </div>
+                            @*<div class="dropdown">
+                                <button id="btnFullScreen" class="btn btn-sm btn-language ar-btn" value="Full SR">
+                                    <span class="text-icon">Full SR</span>
+                                </button>
+                            </div>*@
+                            
+                        </div>
+                        @if (@ViewBag.IsCrtVisible == 1)
+                        {
+                            <a href="#" title="cart" class="cart" id="btncart" onclick="displaycartview();">
+                                <span id="cartCount" class="clCartCount">0</span>
+                                <i class="fa fa-shopping-cart" aria-hidden="true"></i>
+                            </a>
+                        }
+                        @* Offline Mode sync icon - shown only while offline mode is on
+                           (cookie QRMenuOfflineMode=1). MainJs/ItemsViewNew/OfflineMode.js *@
+                        @if (ViewBag.IsFromWaiterLogin != "true")
+                        {
+                            <a href="#" title="Sync latest menu" aria-label="Sync latest menu" class="cart offline-sync-btn @(offlineModeOn ? "" : "d-none")" id="btnOfflineSync" onclick="OfflineMode.sync(); return false;">
+                                <i class="fa fa-refresh" aria-hidden="true"></i>
+                            </a>
+                        }
+                        @if (@ViewBag.IsFeedBack == "True")
+                        {
+                            <a href="#" title="Feedback" class="cart fb-cart-icon" id="btnFeedbackIcon" onclick="giveFeedback(this);">
+                                <i class="fa fa-commenting-o" aria-hidden="true"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Main Navigation =======================================-->
+    <!-- Main Navigation -->
+
+    <nav class="main-navigation" only-arrow-click="false" mobile-menu="5000" animation-speed="300" scroll-bg="" scroll-color="rgba(255,255,255,0.2)" scroll-width="5">
+        <div>
+            <ul>
+                <li class="active">
+                    @*@if (System.Configuration.ConfigurationManager.AppSettings["DesignTheme"] == "Design3" && @ViewBag.LoginUser =="Customer" )*@
+                    @if ((@ViewBag.DesignTheme == "Design3" || @ViewBag.DesignTheme == "Design4" || @ViewBag.DesignTheme == "Design1") && @ViewBag.LoginUser == "Customer")
+                    {
+                        <a href="#" title="Menu" onclick="BackToSectionList();"><i class="fa fa-file-text-o" aria-hidden="true"></i><span id="lblLeftMenuMenu">Menu</span></a>
+                    }
+                    else
+                    {
+                        <a href="#" title="Menu" onclick="BackToCategoryList();"><i class="fa fa-file-text-o" aria-hidden="true"></i><span id="lblLeftMenuMenu">Menu</span></a>
+                    }
+                </li>
+                <li><a href="#" title="Track Order" onclick="onClickTrackOrder();"><i class="fa fa-map-o" aria-hidden="true"></i>Track Order</a></li>
+                @*<li><a href="#" title="Contact Us"><i class="fa fa-comments-o" aria-hidden="true"></i>Contact Us</a></li>*@
+                <li>@*<a href="#" title="Sign In"><i class="fa fa-sign-in" aria-hidden="true"></i>Sign In</a>*@</li>
+                <li><a href="#" title="Arabic" onclick="selectLanguage(this);"><i class="fa fa-language" aria-hidden="true"></i><span id="menu_LanguageLabel">Arabic</span></a></li>
+                @if (ViewBag.IsFromWaiterLogin != "true")
+                {
+                    <li id="liOfflineMode"><a href="#" title="@(offlineModeOn ? "Online" : "Offline")" onclick="OfflineMode.toggle(); return false;"><i class="fa @(offlineModeOn ? "fa-globe" : "fa-cloud-download")" aria-hidden="true"></i><span id="menu_OfflineLabel">@(offlineModeOn ? "Online" : "Offline")</span></a></li>
+                }
+                <li><a href="@Url.Action("LoginWaiter", "Login")" title="Waiter Login"><i class="fa fa-sign-in" aria-hidden="true"></i><span id="menu_WaiterLogin">Waiter Login</span></a></li>
+                @if (@ViewBag.IsFeedBack == "True")
+                {
+                    <li><a href="#" title="Feedback" onclick="giveFeedback(this);"><i class="fa" aria-hidden="true"></i><span id="menu_FeedbackLabel">Feedback</span></a></li>
+                }
+            </ul>
+            <ul class="social-media-block clearfix">
+                @if (!string.IsNullOrEmpty(@ViewBag.facebookUrl))
+                {
+                    <li>
+                        <a href="@ViewBag.facebookUrl" title="facebook" class="fa fa-facebook"></a>
+                    </li>
+                }
+                @if (!string.IsNullOrEmpty(@ViewBag.instagramUrl))
+                {
+                    <li>
+                        <a href="@ViewBag.instagramUrl" title="Instagram" class="fa fa-instagram"></a>
+                    </li>
+                }
+                @if (!string.IsNullOrEmpty(@ViewBag.whatsAppUrl))
+                {
+                    <li>
+                        <a href="@ViewBag.whatsAppUrl" title="Whatsapp" class="fa fa-whatsapp"></a>
+                    </li>
+                }
+            </ul>
+            <p class="copyright">Powered by TMM EMenu</p>
+        </div>
+    </nav>
+    <div class="menu-overlay"></div>
+
+    <style>
+        /* ===== Feedback wizard ===== */
+        .driver-feedback-modal .modal-header { align-items: center; }
+        /* Position the popup ~10% from the top (instead of vertically centered) */
+        .driver-feedback-modal .modal-dialog { margin: 10vh auto 20px; max-width: 600px; }
+        @@media (max-width: 575.98px) {
+            .driver-feedback-modal .modal-dialog { margin-left: 12px; margin-right: 12px; }
+        }
+        .fb-counter { font-size: 13px; font-weight: 600; color: #ffffff; margin-left: auto; margin-right: 12px; white-space: nowrap; }
+        .rtl .fb-counter { margin-left: 12px; margin-right: auto; }
+        .fb-progress { height: 4px; width: 100%; background: #ececec; }
+        .fb-progress-bar { height: 100%; width: 0; background: var(--primary, #6993FF); transition: width .3s ease; }
+        .driver-feedback-modal .fb-question-text { font-size: 17px; }
+        .fb-star-rating { text-align: center; font-size: 34px; line-height: 1.2; }
+        .fb-star-rating .strRat { color: #dcdce1; cursor: pointer; margin: 0 4px; transition: color .15s, transform .15s; }
+        .fb-star-rating .strRat:hover { transform: scale(1.1); }
+        .fb-star-rating .strRat.checked { color: #ffb400; }
+        .fb-smiley-row { display: flex; justify-content: center; gap: 10px; }
+        .fb-smiley { font-size: 32px; line-height: 1; cursor: pointer; opacity: .4; filter: grayscale(70%); transition: transform .15s ease, opacity .15s ease, filter .15s ease; }
+        .fb-smiley:hover { transform: scale(1.12); opacity: .8; }
+        .fb-smiley-selected { opacity: 1; filter: none; transform: scale(1.28); }
+        .fb-choice-row { display: flex; justify-content: center; gap: 26px; }
+        .fb-choice { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 500; cursor: pointer; margin: 0; }
+        .fb-choice input { width: 18px; height: 18px; }
+        .fb-textarea { resize: vertical; }
+        .fb-error { color: #F64E60; font-size: 13px; margin-top: 10px; text-align: center; }
+        .fb-footer { display: flex; gap: 10px; justify-content: space-between; }
+        .fb-footer .btn { flex: 1 1 0; min-width: 0; }
+        .fb-cart-icon { margin-left: 6px; }
+        @@media (max-width: 480px) {
+            .fb-star-rating { font-size: 28px; }
+            .fb-smiley { font-size: 27px; }
+            .driver-feedback-modal .fb-question-text { font-size: 15px; }
+        }
+    </style>
+    <!-- Start Modal Feedback =========================== -->
+
+    <div class="modal fade driver-feedback-modal" id="order-feedback" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title pb-0 font-weight-bold" id="my-modal-title">Feedback</h3>
+                    <span id="feedbackCounter" class="fb-counter"></span>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="fb-progress"><div id="feedbackProgressBar" class="fb-progress-bar"></div></div>
+                <div class="modal-body p-3">
+                    <div class="card mb-3 feedback-step" id="divFeedbackCustomerInfo" style="display:none;">
+                        <div class="card-body p-4">
+                            <h5 class="card-title font-weight-bold pb-3 text-center" id="fbCustomerInfoTitle">Your details</h5>
+                            <div class="order-mode-page">
+                                <div class="form-group">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-user" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                    <circle cx="12" cy="7" r="4" />
+                                                    <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <input id="txtFdbCustomerName" type="text" class="form-control" placeholder="Customer Name *">
+                                    </div>
+
+                                </div>
+
+                                <div class="form-group mb-0">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-mobile" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                    <rect x="7" y="4" width="10" height="16" rx="1" />
+                                                    <line x1="11" y1="5" x2="13" y2="5" />
+                                                    <line x1="12" y1="17" x2="12" y2="17" />
+                                                </svg>
+                                                
+                                            </div>
+                                        </div>
+                                        <input id="txtFdbCustomerPhonenumber" type="tel" class="form-control" placeholder="Mobile *">
+                                    </div>
+                                </div>
+
+                                <div class="form-group mb-0 mt-3">
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <div class="input-group-text"><i class="fa fa-envelope-o" aria-hidden="true"></i></div>
+                                        </div>
+                                        <input id="txtFdbCustomerEmail" type="email" class="form-control" placeholder="Email (optional)">
+                                    </div>
+                                </div>
+
+                                <div id="feedbackError" class="fb-error" style="display:none;"></div>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div id="divMainQuestions">
+                        @*<div class="card mb-3">
+                            <div class="card-body p-4">
+                                <h5 class="card-title font-weight-bold pb-2">Lorem ipsum tempor nulla est eiusmod ?</h5>
+                                <div class="smiley-outer d-flex">
+                                    <img id="imgSmile_1" class="mr-3 clsmile clsSmilechecked" src="~/Images/smiley-03.svg" alt="smiley" onclick="smaileRatingClick(this,1)">
+                                    <img id="imgSmile_2" class="mr-3 clsmile" src="~/Images/smiley-02.svg" alt="smiley" onclick="smaileRatingClick(this,2)">
+                                    <img id="imgSmile_3" class="clsmile" src="~/Images/smiley-01.svg" alt="smiley" onclick="smaileRatingClick(this,3)">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mb-3">
+                            <div class="card-body p-4">
+                                <h5 class="card-title font-weight-bold pb-2">Lorem ipsum tempor nulla est eiusmod ?</h5>
+                                <div class="star-rating mb-0 p-0">
+                                    <span id="strRating_1" class="fa fa-star strRat checked" onclick="startRatingClick(this,1)"></span>
+                                    <span id="strRating_2" class="fa fa-star strRat checked" onclick="startRatingClick(this,2)"></span>
+                                    <span id="strRating_3" class="fa fa-star strRat checked" onclick="startRatingClick(this,3)"></span>
+                                    <span id="strRating_4" class="fa fa-star strRat" onclick="startRatingClick(this,4)"></span>
+                                    <span id="strRating_5" class="fa fa-star strRat" onclick="startRatingClick(this,5)"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mb-3">
+                            <div class="card-body p-4">
+                                <h5 class="card-title font-weight-bold pb-2">Lorem ipsum tempor nulla est eiusmod ?</h5>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio1" value="option1">
+                                    <label class="form-check-label" for="inlineRadio1">Yes</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="inlineRadioOptions" id="inlineRadio2" value="option2">
+                                    <label class="form-check-label" for="inlineRadio2">No</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mb-3">
+                            <div class="card-body p-4">
+                                <h5 class="card-title font-weight-bold pb-2">Lorem ipsum tempor nulla est eiusmod ?</h5>
+                                <textarea class="form-control h-100" rows="3"></textarea>
+
+                            </div>
+                        </div>*@
+                    </div>
+                  
+                </div>
+                <div class="modal-footer fb-footer">
+                    <button type="button" id="btnFeedbackPrev" class="btn btn-light" onclick="feedbackPrev()" style="display:none;"><span id="fbPrevLbl">Previous</span></button>
+                    <button type="button" id="btnFeedbackNext" class="btn btn-primary" onclick="feedbackNext()"><span id="fbNextLbl">Next</span></button>
+                    <button type="button" id="btnFeedbackSubmit" class="btn btn-primary" onclick="btnFeedback_submitClick()" style="display:none;"><span id="fbSubmitLbl">Submit</span></button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <!-- End Modal Feedback =========================== -->
+</header>
+<!-- End Header ======================================-->

@@ -1,0 +1,703 @@
+﻿@{
+    Layout = "~/Views/Shared/_LayoutNew.cshtml";
+}
+
+<!-- Main Content -->
+<main class="main-content item-management">
+    <div class="container-fluid h-100">
+        <div id="posX" style="display:none"></div>
+        <div id="posY" style="display:none"></div>
+        <div id="divTableBookingTablesView" class="table-management-list">
+            <div class="d-flex justify-content-between">
+                <input id="hdnSelectedDiningArea" type="hidden" value="Inner Area" />
+                <ul class="nav nav-pills nav-fill" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link flex-fill active" id="inner-areas" data-toggle="tab" href="#inner" role="tab" aria-controls="inner" aria-selected="true" onclick="onDiningAreaTabChange('Inner Area');">Inner Areas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link flex-fill" id="outer-areas" data-toggle="tab" href="#outer" role="tab" aria-controls="outer" aria-selected="false" onclick="onDiningAreaTabChange('Out Area');">Outer Areas</a>
+                    </li>
+                </ul>
+                <div>
+                    <div class="d-flex">
+                        <a href="#" class="btn btn-icon btn-secondary pr-0 mb-2" data-toggle="modal" data-target="#warning"><img class="icon" src="../images/clear.svg" alt=""></a>
+
+                        <a href="#" class="btn btn-icon btn-primary pr-0 mb-2 ml-3" onclick="btnViewChange();">
+                            <img class="icon" src="../images/list-view.svg" alt="">
+                        </a>
+
+                        @*<a href="#" class="btn btn-icon btn-primary pr-0 mb-2 ml-3" data-toggle="modal" data-target="#add-table">
+                                <img class="icon" src="../images/add-w.svg" alt="">
+                            </a>*@
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active" id="inner" role="tabpanel" aria-labelledby="inner-areas">
+
+                </div>
+                <div class="tab-pane fade" id="outer" role="tabpanel" aria-labelledby="profile-tab">
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Item Management Right Navigation -->
+
+    <div class="right-navigation p-3">
+        <div class="form-group">
+            <input id="datepickerdt" class="btn btn-primary datepicker w-100 text-left" type="text" name="" value="Select Date">
+        </div>
+
+        @*<div class="cart events-cart mb-3">
+                <div id="divSelectDatepicker" class="input-group date">
+                    <input id="datepickerdt" type="text" class="form-control" readonly><span class="input-group-addon"><i class="glyphicon glyphicon-th"></i></span>
+                </div>
+            </div>*@
+        @*<div class="accordion" id="accordionExample">
+                <div class="card">
+                    <div class="card-header" id="Branch-heading">
+                        <a class="card-title" role="button" data-toggle="collapse" data-target="#Branch" aria-expanded="true" aria-controls="Branch">
+                            Time Slots
+                        </a>
+                    </div>
+
+                    <div id="Branch" class="collapse show" aria-labelledby="Branch-heading" data-parent="#accordionExample">
+                        <div class="card-body">
+                            <ul id="ulTimeSlotList"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>*@
+        <div id="ulTimeSlotList" class="time-slot w-100">
+
+        </div>
+    </div>
+</main>
+<!-- End Main Content -->
+@*//-------------------------------------------Start EditTableWindow Popup----------------------------------------*@
+<div class="modal fade" id="EditTableWindow" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h4 class="modal-title" id="AddTableTitle">Change Table</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <form class="needs-validation" novalidate>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <input id="hdnSelectedTableid" type="hidden" value="0" />
+                        <input id="hdnReservationid" type="hidden" value="0" />
+                        <label>Current Table</label>
+                        <input id="txtCurrentTableName" type="text" class="form-control" readonly />
+                        <div class="invalid-feedback">
+                            Please insert a valid Table name.
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>New Table</label>
+                        <select id="ddavailableTables" class="form-control" name="ddavailableTables" required>
+                            @*<option value="">Select Area</option>
+                                <option value="Inner Area">Inner Area</option>
+                                <option value="Out Area">Out Areaa</option>*@
+                        </select>
+                        <div class="invalid-feedback">
+                            Please select New Table.
+                        </div>
+                    </div>
+
+                    @*<div class="form-group">
+                            <label>Seating Count</label>
+                            <input type="radio" id="one" name="seatingCount" value="2" checked>
+                            <label for="male">1-2</label><br>
+                            <input type="radio" id="two" name="seatingCount" value="4">
+                            <label for="female">2-4</label><br>
+                            <input type="radio" id="fivePlus" name="seatingCount" value="6">
+                            <label for="other">5+</label>
+                            <div class="invalid-feedback">
+                                Please insert a valid Seating Count.
+                            </div>
+                        </div>*@
+                </div>
+                <div class="modal-footer">
+                    @*<button id="TimeSlotDeleteButton" type="button" class="btn btn-danger" onclick="InActiveTable();">Delete</button>*@
+                    <button id="TableAddButton" type="button" class="btn btn-primary" onclick="ChangesSaveTable();">Change</button>
+                    <button id="btnEditTableWindowClose" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End EditTableWindow Popup----------------------------------------*@
+@*//-------------------------------------------Start Reservation Popup----------------------------------------*@
+<div class="modal fade" id="ReservationStatus" tabindex="-1" role="dialog" aria-labelledby="staticBackdrop" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header align-items-center">
+                <h4 class="modal-title" id="AddTableTitle">Reservation Status</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true"><img src="../images/ic-close.svg" alt=""></span>
+                </button>
+            </div>
+            <form class="needs-validation" novalidate>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Select Reservation Status :</label>
+                        <select id="ddReservationStatus" class="form-control" name="ddReservationStatus">
+                        </select>
+                    </div>
+
+
+                </div>
+                <div class="modal-footer">
+                    @*<button id="TimeSlotDeleteButton" type="button" class="btn btn-danger" onclick="InActiveTable();">Delete</button>*@
+                    <button id="ChangeStatusButton" type="button" class="btn btn-primary" onclick="ReservationStatusChange();">Change</button>
+                    <button id="btnReservationStatusClose" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@*//-------------------------------------------End Reservation Popup----------------------------------------*@
+
+
+<!--Alert Modal -->
+<div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alertTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div id="alertMessage" class="modal-body">
+
+            </div>
+            <div class="modal-footer">
+                <button id="btnlblalertColse" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                @*<button type="button" class="btn btn-primary">Save changes</button>*@
+            </div>
+        </div>
+    </div>
+</div>
+
+@*<link href="~/vendor/bootstrap-datepicker/css/bootstrap-datepicker3.min.css" rel="stylesheet" />
+    <script src="~/vendor/bootstrap-datepicker/js/bootstrap-datepicker.min.js"></script>*@
+
+<script type="text/javascript">
+
+
+
+    var selectedslotId = 0;
+    var ReservationId = 0;
+    var objReservation;
+    var objReservationTimeSlot;
+    $(document).ready(function () {
+        var date = new Date();
+        var today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        //$('#divSelectDatepicker').datepicker({
+        //    format: "dd/mm/yyyy",
+        //    todayHighlight: true,
+        //    "autoclose": true,
+        //    startDate: today
+        //}).change(dateChanged);
+        FillReservation();
+        $('#datepickerdt').datepicker({
+            format: "dd/mm/yyyy",
+            todayHighlight: true,
+            "autoclose": true,
+            startDate: today
+        }).change(dateChanged);
+        $('#datepickerdt').datepicker('setDate', today);
+    });
+
+    function onDiningAreaTabChange(selectedval) {
+        $('#hdnSelectedDiningArea').val(selectedval);
+        BindTimeSlotList();
+        if (timeslotIntVar != null) {
+            clearInterval(timeslotIntVar);
+        }
+        timeslotIntVar = setInterval(function () {
+            BindTimeSlotList();
+        }, 5000);
+
+        if (selectedslotId > 0) {
+            if (myintVar != null) {
+                clearInterval(myintVar);
+            }
+            BindTableData(selectedslotId);
+            myintVar = setInterval(function () {
+                BindTableData(selectedslotId);
+            }, 5000);
+        }
+    }
+    function dateChanged(ev) {
+        BindTimeSlotList();
+        if (timeslotIntVar != null) {
+            clearInterval(timeslotIntVar);
+        }
+        timeslotIntVar = setInterval(function () {
+            BindTimeSlotList();
+        }, 5000);
+    }
+    function BindTimeSlotList() {
+        //$("#inner").html("");
+        //$("#outer").html("");
+        //$("#ulTimeSlotList").html("");
+
+        var dt = $("#datepickerdt").val().split("/")
+        //var dt1 = new Date(dt[2], dt[1] - 1, dt[0])
+        var dt1 = dt[2] + '-' + dt[1] + '-' + dt[0];
+
+        var objdata = {
+            selectedDate: dt1,
+            //selectedDate: $('#divSelectDatepicker').data('date'),
+            DiningArea: $('#hdnSelectedDiningArea').val(),
+        }
+        $.ajax({
+            type: "POST",
+            data: JSON.stringify(objdata),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            cache: false,
+            url: "/BranchReservation/GetTimeSlotData",
+            success: function (result) {
+                if (result.dtresult != "") {
+                    var TimeSlotdata = JSON.parse(result.dtTimeSlotresult);
+                    BindTimeSlotViewHtml(TimeSlotdata);
+                }
+            }
+        });
+    }
+    function BindTimeSlotViewHtml(Timedata) {
+        debugger;
+        if (JSON.stringify(objReservationTimeSlot) != JSON.stringify(Timedata)) {
+            objReservationTimeSlot = Timedata;
+            $("#ulTimeSlotList").html("");
+            $.each(Timedata, function (index, value) {
+                var strTimeSlotLi = ""
+                //strTimeSlotLi = '<li class="p-0 mb-2" onclick="OnchangeTimeSlot(' + value.id + ');" >\
+                //            <table class="table">\
+                //                <tr>\
+                //                    <td class="branch_td1">' + 3 + '</td>\
+                //                    <td class="branch_td2">' + value.slotName + '</td>\
+                //                    <td class="branch_td3">' + 10 + '</td>\
+                //                    </tr>\
+                //                </table>\
+                //            </li>';
+                strTimeSlotLi = '<a id="timeslot_' + value.id + '" href="#" class="d-flex justify-content-between align-items-start w-100 mb-2 timeslot" onclick="OnchangeTimeSlot(this,' + value.id + ');">\
+                            <span class="available">' + value.AvailableCount + '</span>\
+                                ' + value.slotName + '\
+                            <span class="reservad">' + value.ReservedCount + '</span>\
+                            </a >';
+                $("#ulTimeSlotList").append(strTimeSlotLi);
+            });
+
+            if (selectedslotId > 0) {
+                $("#timeslot_" + selectedslotId + "").addClass("active");
+            }
+        }
+    }
+    var myintVar = null;
+    var timeslotIntVar = null;
+    function OnchangeTimeSlot(obj, timeslotid) {
+        $(".timeslot").removeClass("active");
+        $(obj).addClass("active");
+
+        selectedslotId = timeslotid;
+
+        if (myintVar != null) {
+            clearInterval(myintVar);
+        }
+        //$('#inner').html("");
+        //$('#outer').html("");
+        BindTableData(selectedslotId);
+        myintVar = setInterval(function () {
+            BindTableData(selectedslotId);
+        }, 5000);
+    }
+
+    function BindTableData(timeslotid) {
+        //$('#inner').html("");
+        //$('#outer').html("");
+
+        var dt = $("#datepickerdt").val().split("/")
+        //var dt1 = new Date(dt[2], dt[1] - 1, dt[0])
+        var dt1 = dt[2] + '-' + dt[1] + '-' + dt[0];
+        //var selectedDate = $(".datepicker").datepicker("getDate");
+        var objdata = {
+            reservationDate: dt1,
+            DiningArea: $('#hdnSelectedDiningArea').val(),
+            timeslotid: timeslotid
+        }
+
+        $.ajax({
+            type: "POST",
+            data: JSON.stringify(objdata),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            cache: false,
+            url: "/BranchReservation/GetBookedTableData",
+            success: function (result) {
+                if (result.dtresult != "") {
+                    var Tabledata = JSON.parse(result.dtTableresult);
+                    BindTableViewHtml(Tabledata);
+                }
+            }
+        });
+    }
+
+    function BindTableViewHtml(tabldata) {
+        debugger;
+        if (JSON.stringify(objReservation) != JSON.stringify(tabldata)) {
+            objReservation = tabldata;
+            $('#inner').html("");
+            $('#outer').html("");
+            $.each(tabldata, function (index, value) {
+                var x1 = value.Xaxis;
+                var y1 = value.Yaxis;
+                //var htmlstr = $('<div class="card table-popover m-2">');
+                //var btnstring = "";
+                //if (value.Reservationid > 0 && value.Status == 1) {
+                //    btnstring = "<a id='divContainer_'" + value.id + "' class='card table-popover m-2 reserved'  href = '#' onmouseup = 'mouseUp(" + value.id + ");' > ";
+                //    //btnstring = btnstring + "<a href='#' title='arrived' class='arrived-icon'><img src='../Images/arrived.svg' alt=''></a>";
+                //}
+                //else if (value.Reservationid > 0 && value.Status == 2) {
+                //    btnstring = "<a id='divContainer_'" + value.id + "' class='card table-popover m-2 arrived'  href = '#' onmouseup = 'mouseUp(" + value.id + ");' > ";
+                //}
+                //else {
+                //    btnstring = "<a id='divContainer_'" + value.id + "' class='card table-popover m-2' role='button' href = '#' onmouseup='mouseUp(" + value.id + ");'>";
+                //}
+
+                //if (value.Seating == 2) {
+                //    btnstring = btnstring + "<img src='../Images/1-2New.png' class='card-img img-responsive' alt='Tableimage'>";
+                //}
+                //else if (value.Seating == 4) {
+                //    btnstring = btnstring + "<img src='../Images/3-4New.png' class='card-img img-responsive' alt='Tableimage'>";
+                //}
+                //else {
+                //    btnstring = btnstring + "<img src='../Images/5plusNew.png' class='card-img img-responsive' alt='Tableimage'>";
+                //}
+
+
+                //if (value.Reservationid > 0 && value.Status == 1) {
+                //    btnstring = btnstring + "<div class='card-body'>" +
+                //        "<p class='customer-name'>" + value.customerName + "</p>" +
+                //        "<span class='time'>" + value.customerMobile + "</span>" +
+                //        "</div>" +
+                //        "</a>";
+                //}
+                //else {
+                //    btnstring = btnstring + "<div class='card-body'>" +
+                //        "</div>" +
+                //        "</a>";
+                //}
+
+                //var btn = $(btnstring)
+                //    //.draggable({
+                //    //    drag: function () {
+                //    //        var offset1 = $(this).offset();
+                //    //        var xPos1 = offset1.left.toFixed(10);
+                //    //        var yPos1 = offset1.top.toFixed(10);
+
+                //    //        $('#posX').text(xPos1);
+                //    //        $('#posY').text(yPos1);
+                //    //    }
+                //    //})
+                //    .css({
+                //        position: 'absolute',
+                //        top: y1,
+                //        left: x1,
+
+                //    });
+                //htmlstr.append(btn);
+                var imagename = "";
+                if (value.Seating == 2) {
+                    imagename = "../Images/1-2New.png";
+                }
+                else if (value.Seating == 4) {
+                    imagename = "../Images/3-4New.png";
+                }
+                else {
+                    imagename = "../Images/5plusNew.png";
+                }
+
+                var htmlstr = "";
+                if (value.Reservationid > 0 && value.Status == 1) {
+                    var strMeargedClass = "";
+                    if (value.IsMearged == 1) {
+                        strMeargedClass = "mearged";
+                    }
+
+                    htmlstr = htmlstr + "<div id='divContainer_'" + value.id + "' class='card table-popover m-2 reserved " + strMeargedClass + "' onmouseup='mouseUp(" + value.id + ");' >";
+                    htmlstr = htmlstr + "<div class='d-flex position-relative'>" +
+                        "<a href='#' title='arrived' class='arrived-icon' data-toggle='modal' data-target='#ReservationStatus' onclick='Arrivedclick(" + value.Reservationid + ");'><img src='../Images/arrived.svg' alt=''></a>" +
+                        "<img src='" + imagename + "' class='card-img' alt='...'>" +
+                        "</div>";
+                }
+                else if (value.Reservationid > 0 && value.Status == 2) {
+                    htmlstr = htmlstr + "<div id='divContainer_'" + value.id + "' class='card table-popover m-2 arrived' onmouseup='mouseUp(" + value.id + ");' >";
+                    htmlstr = htmlstr + "<div class='d-flex position-relative'>" +
+                        "<img src='" + imagename + "' class='card-img' alt='...'>" +
+                        "</div>";
+                }
+                else {
+                    htmlstr = htmlstr + "<div id='divContainer_'" + value.id + "' class='card table-popover m-2' onmouseup='mouseUp(" + value.id + ");' >";
+                    htmlstr = htmlstr + "<div class='d-flex position-relative'>" +
+                        "<img src='" + imagename + "' class='card-img' alt='...'>" +
+                        "</div>";
+                }
+
+                var customerName = value.customerName == null ? "" : value.customerName;
+                var customerMobile = value.customerMobile == null ? "" : value.customerMobile;
+                htmlstr = htmlstr + "<div class='card-body d-flex justify-content-between'>" +
+                    "<div style='max-width:108px;'>" +
+                    "<p class='customer-name'>" + customerName + "</p>" +
+                    "<span class='time'>" + customerMobile + "</span>" +
+                    "</div>";
+
+                if (value.Reservationid > 0 && value.Status == 1) {
+                    htmlstr = htmlstr + "<a href='#' class='edit-btn' data-value='" + value.TableName + "' data-toggle='modal' data-target='#EditTableWindow' onclick='EditTable(this," + value.id + "," + value.Reservationid + ");'><img src='../Images/text-edit.svg' alt=''></a>";
+                }
+
+                htmlstr = htmlstr + "</div>" +
+                    "</div>";
+                var btn = $(htmlstr)
+                    //.draggable({
+                    //    drag: function () {
+                    //        var offset1 = $(this).offset();
+                    //        var xPos1 = offset1.left.toFixed(10);
+                    //        var yPos1 = offset1.top.toFixed(10);
+
+                    //        $('#posX').text(xPos1);
+                    //        $('#posY').text(yPos1);
+                    //    }
+                    //})
+                    .css({
+                        position: 'absolute',
+                        top: y1,
+                        left: x1,
+                    });
+
+                if (value.DiningArea == "Inner Area") {
+                    $("#inner").append(btn);
+                }
+                else {
+                    $("#outer").append(btn);
+                }
+            });
+        }
+    }
+
+
+    function EditTable(obj, selectedTableid, Reservationid) {
+        debugger;
+        var currenttablename = $(obj).attr("data-value");
+        $('#txtCurrentTableName').val(currenttablename);
+        $('#hdnSelectedTableid').val(selectedTableid);
+        $('#hdnReservationid').val(Reservationid);
+        var objdata = {
+            ReservationId: Reservationid,
+            selectedTableid: selectedTableid,
+        }
+        debugger
+        $.ajax({
+            type: "POST",
+            data: JSON.stringify(objdata),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            cache: false,
+            url: "/BranchReservation/GetAvailableTableDataForChangeTable",
+            success: function (result) {
+                if (result.dtTableresult != "") {
+                    var Tabledata = JSON.parse(result.dtTableresult);
+                    $("#ddavailableTables").html("");
+                    $("#ddavailableTables").append($("<option></option>").val("0").html("Please Select Table"));
+                    $.each(Tabledata, function (data, value) {
+                        //if (jQuery.inArray(value.BranchId, selectedBranchs) !== -1) {
+                        //$("#ddavailableTables").append($("<option selected></option>").val(value.BranchId).html(value.branchName));
+                        //}
+                        //else {
+                        $("#ddavailableTables").append($("<option></option>").val(value.id).html(value.TableName));
+                        //}
+                    });
+
+                }
+            }
+        });
+
+    }
+
+    function ChangesSaveTable() {
+        debugger;
+        if (parseInt($("#ddavailableTables option:selected").val()) > 0) {
+            var objdata = {
+                currentTableid: $('#hdnSelectedTableid').val(),
+                NewTableid: $("#ddavailableTables option:selected").val(),
+                Reservationid: $('#hdnReservationid').val(),
+            }
+            debugger
+            $.ajax({
+                type: "POST",
+                data: JSON.stringify(objdata),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                cache: false,
+                url: "/BranchReservation/UpdateReservedTable",
+                success: function (result) {
+                    if (result.Message == "Success") {
+                        $('#btnEditTableWindowClose').click();
+
+                        //var Tabledata = JSON.parse(result.dtTableresult);
+                        //BindTableViewHtml(Tabledata);
+
+                        //if (myintVar != null) {
+                        //    clearInterval(myintVar);
+                        //}
+                        BindTableData(selectedslotId);
+                        //myintVar = setInterval(function () {
+                        //    BindTableData(selectedslotId);
+                        //}, 5000);
+                    }
+                }
+            });
+        }
+        else {
+            $("#alertTitle").html("");
+            $("#alertMessage").html("Please select Available Table");
+            $("#alertModal").modal()
+        }
+
+
+    }
+
+    function btnViewChange() {
+        window.location.href = '/BranchReservation/Index';
+    }
+
+
+    function mouseUp(TableID) {
+        debugger;
+        //var value = {
+        //    "TableID": TableID,
+        //    "X": $('#posX').text(),
+        //    "Y": $('#posY').text()
+        //};
+        //var obji = {
+        //    value: value
+        //}
+        //$.ajax({
+        //    type: "POST",
+        //    cache: false,
+        //    url: "/ReservationMaster/ArrangeTable",
+        //    data: JSON.stringify(obji),
+        //    contentType: "application/json; charset=utf-8",
+        //    dataType: "json",
+        //    success: function (result) {
+        //        $('#posX').html('');
+        //        $('#posY').html('');
+        //    }
+        //});
+    }
+
+    function Arrivedclick(Resid) {
+        ReservationId = Resid;
+        //$("#lblViewBillAmount").html("0.000");
+        //$("#lblViewDiscount").html("0.000");
+        //$("#lblViewDeliveryCharges").html("0.000");
+        //$("#lblViewFinalAmount").html("0.000");
+        //btnViewOrder(rowData.InvoiceNo);
+        //var objReservation = {
+        //    Reservationid: Resid
+        //}
+        //$.ajax({
+        //    type: "Post",
+        //    data: JSON.stringify(objReservation),
+        //    contentType: "application/json; charset=utf-8",
+        //    dataType: "json",
+        //    cache: false,
+        //    url: "/BranchReservation/SetArrived",
+        //    success: function (result) {
+        //        if (result.Message == "Success") {
+        //            //InvoiceListingTable.init();
+        //            BindTableData(selectedslotId);
+        //        }
+        //        else {
+        //            alert("Error");
+        //        }
+        //    }
+        //});
+    }
+
+
+
+    function FillReservation() {
+
+        debugger
+        $.ajax({
+            type: "GET",
+            data: JSON.stringify(),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            cache: false,
+            url: "/BranchReservation/GetReservationStatus",
+            success: function (result) {
+                if (result.dtTableresult != "") {
+                    var ReservationStatus = JSON.parse(result.dtReservationStatus);
+                    $("#ddReservationStatus").html("");
+                    $("#ddReservationStatus").append($("<option></option>").val("0").html("Please Select Reservation Status"));
+                    $.each(ReservationStatus, function (data, value) {
+                        $("#ddReservationStatus").append($("<option></option>").val(value.id).html(value.StatusName));
+                    });
+
+                }
+            }
+        });
+
+    }
+
+    ///// For changing the status
+
+
+
+    function ReservationStatusChange() {
+        debugger;
+        if (parseInt($("#ddReservationStatus option:selected").val()) > 0) {
+            var objdata = {
+                ReservationStatusId: $("#ddReservationStatus option:selected").val(),
+                ReservationId: ReservationId,
+            }
+            $("#ddReservationStatus").val(0)
+            debugger
+            $.ajax({
+                type: "POST",
+                data: JSON.stringify(objdata),
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                cache: false,
+                url: "/BranchReservation/ReservationStatus",
+                success: function (result) {
+                    if (result.Message == "Success") {
+                        $('#btnReservationStatusClose').click();
+                        $("#ddReservationStatus").val(0)
+                        BindTableData(selectedslotId);
+                    }
+                }
+            });
+        }
+        else {
+            $("#alertTitle").html("");
+            $("#alertMessage").html("Please Select Status");
+            $("#alertModal").modal()
+        }
+
+
+    }
+
+
+
+</script>

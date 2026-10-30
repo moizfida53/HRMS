@@ -1,0 +1,129 @@
+    // ------------------------------------------------------- details modal
+    var openInvoice = null;
+
+    function openDrawer(invoiceNo) {          // name kept: pos.context.js calls it
+        openInvoice = invoiceNo;
+
+        $('#pmScrim').addClass('open');
+        $('#posModal').addClass('open').attr('aria-hidden', 'false');
+        $('#pmSummary').empty();
+        $('#pmBody').html('<div class="pos-muted">Loading&hellip;</div>');
+        $('#pmFoot').hide();
+
+        $.getJSON(POS.urls.details, { id: invoiceNo })
+            .done(function (res) {
+                if (!res || res.Message !== 'Success') {
+                    $('#pmBody').html('<div class="text-danger">Could not load this order.</div>');
+                    return;
+                }
+                renderDrawer(res);
+            })
+            .fail(function (xhr) {
+                $('#pmBody').html('<div class="text-danger">Could not load this order ('
+                                + xhr.status + ').</div>');
+            });
+    }
+
+    function closeDrawer() {
+        openInvoice = null;
+        $('#posModal').removeClass('open').attr('aria-hidden', 'true');
+        $('#pmScrim').removeClass('open');
+    }
+
+    function renderDrawer(res) {
+        var h = res.Header || {};
+
+        $('#pmTitle').text('Order Details');
+
+        // ---- summary strip ----
+        var sum = ''
+          + cell('Invoice No',     esc(h.InvoiceNo))
+          + cell('Bill Amount',    money(h.BillAmount))
+          + cell('Delivery Charge', money(h.DeliveryCharges))
+          + cell('Total Discount', money(h.Discount), 'disc')
+          + cell('Final Amount',   money(h.NetPayable), 'final');
+        $('#pmSummary').html(sum);
+
+        // ---- line items ----
+        var rows = (res.Lines || []).filter(function (l) { return !l.Deleted; });
+        var html = '<table class="table table-sm mb-0"><thead><tr>'
+                 + '<th>Item Name</th><th>Price</th><th>Qty</th><th>Discount</th>'
+                 + '<th>Total Price</th><th>Order Time</th><th>Comments</th>'
+                 + '</tr></thead><tbody>';
+
+        if (!rows.length) {
+            html += '<tr><td colspan="7" class="pos-muted">No items on this order.</td></tr>';
+        }
+
+        $.each(rows, function (_, l) {
+            // Choices and extras are indented under their parent item rather
+            // than listed as peers, so the modifiers read as part of the dish.
+            var isSub = l.LineType > 1;
+            html += '<tr' + (isSub ? ' class="sub"' : '') + '>'
+                 +  '<td' + (isSub ? ' style="padding-left:26px;"' : '') + '>'
+                 +      (isSub ? '&#8627; ' : '') + esc(l.ItemName) + '</td>'
+                 +  '<td>' + money(l.Price) + '</td>'
+                 +  '<td>' + esc(l.Quantity) + '</td>'
+                 +  '<td>' + money(l.Discount) + '</td>'
+                 +  '<td>' + money(l.TotalAmount) + '</td>'
+                 +  '<td>' + timeOnly(l.OrderTime) + '</td>'
+                 +  '<td>' + esc(l.Comments || l.Extra || '') + '</td>'
+                 +  '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '<div class="pm-count">Showing 1 to ' + rows.length + ' of ' + rows.length + ' entries</div>';
+
+        // Context the reference screen leaves out but a cashier keeps asking for.
+        html += '<dl class="pos-kv mt-3" style="grid-template-columns:150px 1fr;">'
+             +  kv('Customer', esc(h.CustomerName || '-'))
+             +  kv('Mobile',   h.Mobile ? '<a href="tel:' + esc(h.Mobile) + '">' + esc(h.Mobile) + '</a>' : '-')
+             +  kv('Invoice type', esc(h.InvoiceTypeName || h.OrderTypeName || '-'))
+             +  kv('Status', '<span class="pos-pill" style="background:' + esc(h.StatusColor || '#6c757d') + '">'
+                             + esc(h.OrderStatusName) + '</span>')
+             +  (h.DriverName ? kv('Driver', esc(h.DriverName)) : '')
+             +  kv('Paid', money(h.AmountPaid) + ' of ' + money(h.NetPayable));
+
+        if (h.OrderType === 2) {
+            var addr = [h.AreaName, h.Block ? 'Block ' + h.Block : '', h.Street, h.Building, h.Flat]
+                       .filter(Boolean).join(', ');
+            html += kv('Address', esc(addr || '-'));
+        }
+        html += '</dl>';
+
+        $('#pmBody').html(html);
+
+        // ---- footer buttons ----
+        // Pay is enabled only where it can actually be used: a cash-on-delivery
+        // order that still owes money and is not already closed.
+        var owes    = (h.NetPayable || 0) - (h.AmountPaid || 0) > 0.001;
+        var canPay  = h.IsCOD && owes && !h.IsTerminal && POS.perms && POS.perms.takePayment;
+        var canCncl = !h.IsTerminal && POS.perms && POS.perms.cancel;
+        var canMod  = !h.IsTerminal;
+        var canPick = h.OrderType === 2 && !h.IsTerminal;   // only a delivery can become a pickup
+
+        setBtn('#pmPay',    canPay,  canPay  ? 'Take payment' : 'Not a pending cash-on-delivery order');
+        setBtn('#pmCancel', canCncl, canCncl ? 'Cancel this order' : 'Not available for this order or role');
+        setBtn('#pmModify', canMod,  canMod  ? 'Modify the order' : 'Order is closed');
+        setBtn('#pmPickup', canPick, canPick ? 'Convert to pickup' : 'Only a delivery order can become a pickup');
+        setBtn('#pmPrint',  true,    'Print');
+
+        $('#pmFoot').show();
+    }
+
+    function setBtn(sel, on, title) { $(sel).prop('disabled', !on).attr('title', title); }
+
+    function cell(label, value, cls) {
+        return '<div class="cell ' + (cls || '') + '">'
+             + '<div class="lbl">' + label + '</div>'
+             + '<div class="val">' + value + '</div></div>';
+    }
+
+    function kv(k, v) { return '<dt>' + k + '</dt><dd>' + v + '</dd>'; }
+
+    function timeOnly(v) {
+        var d = parseDate(v);
+        if (!d) return '';
+        var h = d.getHours(), ap = h >= 12 ? 'PM' : 'AM';
+        h = h % 12; if (h === 0) h = 12;
+        return ('0' + h).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ' ' + ap;
+    }

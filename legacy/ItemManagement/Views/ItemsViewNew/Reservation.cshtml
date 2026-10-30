@@ -1,0 +1,146 @@
+﻿@using Jar.Helper   @* Asset.V() - css/js cache-buster, Helper\AssetVersion.cs *@
+<!-- Reservation Content ===========================================================-->
+<div id="divReservation" class="main-content active cart-page" style="display:none; height:100%;">
+    <div class="item-list-title mb-2">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-auto">
+                <a href="#" title="back" class="btn btn-sm back-btn" onclick="BackToSectionList();">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="col-auto">
+                <h2 id="lblReservationHeader">Reservation</h2>
+            </div>
+        </div>
+    </div>
+    <div class="animation">
+        <div class="container-fluid">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h3>Select Table</h3>
+                </div>
+                <div class="card-body p-3 mb-3">
+                    <div class="form-row">
+                        <input id="hdnSelectedtableSeating" type="hidden" value="2" />
+                        <div class="col-4">
+                            <div class="table-outer" onclick="OnTableSelect(this, 2)">
+                                <span class="table-icon">
+                                    <img class="icon" src="~/Images/1-2.png" alt="">
+                                </span>
+                                <span id="lblTableName_1" class="table-text">1-2</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="table-outer" onclick="OnTableSelect(this,4)">
+                                <span class="table-icon">
+                                    <img class="icon" src="~/Images/3-4.png" alt="">
+                                </span>
+                                <span id="lblTableName_2" class="table-text">3-4</span>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="table-outer" onclick="OnTableSelect(this,6)">
+                                <span class="table-icon">
+                                    <img class="icon" src="~/Images/5plus.png" alt="">
+                                </span>
+                                <span id="lblTableName_3" class="table-text">5-6</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row mt-2">
+                        <div class="col-4">
+                            <div class="table-outer" onclick="OnTableSelect(this, 8)">
+                                <span class="table-icon">
+                                    <img class="icon" src="~/Images/1-2.png" alt="">
+                                </span>
+                                <span id="lblTableName_1" class="table-text">7-8</span>
+                            </div>
+                        </div>
+                        @*<div class="col-4">
+                                <div class="table-outer" onclick="OnTableSelect(this,8)">
+                                    <span class="table-icon">
+                                        <img class="icon" src="~/Images/3-4.png" alt="">
+                                    </span>
+                                    <span id="lblTableName_2" class="table-text">7-8</span>
+                                </div>
+                            </div>*@
+                        <div class="col-4">
+                            <div class="table-outer" onclick="OnTableSelect(this,9)">
+                                <span class="table-icon">
+                                    <img class="icon" src="~/Images/5plus.png" alt="">
+                                </span>
+                                <span id="lblTableName_3" class="table-text">Above 8</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="divDatepickerMain" class="card mb-3" style="display:none;">
+                <div class="card-header">
+                    <h3 id="lblScheduleDataAndTime">Schedule Data & Time</h3>
+                </div>
+                <div class="card-body p-3">
+                    <div class="form-group">
+                        <div class="date-pick">
+                            <div id="dtReservation" class="datepicker"></div>
+                        </div>
+                    </div>
+                    <div class="form-group times-select">
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="divAreaAndTimeslot" class="card select-time" style="display:none;">
+                <input id="hdnSelectedDiningArea" type="hidden" value="Inner Area" />
+                <ul class="nav nav-pills nav-fill mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="inner-tab" data-toggle="tab" href="#inner" role="tab" aria-controls="inner" aria-selected="true" onclick="setSelectedArea('Inner Area');">Inner</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="outer-tab" data-toggle="tab" href="#outer" role="tab" aria-controls="outer" aria-selected="false" onclick="setSelectedArea('Out Area');">Outer</a>
+                    </li>
+                </ul>
+                <div class="p-3">
+                    <input id="hdnSelectedSlotId" type="hidden" value="0" />
+                    <div class="tab-content" id="myTabContent">
+                        <div class="tab-pane fade show active" id="inner" role="tabpanel" aria-labelledby="inner-tab">
+                            <div class="available-reservation-times">
+                                <div id="ulAvailableSlotsInner" class="form-group">
+                                    <a href="#" class="times-zone">09:30 PM</a>
+                                    <a href="#" class="times-zone active">10:30 PM</a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- outer ========================== -->
+                        <div class="tab-pane fade" id="outer" role="tabpanel" aria-labelledby="outer-tab">
+                            <div class="available-reservation-times">
+                                <div id="ulAvailableSlotsOuter" class="form-group">
+                                    <a href="#" class="times-zone">09:30 PM</a>
+                                    <a href="#" class="times-zone active">10:30 PM</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @*<div class="reservation-times" style="display:none;">
+                    <h3 class="title">
+                        Other Available Options
+                    </h3>
+                    <div class="form-group">
+                        <a href="#" class="times-zone">09:30 PM</a>
+                        <a href="#" class="times-zone active">10:30 PM</a>
+                    </div>
+                </div>*@
+            <div class="form-group">
+                <a style="display:none;" id="btnReservationConfirm" href="#" class="btn btn-primary w-100 mt-3 mb-5" onclick="onReservationConfirmClick();">
+                    <span id="btnlblReservationConfirm">Confirm</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="@Asset.V("~/MainJs/ItemsViewNew/Reservation.js")"></script>
+<!-- End Reservation Content ===========================================================-->

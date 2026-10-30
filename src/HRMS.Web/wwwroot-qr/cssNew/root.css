@@ -1,0 +1,11 @@
+/* root.css
+   ---------------------------------------------------------------------------
+   Several pages reference <link href="~/cssNew/root.css">, but the file was
+   missing from the project (404 on load). The base :root design tokens for the
+   customer menu are actually supplied by the active brand theme file
+   (e.g. OraBlu.css) plus the DB-driven colours injected inline into the page,
+   so this file is intentionally empty — it only exists so those legacy links
+   resolve. Add global :root fallbacks here if ever needed.
+   --------------------------------------------------------------------------- */
+:root {
+}
