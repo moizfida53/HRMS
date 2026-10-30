@@ -27,5 +27,6 @@ Left out on purpose:
 | Settings (Menu Colors, Tab Theme, Slide Show, labels) | `MenuColors`, `TabTheme`, `SlideShow`, `Items` (parts) | Not yet |
 | POS (Orders, Dine-In, Payment, Print, Users) | `Areas/POS/*` | Not yet |
 | Printer Setup + restaurant hub | `Areas/POS/PrintController`, `PrintAgent/` | Not yet |
-| Customer QR menu (landing page), Checkout, payments | `ItemsViewNew`, `Checkout`, `Payment`, `Hesabe/` | Not yet |
-| Reservations, Feedback, Dashboard, Mobile, WebService.asmx | various | Not yet |
+| Customer QR menu, cart, checkout, payments, order tracking, feedback | `ItemsViewNew`, `ItemsView`, `Payment`, `Hesabe/`, helpers | **Ported** - `/?id=<BrandID>,<BranchID>` |
+| Table reservations | `BranchReservation` | **Ported** (customer booking + admin page) |
+| Feedback report, Dashboard, Mobile, WebService.asmx, Waiter login | various | Not yet |

@@ -269,6 +269,17 @@ app.UseStaticFiles(new StaticFileOptions
 // The old QR Menu project's css/js/images (wwwroot-qr), after wwwroot.
 app.UseQrMenuStaticFiles();
 
+// The customer QR menu: "/?id=<BrandID>,<BranchID>" (e.g. /?id=1,1) opens that brand's
+// menu for that branch - the address printed in the QR codes. "/" alone keeps the launcher.
+app.Use((context, next) =>
+{
+    if (context.Request.Path == "/" && context.Request.Query.ContainsKey("id"))
+    {
+        context.Request.Path = "/ItemsViewNew/Index";
+    }
+    return next(context);
+});
+
 app.UseHrmsLanguage();             // UI culture from the Hrms-Lang cookie; keeps the label cache fresh
 app.UsePageNavigation();           // no record ids in the address bar - Security/PageNavigation.cs
 app.UseRouting();
@@ -276,20 +287,22 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSession();               // QR Menu: one-shot online-payment token (Areas/Items)
 
-// Items Management keeps the old addresses (/Category/...) that its JavaScript calls.
+// Items Management keeps the old addresses (/Category/..., /ItemsViewNew/..., /ItemsView/...)
+// that its JavaScript calls.
 app.MapControllerRoute(
     name: "qrmenu-items",
     pattern: "{controller}/{action=Index}/{id?}",
     defaults: new { area = "Items" },
-    constraints: new { controller = "Category" });
+    constraints: new { controller = "Category|ItemsViewNew|ItemsView|Payment|BranchReservation" });
 
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller}/{action=Index}/{id?}");
 
 // "/" opens the application launcher (/apps) - after sign-in for anonymous visitors.
-// When the customer QR menu is moved over (Phase 4), "/" becomes its landing page.
+// "/?id=<BrandID>,<BranchID>" is the customer QR menu (see above).
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Launcher}/{action=Index}/{id?}");

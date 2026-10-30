@@ -4661,7 +4661,7 @@ $(document).on('click', '.menu-item', function (e) {
 
 
 //////////////////start track order generate map events///////////////////////
-var mapboxUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=__MAPBOX_ACCESS_TOKEN__';
+var mapboxUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=' + (window.QR_MAPBOX_TOKEN || '');   // set by the menu page from appsettings QrMenu:AppSettings:MapboxAccessToken
 var mapboxAttribution = 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
     '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
     'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>';

@@ -1,0 +1,242 @@
+@*<style>
+    .category-list .img-category {
+        height: 125px;
+        object-fit: cover;
+        background-size: 220px;
+        border-radius: 8px;
+    }
+
+    .sub-category .media-body-title {
+        font-weight: 700;
+    }
+    .sub-category .price {
+        font-weight: 700;
+    }
+
+    .sub-category .sub-category-item .card-body {
+        padding: .75rem;
+    }
+
+    .sub-category {
+        background-color: var(--Design_4_MainCategory_Internal_Background_Color);
+        border-radius: 6px;
+        overflow: visible;
+        border: 1px solid rgba(0, 0, 0, .125);
+    }
+
+        .sub-category > .card {
+            border: 0;
+        }
+
+        .sub-category .parent-item .card-body {
+            padding: 0.25rem;
+            margin-top: 10px;
+        }
+
+        .sub-category .card-img {
+            padding: 15px 0 0 15px;
+        }
+
+        .sub-category .parent-item .card-img {
+            padding: 0;
+        }
+
+        .sub-category .parent-item .card-body .btn {
+            font-size: 22px;
+        }
+
+        .sub-category .btn-addtocart {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            padding: 0;
+            border-style: solid;
+            border-radius: 0 !important;
+            border-width: 0 0 50px 50px !important;
+            border-color: transparent transparent var(--primary) transparent !important;
+            background-color: transparent !important;
+            height: 50px;
+            width: 50px;
+        }
+
+        .sub-category .sub-category-item {
+            padding: .75rem;
+        }
+
+    .category-page-bg .card-primary {
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+        .category-page-bg .card-primary.active-item {
+            background-color: var(--primary);
+        }
+
+    .category-page-bg .active-item .card-body h3 {
+        color: #fff;
+    }
+
+    .category-list .active-item .img-category {
+        border-radius: 8px 8px 0 0;
+    }
+
+    .allergen-list li .icon-allergen {
+        height: 21px;
+        width: 21px;
+    }
+</style>*@
+
+@{ var categoryDisplay = "block";}
+<input type="hidden" id="hdnDesignName" value="@ViewBag.DesignTheme" />
+@if (@ViewBag.DesignTheme == "Design3")
+{
+    categoryDisplay = "none";
+}
+else
+{
+    categoryDisplay = "block";
+}
+
+<!-- CategoryList Content ===========================================================-->
+<div id="divCategoryList" class="main-content active @(ViewBag.DesignTheme == "Design5" ? "d5-root" : "category-page-bg")" style="display:@categoryDisplay;">
+@if (ViewBag.DesignTheme == "Design5")
+{
+    @* No brand logo in the top bar: the bar carries ONLY the selected item's name +
+       ingredients. (The logo still shows in the right-hand .d5-side column on
+       >=992px desktops — see Index.cshtml.) *@
+    <div class="d5-topbar">
+        <div class="d5-title">
+            <h1 id="d5ItemName"></h1>
+            <p id="d5ItemDesc"></p>
+        </div>
+    </div>
+    <div class="d5-panel">
+        <div class="d5-arc" id="d5CatArc"></div>
+        <div class="d5-carousel">
+            <div class="d5-halo"></div>
+            <div class="d5-track" id="d5Track"></div>
+            <div class="d5-meta"><div class="d5-pr" id="d5ItemPrice"></div></div>
+            <div class="d5-dots" id="d5Dots"></div>
+        </div>
+    </div>
+}
+
+    @if (@ViewBag.DesignTheme != "Design3")
+    {
+        @* Unified header: no fixed banner band. The area is transparent so the page
+           background (.category-page-bg) shows through, with the brand logo / animated
+           GIF centred. Upload a (transparent) logo via /MenuColors to swap per brand. *@
+        if (string.IsNullOrEmpty(ViewBag.BannerImage))
+        {
+            <div class="brand-logo-banner d-block d-lg-none"></div>
+        }
+        else
+        {
+            <div class="brand-logo-banner d-block d-lg-none">
+                <img src="../images/@ViewBag.BannerImage" alt="logo" class="brand-logo-img" />
+            </div>
+        }
+    }
+    @if ((@ViewBag.DesignTheme == "Design3") && @ViewBag.LoginUser != "Waiter")
+    {
+        <div id="divBranchnameandBackToSection" class="item-list-title">
+            <div class="d-flex align-items-start">
+                <a href="#" title="back" class="btn btn-sm back-btn" onclick="BackToSectionList()">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+                <h2 id="divBranchName" class="pl-2 pr-2"></h2>
+            </div>
+        </div>
+    }
+    @if (@ViewBag.DesignTheme == "Design2" && @ViewBag.LoginUser != "Waiter")
+    {
+        <div id="divBranchnameandBackToSection" class="item-list-title" style="display:none;">
+            <div class="d-flex align-items-start">
+                <a href="#" title="back" class="btn btn-sm back-btn" onclick="BackToSectionList()">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+                <h2 id="divBranchName" class="pl-2 pr-2"></h2>
+            </div>
+        </div>
+    }
+    <div class="animation">
+        <div class="container-fluid">
+
+            @if (@ViewBag.DesignTheme == "Design1" && @ViewBag.LoginUser != "Waiter")
+            {
+                @*<div class="category-carousel">
+                        <div class="owl-carousel" id="divCreateCategorySlider">
+
+                        </div>
+                    </div>*@
+                <div class="category-list mt-3 owl-carousel" id="divCreateCategorySlider">
+
+                </div>
+                <div class="sub-category">
+                    <div class="accordion category-accordion" id="subCategoryItems">
+                    </div>
+                </div>
+            }
+
+            else if (@ViewBag.DesignTheme == "Design4" && @ViewBag.LoginUser != "Waiter")
+            {
+                @*<h3 class="category-name">Category list</h3>*@
+                <div class="accordion category-accordion" id="categoryAccordion" style="width:100%;margin-top:10px;">
+
+                </div>
+            }
+            else
+            {
+                <div class="form-row responsive-category-grid" id="categoryList">
+                </div>
+            }
+        </div>
+    </div>
+</div>
+<!-- End CategoryList Content ===========================================================-->
+
+@* "IsSubCategory" only governs the admin Add/Edit-Category option, NOT the customer
+   menu. The customer menu is always sub-category-aware: per-category IsHaveSubCategory
+   decides nesting and only Design4 renders an accordion. So this is hard-set to true,
+   decoupled from the AppSetting (which previously broke Design1 when set to false). *@
+<input type="hidden" id="hdnIsSubCategoryProject" value="true" />
+<!-- SubCategoryList Content ===========================================================-->
+<div id="divSubCategoryList" class="main-content active category-page-bg" style="display:none;">
+    @if ((@ViewBag.DesignTheme == "Design3") && @ViewBag.LoginUser != "Waiter")
+    {
+        <div id="divMainCategoryNameandBackToSection" class="item-list-title">
+            <div class="d-flex align-items-start">
+                <a href="#" title="back" class="btn btn-sm back-btn" onclick="BackToCategoryList()">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+                <h2 id="divMainCategoryName" class="pl-2 pr-2"></h2>
+            </div>
+        </div>
+    }
+    <div class="animation">
+        <div class="container-fluid">
+            <div class="form-row" id="SubcategoryList">
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End SubCategoryList Content ===========================================================-->
+<!-- Item List Content ===========================================================-->
+<div id="divMainItemList" class="main-content active item-list " style="display:none;">
+    <div class="item-list-title">
+        <div class="d-flex align-items-start">
+            <a href="#" title="back" class="btn btn-sm back-btn" onclick="BackToCategoryList()">
+                <i class="fa fa-arrow-left" aria-hidden="true"></i>
+            </a>
+            <h2 id="divCatename" class="pl-2 pr-2"></h2>
+        </div>
+    </div>
+    <div class="animation">
+        <div class="container-fluid">
+            <div class="form-row" id="itemlist">
+
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Item List Content ===========================================================-->

@@ -1,0 +1,50 @@
+@{
+    //ViewBag.Title = "Reservation";
+    Layout = "";
+}
+
+<!-- Reservation Customer Information Content ===========================================================-->
+<div id="divReservationCustomerInfo" class="main-content active cart-page" style="display:none;">
+    <div class="item-list-title mb-2">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-auto">
+                <a href="#" title="back" class="btn btn-sm back-btn" onclick="ShowDivReservation();">
+                    <i class="fa fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </div>
+            <div class="col-auto">
+                <h2 id="lblReservationCustomerInfoHeader">Reservation</h2>
+            </div>
+        </div>
+    </div>
+    <div class="animation">
+        <div class="container-fluid">
+            <form>
+                <div class="form-group guests-select">
+                    <label id="lblCustomerFullName">Full name</label>
+                    <input id="txtCustomerName" type="text" class="form-control" value="" name="">
+                </div>
+                <div class="form-group guests-select">
+                    <label id="lblCustomerPhoneNumber">Phone number</label>
+                    <input id="txtCustomerMobile" type="text" class="form-control onlyNumeric" value="" name="">
+                </div>
+                <div class="form-group guests-select">
+                    <label id="lblCustomerEmail">Email</label>
+                    <input id="txtCustomerEmail" type="email" class="form-control" value="" name="">
+                </div>
+                <div class="form-group guests-select">
+                    <label id="lblSpecialRequest">Special request</label>
+                    <input id="txtComments" type="text" class="form-control" value="" name="">
+                </div>
+
+                <div class="form-group">
+                    <a href="#" class="btn btn-primary w-100 mt-4" onclick="onReservationiSubmitclick();">
+                        <span id="btnlblReservationSubmit">SUBMIT</span>
+                    </a>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+<!-- End Reservation Customer Information Content ===========================================================-->

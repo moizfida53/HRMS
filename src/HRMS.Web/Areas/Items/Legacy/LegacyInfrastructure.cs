@@ -72,6 +72,9 @@ public abstract class LegacyController : Controller
     /// <summary>MVC 4's Server.MapPath, rooted at wwwroot-qr.</summary>
     protected LegacyServer Server => new(HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
 
+    /// <summary>MVC 4's Session["x"] (strings and simple values), on ASP.NET Core session.</summary>
+    protected LegacySession Session => new(HttpContext.Session);
+
     /// <summary>The signed-in QR Menu user, in the shape of the old eCommerceCook cookie; null when not signed in.</summary>
     protected QrCookie? QrCookie => QrCookie.For(HttpContext);
 
@@ -88,18 +91,26 @@ public static class LegacyCsp
 {
     public static void Apply(HttpContext http)
     {
+        // The old pages had no CSP at all and load from CDNs (unpkg, jsDelivr, Google
+        // libraries, the Tap/goSell payment library), map tile and geocoding services
+        // and the call-centre API. This keeps them working while still blocking
+        // plugins, framing by other sites and form posts elsewhere.
         http.Response.Headers["Content-Security-Policy"] = string.Join("; ",
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.datatables.net",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.datatables.net",
-            "font-src 'self' https://fonts.gstatic.com data:",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+            "style-src 'self' 'unsafe-inline' https:",
+            "font-src 'self' data: https:",
             "img-src 'self' data: blob: https:",
-            "media-src 'self' blob:",
-            "connect-src 'self'",
-            "form-action 'self'",
-            "frame-ancestors 'none'",
+            "media-src 'self' blob: https:",
+            "connect-src 'self' https:",
+            "frame-src 'self' https:",
+            "worker-src 'self'",
+            "form-action 'self' https:",
+            "frame-ancestors 'self'",
             "base-uri 'self'",
             "object-src 'none'");
+        // the admin previews the menu inside a frame on its own site
+        http.Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
     }
 }
 
@@ -124,6 +135,46 @@ public sealed class LegacyServer
         if (!full.StartsWith(Path.GetFullPath(root), StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Path is outside the QR Menu folder.");
         return full;
+    }
+}
+
+/// <summary>MVC 4 session: values stored as JSON strings.</summary>
+public sealed class LegacySession
+{
+    private readonly ISession _session;
+    public LegacySession(ISession session) => _session = session;
+
+    public object? this[string key]
+    {
+        get
+        {
+            var text = _session.GetString(key);
+            if (text is null) return null;
+            try { return JsonConvert.DeserializeObject(text); } catch (JsonException) { return text; }
+        }
+        set
+        {
+            if (value is null) _session.Remove(key);
+            else _session.SetString(key, JsonConvert.SerializeObject(value));
+        }
+    }
+
+    public void Remove(string key) => _session.Remove(key);
+}
+
+/// <summary>What the old code read from Request.Browser, from the User-Agent.</summary>
+public sealed record LegacyBrowser(string Browser, string MobileDeviceManufacturer, string MobileDeviceModel)
+{
+    public static LegacyBrowser From(HttpRequest request)
+    {
+        var ua = request.Headers.UserAgent.ToString();
+        bool Has(string s) => ua.Contains(s, StringComparison.OrdinalIgnoreCase);
+        var browser = Has("Edg/") ? "Edge" : Has("OPR/") ? "Opera" : Has("Firefox/") ? "Firefox"
+                    : Has("Chrome/") ? "Chrome" : Has("Safari/") ? "Safari" : "Unknown";
+        // the visit reports treat "Linux" as a phone and blank as a computer, as the old browser caps did
+        var (maker, model) = Has("iPhone") ? ("Apple", "IPhone") : Has("iPad") ? ("Apple", "IPad")
+                           : Has("Android") ? ("Unknown", "Linux") : ("Unknown", "");
+        return new LegacyBrowser(browser, maker, model);
     }
 }
 
@@ -315,18 +366,31 @@ public static class Asset
     private static IWebHostEnvironment? _env;
     public static void Initialize(IWebHostEnvironment env) => _env = env;
 
-    public static string V(string path)
+    public static string V(string path) => V(path, null);
+
+    /// <summary>As V(path), plus a token that changes when e.g. a brand theme is saved.</summary>
+    public static string V(string path, object? extra)
     {
-        if (string.IsNullOrEmpty(path)) return path;
-        var q = path.IndexOf('?');
-        var clean = q >= 0 ? path[..q] : path;
-        var url = clean.StartsWith("~/") ? clean[1..] : clean;
-        if (_env is null) return url;
-        var rel = url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-        var candidates = new[] { Path.Combine(QrStatic.Root(_env), rel), Path.Combine(_env.WebRootPath ?? "", rel) };
-        foreach (var file in candidates)
-            if (File.Exists(file))
-                return url + "?v=" + File.GetLastWriteTimeUtc(file).Ticks.ToString("x", CultureInfo.InvariantCulture);
+        if (string.IsNullOrEmpty(path) || !path.StartsWith("~/", StringComparison.Ordinal)) return path;
+        var url = path[1..];                                   // "~/x" -> "/x", query kept
+        var q = url.IndexOf('?');
+        var file = q >= 0 ? url[..q] : url;
+        var sep = q >= 0 ? "&" : "?";
+
+        if (_env is not null)
+        {
+            var rel = file.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            foreach (var candidate in new[] { Path.Combine(QrStatic.Root(_env), rel), Path.Combine(_env.WebRootPath ?? "", rel) })
+            {
+                if (!File.Exists(candidate)) continue;
+                url += sep + "v=" + File.GetLastWriteTimeUtc(candidate).Ticks.ToString("x", CultureInfo.InvariantCulture);
+                sep = "&";
+                break;
+            }
+        }
+
+        var ex = extra is null ? null : Convert.ToString(extra, CultureInfo.InvariantCulture)?.Trim();
+        if (!string.IsNullOrEmpty(ex) && ex != "0") url += sep + "t=" + Uri.EscapeDataString(ex);
         return url;
     }
 }
@@ -338,6 +402,16 @@ public static class QrMenuLegacyRegistration
     {
         ConfigurationManager.Initialize(configuration);
         services.Configure<MvcOptions>(o => o.ValueProviderFactories.Insert(0, new LegacyJsonBodyValueProviderFactory()));
+        // The customer menu keeps a one-shot payment token in session (StartOnlinePayment).
+        services.AddDistributedMemoryCache();
+        services.AddSession(o =>
+        {
+            o.Cookie.Name = "QrMenu.Session";
+            o.Cookie.HttpOnly = true;
+            o.Cookie.IsEssential = true;
+            o.Cookie.SameSite = SameSiteMode.Lax;
+            o.IdleTimeout = TimeSpan.FromMinutes(30);
+        });
         // The old upload screens send images and videos up to 50 MB.
         services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o => o.MultipartBodyLengthLimit = 52_428_800);
         return services;

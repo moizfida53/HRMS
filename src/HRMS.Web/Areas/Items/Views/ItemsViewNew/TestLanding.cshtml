@@ -1,0 +1,310 @@
+@{
+    //ViewBag.Title = "Index";
+    Layout = "";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+
+    @*<base href="../../../">*@
+    <meta charset="utf-8" />
+    <title>TMM</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="theme-color" content="var(--primary);">
+
+    <!--begin::Fonts-->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,400i,600,700,800" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/bootstrap-select.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/datepicker.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/owl.carousel.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/root.css">
+    <link rel="stylesheet" type="text/css" href="~/cssNew/style.css" />
+
+    <script type="text/javascript" src="~/js/jquery.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="~/js/jquery.nicescroll.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-select.min.js"></script>
+    <script type="text/javascript" src="~/js/bootstrap-datepicker.js"></script>
+    <script type="text/javascript" src="~/js/owl.carousel.min.js"></script>
+    <script type="text/javascript" src="~/js/menu.js"></script>
+    <script type="text/javascript" src="~/js/general.js"></script>
+
+    <!--end::Fonts-->
+    <!--begin::Page Custom Styles(used by this page)-->
+    @*<link href="../assets/css/pages/wizard/wizard-4-Black.css?v=7.0.5" rel="stylesheet" type="text/css" />*@
+    <!--end::Page Custom Styles-->
+    <!--begin::Global Theme Styles(used by all pages)-->
+    @*<link href="../assets/plugins/global/plugins.bundle.css?v=7.0.5" rel="stylesheet" type="text/css" />
+        <link href="../assets/plugins/custom/prismjs/prismjs.bundle.css?v=7.0.5" rel="stylesheet" type="text/css" />
+        <link href="../assets/css/style.bundle.css?v=7.0.5" rel="stylesheet" type="text/css" />*@
+    <!--end::Global Theme Styles-->
+    <!--begin::Layout Themes(used by all pages)-->
+    <!--end::Layout Themes-->
+    @*<link rel="shortcut icon" href="../assets/media/logos/favicon.ico" />*@
+
+    @*<script src="../../Scripts/jquery-1.11.1.min.js"></script>
+        <link href="../../Content/ItemView/CartMenuNew.css" rel="stylesheet" />
+        <link defer="" href="../../Content/ItemView/ItemViewNew.css" rel="stylesheet">*@
+
+    @*<link href="../../Content/ItemView/TrackingOrder.css" rel="stylesheet" />*@
+
+    @*<link href="../../css/KMLoader.css" rel="stylesheet" />
+        <script src="../../MainJs/KMLoader.js"></script>*@
+    @*<link href="../../css/loader-Montserrat.css" rel="stylesheet" />*@
+    @*<link href="~/assets/css/eCommerce.css" rel="stylesheet" />*@
+    <style>
+        .img-Category {
+            background-size: 250px;
+            height: 167px;
+            object-fit: cover;
+        }
+
+        .img-Item {
+            background-size: 251px;
+            height: 167px;
+            object-fit: cover;
+        }
+
+        #lblItemInfoQty {
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <input type="hidden" id="hdnbrandId" value="@ViewBag.BrandId" />
+    <input type="hidden" id="hdnBranchId" value="@ViewBag.Branchid" />
+    <input type="hidden" id="hdnisCartSelected" value="0" />
+    <input type="hidden" id="hdnToFormRedirect" value="@ViewBag.ToformRedirect" />
+    <input type="hidden" id="hdnIpAddress" value="" />
+
+
+    @*@{ var iscart = ViewBag.IsCartVisible == true ? "true" : "false";}*@
+    @{ var iscart = @Convert.ToBoolean(HRMS.Web.Areas.Items.Legacy.ConfigurationManager.AppSettings["IsCartVisible"]) == true ? "true" : "false";}
+
+    <input type="hidden" id="hdnIsCartVisible" value="@iscart" />
+
+    @if (HRMS.Web.Areas.Items.Legacy.ConfigurationManager.AppSettings["DesignTheme"] == "Design3")
+    {
+        <div id="divlandingpage" class="container-fluid p-0 h-100 loading-page">
+            <div class="desktop-background-images">
+                <!-- Start Header -->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/Header.cshtml");
+                }
+                <!-- End Header ======================================-->
+
+                <div id="divSectionMenu" class="menu-btn-block">
+                    <div class="menu-btn-inner">
+                        <input type="hidden" id="hdndefaultOneBrandId" value="0" />
+                        <input type="hidden" id="hdndefaultOneBranchId" value="0" />
+
+                        <a id="btnSectionBranchMenu" onclick="btnSectionBranchMenuclick();" class="branch-menu" role="button" data-toggle="modal" data-target="#branch-menu">
+                            <span id="lblSectionMenuButton">Menu</span>
+                        </a>
+                        AAAAA33333333333333333
+                        @if ((bool)ViewBag.isReservation)
+                        {
+                            <a id="btnMenuReservation" onclick="btnSectionReservationclick();" class="branch-menu" role="button" data-toggle="modal" data-target="#branch-menu">
+                                <span id="lblReservationButton">Reservation</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <div id="divleftsideMenuListView" class="container-fluid p-0 h-100">
+        <div class="row no-gutters h-100">
+            <div class="col-auto wrapper">
+                <!-- Start Header -->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/Header.cshtml");
+                }
+                <!-- End Header ======================================-->
+                <!-- Main Content ===========================================================-->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/MenuList.cshtml");
+                }
+                <!-- End Main Content ===========================================================-->
+                <!-- Item Details Content ===========================================================-->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/ItemDetailsView.cshtml");
+                }
+                <!-- End Item Details Content ===========================================================-->
+                <!-- Cart View Content ===========================================================-->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/CartView.cshtml");
+                }
+                <!-- End Cart View Content ===========================================================-->
+                <!-- GenerateQr Content ===========================================================-->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/GenerateQR.cshtml");
+                }
+                <!-- End GenerateQr Content ===========================================================-->
+                <!-- Reservation Content ===========================================================-->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/Reservation.cshtml");
+                }
+                <!-- End Reservation Content ===========================================================-->
+                <!-- Reservation CustomerInfo Content ===========================================================-->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/ReservationCustomerInfo.cshtml");
+                }
+                <!-- End Reservation CustomerInfo Content ===========================================================-->
+                <!-- ReservationConfirm Content ===========================================================-->
+                @{
+                    await Html.RenderPartialAsync("~/Areas/Items/Views/ItemsViewNew/ReservationConfirm.cshtml");
+                }
+                <!-- End ReservationConfirm Content ===========================================================-->
+            </div>
+            <div class="col desktop-background-images">
+                @*background-image:url('https://dm.tmm-menu.com/RightBackgroud.png')*@
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Modal -->
+    <div class="modal fade branch-menu-modal" id="branch-menu" tabindex="-1" aria-labelledby="exampleModalLabel">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body" id="divMainSectionBranchList">
+                    @*<div class="card mb-4">
+                            <div class="card-header">
+                                Ahmadi Governorate
+                            </div>
+                            <div class="card-body">
+                                <a class="branches" href="CategoryList.html" title="">Elit pariatur commodo minim </a>
+                                <a class="branches" href="#" title="">laboris non nostrud </a>
+                                <a class="branches" href="#" title="">ullamco id proident do irure</a>
+                                <a class="branches" href="#" title="">sint ex ut dolor</a>
+                                <a class="branches" href="#" title="">anim ut occaecat</a>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                Ahmadi Governorate
+                            </div>
+                            <div class="card-body">
+                                <a class="branches" href="#" title="">Elit pariatur commodo minim </a>
+                                <a class="branches" href="#" title="">laboris non nostrud </a>
+                                <a class="branches" href="#" title="">ullamco id proident do irure</a>
+                                <a class="branches" href="#" title="">sint ex ut dolor</a>
+                                <a class="branches" href="#" title="">anim ut occaecat</a>
+                            </div>
+                        </div>*@
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button id="btnSectionDivClose" type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Modal -->
+    <div class="modal fade branch-menu-modal" id="reservationModel" tabindex="-1" aria-labelledby="exampleModalLabel">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body" id="divMainReservationBranchList">
+                    @*<div class="card mb-4">
+                            <div class="card-header">
+                                Ahmadi Governorate
+                            </div>
+                            <div class="card-body">
+                                <a class="branches" href="CategoryList.html" title="">Elit pariatur commodo minim </a>
+                                <a class="branches" href="#" title="">laboris non nostrud </a>
+                                <a class="branches" href="#" title="">ullamco id proident do irure</a>
+                                <a class="branches" href="#" title="">sint ex ut dolor</a>
+                                <a class="branches" href="#" title="">anim ut occaecat</a>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                Ahmadi Governorate
+                            </div>
+                            <div class="card-body">
+                                <a class="branches" href="#" title="">Elit pariatur commodo minim </a>
+                                <a class="branches" href="#" title="">laboris non nostrud </a>
+                                <a class="branches" href="#" title="">ullamco id proident do irure</a>
+                                <a class="branches" href="#" title="">sint ex ut dolor</a>
+                                <a class="branches" href="#" title="">anim ut occaecat</a>
+                            </div>
+                        </div>*@
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button id="btnSectionDivClose" type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!--Alert Modal -->
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alertTitle"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div id="alertMessage" class="modal-body">
+
+                </div>
+                <div class="modal-footer">
+                    <button id="btnlblalertColse" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    @*<button type="button" class="btn btn-primary">Save changes</button>*@
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-block" style="display:none;">
+        <div id="container">
+            <div class="divider" aria-hidden="true"></div>
+            <p class="loading-text" aria-label="Loading">
+                <span class="letter" aria-hidden="true">L</span>
+                <span class="letter" aria-hidden="true">o</span>
+                <span class="letter" aria-hidden="true">a</span>
+                <span class="letter" aria-hidden="true">d</span>
+                <span class="letter" aria-hidden="true">i</span>
+                <span class="letter" aria-hidden="true">n</span>
+                <span class="letter" aria-hidden="true">g</span>
+            </p>
+        </div>
+    </div>
+
+
+    <!--end::Header Mobile-->
+    <input type="hidden" id="vallblFistName" value="فاتورة المبلغ" />
+
+    <script src="../../MainJs/ItemsViewNew/Index.js"></script>
+    <script src="../../MainJs/ItemsViewNew/BindCartDetails.js"></script>
+    @*<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>*@
+
+    <!--begin::Global Config(global config for global JS scripts)-->
+    <script>var KTAppSettings = { "breakpoints": { "sm": 576, "md": 768, "lg": 992, "xl": 1200, "xxl": 1200 }, "colors": { "theme": { "base": { "white": "#ffffff", "primary": "#6993FF", "secondary": "#E5EAEE", "success": "#1BC5BD", "info": "#8950FC", "warning": "#FFA800", "danger": "#F64E60", "light": "#F3F6F9", "dark": "#212121" }, "light": { "white": "#ffffff", "primary": "#E1E9FF", "secondary": "#ECF0F3", "success": "#C9F7F5", "info": "#EEE5FF", "warning": "#FFF4DE", "danger": "#FFE2E5", "light": "#F3F6F9", "dark": "#D6D6E0" }, "inverse": { "white": "#ffffff", "primary": "#ffffff", "secondary": "#212121", "success": "#ffffff", "info": "#ffffff", "warning": "#ffffff", "danger": "#ffffff", "light": "#464E5F", "dark": "#ffffff" } }, "gray": { "gray-100": "#F3F6F9", "gray-200": "#ECF0F3", "gray-300": "#E5EAEE", "gray-400": "#D6D6E0", "gray-500": "#B5B5C3", "gray-600": "#80808F", "gray-700": "#464E5F", "gray-800": "#1B283F", "gray-900": "#212121" } }, "font-family": "Poppins" };</script>
+    <!--end::Global Config-->
+    <!--begin::Global Theme Bundle(used by all pages)-->
+    @*<script src="../assets/plugins/global/plugins.bundle.js?v=7.0.5"></script>
+        <script src="../assets/plugins/custom/prismjs/prismjs.bundle.js?v=7.0.5"></script>
+        <script src="../assets/js/scripts.bundle.js?v=7.0.5"></script>*@
+    <!--end::Global Theme Bundle-->
+
+
+    <link href="../Content/jquery-confirm/jquery-confirm.css" rel="stylesheet" />
+    <script src="../Content/jquery-confirm/jquery-confirm.js"></script>
+    <script src="../Content/jquery-confirm/Jquery-confirm-custom.js"></script>
+
+    <!--begin::Page Scripts(used by this page)-->
+    @*<script src="../assets/js/pages/custom/wizard/wizard-4.js?v=7.0.5"></script>*@
+    <!--end::Page Scripts-->
+    @*<script src="../MainJs/KMLoader.js"></script>*@
+    <script src="../MainJs/ItemsViewNew/QrCode.js"></script>
+</body>
+</html>
