@@ -43,6 +43,25 @@
     <script>$.ajaxSetup({ headers: { 'RequestVerificationToken': '@Xsrf.GetAndStoreTokens(Context).RequestToken' } });</script>
     @*<script src="~/Scripts/jquery.nicescroll.min.js"></script>*@
     <!--end::Global Theme Bundle-->
+    @* TMM white theme over the Metronic header (white bar, teal top line, teal tabs) *@
+    <style>
+        #kt_header .header-top, #kt_header_mobile.header-mobile { background: #fff !important; border-top: 3px solid #0D827A; border-bottom: 1px solid #DCE1E0; box-shadow: 0 4px 14px rgba(33,35,34,.05); }
+        #kt_header .header-top .text-white, #kt_header .header-top .symbol-label { color: #212322 !important; }
+        #kt_header .header-top .bg-white-o-30 { background: #E6F3F2 !important; color: #0A6B63 !important; }
+        #kt_header .header-tabs .nav-link { color: #4A5250 !important; font-weight: 600; }
+        #kt_header .header-tabs .nav-link.active, #kt_header .header-tabs .nav-link:hover { background: #E6F3F2 !important; color: #0A6B63 !important; }
+        #kt_header .header-bottom { background: radial-gradient(rgba(13,130,122,.07) 1px, transparent 1.2px) 0 0 / 20px 20px, #fff; }
+        .tmm-nt-brand { display: inline-flex; align-items: center; gap: 10px; color: #212322 !important; text-decoration: none !important; font-size: 18px; font-weight: 700; letter-spacing: 3px; }
+        .tmm-nt-brand img { width: 34px; height: 34px; }
+        .tmm-nt-apps { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 13px; border-radius: 8px; background: #0D827A; color: #fff !important; font-weight: 600; font-size: 13px; text-decoration: none !important; }
+        .tmm-nt-apps:hover { background: #0A6B63; }
+        .tmm-nt-apps svg { width: 15px; height: 15px; }
+        .btn-primary { background-color: #0D827A !important; border-color: #0D827A !important; }
+        .btn-primary:hover { background-color: #0A6B63 !important; border-color: #0A6B63 !important; }
+        .text-primary { color: #0A6B63 !important; }
+        .bg-primary { background-color: #0D827A !important; }
+        #kt_header_mobile .burger-icon span, #kt_header_mobile .burger-icon span::before, #kt_header_mobile .burger-icon span::after { background-color: #212322 !important; }
+    </style>
 </head>
 <body id="kt_body" class="header-fixed header-mobile-fixed page-loading">
     @{
@@ -73,7 +92,7 @@
         <!--begin::Logo-->
         <a href="#">
             @*<img alt="Logo" src="~/assets/media/logos/logo-letter-9.png" class="max-h-30px" />*@
-            <img alt="Logo" src="~/Images/TMM_Logo.png" class="max-h-30px" />
+            <img alt="TMM" src="/Areas/POS/Content/tmm-logo-dark.svg" style="height:30px" />
         </a>
         <!--end::Logo-->
         <!--begin::Toolbar-->
@@ -112,9 +131,9 @@
                             <!--begin::Left-->
                             <div class="d-none d-lg-flex align-items-center mr-3">
                                 <!--begin::Logo-->
-                                <a href="#" class="mr-20">
-                                    @*<img alt="Logo" src="~/assets/media/logos/logo-letter-9.png" class="max-h-35px" />*@
-                                    <img alt="Logo" src="~/Images/TMM_LogoCrop.png" class="max-h-50px" />
+                                <a href="/apps" class="mr-20 tmm-nt-brand" title="All apps">
+                                    <img alt="TMM" src="/Areas/POS/Content/tmm-logo-dark.svg" />
+                                    <span>TMM</span>
                                 </a>
                                 <!--end::Logo-->
                                 <!--begin::Tab Navs(for desktop mode)-->

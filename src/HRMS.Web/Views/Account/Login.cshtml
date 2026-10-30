@@ -3,78 +3,84 @@
     ViewData["Title"] = "Sign in";
     Layout = "_AuthLayout";
 }
+@*
+    TMM sign-in: one sign-in for HR, Payroll and POS (white theme, TMM teal accent).
+    Text written in English here goes through L.Tr(), so its Arabic comes from
+    Core.UiLabels (db/qrmenu-merge/03_Labels_TMM.sql).
+*@
 
 <main class="hrms-auth">
 
     @* ------------------------------------------------------------- hero *@
     <section class="hrms-auth__hero" aria-hidden="true">
-        <div class="hrms-auth__hero-pattern"></div>
+        <div class="hrms-auth__glow"></div>
+        <img class="hrms-auth__watermark" src="~/img/tmm-logo-dark.svg" alt="" />
+
+        <div class="hrms-auth__hero-brand">
+            <img src="~/img/tmm-logo-dark.svg" alt="" />
+            <span>
+                <strong>TMM</strong>
+                <small>@L.Tr("Business Suite")</small>
+            </span>
+        </div>
 
         <div class="hrms-auth__hero-body">
-            <span class="hrms-auth__badge">
-                @Html.Icon("shield", 14)
-                @L["auth.built_for_kuwait_labour_law_compliance"]
-            </span>
+            <span class="hrms-auth__badge"><i></i>@L.Tr("HR · Payroll · POS")</span>
 
-            <h2 class="hrms-auth__hero-title">@L["auth.hr_payroll_run_with_total_confidence"]</h2>
+            <h2 class="hrms-auth__hero-title">
+                @L.Tr("Your people and your restaurants,") <em>@L.Tr("one sign-in.")</em>
+            </h2>
 
             <p class="hrms-auth__hero-lede">
-                @L["auth.one_workspace_for_employee_records_attendance_le"]
+                @L.Tr("Run payroll, track leave and documents, and take Dine-In and online orders from the same place, built for Kuwait.")
             </p>
 
-            <ul class="hrms-auth__features">
+            <ul class="hrms-auth__products">
                 <li>
-                    <span class="hrms-auth__feature-icon">@Html.Icon("card", 18)</span>
-                    <span>
-                        <strong>@L["auth.wps_ready_payroll"]</strong>
-                        @L["auth.generate_compliant_wages_protection_system_bank"]
-                    </span>
+                    <span class="hrms-auth__product-icon">@Html.Icon("users", 22)</span>
+                    <span><strong>@L.Tr("HR")</strong>@L.Tr("Employees, leave, documents, assets and Kuwait compliance.")</span>
                 </li>
                 <li>
-                    <span class="hrms-auth__feature-icon">@Html.Icon("calendar", 18)</span>
-                    <span>
-                        <strong>@L["auth.civil_id_passport_residency_tracking"]</strong>
-                        @L["auth.automated_expiry_alerts_before_documents_lapse"]
-                    </span>
+                    <span class="hrms-auth__product-icon">@Html.Icon("card", 22)</span>
+                    <span><strong>@L.Tr("Payroll")</strong>@L.Tr("Monthly runs, payslips, bank files and final settlement.")</span>
                 </li>
                 <li>
-                    <span class="hrms-auth__feature-icon">@Html.Icon("exit", 18)</span>
-                    <span>
-                        <strong>@L["auth.end_of_service_calculated_automatically"]</strong>
-                        @L["auth.indemnity_and_final_settlement_per_kuwait_labour"]
-                    </span>
+                    <span class="hrms-auth__product-icon">@Html.Icon("receipt", 22)</span>
+                    <span><strong>@L.Tr("POS")</strong>@L.Tr("QR menu, Dine-In tables, online orders and kitchen printing.")</span>
                 </li>
             </ul>
         </div>
 
         <p class="hrms-auth__hero-footer">
-            @L["auth.copyright", DateTime.UtcNow.Year]
+            <span>@L["auth.copyright", DateTime.UtcNow.Year]</span>
+            <span>@L.Tr("Secure sign-in · Data stays in your company")</span>
         </p>
     </section>
 
     @* ------------------------------------------------------------- form *@
     <section class="hrms-auth__panel">
+
+        @* Language toggle - before sign-in the choice lives in the Hrms-Lang cookie only. *@
+        <form method="post" asp-controller="Account" asp-action="SetLanguage" class="hrms-lang-toggle hrms-auth__lang">
+            <input type="hidden" name="lang" value="@(L.IsArabic ? "en" : "ar")" />
+            <input type="hidden" name="returnUrl" value="@(Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString)" />
+            <button type="submit" class="hrms-lang-toggle__btn" title="@L["layout.switch_language"]" lang="@(L.IsArabic ? "en" : "ar")">
+                @Html.Icon("globe", 16)<span class="hrms-lang-toggle__text--long">@(L.IsArabic ? "English" : "العربية")</span><span class="hrms-lang-toggle__text--short" aria-hidden="true">@(L.IsArabic ? "EN" : "ع")</span>
+            </button>
+        </form>
+
         <div class="hrms-auth__form-wrap">
 
-            @* Language toggle - before sign-in the choice lives in the Hrms-Lang cookie only. *@
-            <form method="post" asp-controller="Account" asp-action="SetLanguage" class="hrms-lang-toggle hrms-auth__lang">
-                <input type="hidden" name="lang" value="@(L.IsArabic ? "en" : "ar")" />
-                <input type="hidden" name="returnUrl" value="@(Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString)" />
-                <button type="submit" class="hrms-lang-toggle__btn" title="@L["layout.switch_language"]" lang="@(L.IsArabic ? "en" : "ar")">
-                    @Html.Icon("globe", 16)<span class="hrms-lang-toggle__text--long">@(L.IsArabic ? "English" : "العربية")</span><span class="hrms-lang-toggle__text--short" aria-hidden="true">@(L.IsArabic ? "EN" : "ع")</span>
-                </button>
-            </form>
-
             <div class="hrms-auth__brand">
-                <span class="hrms-auth__logo" aria-hidden="true">HR</span>
+                <img class="hrms-auth__logo" src="~/img/tmm-logo-dark.svg" alt="TMM" />
                 <span class="hrms-auth__brand-text">
-                    <strong>@L["common.hr_payroll"]</strong>
-                    <span>@L["common.kuwait_edition"]</span>
+                    <strong>TMM</strong>
+                    <span>@L.Tr("HR · Payroll · POS")</span>
                 </span>
             </div>
 
-            <h1 class="hrms-auth__title">@L["auth.sign_in"]</h1>
-            <p class="hrms-auth__subtitle">@L["auth.enter_your_workspace_credentials_to_continue"]</p>
+            <h1 class="hrms-auth__title">@L.Tr("Welcome back")</h1>
+            <p class="hrms-auth__subtitle">@L.Tr("Sign in to continue to your workspace.")</p>
 
             @if (!string.IsNullOrEmpty(Model.ErrorMessage))
             {
@@ -92,19 +98,22 @@
                 </div>
             }
 
-            <form method="post" asp-action="Login" asp-controller="Account" novalidate>
+            <form method="post" asp-action="Login" asp-controller="Account" novalidate data-login-form>
                 <input type="hidden" asp-for="ReturnUrl" />
 
                 <div class="hrms-auth__field">
                     <label class="form-label" asp-for="Username">@L["auth.username_or_company_email"]</label>
-                    <input class="form-control form-control-lg"
-                           asp-for="Username"
-                           autocomplete="username"
-                           autocapitalize="none"
-                           spellcheck="false"
-                           autofocus
-                           placeholder="ahmad.almutairi@company.com.kw"
-                           aria-describedby="username-error" />
+                    <div class="hrms-auth__input">
+                        <span class="hrms-auth__input-icon" aria-hidden="true">@Html.Icon("user", 17)</span>
+                        <input class="form-control form-control-lg"
+                               asp-for="Username"
+                               autocomplete="username"
+                               autocapitalize="none"
+                               spellcheck="false"
+                               autofocus
+                               placeholder="ahmad.almutairi@company.com.kw"
+                               aria-describedby="username-error" />
+                    </div>
                     <span id="username-error" class="field-validation-error" asp-validation-for="Username"></span>
                 </div>
 
@@ -115,7 +124,8 @@
                            title="@L["auth.forgot_password_is_the_next_part_of_module_1"]">@L["auth.forgot_password"]</a>
                     </div>
 
-                    <div class="hrms-auth__password">
+                    <div class="hrms-auth__input hrms-auth__password">
+                        <span class="hrms-auth__input-icon" aria-hidden="true">@Html.Icon("lock", 17)</span>
                         <input class="form-control form-control-lg"
                                asp-for="Password"
                                type="password"
@@ -142,20 +152,18 @@
 
                 <button type="submit" class="btn btn-primary btn-lg hrms-auth__submit" data-submit>
                     <span data-submit-label>@L["auth.sign_in"]</span>
-                    @Html.Icon("chevron-right", 16)
+                    <span class="hrms-auth__submit-arrow">@Html.Icon("chevron-right", 16)</span>
                 </button>
             </form>
 
             <div class="hrms-auth__note">
                 @Html.Icon("info", 16)
-                <span>
-                    @L["auth.two_factor_authentication_password_reset_and_pas"]
-                </span>
+                <span>@L.Tr("After signing in you'll see the apps you have access to: HRMS, POS, Item Management and more.")</span>
             </div>
-
-            <p class="hrms-auth__footer">
-                @L["auth.trouble_signing_in_contact_your_hr_administrator"]
-            </p>
         </div>
+
+        <p class="hrms-auth__footer">
+            @L["auth.trouble_signing_in_contact_your_hr_administrator"] &middot; TMM @L.Tr("Business Suite")
+        </p>
     </section>
 </main>

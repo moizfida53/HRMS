@@ -2,7 +2,8 @@
 //  wwwroot-qr/cssNew/tmm-items-theme.scss  ->  tmm-items-theme.css
 // -----------------------------------------------------------------------------
 //  TMM look (the POS brand bar and teal accent) for the Item Management admin
-//  pages that use Areas/Items/Views/Shared/_LayoutNew.cshtml. Loaded AFTER
+//  pages that use Areas/Items/Views/Shared/_LayoutNew.cshtml (white theme:
+//  white bar, teal top line, dark TMM mark; teal for buttons and highlights). Loaded AFTER
 //  admin.css (main.js adds admin.css at run time, the layout then appends this
 //  file), so it only re-colours: the old orange (#ffb023 / #ffaf40) becomes
 //  TMM teal and the gradient header becomes the dark POS bar.
@@ -11,12 +12,12 @@
 // =============================================================================
 
 // ---- tokens (same values as _LayoutPOS.cshtml) ------------------------------
-$tmm-teal:    #0E8A80;
+$tmm-teal:    #0D827A;   // buttons (logo teal #0E8A80; this shade passes AA with white text)
 $tmm-teal-dk: #0A6B63;
 $tmm-teal-lt: #E6F3F2;
 $tmm-ink:     #212322;
 $tmm-ink-2:   #2C302F;
-$pos-bg:      #F2F4F4;
+$pos-bg:      #F4F6F6;
 $pos-border:  #DCE1E0;
 $bar-h:       60px;
 $bp-sm:       767px;
@@ -34,35 +35,38 @@ body { background: $pos-bg; }
 
 // ---- brand bar ---------------------------------------------------------------
 .header.tmm-im-bar {
-    background: $tmm-ink;
+    background: rgba(255, 255, 255, .96);
     height: $bar-h;
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 0 16px;
-    color: #fff;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, .06), 0 2px 10px rgba(0, 0, 0, .18);
+    color: $tmm-ink;
+    border-top: 3px solid $tmm-teal;
+    border-bottom: 1px solid $pos-border;
+    box-shadow: 0 4px 14px rgba($tmm-ink, .05);
+    backdrop-filter: blur(6px);
 
     .tmm-im-brand {
         display: flex;
         align-items: center;
         gap: 9px;
-        color: #fff;
+        color: $tmm-ink;
         text-decoration: none;
-        img { width: 28px; height: 28px; display: block; }
-        .wordmark { font-size: 18px; font-weight: 700; letter-spacing: 3px; line-height: 1; }
+        img { width: 30px; height: 30px; display: block; }
+        .wordmark { font-size: 18px; font-weight: 700; letter-spacing: 3px; line-height: 1; color: $tmm-ink; }
     }
 
-    .divider { width: 1px; height: 24px; background: rgba(255, 255, 255, .22); }
-    .page-title { font-size: 15px; font-weight: 500; color: #E4E8E7; white-space: nowrap; }
+    .divider { width: 1px; height: 24px; background: $pos-border; }
+    .page-title { font-size: 15px; font-weight: 600; color: #4A5250; white-space: nowrap; }
     .spacer { flex: 1 1 auto; }
 
     .who {
         font-size: 12.5px;
-        color: #B9C2C0;
+        color: #626D6B;
         text-align: right;
         line-height: 1.3;
-        strong { display: block; color: #fff; font-weight: 600; }
+        strong { display: block; color: $tmm-ink; font-weight: 600; }
     }
 
     // "All Apps": icon + text, the one way back to the launcher
@@ -90,10 +94,10 @@ body { background: $pos-bg; }
     }
 
     .tmm-signout {
-        background: none;
-        border: 1px solid rgba(255, 255, 255, .28);
-        color: #C9D2D0;
-        &:hover, &:focus-visible { background: rgba(255, 255, 255, .1); color: #fff; }
+        background: #fff;
+        border: 1px solid $pos-border;
+        color: #4A5250;
+        &:hover, &:focus-visible { background: $tmm-teal-lt; border-color: #CDE7E4; color: $tmm-teal-dk; }
     }
 
     .tmm-apps:focus-visible,
@@ -176,3 +180,9 @@ table.dataTable tbody tr:hover { background: $tmm-teal-lt !important; }
 
 // the EN/AR switch sits in a .header-right-bar list (rtl-admin.css scopes it there)
 .header.tmm-im-bar .tmm-lang > li { margin-left: 0; }
+
+// EN/AR switch on the white bar: the labels were white for the old dark header
+.header.tmm-im-bar .lang-toggle .lt-side { color: #8E9896 !important; }
+.header.tmm-im-bar .lang-toggle:not(.is-ar) .lt-en,
+.header.tmm-im-bar .lang-toggle.is-ar .lt-ar { color: $tmm-teal-dk !important; }
+.header.tmm-im-bar .lang-toggle .lt-track { background: $tmm-teal-lt; border: 1px solid #CDE7E4; }

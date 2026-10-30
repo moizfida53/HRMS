@@ -407,11 +407,66 @@
   --bs-btn-border-color: #{$blue-600};
   --bs-btn-hover-bg: #{$blue-700};
   --bs-btn-hover-border-color: #{$blue-700};
-  --bs-btn-active-bg: #{$navy-800};
-  --bs-btn-active-border-color: #{$navy-800};
+  --bs-btn-active-bg: #{$blue-700};
+  --bs-btn-active-border-color: #{$blue-700};
   --bs-btn-disabled-bg: #{$blue-200};
   --bs-btn-disabled-border-color: #{$blue-200};
+  --bs-btn-focus-shadow-rgb: 13, 130, 122;
 }
+
+// ---- TMM theme: Bootstrap's own blue (#0d6efd) re-pointed at the TMM teal ----
+// Stock components that keep their colour in their own variables, not --bs-primary.
+:root {
+  --bs-link-color: #{$blue-700};
+  --bs-link-color-rgb: 10, 107, 99;
+  --bs-link-hover-color: #{$navy-900};
+  --bs-link-hover-color-rgb: 33, 35, 34;
+  --bs-primary-text-emphasis: #{$blue-700};
+  --bs-primary-bg-subtle: #{$blue-100};
+  --bs-primary-border-subtle: #{$blue-200};
+  --bs-focus-ring-color: rgba(13, 130, 122, .25);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #{$blue-700};
+  --bs-btn-border-color: #{$blue-600};
+  --bs-btn-hover-bg: #{$blue-600};
+  --bs-btn-hover-border-color: #{$blue-600};
+  --bs-btn-active-bg: #{$blue-700};
+  --bs-btn-active-border-color: #{$blue-700};
+  --bs-btn-focus-shadow-rgb: 13, 130, 122;
+}
+
+.btn-link { --bs-btn-color: #{$blue-700}; --bs-btn-hover-color: #{$navy-900}; }
+
+.pagination {
+  --bs-pagination-color: #{$blue-700};
+  --bs-pagination-hover-color: #{$navy-900};
+  --bs-pagination-focus-color: #{$blue-700};
+  --bs-pagination-focus-box-shadow: 0 0 0 .2rem rgba(13, 130, 122, .2);
+  --bs-pagination-active-bg: #{$blue-600};
+  --bs-pagination-active-border-color: #{$blue-600};
+}
+
+.nav-pills { --bs-nav-pills-link-active-bg: #{$blue-600}; }
+.nav { --bs-nav-link-color: #{$blue-700}; --bs-nav-link-hover-color: #{$navy-900}; }
+.dropdown-menu { --bs-dropdown-link-active-bg: #{$blue-600}; }
+.list-group { --bs-list-group-active-bg: #{$blue-600}; --bs-list-group-active-border-color: #{$blue-600}; }
+.progress, .progress-stacked { --bs-progress-bar-bg: #{$blue-600}; }
+.text-bg-primary { background-color: $blue-600 !important; }
+
+.form-check-input:checked { background-color: $blue-600; border-color: $blue-600; }
+.form-check-input:focus,
+.form-control:focus,
+.form-select:focus {
+  border-color: $blue-200;
+  box-shadow: 0 0 0 .2rem rgba(13, 130, 122, .16);
+}
+.form-switch .form-check-input:focus:not(:checked) {
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%239fd0cb'/%3e%3c/svg%3e");
+}
+.form-range::-webkit-slider-thumb { background-color: $blue-600; }
+.form-range::-moz-range-thumb { background-color: $blue-600; }
 
 .btn-outline-secondary {
   --bs-btn-color: #{$ink-700};

@@ -9,7 +9,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Apps &middot; @L["layout.app_name"]</title>
+    <title>@L.Tr("All Apps") &middot; TMM</title>
+    <link rel="icon" type="image/svg+xml" href="~/img/tmm-logo-dark.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet"
@@ -27,18 +28,21 @@
 <body class="hrms-launcher-body">
     <header class="hrms-launcher-bar">
         <div class="container-xl d-flex align-items-center justify-content-between gap-3">
-            <span class="hrms-launcher-bar__brand">@L["layout.app_name"]</span>
+            <a class="hrms-launcher-bar__brand" href="~/apps">
+                <img src="~/img/tmm-logo-dark.svg" alt="" />
+                <span><strong>TMM</strong><small>@L.Tr("Business Suite")</small></span>
+            </a>
             <div class="d-flex align-items-center gap-3">
                 <span class="hrms-launcher-bar__user">@Html.Icon("user", 16) @name</span>
                 <form method="post" asp-controller="Account" asp-action="Logout" class="m-0">
-                    <button type="submit" class="btn btn-sm btn-outline-light">@Html.Icon("exit", 16) Sign out</button>
+                    <button type="submit" class="btn btn-sm hrms-launcher-bar__signout">@Html.Icon("exit", 16) @L.Tr("Sign out")</button>
                 </form>
             </div>
         </div>
     </header>
 
     <main class="container-xl hrms-launcher">
-        <h1 class="hrms-launcher__title">Choose an application</h1>
+        <h1 class="hrms-launcher__title">@L.Tr("Choose an application")</h1>
 
         @if (Model.Count == 0)
         {

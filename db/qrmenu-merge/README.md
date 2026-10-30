@@ -8,6 +8,7 @@ Back up `HRMS_Kuwait` first.
 |---|---|---|
 | 01 | `01_Merge_ItemsManagement.sql` | Creates the 88 tables, 22 table types, 3 functions and 221 procedures of `Pistachio_v4` in `[dbo]` and copies every row (identity values kept). Stops before changing anything if a name already exists. |
 | 02 | `02_Consolidate_Users_Roles_Labels.sql` | Moves `tblcompany` → `Core.Companies`, `tblUser` → `Security.Users`, `tblRole` + `tblPOS_Role_Master` → `Security.Roles` (+ POS permissions), `tblPOS_AuditLog` → `Security.AuditLogs`, `tblLabelName` → `Core.UiLabels`; drops `tblPrinter`; rewrites the 31 procedures that used them. `tblbranch` stays as it is. |
+| 03 | `03_Labels_TMM.sql` | Arabic text for the TMM theme: "All Apps" (sidebar, launcher) and the new HR · Payroll · POS sign-in page. Optional - without it those texts stay English. Safe to re-run. |
 | after 02 | (manual) | If step 02 reports "Old tables NOT dropped" only because of `dbo.sp_Get_DelegateRoleList` (an unrelated old HRMS procedure), drop them by hand: `DROP TABLE dbo.tblPOS_AuditLog, dbo.tblLabelName, dbo.tblPrinter, dbo.tblUser, dbo.tblRole, dbo.tblPOS_Role_Master, dbo.tblcompany;` |
 
 Notes

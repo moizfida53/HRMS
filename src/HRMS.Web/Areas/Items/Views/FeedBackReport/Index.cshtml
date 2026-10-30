@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+<!DOCTYPE html>
 <html class="perfect-scrollbar-on" lang="en">
 <head>
 
@@ -42,6 +43,23 @@
             border-radius: 4px;
             border-width: 0 1px 4px;
         }
+
+        /* ---- TMM white theme ---- */
+        body { background: radial-gradient(rgba(13,130,122,.07) 1px, transparent 1.2px) 0 0 / 20px 20px, #F4F6F6 !important; }
+        .tmm-fb-bar { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 12px; margin: -15px -15px 18px; padding: 10px 16px;
+            background: rgba(255,255,255,.96); border-top: 3px solid #0D827A; border-bottom: 1px solid #DCE1E0; box-shadow: 0 4px 14px rgba(33,35,34,.05); }
+        .tmm-fb-brand { display: inline-flex; align-items: center; gap: 9px; color: #212322 !important; text-decoration: none; font-size: 18px; font-weight: 700; letter-spacing: 3px; }
+        .tmm-fb-brand img { width: 30px; height: 30px; }
+        .tmm-fb-div { width: 1px; height: 24px; background: #DCE1E0; }
+        .tmm-fb-title { font-size: 15px; font-weight: 600; color: #4A5250; }
+        .tmm-fb-sp { flex: 1 1 auto; }
+        .tmm-fb-btn { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            background: #0D827A; border: 1px solid #0D827A; color: #fff !important; text-decoration: none !important; cursor: pointer; }
+        .tmm-fb-btn:hover { background: #0A6B63; border-color: #0A6B63; }
+        .tmm-fb-btn svg { width: 15px; height: 15px; }
+        .tmm-fb-btn--light { background: #fff; border-color: #DCE1E0; color: #4A5250 !important; }
+        .tmm-fb-btn--light:hover { background: #E6F3F2; border-color: #CDE7E4; color: #0A6B63 !important; }
+        @@media (max-width: 640px) { .tmm-fb-div, .tmm-fb-title, .tmm-fb-btn--light:first-of-type { display: none; } }
     </style>
     @*<script type="text/javascript" charset="UTF-8" src="~/DashboardContent/common.js"></script>
         <script type="text/javascript" charset="UTF-8" src="~/DashboardContent/util.js"></script>*@
@@ -53,33 +71,28 @@
         <div class="main-panel ps-container ps-theme-default ps-active-y" data-ps-id="9855422f-a047-6b95-e2e0-1e7f23c7d209">
             <div class="content">
                 <div class="container-fluid">
-                    <div class="w3-row">
-                        <div class="w3-col s2">
-                            <table width="100%">
-                                <tr>
-                                    <td style="float:left;">
-                                        <img src="../../images/OneWorldLogo2.png" />
-                                    </td>
-                                    <td style="float:left;">
-                                        <button id="btnRedirectItem" class="myLogout" onclick="window.location.replace('/Category/')"><span>Home</span></button>
-                                    </td>
-                                    <td style="text-align: right">
-                                        <button id="btnLogout" class="myLogout" onclick="window.location.replace('/items/Login')"><span>Logout</span></button>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
+                    @* TMM white bar - same look as POS / Item Management *@
+                    <header class="tmm-fb-bar">
+                        <a class="tmm-fb-brand" href="/apps" title="All apps"><img src="/Areas/POS/Content/tmm-logo-dark.svg" alt="TMM" /><span>TMM</span></a>
+                        <i class="tmm-fb-div"></i><span class="tmm-fb-title">FeedBack Report</span>
+                        <span class="tmm-fb-sp"></span>
+                        <a class="tmm-fb-btn tmm-fb-btn--light" href="/Category/Index">Item Management</a>
+                        <a class="tmm-fb-btn" href="/apps" title="All apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>All Apps</a>
+                        <form method="post" action="/account/logout" class="m-0">
+                            <input type="hidden" name="__RequestVerificationToken" value="@Xsrf.GetAndStoreTokens(Context).RequestToken" />
+                            <button type="submit" class="tmm-fb-btn tmm-fb-btn--light">Sign out</button>
+                        </form>
+                    </header>
                     <div class="row" style="text-align:center">
                         <div class="col-12">
-                            <div style="text-align: center;font-size: 21px;font-weight: bold;">
+                            <div style="text-align: center;font-size: 21px;font-weight: bold;color:#212322;display:none">
                                 FeedBack Report
                             </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-12">
-                            <div id="reportrange" style="background: #8c8a8a;cursor: pointer;padding: 5px 10px;border: 1px solid #ccc;color: white;font-weight: bold;">
+                            <div id="reportrange" style="background: #E6F3F2;cursor: pointer;padding: 8px 12px;border: 1px solid #CDE7E4;border-radius: 10px;color: #0A6B63;font-weight: bold;">
                                 <i class="fa fa-calendar"></i>&nbsp;
                                 <span></span> <i class="fa fa-caret-down"></i>
                             </div>

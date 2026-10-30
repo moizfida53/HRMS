@@ -544,7 +544,8 @@
     }
 
     function setLive(ok) {
-        $('#posLiveDot').css('color', ok ? '#4ADE80' : '#F87171')
+        // colours come from the layout (#posLiveDot.is-live / .is-down)
+        $('#posLiveDot').toggleClass('is-live', !!ok).toggleClass('is-down', !ok)
                         .attr('title', ok ? 'Live' : 'Connection problem')
                         .html('&#9679; ' + (ok ? 'live' : 'offline'));
     }

@@ -52,17 +52,17 @@ public sealed class DatabaseSetupMiddleware
             <style>
               :root { color-scheme: light; }
               body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box;
-                     background: #f2f7fd; color: #1d2939; font: 15px/1.55 "Segoe UI", system-ui, sans-serif; }
+                     background: #f4f6f6; color: #212322; font: 15px/1.55 "Segoe UI", system-ui, sans-serif; }
               .card { max-width: 680px; width: 100%; background: #fff; border: 1px solid #e4e7ec; border-radius: 16px;
-                      box-shadow: 0 12px 32px rgba(16,24,40,.12); padding: 28px 30px; }
+                      box-shadow: 0 12px 32px rgba(33,35,34,.12); padding: 28px 30px; }
               .mark { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
-                      background: linear-gradient(135deg, #1d5fbf, #1b4f91); color: #fff; font-weight: 700; }
+                      background: #0d827a; color: #fff; font-weight: 700; }
               h1 { font-size: 21px; margin: 14px 0 4px; }
               p { margin: 6px 0; color: #475467; }
               ol { padding-inline-start: 20px; } li { margin: 8px 0; }
               code, pre { font-family: Consolas, ui-monospace, monospace; font-size: 13px; }
-              code { background: #f2f4f7; padding: 1px 6px; border-radius: 5px; color: #1b4f91; }
-              pre { background: #101828; color: #e4edfb; padding: 14px 16px; border-radius: 10px; overflow-x: auto; }
+              code { background: #f2f4f7; padding: 1px 6px; border-radius: 5px; color: #0a6b63; }
+              pre { background: #212322; color: #e6f3f2; padding: 14px 16px; border-radius: 10px; overflow-x: auto; }
               .note { margin-top: 16px; padding: 10px 14px; border-radius: 10px; background: #fffaeb; color: #b54708; font-size: 13px; }
             </style></head>
             <body><main class="card">

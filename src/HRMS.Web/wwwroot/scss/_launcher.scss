@@ -9,35 +9,70 @@
 @use "tokens" as *;
 @use "mixins" as *;
 
+// TMM white theme: every application uses the TMM teal; the icon, name and
+// text tell them apart. (Kept as a map so an app can still get its own accent.)
 $app-accents: (
   "hrms":       $blue-600,
-  "pos":        $amber-600,
-  "assets":     $green-700,
-  "feedback":   $purple-700,
-  "menucolors": $red-600,
-  "items":      $blue-500,
-  "printers":   $ink-700,
-  "settings":   $ink-600,
-  "security":   $navy-800,
-  "users":      $green-600
+  "pos":        $blue-600,
+  "assets":     $blue-600,
+  "feedback":   $blue-600,
+  "menucolors": $blue-600,
+  "items":      $blue-600,
+  "printers":   $blue-600,
+  "settings":   $ink-500,
+  "security":   $blue-600,
+  "users":      $blue-600
 );
 
 .hrms-launcher-body {
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
-  background: $surface;
+  // rich white: fine teal dot grid and a soft teal glow at the top
+  background:
+    radial-gradient(70% 40% at 0% 0%, rgba($blue-100, .9) 0%, rgba($white, 0) 70%),
+    radial-gradient(rgba($blue-600, .08) 1px, transparent 1.2px) 0 0 / 18px 18px,
+    $surface-2;
 }
 
+// white bar with the TMM teal line on top (same as POS / Item Management)
 .hrms-launcher-bar {
-  padding-block: space("3");
-  background: $navy-900;
-  color: $white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding-block: 10px;
+  background: rgba($white, .94);
+  backdrop-filter: blur(6px);
+  border-top: 3px solid $blue-600;
+  border-bottom: 1px solid $line-200;
+  box-shadow: 0 4px 14px rgba($navy-900, .04);
 
   &__brand {
-    font-family: $font-display;
-    font-weight: $fw-semibold;
-    font-size: $fs-lg;
+    display: inline-flex;
+    align-items: center;
+    gap: space("3");
+    color: $navy-900;
+    text-decoration: none;
+
+    img { width: 34px; height: 34px; }
+
+    strong {
+      display: block;
+      font-family: $font-display;
+      font-weight: $fw-bold;
+      font-size: $fs-lg;
+      letter-spacing: .18em;
+      line-height: 1.1;
+    }
+
+    small {
+      display: block;
+      font-size: $fs-xs;
+      font-weight: $fw-semibold;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: $blue-700;
+    }
   }
 
   &__user {
@@ -45,9 +80,22 @@ $app-accents: (
     align-items: center;
     gap: space("2");
     font-size: $fs-sm;
-    color: color.adjust($white, $alpha: -0.2);
+    font-weight: $fw-semibold;
+    color: $ink-700;
 
     @include down("sm") { display: none; }
+  }
+
+  &__signout {
+    display: inline-flex;
+    align-items: center;
+    gap: space("2");
+    border: 1px solid $line-200;
+    background: $white;
+    color: $ink-700;
+    font-weight: $fw-semibold;
+
+    &:hover, &:focus-visible { border-color: $blue-200; background: $blue-050; color: $blue-700; }
   }
 }
 
@@ -76,7 +124,8 @@ $app-accents: (
   padding: space("5");
   background: $white;
   border: 1px solid $line-200;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
+  box-shadow: 0 6px 18px rgba($navy-900, .04);
   color: $ink-900;
   text-decoration: none;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
@@ -91,7 +140,7 @@ $app-accents: (
     justify-content: center;
     inline-size: 3rem;
     block-size: 3rem;
-    border-radius: $radius;
+    border-radius: $radius-lg;
     background: color-mix(in srgb, var(--app-accent) 12%, transparent);
     color: var(--app-accent);
   }
@@ -151,17 +200,20 @@ $app-accents: (
   .hrms-app-tile { transition: none; }
 }
 
-// "All Apps" at the top of the HRMS sidebar: set apart from the HR modules below it.
+// "All Apps" at the top of the HRMS sidebar: a teal-outlined link, set apart
+// from the HR modules below it.
 .hrms-nav-link--apps {
-    margin-bottom: 6px;
-    position: relative;
+  margin-block-end: space("3") !important;
+  border: 1px solid $blue-200;
+  background: $white;
+  color: $blue-700 !important;
+  font-weight: $fw-bold;
+  box-shadow: 0 2px 8px rgba($blue-600, .08);
 
-    &::after {
-        content: "";
-        position: absolute;
-        left: 12px;
-        right: 12px;
-        bottom: -4px;
-        border-bottom: 1px solid rgba(127, 127, 127, .22);
-    }
+  > svg:not(.hrms-nav-parent__chev) { background: $blue-100 !important; color: $blue-600; }
+
+  &:hover { background: $blue-050 !important; border-color: $blue-600; }
+
+  // icon rail: just the icon tile, no frame
+  html.nav-mini:not(.nav-peek) & { border-color: transparent; box-shadow: none; background: transparent; }
 }

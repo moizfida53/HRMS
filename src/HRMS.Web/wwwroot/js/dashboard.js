@@ -102,7 +102,7 @@
     try { data = JSON.parse(dataEl.textContent); } catch (e) { return; }
 
     var SVG = "http://www.w3.org/2000/svg";
-    var ACCENT = "#1d5fbf";      // $blue-600 - one series, one hue
+    var ACCENT = "#0d827a";      // $blue-600 - one series, one hue
     var GRID = "#eef1f5";        // $line-100
     var AXIS = "#98a2b3";        // $ink-400
     var INK = "#101828";

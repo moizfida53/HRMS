@@ -72,7 +72,7 @@
   }
 
   .pr-trend__col:hover .pr-trend__bar { opacity: .8; }
-  .pr-trend__col.is-current .pr-trend__bar { background: linear-gradient(180deg, $blue-700 0%, #0f2a4d 100%); }
+  .pr-trend__col.is-current .pr-trend__bar { background: linear-gradient(180deg, $blue-700 0%, #212322 100%); }
   .pr-trend__col.is-current .pr-trend__val { color: $ink-900; font-weight: $fw-semibold; }
 }
 

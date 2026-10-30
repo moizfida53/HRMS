@@ -34,10 +34,11 @@
             --tmm-teal:    #0E8A80;
             --tmm-teal-dk: #0A6B63;
             --tmm-teal-lt: #E6F3F2;
+            --tmm-teal-btn: #0D827A;   /* buttons: AA contrast with white text */
             --tmm-ink:     #212322;
             --tmm-ink-2:   #2C302F;
 
-            --pos-bg:      #F2F4F4;
+            --pos-bg:      #F4F6F6;
             --pos-surface: #FFFFFF;
             --pos-border:  #DCE1E0;
             --pos-muted:   #6B7674;
@@ -58,73 +59,99 @@
            viewport once the page scrolls past it. z-index keeps it under the
            drawer (1060) and its scrim (1055), but above ordinary page content. */
         .tmm-bar {
-            background: var(--tmm-ink); color: #fff;
+            background: rgba(255,255,255,.96); color: var(--tmm-ink);
             display: flex; align-items: center; gap: 12px; padding: 8px 14px;
             position: sticky; top: 0; z-index: 1040;
+            border-top: 3px solid var(--tmm-teal-btn);
+            border-bottom: 1px solid var(--pos-border);
+            box-shadow: 0 4px 14px rgba(33,35,34,.05);
+            backdrop-filter: blur(6px);
         }
         .tmm-burger {
-            background: none; border: 0; padding: 6px 8px; cursor: pointer;
-            border-radius: 4px; line-height: 0;
+            background: none; border: 1px solid var(--pos-border); padding: 6px 8px; cursor: pointer;
+            border-radius: 8px; line-height: 0;
         }
-        .tmm-burger:hover  { background: rgba(255,255,255,.12); }
+        .tmm-burger:hover  { background: var(--tmm-teal-lt); border-color: #CDE7E4; }
         .tmm-burger:focus  { outline: 2px solid var(--tmm-teal); outline-offset: 1px; }
         .tmm-burger span {
-            display: block; width: 20px; height: 2px; background: #fff;
+            display: block; width: 18px; height: 2px; background: var(--tmm-ink);
             margin: 4px 0; border-radius: 1px;
         }
         .tmm-bar .logo { display: flex; align-items: center; gap: 9px; }
-        .tmm-bar .bar-logo { width: 26px; height: 26px; display: block; }
-        .tmm-bar .wordmark { font-size: 18px; font-weight: 700; letter-spacing: 3px; line-height: 1; }
-        .tmm-bar .divider { width: 1px; height: 22px; background: rgba(255,255,255,.22); }
-        .tmm-bar .page-title { font-size: 15px; font-weight: 500; color: #E4E8E7; }
+        .tmm-bar .bar-logo { width: 30px; height: 30px; display: block; }
+        .tmm-bar .wordmark { font-size: 18px; font-weight: 700; letter-spacing: 3px; line-height: 1; color: var(--tmm-ink); }
+        .tmm-bar .divider { width: 1px; height: 22px; background: var(--pos-border); }
+        .tmm-bar .page-title { font-size: 15px; font-weight: 600; color: #4A5250; }
         .tmm-bar .spacer { flex: 1 1 auto; }
-        .tmm-bar .who { font-size: 12.5px; color: #B9C2C0; text-align: right; line-height: 1.3; }
-        .tmm-bar .who strong { display: block; color: #fff; font-weight: 600; }
+        .tmm-bar .who { font-size: 12.5px; color: var(--pos-muted); text-align: right; line-height: 1.3; }
+        .tmm-bar .who strong { display: block; color: var(--tmm-ink); font-weight: 600; }
         .tmm-bar .signout {
-            color: #C9D2D0; border: 1px solid rgba(255,255,255,.28);
-            border-radius: 4px; padding: 4px 10px; font-size: 12.5px; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 6px;
+            color: #4A5250; border: 1px solid var(--pos-border); background: #fff;
+            border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; text-decoration: none;
         }
-        .tmm-bar .signout:hover { background: rgba(255,255,255,.1); color: #fff; }
+        .tmm-bar .signout:hover { background: var(--tmm-teal-lt); color: var(--tmm-teal-dk); border-color: #CDE7E4; text-decoration: none; }
+        .tmm-bar .apps {
+            display: inline-flex; align-items: center; gap: 7px;
+            background: var(--tmm-teal-btn); color: #fff; border: 1px solid var(--tmm-teal-btn);
+            border-radius: 8px; padding: 6px 12px; font-size: 13px; font-weight: 600; text-decoration: none;
+        }
+        .tmm-bar .apps:hover { background: var(--tmm-teal-dk); border-color: var(--tmm-teal-dk); color: #fff; text-decoration: none; }
+        .tmm-bar .apps svg { width: 15px; height: 15px; }
+        #posLiveDot { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #F2F4F4; color: var(--pos-muted); }
+        #posLiveDot.is-live { background: #E2F5EA; color: #0E6B3E; }
+        #posLiveDot.is-down { background: #FDE7E8; color: #9E1F28; }
+        @@media (max-width: 640px) {
+            .tmm-bar .divider, .tmm-bar .page-title, .tmm-bar .who, .tmm-bar .apps span, #posLiveDot { display: none; }
+        }
 
-        /* ---------------- drawer ---------------- */
+        /* ---------------- drawer (white, textured) ---------------- */
         .tmm-drawer {
-            position: fixed; top: 0; left: 0; height: 100%; width: 250px;
-            background: var(--tmm-ink); color: #C7CFCE; z-index: 1060;
-            transform: translateX(-100%); transition: transform .18s ease-out;
+            position: fixed; top: 0; left: 0; height: 100%; width: 260px;
+            background: radial-gradient(rgba(13,130,122,.09) 1px, transparent 1.2px) 0 0 / 18px 18px, #fff;
+            color: #4A5250; z-index: 1060;
+            border-right: 1px solid var(--pos-border);
+            box-shadow: 12px 0 32px rgba(33,35,34,.12);
+            transform: translateX(-105%); transition: transform .18s ease-out;
             display: flex; flex-direction: column;
         }
+        .tmm-drawer::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--tmm-teal-btn); }
         .tmm-drawer.open { transform: translateX(0); }
         .tmm-drawer .head {
             display: flex; align-items: center; gap: 10px;
-            padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.12);
+            padding: 16px 14px 12px; border-bottom: 1px solid var(--pos-border);
         }
-        .tmm-drawer .head .wordmark { font-size: 17px; font-weight: 700; letter-spacing: 3px; color: #fff; }
+        .tmm-drawer .head .wordmark { font-size: 17px; font-weight: 700; letter-spacing: 3px; color: var(--tmm-ink); }
         .tmm-drawer .head .close {
-            margin-left: auto; background: none; border: 0; color: #C7CFCE;
+            margin-left: auto; background: none; border: 0; color: var(--pos-muted);
             font-size: 22px; line-height: 1; cursor: pointer; opacity: 1;
         }
-        .tmm-drawer nav { padding: 8px 0; overflow-y: auto; flex: 1 1 auto; }
+        .tmm-drawer nav { padding: 8px 10px; overflow-y: auto; flex: 1 1 auto; }
         .tmm-drawer nav a {
+            position: relative;
             display: flex; align-items: center; gap: 11px;
-            padding: 11px 16px; color: #C7CFCE; text-decoration: none;
-            border-left: 3px solid transparent; font-size: 14px;
+            padding: 10px 12px; color: #4A5250; text-decoration: none;
+            border-radius: 9px; font-size: 14px; margin-bottom: 2px;
         }
-        .tmm-drawer nav a:hover  { background: rgba(255,255,255,.08); color: #fff; }
+        .tmm-drawer nav a:hover  { background: var(--tmm-teal-lt); color: var(--tmm-teal-dk); text-decoration: none; }
         .tmm-drawer nav a.active {
-            background: rgba(14,138,128,.18); color: #fff;
-            border-left-color: var(--tmm-teal); font-weight: 600;
+            background: var(--tmm-teal-lt); color: var(--tmm-teal-dk); font-weight: 700;
+        }
+        .tmm-drawer nav a.active::before {
+            content: ""; position: absolute; left: -10px; top: 7px; bottom: 7px; width: 4px;
+            border-radius: 0 4px 4px 0; background: var(--tmm-teal-btn);
         }
         .tmm-drawer nav .ico { width: 20px; text-align: center; font-size: 16px; }
         .tmm-drawer nav .sect {
-            padding: 14px 16px 5px; font-size: 10.5px; letter-spacing: 1px;
-            text-transform: uppercase; color: #7C8785;
+            padding: 14px 12px 5px; font-size: 10.5px; letter-spacing: 1px; font-weight: 700;
+            text-transform: uppercase; color: #8A9593;
         }
         .tmm-drawer .foot {
-            padding: 12px 16px; border-top: 1px solid rgba(255,255,255,.12);
-            font-size: 12px; color: #8B9593;
+            padding: 12px 16px; border-top: 1px solid var(--pos-border);
+            font-size: 12px; color: var(--pos-muted); background: rgba(255,255,255,.85);
         }
         .tmm-scrim {
-            position: fixed; inset: 0; background: rgba(0,0,0,.4);
+            position: fixed; inset: 0; background: rgba(33,35,34,.28);
             z-index: 1055; display: none;
         }
         .tmm-scrim.open { display: block; }
@@ -156,7 +183,7 @@
         .age-late { color: #C02626; font-weight: 700; }
 
         .card { border-color: var(--pos-border); }
-        .btn-primary { background: var(--tmm-teal); border-color: var(--tmm-teal); }
+        .btn-primary { background: var(--tmm-teal-btn); border-color: var(--tmm-teal-btn); }
         .btn-primary:hover, .btn-primary:focus {
             background: var(--tmm-teal-dk); border-color: var(--tmm-teal-dk); box-shadow: none;
         }
@@ -351,7 +378,7 @@
 @* ---------------- drawer ---------------- *@
 <aside class="tmm-drawer" id="tmmDrawer" aria-hidden="true" aria-label="Main menu">
     <div class="head">
-        <img src="@Url.Content("~/Areas/POS/Content/tmm-logo-light.svg")" alt="" style="width:24px;height:24px;" />
+        <img src="@Url.Content("~/Areas/POS/Content/tmm-logo-dark.svg")" alt="" style="width:24px;height:24px;" />
         <span class="wordmark">TMM</span>
         <button class="close" id="tmmDrawerClose" aria-label="Close menu">&times;</button>
     </div>
@@ -443,20 +470,20 @@
     </button>
 
     <span class="logo">
-        <img src="@Url.Content("~/Areas/POS/Content/tmm-logo-light.svg")" alt="TMM" class="bar-logo" />
+        <img src="@Url.Content("~/Areas/POS/Content/tmm-logo-dark.svg")" alt="TMM" class="bar-logo" />
         <span class="wordmark">TMM</span>
     </span>
 
     <span class="divider"></span>
     <span class="page-title">@title</span>
-    <span id="posLiveDot" style="font-size:12px;color:#8FA09D;" title="Live update status">&#9679; connecting</span>
+    <span id="posLiveDot" title="Live update status">&#9679; connecting</span>
 
     <span class="spacer"></span>
 
     @if (posUser != null)
     {
         <span class="who"><strong>@posUser.UserName</strong>@posUser.RoleName</span>
-        <a class="signout" href="/apps">Apps</a>
+        <a class="apps" href="/apps" title="All apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>All Apps</span></a>
         @* Sign-out is the HRMS one: a POST with the anti-forgery token. *@
         <form method="post" action="/account/logout" class="m-0" style="display:inline">
             <input type="hidden" name="__RequestVerificationToken" value="@xsrfToken" />

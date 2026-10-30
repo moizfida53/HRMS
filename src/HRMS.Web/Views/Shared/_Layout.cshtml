@@ -36,6 +36,7 @@
     <meta name="color-scheme" content="light" />
     <title>@L.Tr(ViewData["Title"] as string) &middot; @L["layout.app_name"]</title>
 
+    <link rel="icon" type="image/svg+xml" href="~/img/tmm-logo-dark.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet"
@@ -65,10 +66,10 @@
     @* ------------------------------------------------------------ sidebar *@
     <aside class="hrms-sidebar" id="app-sidebar">
         <div class="hrms-sidebar__header">
-            <span class="hrms-sidebar__logo" aria-hidden="true">HR</span>
+            <img class="hrms-sidebar__logo" src="~/img/tmm-logo-dark.svg" alt="" aria-hidden="true" />
             <span class="hrms-sidebar__wordmark">
-                <strong>@L["common.hr_payroll"]</strong>
-                <span>@L["common.kuwait_edition"]</span>
+                <strong>TMM</strong>
+                <span>@L["common.hr_payroll"]</span>
             </span>
             @* Desktop: keep the sidebar open (pinned) or let it auto-minimize to an icon rail. *@
             <button type="button" class="hrms-sidebar__pin" data-nav-pin

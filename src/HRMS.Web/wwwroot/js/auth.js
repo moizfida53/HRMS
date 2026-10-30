@@ -33,7 +33,7 @@
 
     /* --------------------------------------------------- submit guard --- */
 
-    var form = document.querySelector(".hrms-auth form");
+    var form = document.querySelector(".hrms-auth form[data-login-form]") || document.querySelector(".hrms-auth form");
 
     if (form) {
         form.addEventListener("submit", function () {

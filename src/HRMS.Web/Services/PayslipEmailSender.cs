@@ -179,7 +179,7 @@ public sealed class PayslipEmailSender : BackgroundService
         var text = new StringBuilder();
         html.Append("<!doctype html><html><body style=\"margin:0;padding:24px;background:#f4f6fa;font-family:Segoe UI,Arial,sans-serif;color:#1d2939\">");
         html.Append("<div style=\"max-width:560px;margin:0 auto;background:#fff;border:1px solid #e4e7ec;border-radius:10px;padding:24px\">");
-        html.Append("<div style=\"font-weight:700;color:#0f2a4d;font-size:16px;margin-bottom:16px\">").Append(Enc(job.CompanyName)).Append("</div>");
+        html.Append("<div style=\"font-weight:700;color:#212322;font-size:16px;margin-bottom:16px\">").Append(Enc(job.CompanyName)).Append("</div>");
 
         void Block(bool rtl, string greeting, string body, string action, string privacy)
         {
@@ -190,7 +190,7 @@ public sealed class PayslipEmailSender : BackgroundService
             html.Append("<p style=\"margin:0 0 14px\">").Append(Enc(body)).Append("</p>");
             if (link is not null)
             {
-                html.Append($"<p style=\"margin:0 0 14px\"><a href=\"{Enc(link)}\" style=\"display:inline-block;background:#1d5fbf;color:#fff;text-decoration:none;padding:9px 16px;border-radius:6px\">")
+                html.Append($"<p style=\"margin:0 0 14px\"><a href=\"{Enc(link)}\" style=\"display:inline-block;background:#0d827a;color:#fff;text-decoration:none;padding:9px 16px;border-radius:6px\">")
                     .Append(Enc(action)).Append("</a></p>");
             }
             html.Append("<p style=\"margin:0;color:#667085;font-size:12px\">").Append(Enc(privacy)).Append("</p></div>");

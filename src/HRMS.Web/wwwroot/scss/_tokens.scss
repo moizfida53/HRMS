@@ -1,7 +1,9 @@
 // ============================================================================
 // HRMS Kuwait - design tokens
 // ----------------------------------------------------------------------------
-// Single source of truth for the Corporate Blue & White theme. Every colour,
+// Single source of truth for the TMM theme: white surfaces, TMM teal accent
+// (the logo's #0E8A80; buttons use #0D827A for WCAG AA with white text), and
+// the logo ink #212322 for text. Every colour,
 // radius, shadow and spacing step used anywhere in the app resolves back to a
 // token declared here. Nothing below this file should contain a raw hex value.
 //
@@ -14,36 +16,36 @@
 @use "sass:map";
 
 // ---------------------------------------------------------------- brand ----
-$navy-900: #0f2a4d;
-$navy-800: #15396a;
-$blue-700: #1b4f91;
-$blue-600: #1d5fbf;
-$blue-500: #3373d6;
-$blue-200: #c7dbf7;
-$blue-100: #e4edfb;
-$blue-050: #f2f7fd;
+$navy-900: #212322;   // TMM ink (logo tiles)
+$navy-800: #2c302f;
+$blue-700: #0a6b63;   // teal dark - hover, link text
+$blue-600: #0d827a;   // TMM teal - primary
+$blue-500: #149a8f;
+$blue-200: #cde7e4;
+$blue-100: #e6f3f2;
+$blue-050: #f3f9f8;
 
 // ------------------------------------------------------------- neutrals ----
-$ink-900: #101828;
-$ink-800: #1d2939;
-$ink-700: #344054;
-$ink-600: #475467;
-$ink-500: #667085;
-$ink-400: #98a2b3;
-$ink-300: #b4bcc8;
+$ink-900: #212322;
+$ink-800: #2c302f;
+$ink-700: #3a3f3d;
+$ink-600: #4a5250;
+$ink-500: #626d6b;
+$ink-400: #8e9896;
+$ink-300: #b3bbb9;
 
-$line-300: #d0d5dd;
-$line-200: #e4e7ec;
-$line-100: #eef1f5;
+$line-300: #cdd4d2;
+$line-200: #dce1e0;
+$line-100: #e9edec;
 
-$surface:   #f5f7fa;
-$surface-2: #fafbfc;
+$surface:   #f4f6f6;
+$surface-2: #fafbfb;
 $white:     #ffffff;
 
 // ------------------------------------------------------------- semantic ----
-$green-700: #0b7a3b;
-$green-600: #16a34a;
-$green-050: #ecfdf3;
+$green-700: #0e6b3e;
+$green-600: #1a9a5c;
+$green-050: #e2f5ea;
 
 $amber-700: #b54708;
 $amber-600: #d97706;
@@ -108,10 +110,10 @@ $radius-lg: 12px;
 $radius-xl: 16px;
 $radius-pill: 999px;
 
-$shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
-$shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
-$shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.04);
-$shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.12), 0 4px 8px rgba(16, 24, 40, 0.05);
+$shadow-xs: 0 1px 2px rgba(33, 35, 34, 0.05);
+$shadow-sm: 0 1px 3px rgba(33, 35, 34, 0.08), 0 1px 2px rgba(33, 35, 34, 0.04);
+$shadow-md: 0 4px 12px rgba(33, 35, 34, 0.08), 0 2px 4px rgba(33, 35, 34, 0.04);
+$shadow-lg: 0 12px 32px rgba(33, 35, 34, 0.12), 0 4px 8px rgba(33, 35, 34, 0.05);
 
 // --------------------------------------------------------------- layout ----
 // Content-width breakpoints (container queries on .hrms-content).

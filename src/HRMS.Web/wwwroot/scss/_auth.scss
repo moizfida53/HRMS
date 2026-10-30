@@ -1,14 +1,17 @@
 // ============================================================================
-// HRMS Kuwait - sign-in screen
+// TMM - sign-in screen (HR, Payroll and POS)
 // ----------------------------------------------------------------------------
-// Split layout: a navy brand panel that carries the product story, and a white
-// form panel. Below the lg breakpoint the brand panel collapses to a slim
-// header strip so the form gets the whole screen on a phone.
+// White theme: a textured white brand panel (fine teal dot grid, soft teal glow,
+// a large faint TMM mark) that tells the HR / Payroll / POS story, and the form
+// in a white card with the TMM teal line on top. Below lg the brand panel
+// becomes a short header so the form gets the screen on a phone.
 // ============================================================================
 
 @use "sass:color";
 @use "tokens" as *;
 @use "mixins" as *;
+
+$auth-dots: radial-gradient(rgba($blue-600, .10) 1px, transparent 1.2px) 0 0 / 18px 18px;
 
 .hrms-auth-body {
   margin: 0;
@@ -30,215 +33,288 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  flex: 0 0 44%;
-  max-width: 44%;
-  padding: space("12") space("10");
-  background: $navy-900;
+  flex: 0 0 52%;
+  max-width: 52%;
+  padding: space("12") 4rem;
+  background: $auth-dots, $white;
+  border-inline-end: 1px solid $line-100;
   overflow: hidden;
+  isolation: isolate;
 
   @include between("lg", "xl") {
-    flex-basis: 40%;
-    max-width: 40%;
-    padding: space("8") space("7");
+    flex-basis: 48%;
+    max-width: 48%;
+    padding: space("10") space("8");
   }
 
-  // On small screens the hero becomes a compact banner: keep the badge and the
-  // headline, drop the feature list and the footer.
   @include down("lg") {
     flex: 0 0 auto;
     max-width: none;
     padding: space("6") space("5");
+    border-inline-end: 0;
+    border-block-end: 1px solid $line-100;
   }
 }
 
-.hrms-auth__hero-pattern {
+.hrms-auth__glow {
   position: absolute;
-  inset: 0;
-  opacity: 0.55;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1.4px, transparent 1.4px);
-  background-size: 22px 22px;
+  inset-inline-start: -180px;
+  inset-block-start: -220px;
+  width: 680px;
+  height: 680px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba($blue-600, .16), transparent 62%);
   pointer-events: none;
+  z-index: -1;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 120%;
+    inset-block-start: 85%;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba($blue-600, .09), transparent 65%);
+  }
+}
+
+.hrms-auth__watermark {
+  position: absolute;
+  inset-inline-end: -110px;
+  inset-block-end: -130px;
+  width: 600px;
+  height: 600px;
+  opacity: .06;
+  pointer-events: none;
+  z-index: -1;
+
+  @include down("lg") { display: none; }
+}
+
+.hrms-auth__hero-brand {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+
+  img { width: 48px; height: 48px; flex: 0 0 auto; }
+
+  strong {
+    display: block;
+    font-family: $font-display;
+    font-size: 1.6rem;
+    font-weight: $fw-bold;
+    letter-spacing: .2em;
+    line-height: 1.05;
+    color: $navy-900;
+  }
+
+  small {
+    display: block;
+    margin-block-start: 3px;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: $blue-700;
+  }
+
+  @include down("lg") { display: none; }
 }
 
 .hrms-auth__hero-body {
-  position: relative;
-  z-index: 1;
+  margin-block: auto;
+  max-width: 560px;
+  padding-block: space("8");
+
+  @include down("lg") { padding-block: 0; }
 }
 
 .hrms-auth__badge {
   display: inline-flex;
   align-items: center;
   gap: space("2");
-  padding: space("1") space("3");
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 6px space("3");
+  border: 1px solid $blue-200;
   border-radius: $radius-pill;
-  background: rgba(255, 255, 255, 0.08);
-  color: #cfe0fa;
+  background: $white;
+  box-shadow: 0 2px 8px rgba($blue-600, .08);
+  color: $blue-700;
   font-size: $fs-sm;
-  font-weight: $fw-semibold;
+  font-weight: $fw-bold;
+
+  i { width: 7px; height: 7px; border-radius: 50%; background: $blue-600; }
 }
 
 .hrms-auth__hero-title {
-  margin-block-start: space("6");
-  max-width: 22ch;
-  color: $white;
+  margin-block: space("5") space("4");
+  color: $navy-900;
   font-family: $font-display;
-  font-size: clamp(1.6rem, 2.4vw, 2.25rem);
-  font-weight: $fw-semibold;
-  line-height: 1.2;
-  letter-spacing: -0.015em;
+  font-size: clamp(1.8rem, 2.9vw, 2.65rem);
+  font-weight: $fw-bold;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 
+  em { font-style: normal; color: $blue-600; }
+
   @include down("lg") {
-    margin-block-start: space("4");
-    font-size: 1.35rem;
-    max-width: none;
+    margin-block: space("3") 0;
+    font-size: 1.4rem;
   }
 }
 
 .hrms-auth__hero-lede {
-  margin-block-start: space("4");
-  max-width: 44ch;
-  color: #a9c0e4;
-  font-size: $fs-md;
+  margin: 0 0 space("8");
+  max-width: 52ch;
+  color: $ink-600;
+  font-size: 1rem;
   line-height: 1.6;
 
-  @include down("lg") {
-    display: none;
-  }
+  @include down("lg") { display: none; }
 }
 
-.hrms-auth__features {
+.hrms-auth__products {
   list-style: none;
-  margin: space("8") 0 0;
+  margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: space("5");
-
-  @include down("lg") {
-    display: none;
-  }
+  display: grid;
+  gap: space("3");
 
   li {
     display: flex;
-    align-items: flex-start;
-    gap: space("3");
+    align-items: center;
+    gap: space("4");
+    padding: space("4") space("5");
+    border: 1px solid $line-200;
+    border-radius: $radius-xl;
+    background: rgba($white, .9);
+    box-shadow: 0 6px 18px rgba($navy-900, .05);
+    backdrop-filter: blur(2px);
+    color: $ink-500;
+    font-size: $fs-base;
+    line-height: 1.45;
   }
 
   strong {
     display: block;
-    color: $white;
-    font-size: $fs-md;
-    font-weight: $fw-semibold;
+    margin-block-end: 2px;
+    color: $navy-900;
+    font-size: $fs-lg;
+    font-weight: $fw-bold;
   }
 
-  span span,
-  li > span:last-child {
-    color: #a9c0e4;
-    font-size: $fs-sm;
-    line-height: 1.55;
-  }
+  @include down("lg") { display: none; }
 }
 
-.hrms-auth__feature-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.hrms-auth__product-icon {
+  display: grid;
+  place-items: center;
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  border-radius: $radius-md;
-  background: rgba(255, 255, 255, 0.1);
-  color: #dce8fb;
+  width: 46px;
+  height: 46px;
+  border-radius: $radius-lg;
+  background: $blue-100;
+  color: $blue-700;
 }
 
 .hrms-auth__hero-footer {
-  position: relative;
-  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: space("4");
   margin: 0;
-  color: #7c97c2;
+  color: $ink-500;
   font-size: $fs-sm;
 
-  @include down("lg") {
-    display: none;
-  }
+  @include down("lg") { display: none; }
 }
 
 // ----------------------------------------------------------------- panel ----
 .hrms-auth__panel {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
-  padding: space("10") space("6");
-  background: $white;
+  padding: space("12") space("6") space("8");
+  background: radial-gradient(rgba($blue-600, .07) 1px, transparent 1.2px) 0 0 / 20px 20px, $surface-2;
 
   @include down("lg") {
-    padding: space("8") space("5") space("10");
-  }
-
-  @include down("sm") {
-    padding: space("6") space("4") space("8");
+    padding: 76px space("4") space("8");   // room for the language button above the card
   }
 }
 
 .hrms-auth__form-wrap {
+  position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 460px;
+  padding: space("10") space("10") space("8");
+  border: 1px solid $line-100;
+  border-radius: 20px;
+  background: $white;
+  box-shadow: 0 24px 60px rgba($navy-900, .08), 0 2px 6px rgba($navy-900, .04);
+
+  // the TMM teal line, as on the POS / Item Management bars
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: space("10");
+    inset-block-start: 0;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: $blue-600;
+  }
+
+  @include down("sm") {
+    padding: space("8") space("5") space("6");
+    &::before { inset-inline: space("5"); }
+  }
 }
 
 .hrms-auth__brand {
   display: flex;
   align-items: center;
   gap: space("3");
-  margin-block-end: space("7");
+  margin-block-end: space("8");
 }
 
 .hrms-auth__logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: $radius-md;
-  background: $blue-600;
-  color: $white;
-  font-family: $font-display;
-  font-weight: $fw-bold;
-  font-size: $fs-md;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
 }
 
 .hrms-auth__brand-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-
   strong {
+    display: block;
     font-family: $font-display;
-    font-size: $fs-md;
-    font-weight: $fw-semibold;
-    color: $ink-900;
+    font-size: $fs-lg;
+    font-weight: $fw-bold;
+    letter-spacing: .16em;
+    color: $navy-900;
+    line-height: 1.1;
   }
 
   span {
-    font-size: $fs-xs;
-    color: $ink-400;
+    display: block;
+    margin-block-start: 2px;
+    font-size: $fs-sm;
+    color: $ink-500;
   }
 }
 
 .hrms-auth__title {
+  margin: 0;
   font-family: $font-display;
-  font-size: 1.5rem;
-  font-weight: $fw-semibold;
-  color: $ink-900;
-  letter-spacing: -0.015em;
+  font-size: 1.85rem;
+  font-weight: $fw-bold;
+  color: $navy-900;
+  letter-spacing: -0.02em;
 }
 
 .hrms-auth__subtitle {
-  margin-block-start: space("2");
-  margin-block-end: 0;
+  margin-block: space("2") 0;
   color: $ink-500;
   font-size: $fs-md;
 }
@@ -250,7 +326,7 @@
   gap: space("2");
   margin-block-start: space("5");
   padding: space("3") space("4");
-  border-radius: $radius;
+  border-radius: $radius-md;
   font-size: $fs-base;
   line-height: 1.5;
 
@@ -267,7 +343,7 @@
 
   &--info {
     background: $blue-050;
-    border: 1px solid $blue-100;
+    border: 1px solid $blue-200;
     color: $blue-700;
   }
 
@@ -284,14 +360,43 @@
 
   .form-label {
     margin-block-end: space("2");
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $ink-700;
   }
 
-  // 44px minimum target height on the sign-in controls.
   .form-control-lg {
-    min-height: 46px;
+    min-height: 50px;
     font-size: $fs-md;
-    border-radius: $radius;
+    border: 1.5px solid $line-200;
+    border-radius: $radius-lg;
+    background-color: $white;
+
+    &:focus {
+      border-color: $blue-600;
+      box-shadow: 0 0 0 4px rgba($blue-600, .14);
+    }
   }
+}
+
+// input with a leading icon
+.hrms-auth__input {
+  position: relative;
+
+  .form-control { padding-inline-start: 44px; }
+}
+
+.hrms-auth__input-icon {
+  position: absolute;
+  inset-inline-start: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: $ink-400;
+  pointer-events: none;
+  z-index: 3;
+
+  .hrms-auth__input:focus-within & { color: $blue-600; }
 }
 
 .hrms-auth__label-row {
@@ -304,16 +409,16 @@
 .hrms-auth__link {
   font-size: $fs-sm;
   font-weight: $fw-semibold;
-  color: $blue-600;
+  color: $blue-700;
+  text-decoration: none;
 
   &:hover {
-    color: $blue-700;
+    color: $navy-900;
+    text-decoration: underline;
   }
 }
 
 .hrms-auth__password {
-  position: relative;
-
   .form-control {
     padding-inline-end: 46px;
   }
@@ -324,25 +429,24 @@
   inset-inline-end: 6px;
   top: 50%;
   transform: translateY(-50%);
+  z-index: 3;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 0;
-  border-radius: $radius-sm;
+  border-radius: $radius;
   background: transparent;
-  color: $ink-400;
-  cursor: pointer;
-
+  color: $ink-500;
   @include motion(color, background-color);
   @include focus-ring;
 
   &:hover {
-    color: $ink-700;
-    background: $line-100;
+    color: $blue-700;
+    background: $blue-050;
   }
 }
 
@@ -354,10 +458,11 @@
   margin-block-start: space("5");
 
   .form-check-input {
-    width: 1.05em;
-    height: 1.05em;
-    margin-block-start: 0.18em;
+    width: 1.1em;
+    height: 1.1em;
+    margin-block-start: 0.15em;
     border-color: $line-300;
+    border-radius: 5px;
     cursor: pointer;
 
     &:checked {
@@ -378,16 +483,26 @@
 }
 
 .hrms-auth__submit {
-  width: 100%;
-  min-height: 48px;
-  margin-block-start: space("6");
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  font-size: $fs-md;
+  gap: space("2");
+  width: 100%;
+  min-height: 52px;
+  margin-block-start: space("6");
+  border-radius: $radius-lg;
+  font-size: 1rem;
+  font-weight: $fw-bold;
+  box-shadow: 0 8px 20px rgba($blue-600, .28);
 
   &[disabled] {
     opacity: 0.75;
   }
+
+  [dir="rtl"] & .hrms-auth__submit-arrow { transform: scaleX(-1); }
 }
+
+.hrms-auth__submit-arrow { display: inline-flex; }
 
 .hrms-auth__note {
   display: flex;
@@ -395,9 +510,8 @@
   gap: space("2");
   margin-block-start: space("6");
   padding: space("3") space("4");
-  border: 1px solid $line-200;
-  border-radius: $radius;
-  background: $surface;
+  border-radius: $radius-md;
+  background: $blue-050;
   color: $ink-600;
   font-size: $fs-sm;
   line-height: 1.5;
@@ -405,16 +519,15 @@
   svg {
     flex: 0 0 auto;
     margin-block-start: 1px;
-    color: $ink-400;
+    color: $blue-600;
   }
 }
 
 .hrms-auth__footer {
-  margin-block-start: space("6");
-  margin-block-end: 0;
+  margin-block: space("6") 0;
   text-align: center;
   color: $ink-500;
-  font-size: $fs-base;
+  font-size: $fs-sm;
 }
 
 // -------------------------------------------------------- access denied ----

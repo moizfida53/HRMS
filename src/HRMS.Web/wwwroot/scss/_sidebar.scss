@@ -18,9 +18,13 @@ $tile: 32px;
 
 // ---------------------------------------------------------- the look -------
 .hrms-sidebar {
+  // TMM "rich white": paper white, a fine teal dot grid, a soft teal glow at the
+  // top and the teal line the POS / Item Management bars also carry.
   background:
-    radial-gradient(120% 60% at 0% 0%, rgba($blue-050, .9) 0%, rgba($white, 0) 60%),
-    linear-gradient(180deg, $white 0%, $surface-2 100%);
+    linear-gradient($blue-600, $blue-600) top / 100% 3px no-repeat,
+    radial-gradient(120% 45% at 0% 0%, rgba($blue-100, .9) 0%, rgba($white, 0) 60%),
+    radial-gradient(rgba($blue-600, .09) 1px, transparent 1.2px) 0 0 / 18px 18px,
+    $white;
   overflow-x: hidden;
 
   &__header {
@@ -37,10 +41,15 @@ $tile: 32px;
     }
   }
 
+  // the TMM mark (img) - no tile behind it
   &__logo {
-    background: linear-gradient(135deg, $blue-500 0%, $blue-700 100%);
-    box-shadow: 0 6px 14px -6px rgba($blue-700, .55), inset 0 1px 0 rgba($white, .25);
+    background: none;
+    border-radius: 0;
+    object-fit: contain;
   }
+
+  &__wordmark strong { letter-spacing: .18em; font-weight: $fw-bold; }
+  &__wordmark span { color: $blue-700; font-weight: $fw-semibold; }
 
   // keep open / auto-minimize (desktop only)
   &__pin {
