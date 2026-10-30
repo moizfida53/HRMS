@@ -1,0 +1,178 @@
+// =============================================================================
+//  wwwroot-qr/cssNew/tmm-items-theme.scss  ->  tmm-items-theme.css
+// -----------------------------------------------------------------------------
+//  TMM look (the POS brand bar and teal accent) for the Item Management admin
+//  pages that use Areas/Items/Views/Shared/_LayoutNew.cshtml. Loaded AFTER
+//  admin.css (main.js adds admin.css at run time, the layout then appends this
+//  file), so it only re-colours: the old orange (#ffb023 / #ffaf40) becomes
+//  TMM teal and the gradient header becomes the dark POS bar.
+//
+//  Compile:  npx sass --no-source-map wwwroot-qr/cssNew/tmm-items-theme.scss wwwroot-qr/cssNew/tmm-items-theme.css
+// =============================================================================
+
+// ---- tokens (same values as _LayoutPOS.cshtml) ------------------------------
+$tmm-teal:    #0E8A80;
+$tmm-teal-dk: #0A6B63;
+$tmm-teal-lt: #E6F3F2;
+$tmm-ink:     #212322;
+$tmm-ink-2:   #2C302F;
+$pos-bg:      #F2F4F4;
+$pos-border:  #DCE1E0;
+$bar-h:       60px;
+$bp-sm:       767px;
+
+:root {
+    --tmm-teal: #{$tmm-teal};
+    --tmm-teal-dk: #{$tmm-teal-dk};
+    --tmm-teal-lt: #{$tmm-teal-lt};
+    --tmm-ink: #{$tmm-ink};
+}
+
+@mixin sm { @media (max-width: $bp-sm) { @content; } }
+
+body { background: $pos-bg; }
+
+// ---- brand bar ---------------------------------------------------------------
+.header.tmm-im-bar {
+    background: $tmm-ink;
+    height: $bar-h;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    color: #fff;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .06), 0 2px 10px rgba(0, 0, 0, .18);
+
+    .tmm-im-brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: #fff;
+        text-decoration: none;
+        img { width: 28px; height: 28px; display: block; }
+        .wordmark { font-size: 18px; font-weight: 700; letter-spacing: 3px; line-height: 1; }
+    }
+
+    .divider { width: 1px; height: 24px; background: rgba(255, 255, 255, .22); }
+    .page-title { font-size: 15px; font-weight: 500; color: #E4E8E7; white-space: nowrap; }
+    .spacer { flex: 1 1 auto; }
+
+    .who {
+        font-size: 12.5px;
+        color: #B9C2C0;
+        text-align: right;
+        line-height: 1.3;
+        strong { display: block; color: #fff; font-weight: 600; }
+    }
+
+    // "All Apps": icon + text, the one way back to the launcher
+    .tmm-apps,
+    .tmm-signout {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 34px;
+        padding: 0 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+        svg { width: 16px; height: 16px; flex: 0 0 auto; }
+    }
+
+    .tmm-apps {
+        background: $tmm-teal;
+        border: 1px solid $tmm-teal;
+        color: #fff;
+        &:hover, &:focus-visible { background: $tmm-teal-dk; border-color: $tmm-teal-dk; color: #fff; }
+    }
+
+    .tmm-signout {
+        background: none;
+        border: 1px solid rgba(255, 255, 255, .28);
+        color: #C9D2D0;
+        &:hover, &:focus-visible { background: rgba(255, 255, 255, .1); color: #fff; }
+    }
+
+    .tmm-apps:focus-visible,
+    .tmm-signout:focus-visible { outline: 2px solid #3FC1B5; outline-offset: 2px; }
+
+    form { margin: 0; }
+
+    // the EN/AR switch keeps its own look; only its spacing changes here
+    .language { list-style: none; margin: 0; }
+
+    @include sm {
+        gap: 8px;
+        padding: 0 10px;
+        .divider, .page-title, .who { display: none; }
+        .tmm-apps span, .tmm-signout span { display: none; }
+        .tmm-apps, .tmm-signout { padding: 0 9px; }
+    }
+}
+
+// ---- accent: orange -> teal ---------------------------------------------------
+.btn-primary, .btn-primary:hover, .btn-primary:focus, .btn-primary.focus,
+.btn-info, .btn-info:hover, .btn-info:focus, .btn-info.focus {
+    background-color: $tmm-teal !important;
+    border-color: $tmm-teal !important;
+    color: #fff !important;
+}
+.btn-primary:hover, .btn-info:hover { background-color: $tmm-teal-dk !important; border-color: $tmm-teal-dk !important; }
+.btn-primary:focus, .btn-info:focus { box-shadow: 0 0 0 .2rem rgba($tmm-teal, .3) !important; }
+
+.btn-outline-primary { color: $tmm-teal-dk; border-color: $tmm-teal; }
+.btn-outline-primary:hover { background: $tmm-teal; border-color: $tmm-teal; color: #fff; }
+
+a { color: $tmm-teal-dk; }
+.header a, .dropdown-item, .btn { color: inherit; }
+
+.form-control:focus,
+.bootstrap-select .dropdown-toggle:focus {
+    border-color: $tmm-teal !important;
+    box-shadow: 0 0 0 .2rem rgba($tmm-teal, .18) !important;
+}
+
+.form-group .custom-control-input:checked ~ .custom-control-label::before,
+.form-group .custom-control-input:not(:disabled):active ~ .custom-control-label::before,
+.form-group .custom-radio .custom-control-input:checked ~ .custom-control-label::before,
+.item-management .custom-control-input:checked ~ .custom-control-label::before,
+.item-management .custom-control-input:not(:disabled):active ~ .custom-control-label::before,
+.item-management .right-navigation .custom-radio .custom-control-input:checked ~ .custom-control-label::before {
+    background-color: $tmm-teal !important;
+    border-color: $tmm-teal !important;
+}
+.form-group .custom-control-input:focus ~ .custom-control-label::before,
+.item-management .custom-control-input:focus ~ .custom-control-label::before { border-color: $tmm-teal !important; }
+
+.toggle-switch input:checked + .slider { background-color: $tmm-teal; }
+.toggle-switch input:focus + .slider { box-shadow: 0 0 1px $tmm-teal; }
+
+.datepicker table tr td span.active,
+.datepicker table tr td span.active:hover,
+.datepicker table tr td.active,
+.datepicker table tr td.active:hover { background: $tmm-teal !important; }
+
+.dashboardcode-bsmultiselect ul.dropdown-menu .hover { color: $tmm-teal !important; }
+.dropdown-item.active, .dropdown-item:active { background-color: $tmm-teal; color: #fff; }
+
+.page-item.active .page-link { background-color: $tmm-teal !important; border-color: $tmm-teal !important; color: #fff !important; }
+
+.nav-tabs .nav-link.active, .nav-pills .nav-link.active {
+    color: $tmm-teal-dk;
+    border-bottom-color: $tmm-teal;
+}
+.nav-pills .nav-link.active { background-color: $tmm-teal; color: #fff; }
+
+.events-cart { background-color: $tmm-teal; color: #fff; }
+.table-management-list .card.reserved { background-color: $tmm-teal-lt; }
+
+.card { border-color: $pos-border; }
+.modal-header { border-bottom-color: $pos-border; }
+
+table.dataTable tbody tr:hover { background: $tmm-teal-lt !important; }
+
+// the EN/AR switch sits in a .header-right-bar list (rtl-admin.css scopes it there)
+.header.tmm-im-bar .tmm-lang > li { margin-left: 0; }

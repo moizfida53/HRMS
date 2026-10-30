@@ -150,3 +150,18 @@ $app-accents: (
 @media (prefers-reduced-motion: reduce) {
   .hrms-app-tile { transition: none; }
 }
+
+// "All Apps" at the top of the HRMS sidebar: set apart from the HR modules below it.
+.hrms-nav-link--apps {
+    margin-bottom: 6px;
+    position: relative;
+
+    &::after {
+        content: "";
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        bottom: -4px;
+        border-bottom: 1px solid rgba(127, 127, 127, .22);
+    }
+}

@@ -1,11 +1,15 @@
 @using HRMS.Web.Areas.Items.Legacy   @* Asset.V() - css/js cache-buster *@
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
-@{ var xsrfToken = Xsrf.GetAndStoreTokens(Context).RequestToken; }
+@{
+    var xsrfToken = Xsrf.GetAndStoreTokens(Context).RequestToken;
+    var pageTitle = ViewData["Title"] as string;
+    if (string.IsNullOrWhiteSpace(pageTitle) || pageTitle == "eCommerce") { pageTitle = "Item Management"; }
+}
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>e-Tmm | Item management</title>
+    <title>@pageTitle &middot; TMM</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Meta descriptions may be included in search results to concisely summarize page content.">
@@ -40,6 +44,8 @@
     @*<script src="../assets/js/pages/crud/forms/widgets/select2.js"></script>*@
     @*<script src="~/js/popper.min.js"></script>*@
     <script src="@Asset.V("~/js/main.js")"></script>
+    @* TMM theme (POS bar + teal). main.js adds admin.css at run time, so this is appended after it. *@
+    <script>(function () { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '@Asset.V("~/cssNew/tmm-items-theme.css")'; document.head.appendChild(l); })();</script>
     @*<script src="~/vendor/jquery/jquery-ui.min.js"></script>*@
 
     @* Arabic/English admin language switcher (labels come from tblLabelName) *@
@@ -93,16 +99,17 @@
             </div>
         </div>
         <!-- loading End===================== -->
-        <!-- Start Header -->
-        <header class="header">
-            <div class="container-fluid">
-                <div class="row justify-content-between align-items-center">
-                    <div class="col-auto">
-                        <a href="#" title="e-Tmm" class="logo"><img src="../Images/logo.png" alt="e-Tmm" style="height:44px;"></a>
-                    </div>
-                    <div class="col-auto">
-                        <ul class="header-right-bar d-flex align-items-center">
-                            <li class="language">
+        <!-- Start Header: TMM brand bar (same look as the POS, Areas/POS/Views/Shared/_LayoutPOS) -->
+        <header class="header tmm-im-bar">
+            <a href="/apps" class="tmm-im-brand" title="All apps">
+                <img src="/Areas/POS/Content/tmm-logo-light.svg" alt="TMM" />
+                <span class="wordmark">TMM</span>
+            </a>
+            <span class="divider"></span>
+            <span class="page-title">@pageTitle</span>
+            <span class="spacer"></span>
+            <ul class="tmm-lang header-right-bar d-flex align-items-center p-0 m-0 list-unstyled">
+                <li class="language">
                                 <button type="button" id="btnAdminLang" class="lang-toggle" role="switch" aria-checked="false" title="التبديل إلى العربية / Switch to Arabic" onclick="return toggleAdminLang();">
                                     <span class="lt-side lt-en">EN</span>
                                     <span class="lt-track">
@@ -133,47 +140,20 @@
                                     <span class="lt-side lt-ar">AR</span>
                                 </button>
                             </li>
-                            <li class="user-block dropdown">
-                                <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-toggle="dropdown" aria-expanded="false">
-                                    <img class="avatar-icon" src="../Images/avatar.svg" alt="">
-                                    @Name
-                                </a>
-
-                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuLink">
-                                    <span class="arrow"></span>
-                                    <div class="inner-block">
-                                        @*<a class="dropdown-item" href="#" title="My Profile"><img src="../Images/myprofile.svg" alt="My Profile">My Profile</a>*@
-                                        <a class="dropdown-item mb-2" title="Dashboard" href="/apps" data-legacy-href="/ItemViewDashboard/Index"><img src="../Images/change-password.svg" alt="Dashboard"><span data-lbl="adm_navDashboard">Dashboard</span></a>
-                                        <a class="dropdown-item mb-2" title="Item Management" href="/Category/Index"><img src="../Images/change-password.svg" alt="Item Management"><span data-lbl="adm_navItemManagement">Item Management</span></a>
-                                        <a class="dropdown-item mb-2" title="Reservation Master" href="/apps" data-legacy-href="/ReservationMaster/Index"><img src="../Images/change-password.svg" alt="Reservation Master"><span data-lbl="adm_navReservationMaster">Reservation Master</span></a>
-                                        <a class="dropdown-item mb-2" title="Slide Show" href="/apps" data-legacy-href="/SlideShow/Index"><img src="../Images/change-password.svg" alt="Slide Show"><span data-lbl="adm_navSlideShow">Slide Show</span></a>
-                                        <a class="dropdown-item mb-2" title="Change Password" data-toggle="modal" data-target="#WindowChangePassword" onclick="clearChangePassword();"><img src="../Images/change-password.svg" alt="Change Password"><span data-lbl="adm_navChangePassword">Change Password</span></a>
-                                        @if (FeedBack == 1)
-                                        {
-                                            <a id="btnFeedback" class="dropdown-item mb-2" href="/FeedBackReport/Index" title="FeedBack Report"><img src="../Images/feedback.svg" alt="FeedBack Report"><span data-lbl="adm_navFeedbackReport">FeedBack Report</span></a>
-                                        }
-                                        @if (RoleID == 1)
-                                        {
-                                            <a class="dropdown-item mb-2" title="Slide Shows" href="/apps" data-legacy-href="/SlideShow/Index"><img src="../Images/change-password.svg" alt="Slide Shows"><span data-lbl="adm_navWebSlideShows">Web Slide Shows</span></a>
-                                        }
-                                        @if (RoleID == 4)
-                                        {
-                                            <a class="dropdown-item mb-2" title="Menu Colors" href="/MenuColors/Index"><img src="../Images/change-password.svg" alt="Menu Colors"><span data-lbl="adm_navMenuColors">Menu Colors</span></a>
-                                            <a class="dropdown-item mb-2" title="TAB Theme" href="/apps" data-legacy-href="/TabTheme/Index"><img src="../Images/change-password.svg" alt="TAB Theme"><span data-lbl="adm_navTabTheme">TAB Theme</span></a>
-                                        }
-                                        <a class="dropdown-item mb-2" title="All apps" href="/apps"><img src="../Images/change-password.svg" alt="All apps"><span>All apps</span></a>
-                                        <form method="post" action="/account/logout">
-                                            <input type="hidden" name="__RequestVerificationToken" value="@xsrfToken" />
-                                            <button type="submit" class="btn btn-secondary w-100" title="Logout"><span data-lbl="adm_navLogout">Logout</span></button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </li>
-                        </ul>
-
-                    </div>
-                </div>
-            </div>
+            </ul>
+            <a class="tmm-apps" href="/apps" title="All apps">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                <span>All Apps</span>
+            </a>
+            <span class="who"><strong>@Name</strong>@UserName</span>
+            @* Sign-out is the HRMS one: a POST with the anti-forgery token. *@
+            <form method="post" action="/account/logout">
+                <input type="hidden" name="__RequestVerificationToken" value="@xsrfToken" />
+                <button type="submit" class="tmm-signout" title="Sign out">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg>
+                    <span data-lbl="adm_navLogout">Sign out</span>
+                </button>
+            </form>
         </header>
         <!-- End Header -->
         <!-- Main Content -->

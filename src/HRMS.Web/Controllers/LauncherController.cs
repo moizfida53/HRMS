@@ -60,7 +60,7 @@ public sealed class LauncherController : Controller
         if (Any("SECURITY_", "AUDIT_"))
             tiles.Add(new("security", "Security", "Roles, permissions, user accounts and the audit report.", "shield", "/security/roles"));
         if (posAdmin)
-            tiles.Add(new("users", "Users", "Restaurant staff: POS role, branches and POS password.", "user", "/POS/Users"));
+            tiles.Add(new("users", "POS Users", "Restaurant staff: POS role, branches and POS password.", "user", "/POS/Users"));
 
         ViewData["Title"] = "Apps";
         return View(tiles);

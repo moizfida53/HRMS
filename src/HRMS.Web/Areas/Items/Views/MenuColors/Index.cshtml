@@ -2,7 +2,8 @@
 @using System.Linq
 @using HRMS.Web.Areas.Items.Controllers
 @{
-    Layout = "~/Views/Shared/_LayoutNew.cshtml";
+    Layout = "~/Areas/Items/Views/Shared/_LayoutNew.cshtml";
+    ViewData["Title"] = "Menu Colors";
     var fields = ViewBag.Fields as List<ColorField> ?? new List<ColorField>();
     var groups = fields.GroupBy(f => f.Section).ToList();
 }

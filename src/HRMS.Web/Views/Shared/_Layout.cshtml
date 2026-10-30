@@ -119,6 +119,11 @@
 
         <nav class="hrms-sidebar__nav" aria-label="@L["layout.main_navigation"]">
 
+            @* All Apps - back to the application launcher (/apps): POS, Item Management, ... *@
+            <a class="hrms-nav-link hrms-nav-link--main hrms-nav-link--apps" href="@(Context.Request.PathBase)/apps">
+                @Html.Icon("apps")<span>@L.Tr("All Apps")</span>
+            </a>
+
             @* Dashboard sits on its own at the top - no group header. *@
             <a class="hrms-nav-link hrms-nav-link--main @(activeArea == "dashboard" ? "is-active" : null)"
                asp-controller="Dashboard" asp-action="Index">

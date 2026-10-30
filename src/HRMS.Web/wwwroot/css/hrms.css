@@ -16055,6 +16055,19 @@ html.hrms-embed .hrms-content {
     transition: none;
   }
 }
+.hrms-nav-link--apps {
+  margin-bottom: 6px;
+  position: relative;
+}
+.hrms-nav-link--apps::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -4px;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.22);
+}
+
 .hrms-confirm {
   --c-ink: #b42318;
   --c-soft: #fef3f2;
