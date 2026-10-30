@@ -1,4 +1,4 @@
-﻿@model OrgCompanyDocumentsModel
+@model OrgCompanyDocumentsModel
 @* One company's Legal & Compliance Documents - master / child:
    the categories on the left (with their counts and what needs attention), the documents
    of the category picked on the right as cards. Each card: its state against the expiry
@@ -13,7 +13,6 @@
         : "valid";
     var counts = Model.Rows.GroupBy(Status).ToDictionary(g => g.Key, g => g.Count());
     int Count(string s) => counts.GetValueOrDefault(s);
-    var pct = c.TypeCount > 0 ? (int)Math.Round(100.0 * c.RecordedCount / c.TypeCount) : 0;
     var groups = Model.Rows.GroupBy(x => x.Category).ToList();
 
     // the share of its validity a document has left (issue -> expiry; a year when the issue date is unknown)
@@ -25,20 +24,7 @@
     }
 }
 <div class="od-co-panel" data-od-company-panel="@c.CompanyId" data-company-name="@c.CompanyName">
-    <header class="hrms-card od-cohead">
-        <div class="od-cohead__id">
-            <span class="od-cohead__icon" aria-hidden="true">@Html.Icon("building", 22)</span>
-            <div class="od-cohead__text">
-                <h2 class="od-cohead__name">@c.CompanyName</h2>
-                <span class="od-cohead__sub">@string.Join(" · ", new[] { c.LegalName, c.CommercialRegistrationNo is { Length: > 0 } cr ? L["od.cr_no", cr] : null }.Where(x => !string.IsNullOrWhiteSpace(x)))</span>
-            </div>
-        </div>
-        <div class="od-cohead__progress">
-            <span class="od-cohead__pct">@pct%</span>
-            <span class="od-cohead__bar"><span style="width:@(pct)%"></span></span>
-            <span class="od-cohead__note">@L["od.recorded_of", c.RecordedCount, c.TypeCount]</span>
-        </div>
-    </header>
+    @* (no company banner: the company tab above shows the name and how much is on record) *@
 
     @if (Model.Rows.Count == 0)
     {

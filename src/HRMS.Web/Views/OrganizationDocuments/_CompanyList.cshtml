@@ -7,18 +7,20 @@
         var initials = string.Concat(c.CompanyName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(w => char.IsLetter(w[0])).Take(2).Select(w => char.ToUpperInvariant(w[0])));
         var tone = c.ExpiredCount > 0 ? "bad" : c.DueCount > 0 || c.MissingCount > 0 ? "warn" : "ok";
         <li>
+            @* a company is a tab: who it is, what needs attention, and a ring of how much is on record *@
             <button type="button" class="od-co od-co--@tone" data-od-company="@c.CompanyId" aria-pressed="false">
                 <span class="od-co__avatar" aria-hidden="true">@initials</span>
                 <span class="od-co__body">
-                    <span class="od-co__name">@c.CompanyName</span>
-                    <span class="od-co__sub">@string.Join(" · ", new[] { c.CompanyCode, c.CommercialRegistrationNo is { Length: > 0 } cr ? L["od.cr_no", cr] : null }.Where(x => !string.IsNullOrWhiteSpace(x)))</span>
-                    <span class="od-co__bar" title="@L["od.recorded_of", c.RecordedCount, c.TypeCount]"><span style="width:@(pct)%"></span></span>
-                    <span class="od-co__chips">
-                        <span class="od-co__chip">@L["od.recorded_of", c.RecordedCount, c.TypeCount]</span>
-                        @if (c.ExpiredCount > 0) { <span class="od-co__chip is-bad">@Html.Icon("alert", 11)@L["od.n_expired", c.ExpiredCount]</span> }
-                        @if (c.DueCount > 0) { <span class="od-co__chip is-warn">@Html.Icon("bell", 11)@L["od.n_due", c.DueCount]</span> }
-                        @if (c.MissingCount > 0) { <span class="od-co__chip is-miss">@L["od.n_missing", c.MissingCount]</span> }
+                    <span class="od-co__name" title="@c.CompanyName">@c.CompanyName</span>
+                    <span class="od-co__flags">
+                        @if (c.ExpiredCount > 0) { <span class="is-bad">@L["od.n_expired", c.ExpiredCount]</span> }
+                        @if (c.DueCount > 0) { <span class="is-warn">@L["od.n_due", c.DueCount]</span> }
+                        @if (c.MissingCount > 0) { <span class="is-miss">@L["od.n_missing", c.MissingCount]</span> }
+                        @if (c.ExpiredCount + c.DueCount + c.MissingCount == 0) { <span class="is-ok">@L["od.recorded_of", c.RecordedCount, c.TypeCount]</span> }
                     </span>
+                </span>
+                <span class="od-co__ring" style="--p:@pct" title="@L["od.recorded_of", c.RecordedCount, c.TypeCount]">
+                    <span>@pct<small>%</small></span>
                 </span>
             </button>
         </li>
