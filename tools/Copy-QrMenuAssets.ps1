@@ -15,10 +15,17 @@
 #>
 param(
     [Parameter(Mandatory = $true)] [string] $OldProject,
-    [string] $Target = (Join-Path $PSScriptRoot "..\src\HRMS.Web\wwwroot-qr")
+    [string] $Target
 )
 
 $ErrorActionPreference = "Stop"
+
+# Default target worked out here, not in param(): Windows PowerShell 5.1 has no
+# $PSScriptRoot yet while parameter defaults are evaluated.
+if ([string]::IsNullOrWhiteSpace($Target)) {
+    $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $Target = Join-Path $scriptDir "..\src\HRMS.Web\wwwroot-qr"
+}
 if (-not (Test-Path $OldProject)) { throw "Old project folder not found: $OldProject" }
 New-Item -ItemType Directory -Force -Path $Target | Out-Null
 
