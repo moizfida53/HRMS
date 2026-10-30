@@ -190,12 +190,30 @@
     top: 0;
     z-index: 1;
     padding: space("3") space("5");
-    background: $surface-2;
-    border-block-end: 1px solid $line-200;
+    // TMM header: a soft teal band with teal-dark captions and a teal rule
+    background: linear-gradient(180deg, $blue-050 0%, $blue-100 100%);
+    border-block-end: 2px solid $blue-200;
     text-align: start;
     white-space: nowrap;
     @include label-caps;
     font-size: 0.68rem;
+    color: $blue-700;
+
+    // optional column icon (Html.Icon inside the <th> or its sort button)
+    .hrms-th-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      margin-inline-end: 6px;
+      border-radius: 6px;
+      background: rgba($white, .75);
+      color: $blue-600;
+      vertical-align: middle;
+
+      svg { width: 12px; height: 12px; opacity: 1 !important; transform: none !important; }
+    }
   }
 
   td {
@@ -206,10 +224,14 @@
   }
 
   tbody tr {
-    @include motion(background-color);
+    @include motion(background-color, box-shadow);
+
+    &:nth-child(even) { background: rgba($surface, .55); }
 
     &:hover {
       background: $blue-050;
+      box-shadow: inset 3px 0 0 $blue-600;
+      [dir="rtl"] & { box-shadow: inset -3px 0 0 $blue-600; }
     }
 
     &:last-child td {
@@ -242,8 +264,10 @@
       opacity: 0.7;
     }
 
+    &:hover { color: $navy-900; }
+
     &.is-sorted {
-      color: $blue-700;
+      color: $navy-900;
 
       svg {
         opacity: 1;
@@ -342,12 +366,13 @@
   display: inline-flex;
   align-items: center;
   padding: 2px space("2");
+  border: 1px solid $blue-200;
   border-radius: $radius-sm;
-  background: $line-100;
-  color: $ink-600;
+  background: $blue-050;
+  color: $blue-700;
   font-family: $font-mono;
   font-size: $fs-xs;
-  font-weight: $fw-medium;
+  font-weight: $fw-semibold;
   letter-spacing: 0.02em;
 }
 
@@ -502,16 +527,117 @@
     box-shadow: $shadow-xs;
   }
 
-  &--danger:hover {
-    color: $red-700;
-    border-color: $red-300;
+  // coloured at rest (soft tile), solid on hover
+  &--danger {
+    color: $red-600;
     background: $red-050;
+    border-color: rgba($red-600, .18);
+
+    &:hover {
+      color: $white;
+      border-color: $red-600;
+      background: $red-600;
+      box-shadow: 0 4px 10px -4px rgba($red-600, .6);
+    }
   }
 
-  &--success:hover {
+  &--success {
     color: $green-700;
-    border-color: rgba($green-600, 0.4);
     background: $green-050;
+    border-color: rgba($green-600, .22);
+
+    &:hover {
+      color: $white;
+      border-color: $green-600;
+      background: $green-600;
+      box-shadow: 0 4px 10px -4px rgba($green-600, .6);
+    }
+  }
+}
+
+// row actions: the plain buttons (more, edit, view...) get the teal tile
+.hrms-table__actions .btn-icon:not([class*="btn-icon--"]) {
+  color: $blue-700;
+  background: $blue-100;
+  border-color: $blue-200;
+
+  &:hover,
+  &[aria-expanded="true"] {
+    color: $white;
+    border-color: $blue-600;
+    background: $blue-600;
+    box-shadow: 0 4px 10px -4px rgba($blue-600, .6);
+  }
+}
+
+// an inactive row's toggle offers "activate": amber, so it stands out
+tr[data-active="false"] .btn-icon--success {
+  color: $amber-700;
+  background: $amber-050;
+  border-color: rgba($amber-600, .3);
+
+  &:hover { color: $white; background: $amber-600; border-color: $amber-600; }
+}
+
+// ------------------------------------------------- table cell decorations ----
+// A coloured initials avatar next to a person's name, and small icons in front
+// of plain cell values (department, designation, contact, date).
+.hrms-person {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.hrms-person__body {
+  .hrms-table__primary { white-space: nowrap; }
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px space("2");
+  min-width: 0;
+}
+
+.hrms-initials {
+  --av: #{$blue-600};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--av) 14%, $white);
+  color: var(--av);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--av) 28%, transparent);
+  font-family: $font-display;
+  font-size: 0.72rem;
+  font-weight: $fw-bold;
+  letter-spacing: .02em;
+  margin-inline-end: 4px;
+
+  &[data-c="1"] { --av: #0d827a; }
+  &[data-c="2"] { --av: #2f6fb3; }
+  &[data-c="3"] { --av: #b26a00; }
+  &[data-c="4"] { --av: #7c3aed; }
+  &[data-c="5"] { --av: #be123c; }
+  &[data-c="6"] { --av: #0e6b3e; }
+  &[data-c="7"] { --av: #c2410c; }
+  &[data-c="8"] { --av: #0369a1; }
+}
+
+.hrms-cell-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  > svg {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    color: $blue-600;
+    opacity: .8;
   }
 }
 

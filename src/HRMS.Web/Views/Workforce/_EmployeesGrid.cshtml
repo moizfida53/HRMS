@@ -1,4 +1,4 @@
-﻿@inject ICurrentUser CurrentUser
+@inject ICurrentUser CurrentUser
 @model EmployeeGridViewModel
 @{
     var access = CurrentUser.EmployeeAccess();
@@ -20,13 +20,13 @@
                 <caption class="hrms-sr-only">@L["common.records_page_of", Model.PageNumber, Model.TotalPages]</caption>
                 <thead>
                     <tr>
-                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", EmployeeSortHeaderModel.For(Model, "EmployeeCode", "Code"))
-                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", EmployeeSortHeaderModel.For(Model, "FullName", "Employee"))
-                        <th scope="col">@L["common.department"]</th>
-                        <th scope="col">@L["emp.designation"]</th>
-                        <th scope="col" class="col-p3">@L["common.contact"]</th>
-                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", EmployeeSortHeaderModel.For(Model, "HireDate", "Hire Date", "col-p2"))
-                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", EmployeeSortHeaderModel.For(Model, "EmploymentStatus", "Status"))
+                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", EmployeeSortHeaderModel.For(Model, "EmployeeCode", "Code", icon: "id-card"))
+                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", EmployeeSortHeaderModel.For(Model, "FullName", "Employee", icon: "user"))
+                        <th scope="col"><span class="hrms-th-icon" aria-hidden="true">@Html.Icon("building", 12)</span>@L["common.department"]</th>
+                        <th scope="col"><span class="hrms-th-icon" aria-hidden="true">@Html.Icon("briefcase", 12)</span>@L["emp.designation"]</th>
+                        <th scope="col" class="col-p3"><span class="hrms-th-icon" aria-hidden="true">@Html.Icon("phone", 12)</span>@L["common.contact"]</th>
+                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", EmployeeSortHeaderModel.For(Model, "HireDate", "Hire Date", "col-p2", "calendar"))
+                        @await Html.PartialAsync("~/Views/Workforce/Partials/_SortHeader.cshtml", EmployeeSortHeaderModel.For(Model, "EmploymentStatus", "Status", icon: "step-check"))
                         <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
                     </tr>
                 </thead>
@@ -41,9 +41,18 @@
                             data-search="@(string.Join(" ", new[] { row.EmployeeCode, row.EmployeeNo, row.FullName, row.ArabicName, row.DepartmentName, row.DesignationName, row.WorkEmail, row.MobileNumber, row.EmploymentStatus }.Where(x => !string.IsNullOrWhiteSpace(x))).ToLowerInvariant())">
                             <td data-label="@L.Tr("Code")"><span class="hrms-code-chip">@(string.IsNullOrWhiteSpace(row.EmployeeCode) ? "—" : row.EmployeeCode)</span></td>
                             <td data-label="@L.Tr("Employee")">
-                                <a class="hrms-table__primary" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId">
-                                    @name
-                                </a>
+                                @{
+                                    // initials + a colour picked from the name (same name -> same colour on every page load)
+                                    var parts = (name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                                    var initials = parts.Length == 0 ? "?" : parts.Length == 1 ? parts[0][..1] : string.Concat(parts[0][..1], parts[^1][..1]);
+                                    var colour = (name ?? "").Sum(ch => (int)ch) % 8 + 1;
+                                }
+                                <span class="hrms-person">
+                                    <span class="hrms-initials" data-c="@colour" aria-hidden="true">@initials.ToUpperInvariant()</span>
+                                    <span class="hrms-person__body">
+                                    <a class="hrms-table__primary" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId">
+                                        @name
+                                    </a>
                                 @* db/98: an annual leave balance over 30 days (amber), over 60 (red - may be eliminated) *@
                                 @if (leave is { } big && big.Balance > HRMS.Domain.Leave.LeaveElimination.FlagOver)
                                 {
@@ -63,11 +72,13 @@
                                         @Html.Icon("alert", 13)<span class="emp-flag__count">@gap.MissingCount</span>
                                     </a>
                                 }
+                                    </span>
+                                </span>
                             </td>
-                            <td data-label="@L.Tr("Department")" class="hrms-muted">@(string.IsNullOrWhiteSpace(row.DepartmentName) ? "—" : row.DepartmentName)</td>
-                            <td data-label="@L.Tr("Designation")" class="hrms-muted">@(string.IsNullOrWhiteSpace(row.DesignationName) ? "—" : row.DesignationName)</td>
-                            <td data-label="@L.Tr("Contact")" class="hrms-muted col-p3">@(row.WorkEmail ?? row.MobileNumber ?? "—")</td>
-                            <td data-label="@L.Tr("Hire Date")" class="col-p2 col-date">@L.Date(row.HireDate)</td>
+                            <td data-label="@L.Tr("Department")" class="hrms-muted">@if (string.IsNullOrWhiteSpace(row.DepartmentName)) { <text>—</text> } else { <span class="hrms-cell-icon">@Html.Icon("building", 14)@row.DepartmentName</span> }</td>
+                            <td data-label="@L.Tr("Designation")" class="hrms-muted">@if (string.IsNullOrWhiteSpace(row.DesignationName)) { <text>—</text> } else { <span class="hrms-cell-icon">@Html.Icon("briefcase", 14)@row.DesignationName</span> }</td>
+                            <td data-label="@L.Tr("Contact")" class="hrms-muted col-p3">@if (row.WorkEmail is null && row.MobileNumber is null) { <text>—</text> } else { <span class="hrms-cell-icon">@Html.Icon(row.WorkEmail is not null ? "mail" : "phone", 14)@(row.WorkEmail ?? row.MobileNumber)</span> }</td>
+                            <td data-label="@L.Tr("Hire Date")" class="col-p2 col-date">@if (row.HireDate is null) { @L.Date(row.HireDate) } else { <span class="hrms-cell-icon">@Html.Icon("calendar", 14)@L.Date(row.HireDate)</span> }</td>
                             <td data-label="@L.Tr("Status")">@await Html.PartialAsync("~/Views/Workforce/Partials/_StatusBadge.cshtml", row.EmploymentStatus)</td>
                             <td class="hrms-table__actions">
                                 @* Actions: each opens the profile at the right place, or the Passport In / Out popup *@

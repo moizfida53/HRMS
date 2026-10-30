@@ -4,6 +4,10 @@
             class="hrms-table__sort @(Model.IsSorted ? "is-sorted" : null) @(Model.IsSorted && Model.IsDescending ? "is-sorted-desc" : null)"
             data-sort="@Model.Column"
             data-direction="@Model.NextDirection">
+        @if (!string.IsNullOrEmpty(Model.Icon))
+        {
+            <span class="hrms-th-icon" aria-hidden="true">@Html.Icon(Model.Icon, 12)</span>
+        }
         @L.Tr(Model.Label)
         @Html.Icon("sort", 12)
     </button>

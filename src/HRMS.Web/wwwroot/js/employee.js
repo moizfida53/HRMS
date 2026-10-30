@@ -372,7 +372,7 @@
             var out = [];
             var headers = Array.prototype.slice
                 .call(table.querySelectorAll("thead th"))
-                .map(function (th) { return th.textContent.trim(); })
+                .map(function (th) { return th.textContent.replace(/\s+/g, " ").trim(); })
                 .filter(function (text) { return text && text !== HRMS.t("js.actions", "Actions"); });
             out.push(headers);
 
@@ -382,7 +382,8 @@
                     .filter(function (td) { return !td.classList.contains("hrms-table__actions"); })
                     .map(function (td) {
                         var copy = td.cloneNode(true);
-                        copy.querySelectorAll(".emp-flag").forEach(function (f) { f.remove(); });
+                        // not data: the missing-fields flag and the initials avatar
+                        copy.querySelectorAll(".emp-flag, .hrms-initials, .hrms-th-icon").forEach(function (f) { f.remove(); });
                         return copy.textContent.replace(/\s+/g, " ").trim();
                     });
                 out.push(cells);

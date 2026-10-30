@@ -135,7 +135,9 @@ $tile: 32px;
     transform: translateX(2px);
     [dir="rtl"] & { transform: translateX(-2px); }
 
-    > svg:not(.hrms-nav-parent__chev) { background: $white; box-shadow: $shadow-xs; }
+    // the selected link keeps its teal tile (a white tile behind the white icon
+    // made the icon disappear on hover)
+    &:not(.is-active) > svg:not(.hrms-nav-parent__chev) { background: $white; box-shadow: $shadow-xs; color: $blue-700; }
   }
 
   &.is-active {
@@ -153,7 +155,8 @@ $tile: 32px;
       [dir="rtl"] & { border-radius: 3px 0 0 3px; }
     }
 
-    > svg:not(.hrms-nav-parent__chev) {
+    > svg:not(.hrms-nav-parent__chev),
+    &:hover > svg:not(.hrms-nav-parent__chev) {
       background: linear-gradient(135deg, $blue-500, $blue-700);
       color: $white;
       box-shadow: 0 4px 10px -4px rgba($blue-700, .6);

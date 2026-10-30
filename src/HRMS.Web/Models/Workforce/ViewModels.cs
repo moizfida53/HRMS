@@ -92,11 +92,15 @@ public sealed class EmployeeSortHeaderModel
     /// <summary>Extra class on the &lt;th&gt;, e.g. "col-p2" (column priority - see _responsive.scss).</summary>
     public string? CssClass { get; init; }
 
-    public static EmployeeSortHeaderModel For(EmployeeGridViewModel grid, string column, string label, string? cssClass = null) => new()
+    /// <summary>Optional column icon (IconHelper name) shown before the caption.</summary>
+    public string? Icon { get; init; }
+
+    public static EmployeeSortHeaderModel For(EmployeeGridViewModel grid, string column, string label, string? cssClass = null, string? icon = null) => new()
     {
         Column = column,
         Label = label,
         CssClass = cssClass,
+        Icon = icon,
         IsSorted = grid.IsSortedBy(column),
         IsDescending = grid.IsSortedBy(column) && grid.IsDescending,
         NextDirection = grid.NextDirection(column)
