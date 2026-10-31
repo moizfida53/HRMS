@@ -354,13 +354,13 @@ namespace HRMS.Web.Areas.Items.Controllers
                 DB.ExecuteStoredProcDataSet("sp_SaveMenuTheme", spSave);
 
                 // Also persist the selected layout to tbl_Brand (best-effort; the
-                // value is whitelisted to the 4 known designs before it hits SQL).
+                // value is whitelisted to the known designs before it hits SQL).
                 if (!string.IsNullOrEmpty(menuLayout))
                 {
                     try
                     {
                         string canonical = null;
-                        foreach (string a in new[] { "Design1", "Design2", "Design3", "Design4" })
+                        foreach (string a in new[] { "Design1", "Design2", "Design3", "Design4", "Design5", "Design6" })
                             if (a.Equals(menuLayout, StringComparison.OrdinalIgnoreCase)) { canonical = a; break; }
                         if (canonical != null)
                         {

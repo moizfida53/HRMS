@@ -81,6 +81,7 @@
     <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/root.css")" />
     <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/responsive-categories.css")" />
     <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/design5.css")" />
+    <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/design6.css")" />
     <link rel="stylesheet" type="text/css" href="@Asset.V("~/cssNew/offline-mode.css")" />
 
     <link rel="stylesheet" type="text/css" href="@Asset.V("~/Content/ItemView/TrackingOrder.css")" />
@@ -470,7 +471,7 @@
         <style id="dbMenuColors">@Html.Raw(ViewBag.MenuColorsCss)</style>
     }
 </head>
-<body class="@(ViewBag.DesignTheme == "Design5" ? "design5" : (ViewBag.DesignTheme == "Design1" ? "design1" : ""))">
+<body class="@(ViewBag.DesignTheme == "Design5" ? "design5" : (ViewBag.DesignTheme == "Design1" ? "design1" : "")) @(Convert.ToString(ViewBag.DesignVariant) == "Design6" ? "design6" : "")">
     @* Design5 splash: the brand's home-page image (tblBrand.BrandHomePageImage)
        fills the screen, assembling itself out of scattered pieces, then fades
        away after ~3s. Rendered inline as the first thing in <body> — not injected

@@ -2212,6 +2212,44 @@ function CreateCategoryHtmlAccordion(Category, selectedCategoryId) {
     //    OnCategoryClick(firstCAT_NUM, firstIsHaveSubCategory);
     //}
 }
+/* ---------------------------------------------------------------------------
+   Design6 - square category tiles (runs as Design2 everywhere else).
+   #hdnDesignVariant == "Design6" (set by ItemsViewNewController.ApplyDesignVariant).
+   --------------------------------------------------------------------------- */
+function IsDesign6() {
+    return $('#hdnDesignVariant').val() == "Design6";
+}
+
+function D6Escape(text) {
+    return String(text == null ? "" : text)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+// four diamonds in a 2 x 2 rhombus, drawn once and reused on every tile
+var D6_DIAMONDS_SVG =
+    '<svg class="d6-tile__diamonds" viewBox="0 0 100 100" aria-hidden="true" focusable="false">' +
+    '<polygon points="50,12 69,31 50,50 31,31" />' +
+    '<polygon points="69,31 88,50 69,69 50,50" />' +
+    '<polygon points="31,31 50,50 31,69 12,50" />' +
+    '<polygon points="50,50 69,69 50,88 31,69" />' +
+    '</svg>';
+
+function CreateCategoryTileDesign6(item, catname, index) {
+    var isArabic = $('#selectedLang').val() != "EN";
+    var name = D6Escape(catname);
+    return '<div id="Cat_' + item.CAT_NUM + '" onclick="OnCategoryClick(' + item.CAT_NUM + ',' + item.IsHaveSubCategory + ');"' +
+        ' data-val="' + name + '" data-text="' + index + '" class="col-6 col-sm-4 col-md-4 col-lg-6 pb-3 d6-col">' +
+        '<a class="d6-tile' + (isArabic ? ' d6-tile--ar' : '') + '" role="button" tabindex="0" aria-label="' + name + '"' +
+        ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.parentNode.click();}">' +
+        '<img class="d6-tile__img" src="../../ThumbnailImages/' + item.ImageName + '" alt="" loading="lazy" decoding="async">' +
+        D6_DIAMONDS_SVG +
+        '<span class="d6-tile__shade" aria-hidden="true"></span>' +
+        '<h3 class="d6-tile__name"' + (isArabic ? ' dir="rtl" lang="ar"' : '') + '>' + name + '</h3>' +
+        '</a>' +
+        '</div>';
+}
+
 function CreateCategoryHtml(Category) {
     var Mainstr = "";
     var cntcat = 0;
@@ -2229,6 +2267,12 @@ function CreateCategoryHtml(Category) {
             selectedCurrency = $('#hdnCurrencyArab').val();
         }
         var str = "";
+        if (IsDesign6()) {
+            // Design6: a square photo tile, four see-through diamonds over it, the
+            // name in the bottom corner (left in English, right in Arabic) - design6.css
+            str = CreateCategoryTileDesign6(item, catname, cntcat);
+        }
+        else {
         str = '<div id="Cat_' + item.CAT_NUM + '" onclick="OnCategoryClick(' + item.CAT_NUM + ',' + item.IsHaveSubCategory + ');" data-val="' + catname + '" data-text="' + cntcat + '" class="col-6 col-sm-4 col-md-4 col-lg-6 pb-4">' +
             '<a class="card-primary ml-1 mr-1" >' +
             '<img class="card-img-top img-responsive img-Category" src="../../ThumbnailImages/' + item.ImageName + '" alt="">' +
@@ -2237,6 +2281,7 @@ function CreateCategoryHtml(Category) {
             '</div>' +
             '</a>' +
             '</div>';
+        }
         Mainstr = Mainstr + str;
         cntcat = cntcat + 1;
 

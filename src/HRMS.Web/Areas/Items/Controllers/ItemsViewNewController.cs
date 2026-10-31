@@ -172,11 +172,32 @@ namespace HRMS.Web.Areas.Items.Controllers
                 ViewBag.DesignTheme = previewLayout;
                 ViewBag.WaiterLayout = previewLayout;
             }
+            ApplyDesignVariant();
             // Named explicitly: brand() delegates to this method, and in that case the
             // route's action name is "brand", so a parameterless View() would look for
             // Views/ItemsViewNew/brand.cshtml and fail.
             return View("Index");
         }
+        /// <summary>
+        /// Design6 (square category tiles with the four-diamond overlay) is Design2 in
+        /// every behaviour - item list, item details, cart, checkout - and differs only
+        /// in how the category page is drawn. So the page runs as Design2 and carries
+        /// ViewBag.DesignVariant = "Design6" (body class "design6", #hdnDesignVariant),
+        /// which only the category-list builder (CreateCategoryHtml) and design6.css read.
+        /// </summary>
+        private void ApplyDesignVariant()
+        {
+            ViewBag.DesignVariant = "";
+            foreach (var key in new[] { "DesignTheme", "WaiterLayout" })
+            {
+                if (string.Equals(Convert.ToString(ViewData[key]), "Design6", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (key == "DesignTheme") { ViewBag.DesignVariant = "Design6"; }
+                    ViewData[key] = "Design2";
+                }
+            }
+        }
+
         public ActionResult brand(string name, string to, string id = null, string previewLayout = null)
         {
             // The "Default" route maps the site root to this action with an empty {name},
@@ -304,6 +325,7 @@ namespace HRMS.Web.Areas.Items.Controllers
                 ViewBag.CallcWebServiceUrl = ConfigurationManager.AppSettings["CallCenterUrl"].ToString();
                 ViewBag.KNETPublicKey = ConfigurationManager.AppSettings["KNETPublicKey"].ToString();
                 ViewBag.KNETMerchantId = ConfigurationManager.AppSettings["KNETMerchantId"].ToString();
+                ApplyDesignVariant();
                 return View("Index");
             }
             return null;

@@ -1,0 +1,154 @@
+/* =============================================================================
+   design6.css  -  QR menu "Design6": square category tiles
+   -----------------------------------------------------------------------------
+   Design6 runs as Design2 in every respect (item list, item details, cart,
+   checkout); only the category page differs. Every rule is scoped under
+   body.design6 (set in Views/ItemsViewNew/Index.cshtml when the brand's Layout
+   is "Design6"), so Design1-5 are untouched.
+
+   A tile (built by CreateCategoryTileDesign6() in BindCartDetails.js):
+     .d6-col > a.d6-tile
+         img.d6-tile__img        the category photo, square, cover-cropped
+         svg.d6-tile__diamonds   four see-through diamonds over the photo
+         span.d6-tile__shade     a dark fade at the bottom, so the name reads
+         h3.d6-tile__name        bottom-left (English) / bottom-right (Arabic)
+
+   Colours: the name and the diamond lines are white; the card corners, gap and
+   shadow are the same on every brand. Nothing here depends on Menu Colors.
+   ========================================================================== */
+
+/* ---- grid: 2 per row on phones, 3 on tablets, 4 on desktop ---------------- */
+body.design6 #categoryList.responsive-category-grid {
+    margin-left: -6px;
+    margin-right: -6px;
+}
+
+body.design6 #categoryList .d6-col {
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-bottom: 12px;
+}
+
+@media (min-width: 992px) {
+    body.design6 #categoryList.responsive-category-grid {
+        margin-left: 0;
+        margin-right: 0;
+        gap: 18px;
+    }
+    body.design6 #categoryList .d6-col { padding: 0; }
+}
+
+/* ---- the tile --------------------------------------------------------------- */
+body.design6 .d6-tile {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border-radius: 18px;
+    background: #e9edec;                         /* while the photo loads */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .14), 0 1px 3px rgba(0, 0, 0, .08);
+    cursor: pointer;
+    text-decoration: none !important;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+/* browsers without aspect-ratio (old Safari): the padding trick keeps it square */
+@supports not (aspect-ratio: 1 / 1) {
+    body.design6 .d6-tile { height: 0; padding-bottom: 100%; }
+}
+
+body.design6 .d6-tile:hover,
+body.design6 .d6-tile:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, .18), 0 2px 4px rgba(0, 0, 0, .08);
+    outline: none;
+}
+
+body.design6 .d6-tile:focus-visible {
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px rgba(0, 0, 0, .55);
+}
+
+body.design6 .d6-tile:active { transform: scale(.98); }
+
+body.design6 .d6-tile__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .35s ease;
+}
+
+body.design6 .d6-tile:hover .d6-tile__img { transform: scale(1.04); }
+
+/* ---- the four diamonds: thin white lines, a whisper of white fill ---------- */
+body.design6 .d6-tile__diamonds {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 78%;
+    height: 78%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    overflow: visible;
+}
+
+body.design6 .d6-tile__diamonds polygon {
+    fill: rgba(255, 255, 255, .10);
+    stroke: rgba(255, 255, 255, .85);
+    stroke-width: .7;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+/* ---- legibility: a soft dark fade behind the name ---------------------------- */
+body.design6 .d6-tile__shade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 48%;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, .55) 100%);
+    pointer-events: none;
+}
+
+/* ---- the name: bottom-left in English, bottom-right in Arabic ---------------- */
+body.design6 .d6-tile__name {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    margin: 0;
+    color: #fff !important;
+    font-size: 1.15rem;
+    font-weight: 800;
+    line-height: 1.15;
+    text-align: left;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, .55);
+    letter-spacing: .01em;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+body.design6 .d6-tile--ar .d6-tile__name {
+    text-align: right;
+    direction: rtl;
+    font-size: 1.3rem;                          /* Arabic script reads smaller */
+}
+
+@media (min-width: 992px) {
+    body.design6 .d6-tile__name { font-size: 1.25rem; left: 16px; right: 16px; bottom: 14px; }
+    body.design6 .d6-tile--ar .d6-tile__name { font-size: 1.4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.design6 .d6-tile,
+    body.design6 .d6-tile__img { transition: none; }
+    body.design6 .d6-tile:hover,
+    body.design6 .d6-tile:hover .d6-tile__img { transform: none; }
+}

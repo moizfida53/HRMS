@@ -88,6 +88,8 @@
 
 @{ var categoryDisplay = "block";}
 <input type="hidden" id="hdnDesignName" value="@ViewBag.DesignTheme" />
+@* Design6 runs as Design2; this tells the category builder to draw the square tiles *@
+<input type="hidden" id="hdnDesignVariant" value="@ViewBag.DesignVariant" />
 @if (@ViewBag.DesignTheme == "Design3")
 {
     categoryDisplay = "none";

@@ -52,7 +52,7 @@
         <h4>Layout</h4>
         <div class="mc-layout-radios">
             @{ var curLayout = Convert.ToString(ViewBag.CurrentLayout); }
-            @foreach (var d in new[] { "Design1", "Design2", "Design3", "Design4" })
+            @foreach (var d in new[] { "Design1", "Design2", "Design3", "Design4", "Design5", "Design6" })
             {
                 <label class="mc-radio">
                     <input type="radio" name="menuLayout" value="@d" checked="@(curLayout == d ? "checked" : null)" />
@@ -242,7 +242,10 @@
                 'Design1': ['Header', 'Category page', 'Category (Design 1)', 'Items (Design 1)', 'Item details price', 'Item Popup (Design 1)'],
                 'Design2': ['Header', 'Category page', 'Item page', 'Product details', 'Item details price'],
                 'Design3': ['Header', 'Category page', 'Item page', 'Product details', 'Item details price'],
-                'Design4': ['Design 4']
+                'Design4': ['Design 4'],
+                // Design5 (carousel) and Design6 (square category tiles) use the Design2 pages
+                'Design5': ['Header', 'Category page', 'Item page', 'Product details', 'Item details price'],
+                'Design6': ['Header', 'Category page', 'Item page', 'Product details', 'Item details price']
             };
             var allowed = byLayout[layout] || byLayout['Design2'];
             $('[data-colorsection]').each(function () {
