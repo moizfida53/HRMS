@@ -71,6 +71,13 @@ public sealed record ApprovalItem(string Code, string TitleKey, string HintKey, 
 }
 
 /// <summary>
+/// An application on the launcher (/apps). A role sees the tile when it holds <see cref="Code"/>
+/// (System Administrator sees every tile). The tile only decides what is shown on /apps - each
+/// application still checks its own rights when it is opened.
+/// </summary>
+public sealed record AppItem(string Key, string Code, string Title, string Description, string Icon, string? Url, bool NewTab = false);
+
+/// <summary>
 /// The application's pages, their functions and approvals, and the permission codes the
 /// code checks for each (db/57 seeds them). Create Roles shows this catalog; saving a role
 /// turns the ticks into codes in Security.RolePermissions - the same codes sign-in loads and
@@ -190,13 +197,34 @@ public static class AccessCatalog
             "LEAVE_APPROVE_L1", "LEAVE_APPROVE_L2", "LEAVE_APPROVE_SELF")
     ];
 
+    /// <summary>
+    /// The launcher tiles (/apps), in the order shown. Security > Create Roles lists them under
+    /// "App access"; db/103 seeds the APP_* codes. A tile without an address is "Coming soon".
+    /// </summary>
+    public static readonly AppItem[] Apps =
+    [
+        new("hrms", "APP_HRMS", "HRMS", "Employees, leave, payroll, payslips and company setup.", "users", "/dashboard"),
+        new("pos", "APP_POS", "POS", "Dine-In tables, take away and online orders, payments and the order dashboard.", "card", "/POS/DineIn"),
+        new("onlineorder", "APP_ONLINE_ORDER", "Online Order", "The customer menu for taking online orders, for your brand and branch.", "cart", "/apps/online-order", NewTab: true),
+        new("assets", "APP_ASSETS", "Assets", "Company assets, who holds them and their history.", "box", "/assets"),
+        new("feedback", "APP_FEEDBACK", "Feedback", "Customer feedback from the QR menu, by question and branch.", "message", "/FeedBackReport/Index"),
+        new("menucolors", "APP_MENU_COLORS", "Menu Colors", "Menu design, colours and banner images, with a live preview.", "palette", "/MenuColors/Index"),
+        new("items", "APP_ITEMS", "Item Management", "Categories, items, modifiers, allergens and images.", "layers", "/Category/Index"),
+        new("printers", "APP_PRINTERS", "Printer Setup", "Kitchen and receipt printers of each branch.", "printer", "/POS/Print"),
+        new("settings", "APP_SETTINGS", "Settings", "Tab theme, slide shows and menu labels.", "tool", null),
+        new("security", "APP_SECURITY", "Security", "Roles, permissions, user accounts and the audit report.", "shield", "/security/roles"),
+        new("users", "APP_POS_USERS", "POS Users", "Restaurant staff: POS role, branches and POS password.", "user", "/POS/Users")
+    ];
+
+    public static AppItem? FindApp(string code) => Apps.FirstOrDefault(a => a.Code == code);
+
     public static IEnumerable<AccessItem> Pages => Modules.SelectMany(m => m.Pages);
 
     public static IEnumerable<AccessItem> AllItems => Pages.SelectMany(p => p.Children.Prepend(p));
 
     /// <summary>Every code the role screen manages - saving a role replaces exactly these.</summary>
     public static readonly IReadOnlyList<string> ManagedCodes =
-        AllItems.SelectMany(i => i.AllCodes).Concat(Approvals.SelectMany(a => a.AllCodes))
+        AllItems.SelectMany(i => i.AllCodes).Concat(Approvals.SelectMany(a => a.AllCodes)).Concat(Apps.Select(a => a.Code))
                 .Distinct(StringComparer.Ordinal).OrderBy(c => c, StringComparer.Ordinal).ToList();
 
     public static AccessItem? Find(string code) => AllItems.FirstOrDefault(i => i.Code == code);
@@ -206,9 +234,12 @@ public static class AccessCatalog
     /// (approval code -> "L1"/"L2"/"SELF"). A function only counts while its page is readable.
     /// </summary>
     public static IReadOnlyCollection<string> CodesFor(IReadOnlyDictionary<string, AccessLevel> levels,
-                                                       IReadOnlyDictionary<string, ISet<string>> approvals)
+                                                       IReadOnlyDictionary<string, ISet<string>> approvals,
+                                                       IEnumerable<string>? apps = null)
     {
         var codes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var app in apps ?? [])
+            if (FindApp(app) is { } a) codes.Add(a.Code);
         foreach (var page in Pages)
         {
             var pageLevel = levels.GetValueOrDefault(page.Code, AccessLevel.None);

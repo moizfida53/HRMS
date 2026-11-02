@@ -118,18 +118,20 @@ public sealed class SecurityController : Controller
             ChooseCompany = OwnCompany is null,
             Companies = OwnCompany is null ? await _lookups.GetAsync(LookupType.Company, cancellationToken: Ct) : Array.Empty<LookupItem>(),
             Levels = levels,
-            Approvals = approvals
+            Approvals = approvals,
+            Apps = AccessCatalog.Apps.Where(a => codes.Contains(a.Code)).Select(a => a.Code).ToHashSet(StringComparer.Ordinal)
         });
     }
 
     /// <summary>
-    /// Save a role: its details, the level ticked per page / function ("access" = ITEM:R|W|F)
-    /// and the approvals ticked ("approval" = APR:L1|L2|SELF).
+    /// Save a role: its details, the level ticked per page / function ("access" = ITEM:R|W|F),
+    /// the approvals ticked ("approval" = APR:L1|L2|SELF) and the launcher apps ticked ("app" = APP_*).
     /// </summary>
     [HttpPost("roles/save")]
     public async Task<IActionResult> SaveRole([FromForm(Name = "ref")] string? roleRef, [FromForm] string? roleCode, [FromForm] string? roleName,
                                               [FromForm] string? description, [FromForm] int? companyId, [FromForm] bool isActive,
-                                              [FromForm] string[]? access, [FromForm] string[]? approval)
+                                              [FromForm] string[]? access, [FromForm] string[]? approval,
+                                              [FromForm] string[]? app)
     {
         if (!Can(PermRoleEdit)) return Denied();
 
@@ -158,7 +160,7 @@ public sealed class SecurityController : Controller
             set.Add(parts[1]);
         }
 
-        var granted = new HashSet<string>(AccessCatalog.CodesFor(levels, approvals), StringComparer.Ordinal);
+        var granted = new HashSet<string>(AccessCatalog.CodesFor(levels, approvals, app), StringComparer.Ordinal);
         var leftAsWas = false;
         if (!IsSysAdmin)
         {

@@ -29,6 +29,10 @@ public sealed class RoleEditorModel
     public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
     public IReadOnlyDictionary<string, AccessLevel> Levels { get; init; } = new Dictionary<string, AccessLevel>();
     public IReadOnlyDictionary<string, ISet<string>> Approvals { get; init; } = new Dictionary<string, ISet<string>>();
+    /// <summary>The launcher apps (AccessCatalog.Apps codes) the role sees on /apps.</summary>
+    public ISet<string> Apps { get; init; } = new HashSet<string>();
+
+    public bool SeesApp(string code) => Apps.Contains(code);
 
     public AccessLevel LevelOf(string code) => Levels.GetValueOrDefault(code, AccessLevel.None);
     public bool Approves(string code, string column) => Approvals.TryGetValue(code, out var c) && c.Contains(column);

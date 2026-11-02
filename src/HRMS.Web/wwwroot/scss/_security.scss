@@ -432,3 +432,139 @@ $sec-full: $purple-700;
     .form-check-input { opacity: .7; }
   }
 }
+
+// ------------------------------------------------------------ app access ----
+// Security > Create Roles > App access: one tile per launcher app (/apps).
+// A ticked tile = the role sees that app; the description shows in a tooltip.
+// Native checkbox stays in the DOM (Bootstrap .btn-check) so keyboard and
+// screen readers work; the label is the tile.
+.sec-apps {
+  &__count {
+    padding: 0.35em 0.75em;
+    background: $blue-050;
+    color: $blue-700;
+    border: 1px solid $blue-200;
+    font-weight: $fw-semibold;
+
+    &.is-none { background: $line-100; color: $ink-500; border-color: $line-200; }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+    gap: space("3");
+    padding: space("4") space("5") space("5");
+    border-block-start: 1px solid $line-100;
+
+    @include cq-down("sm") {
+      grid-template-columns: repeat(auto-fill, minmax(6.75rem, 1fr));
+      gap: space("2");
+      padding: space("3") space("4") space("4");
+    }
+  }
+}
+
+.sec-app {
+  position: relative;
+  min-inline-size: 0;
+
+  &__tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: space("2");
+    block-size: 100%;
+    min-block-size: 6.5rem;
+    padding: space("3") space("2");
+    margin: 0;
+    background: $white;
+    border: 1.5px solid $line-200;
+    border-radius: $radius-lg;
+    color: $ink-700;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease, transform .15s ease;
+
+    &:hover { border-color: $blue-200; transform: translateY(-1px); box-shadow: 0 6px 16px rgba($navy-900, .06); }
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+    border-radius: $radius-md;
+    background: $line-100;
+    color: $ink-500;
+    transition: background-color .15s ease, color .15s ease;
+  }
+
+  &__name {
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  &__soon {
+    font-size: 0.6875rem;
+    font-weight: $fw-medium;
+    color: $ink-500;
+  }
+
+  // the tick in the corner
+  &__tick {
+    position: absolute;
+    inset-block-start: space("2");
+    inset-inline-end: space("2");
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+    border: 1.5px solid $line-200;
+    border-radius: 50%;
+    background: $white;
+    color: transparent;
+    transition: inherit;
+  }
+
+  // ticked
+  &__check:checked + &__tile {
+    border-color: $blue-600;
+    background: $blue-050;
+    color: $ink-900;
+
+    .sec-app__icon { background: $blue-600; color: $white; }
+    .sec-app__tick { border-color: $blue-600; background: $blue-600; color: $white; }
+  }
+
+  &__check:focus-visible + &__tile {
+    outline: 2px solid $blue-600;
+    outline-offset: 2px;
+  }
+
+  // read-only (system role / no edit right): the tiles show, but do not change
+  &__check:disabled + &__tile {
+    cursor: default;
+    opacity: 1;
+    transform: none;
+    box-shadow: none;
+  }
+  &__check:disabled:not(:checked) + &__tile { opacity: .6; }
+
+  @include cq-down("sm") {
+    &__tile { min-block-size: 5.75rem; padding: space("2"); }
+    &__icon { inline-size: 2.125rem; block-size: 2.125rem; }
+    &__name { font-size: $fs-xs; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sec-app__tile, .sec-app__icon { transition: none; }
+  .sec-app__tile:hover { transform: none; }
+}

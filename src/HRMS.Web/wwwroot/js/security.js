@@ -65,16 +65,26 @@
             });
         };
 
+        /* Bootstrap tooltips on the app tiles (the app's description on hover / focus) */
+        var tooltips = function (root, on) {
+            if (!window.bootstrap || !window.bootstrap.Tooltip) { return; }
+            $all('[data-bs-toggle="tooltip"]', root).forEach(function (el) {
+                if (on) { window.bootstrap.Tooltip.getOrCreateInstance(el, { customClass: "hrms-app-tooltip", container: "body" }); }
+                else { var t = window.bootstrap.Tooltip.getInstance(el); if (t) { t.dispose(); } }
+            });
+        };
+
         var load = function (ref) {
             current = ref || "";
             select(current);
+            tooltips(editor, false);
             editor.setAttribute("aria-busy", "true");
             editor.innerHTML = '<div class="hrms-card"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>';
             HRMS.postHtml(rolesPage.getAttribute("data-urls-panel"), fd({ ref: current || null })).then(function (html) {
                 editor.innerHTML = html;
                 editor.removeAttribute("aria-busy");
                 form = $("[data-sec-role-form]", editor);
-                if (form) { wireEditor(form); }
+                if (form) { wireEditor(form); tooltips(form, true); }
                 if (window.innerWidth < 992) { editor.scrollIntoView({ behavior: "smooth", block: "start" }); }
             }, function (error) {
                 editor.removeAttribute("aria-busy");
@@ -165,8 +175,18 @@
                 var pages = $all("tr.sec-row--page[data-sec-item]", matrix).filter(function (r) { return levelOf(r) > 0; }).length;
                 var fns = $all("tr.sec-row--fn", matrix).filter(function (r) { return levelOf(r) > 0; }).length;
                 var apr = $all('input[name="approval"]:checked', f).length;
+                appCount();
                 el.textContent = HRMS.t("js.sec_summary", "{0} pages · {1} functions · {2} approval rights")
                     .replace("{0}", pages).replace("{1}", fns).replace("{2}", apr);
+            };
+            /* app access (/apps): how many of the apps the role sees */
+            var appBoxes = $all('input[name="app"]', f);
+            var appCount = function () {
+                var el = $("[data-sec-apps-count]", f);
+                if (!el) { return; }
+                var n = appBoxes.filter(function (b) { return b.checked; }).length;
+                el.textContent = HRMS.t("js.sec_apps_count", "{0} of {1} apps").replace("{0}", n).replace("{1}", appBoxes.length);
+                el.classList.toggle("is-none", n === 0);
             };
             var dirty = function () {
                 f.setAttribute("data-dirty", "true");
@@ -213,7 +233,7 @@
                     dirty();
                     return;
                 }
-                if (t.closest(".sec-details") || t.name === "approval") { dirty(); }
+                if (t.closest(".sec-details") || t.name === "approval" || t.name === "app") { dirty(); }
             });
             f.addEventListener("input", function (e) { if (e.target.closest(".sec-details")) { dirty(); } });
 
@@ -233,6 +253,14 @@
                     var open = btns.some(function (b) { return b.getAttribute("aria-expanded") !== "true"; });
                     btns.forEach(function (b) { toggle(b, open); });
                     all.textContent = open ? HRMS.t("js.sec_collapse_all", "Collapse all") : HRMS.t("js.sec_expand_all", "Expand all");
+                    return;
+                }
+                var appsSet = e.target.closest("[data-sec-apps-set]");
+                if (appsSet) {
+                    if (readOnly) { return; }
+                    var allOn = appsSet.getAttribute("data-sec-apps-set") === "all";
+                    appBoxes.forEach(function (b) { b.checked = allOn; });
+                    dirty();
                     return;
                 }
                 var preset = e.target.closest("[data-sec-preset]");
@@ -322,6 +350,7 @@
                     if (lvl > 0) { body.append("access", row.getAttribute("data-sec-item") + ":" + KEYS[lvl - 1]); }
                 });
                 $all('input[name="approval"]:checked', f).forEach(function (a) { body.append("approval", a.value); });
+                appBoxes.forEach(function (a) { if (a.checked) { body.append("app", a.value); } });
 
                 var btn = $("[data-sec-save]", f);
                 busy(btn, true);

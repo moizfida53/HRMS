@@ -1,4 +1,4 @@
-@model IReadOnlyList<HRMS.Web.Controllers.LauncherController.AppTile>
+@model IReadOnlyList<HRMS.Web.Security.AppItem>
 @{
     Layout = null;
     var name = User.FindFirst(HrmsClaims.DisplayName)?.Value ?? User.Identity?.Name ?? "";
@@ -44,35 +44,54 @@
     <main class="container-xl hrms-launcher">
         <h1 class="hrms-launcher__title">@L.Tr("Choose an application")</h1>
 
-        @if (Model.Count == 0)
+        @if (ViewData["Notice"] is string notice)
         {
-            <div class="alert alert-info">Your account has no applications assigned yet. Ask an administrator to give your role access.</div>
+            <div class="alert alert-warning d-flex align-items-start gap-2" role="alert">@Html.Icon("info", 18)<span>@L.Tr(notice)</span></div>
         }
 
-        <div class="row g-3 g-lg-4 row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4">
+        @if (Model.Count == 0)
+        {
+            <div class="alert alert-info">@L.Tr("Your account has no applications assigned yet. Ask an administrator to give your role access.")</div>
+        }
+
+        @* Icon + name only; the description shows in a tooltip on hover / focus
+           (and stays readable to screen readers through aria-describedby). *@
+        <ul class="hrms-app-grid list-unstyled m-0" role="list">
             @foreach (var tile in Model)
             {
-                <div class="col">
+                var descId = $"app-desc-{tile.Key}";
+                var title = L.Tr(tile.Title);
+                var text = L.Tr(tile.Description);
+                <li class="hrms-app-grid__item">
                     @if (tile.Url is null)
                     {
-                        <div class="hrms-app-tile is-soon" data-app="@tile.Key" aria-disabled="true">
-                            <span class="hrms-app-tile__icon">@Html.Icon(tile.Icon, 28)</span>
-                            <span class="hrms-app-tile__name">@tile.Title</span>
-                            <span class="hrms-app-tile__text">@tile.Description</span>
-                            <span class="hrms-app-tile__badge">Coming soon</span>
-                        </div>
+                        <span class="hrms-app-tile is-soon" data-app="@tile.Key" aria-disabled="true" tabindex="0"
+                              data-bs-toggle="tooltip" data-bs-title="@text" aria-describedby="@descId">
+                            <span class="hrms-app-tile__icon" aria-hidden="true">@Html.Icon(tile.Icon, 30)</span>
+                            <span class="hrms-app-tile__name">@title</span>
+                            <span class="hrms-app-tile__badge">@L.Tr("Coming soon")</span>
+                        </span>
                     }
                     else
                     {
-                        <a class="hrms-app-tile" data-app="@tile.Key" href="@tile.Url">
-                            <span class="hrms-app-tile__icon">@Html.Icon(tile.Icon, 28)</span>
-                            <span class="hrms-app-tile__name">@tile.Title</span>
-                            <span class="hrms-app-tile__text">@tile.Description</span>
+                        <a class="hrms-app-tile" data-app="@tile.Key" href="@tile.Url"
+                           data-bs-toggle="tooltip" data-bs-title="@text" aria-describedby="@descId"
+                           target="@(tile.NewTab ? "_blank" : null)" rel="@(tile.NewTab ? "noopener" : null)">
+                            <span class="hrms-app-tile__icon" aria-hidden="true">@Html.Icon(tile.Icon, 30)</span>
+                            <span class="hrms-app-tile__name">@title</span>
+                            @if (tile.NewTab)
+                            {
+                                <span class="hrms-app-tile__ext" aria-hidden="true">@Html.Icon("external", 13)</span>
+                            }
                         </a>
                     }
-                </div>
+                    <span class="visually-hidden" id="@descId">@text</span>
+                </li>
             }
-        </div>
+        </ul>
     </main>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/launcher.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -3,8 +3,9 @@
 @model RoleEditorModel
 @{
     // The editor of one role: details, the access matrix (module > page > function, Read /
-    // Write / Full) and the approval rights. Ticks are posted as access=ITEM:R|W|F and
-    // approval=APR:L1|L2|SELF; AccessCatalog turns them into permission codes.
+    // Write / Full), the approval rights and the apps the role sees on /apps. Ticks are posted
+    // as access=ITEM:R|W|F, approval=APR:L1|L2|SELF and app=APP_*; AccessCatalog turns them
+    // into permission codes.
     var r = Model.Role;
     var ro = Model.ReadOnly;
     var levels = new[] { (AccessLevel.Read, "R", "sec.read"), (AccessLevel.Write, "W", "sec.write"), (AccessLevel.Full, "F", "sec.full") };
@@ -78,6 +79,45 @@
                     <textarea class="form-control" id="sec-role-desc" name="description" rows="2" maxlength="500" placeholder="@L["sec.description_hint"]">@r?.Description</textarea>
                 </div>
             </div>
+        </section>
+
+        @* ------------------------------------------------ app access (/apps) *@
+        <section class="hrms-card sec-access sec-apps" aria-labelledby="sec-apps-title" data-sec-apps>
+            <div class="sec-access__head">
+                <div>
+                    <h3 class="sec-card-title" id="sec-apps-title">@L["sec.app_access"]</h3>
+                    <p class="sec-card-sub">@L["sec.app_access_text"]</p>
+                </div>
+                <div class="sec-access__tools">
+                    <span class="sec-apps__count badge rounded-pill" data-sec-apps-count aria-live="polite"></span>
+                    <div class="btn-group btn-group-sm" role="group" aria-label="@L["sec.app_access"]">
+                        <button type="button" class="btn btn-outline-secondary" data-sec-apps-set="all">@L["sec.apps_all"]</button>
+                        <button type="button" class="btn btn-outline-secondary" data-sec-apps-set="none">@L["sec.apps_none"]</button>
+                    </div>
+                </div>
+            </div>
+            <div class="sec-apps__grid" role="group" aria-labelledby="sec-apps-title">
+                @foreach (var a in AccessCatalog.Apps)
+                {
+                    var id = $"sec-app-{a.Key}";
+                    <div class="sec-app">
+                        <input class="btn-check sec-app__check" type="checkbox" name="app" value="@a.Code" id="@id" autocomplete="off"
+                               checked="@Model.SeesApp(a.Code)" aria-describedby="@(id + "-desc")" />
+                        <label class="sec-app__tile" for="@id" data-app="@a.Key"
+                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="@L.Tr(a.Description)">
+                            <span class="sec-app__tick" aria-hidden="true">@Html.Icon("check", 12)</span>
+                            <span class="sec-app__icon" aria-hidden="true">@Html.Icon(a.Icon, 22)</span>
+                            <span class="sec-app__name">@L.Tr(a.Title)</span>
+                            @if (a.Url is null)
+                            {
+                                <span class="sec-app__soon">@L.Tr("Coming soon")</span>
+                            }
+                        </label>
+                        <span class="visually-hidden" id="@(id + "-desc")">@L.Tr(a.Description)</span>
+                    </div>
+                }
+            </div>
+            <p class="sec-footnote">@Html.Icon("info", 14)<span>@L["sec.app_access_note"]</span></p>
         </section>
 
         @* ------------------------------------------------ page access *@
