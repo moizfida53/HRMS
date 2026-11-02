@@ -30,7 +30,6 @@ public sealed class PayrollController : Controller
     private const string PermApproveHr = "PAYROLL_RUN_APPROVE_HR";
     private const string PermApproveFinance = "PAYROLL_RUN_APPROVE_FINANCE";
     private const string PermCancel = "PAYROLL_RUN_CANCEL";
-    private const string PermReopen = "PAYROLL_RUN_REOPEN";
     // Payroll Calendar & Pay Periods have their own rights (Security > Create Roles, "PR.CALENDAR");
     // creating and editing a calendar is one right (Write), deleting another (Full).
     private const string PermSetupView = "PAYROLL_CALENDAR_VIEW";
@@ -675,7 +674,6 @@ public sealed class PayrollController : Controller
             PageStage = pageStage,
             CanProcess = Can(PermProcess),
             CanCancel = Can(PermCancel) && run is { Stage: RunStage.Registered or RunStage.Validation or RunStage.AwaitingApproval },
-            CanReopen = Can(PermReopen) && run is { Stage: RunStage.Closed },
             Summary = run is null ? new PayrollRunSummary() : await _runs.SummaryAsync(run.PayrollRunId, Ct),
             History = run is null ? Array.Empty<PayrollRunHistoryEntry>() : await _runs.HistoryAsync(run.PayrollRunId, Ct),
             Components = run is { Stage: RunStage.Registered } ? await _runs.ComponentsAsync(run.PayrollRunId, Ct) : Array.Empty<PayComponentOption>(),
@@ -1151,8 +1149,11 @@ public sealed class PayrollController : Controller
         return Result(await _runs.RunActionAsync("CANCEL", run, UserId, comment: comment, cancellationToken: Ct));
     }
 
+    // A closed payroll is final: the bank file, journal and payslips are built from it, so it
+    // cannot be reopened (the route stays only to refuse old links / stale pages).
     [HttpPost("reopen")]
-    public Task<IActionResult> Reopen(long run, string? comment) => RunAction(run, PermReopen, "REOPEN", null, comment);
+    public IActionResult Reopen(long run, string? comment) =>
+        Json(ActionResponse.Failed("A closed payroll cannot be reopened.", "INVALID_STAGE"));
 
     [HttpPost("ack")]
     public async Task<IActionResult> Acknowledge(long run, long issueId, string? reason)

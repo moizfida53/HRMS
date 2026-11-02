@@ -145,8 +145,8 @@ public static class AccessCatalog
                 C("PAYROLL_RUN_VIEW"), C("PAYROLL_RUN_PROCESS"), No,
             [
                 new("PR.RUN_EXCLUDE", "sec.fn_run_exclude", null, No, C("PAYROLL_RUN_EXCLUDE"), No),
-                new("PR.RUN_CANCEL", "sec.fn_run_cancel", null, No, No, C("PAYROLL_RUN_CANCEL")),
-                new("PR.RUN_REOPEN", "sec.fn_run_reopen", null, No, No, C("PAYROLL_RUN_REOPEN"))
+                // a closed payroll is final - there is no reopen right any more
+                new("PR.RUN_CANCEL", "sec.fn_run_cancel", null, No, No, C("PAYROLL_RUN_CANCEL"))
             ]),
             new("PR.CALENDAR", "sec.pg_calendar", "sec.pg_calendar_hint",
                 C("PAYROLL_CALENDAR_VIEW"), C("PAYROLL_CALENDAR_EDIT"), C("PAYROLL_CALENDAR_DELETE")),

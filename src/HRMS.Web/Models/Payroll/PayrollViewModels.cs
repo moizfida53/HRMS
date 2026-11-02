@@ -255,7 +255,6 @@ public sealed class RunPageModel
     public int PageStage { get; init; }
     public bool CanProcess { get; init; }
     public bool CanCancel { get; init; }
-    public bool CanReopen { get; init; }
     /// <summary>1 or 2 when the user can take the next approval decision, else 0.</summary>
     public int CanApproveLevel { get; init; }
     public bool IsSelfApprovalBlocked { get; init; }
