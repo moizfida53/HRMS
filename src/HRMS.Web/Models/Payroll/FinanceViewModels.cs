@@ -114,6 +114,10 @@ public sealed class JournalDetailsModel
     public PayrollJournal? Journal { get; init; }
     public IReadOnlyList<JournalLine> Lines { get; init; } = Array.Empty<JournalLine>();
     public AccountingDefaults? Defaults { get; init; }
+    /// <summary>COMPANY or EMPLOYEE: the saved journal's mode, or the one chosen for the preview.</summary>
+    public string Mode { get; init; } = "COMPANY";
+    public bool ByEmployee => Mode == "EMPLOYEE";
+    public int EmployeeCount => Lines.Where(l => l.EmployeeId is not null).Select(l => l.EmployeeId).Distinct().Count();
 
     public decimal TotalDebit => Lines.Sum(l => l.Debit);
     public decimal TotalCredit => Lines.Sum(l => l.Credit);

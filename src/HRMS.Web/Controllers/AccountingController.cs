@@ -94,7 +94,7 @@ public sealed class AccountingController : PayrollFinanceControllerBase
     /// for a payroll with no journal yet (?run=), the preview of the one it would get.
     /// </summary>
     [HttpGet("journal/view")]
-    public async Task<IActionResult> JournalView(long? id, long? run)
+    public async Task<IActionResult> JournalView(long? id, long? run, string? mode)
     {
         var rights = Rights;
         if (!rights.CanView) return Forbid();
@@ -116,9 +116,12 @@ public sealed class AccountingController : PayrollFinanceControllerBase
         }
         if (journal is null && payroll is null) return NotFound();
 
+        // a saved journal keeps the mode it was made in; a preview shows the one chosen (default: company)
+        var entryMode = journal is not null ? journal.EntryMode
+                      : string.Equals(mode, "EMPLOYEE", StringComparison.OrdinalIgnoreCase) ? "EMPLOYEE" : "COMPANY";
         var lines = journal is not null
             ? await _finance.JournalLinesAsync(journal.JournalId, OwnCompany, CompanyCsv, Ct)
-            : await _finance.JournalPreviewAsync(run.Value, OwnCompany, CompanyCsv, Ct);
+            : await _finance.JournalPreviewAsync(run.Value, entryMode, OwnCompany, CompanyCsv, Ct);
         var companyId = journal?.CompanyId ?? payroll!.CompanyId;
 
         return PartialView("~/Views/Accounting/_JournalDetails.cshtml", new JournalDetailsModel
@@ -127,13 +130,14 @@ public sealed class AccountingController : PayrollFinanceControllerBase
             Run = payroll,
             Journal = journal,
             Lines = lines,
+            Mode = entryMode,
             Defaults = await _finance.DefaultsAsync(companyId, OwnCompany, CompanyCsv, Ct)
         });
     }
 
     [HttpPost("journal/create")]
-    public async Task<IActionResult> CreateJournal(long run) =>
-        Can(PermPost) ? Result(await _finance.CreateJournalAsync(run, OwnCompany, CompanyCsv, UserId, Ct)) : Denied();
+    public async Task<IActionResult> CreateJournal(long run, string? mode) =>
+        Can(PermPost) ? Result(await _finance.CreateJournalAsync(run, mode, OwnCompany, CompanyCsv, UserId, Ct)) : Denied();
 
     [HttpPost("journal/defaults")]
     public async Task<IActionResult> SaveDefaults(int companyId, string? accountCode, string? accountName) =>
@@ -154,16 +158,22 @@ public sealed class AccountingController : PayrollFinanceControllerBase
         }
 
         var csv = new StringBuilder();
-        CsvWriter.Row(csv, _l["prv.journal"], _l["fin.col_date"], _l["fin.col_line"], _l["prv.gl_account"], _l["prv.account_name"],
+        var byEmployee = journal.EntryMode == "EMPLOYEE";
+        // an entry-per-employee journal also names the employee; every journal names the payroll month-year
+        CsvWriter.Row(csv, _l["prv.journal"], _l["fin.col_date"], _l["fin.col_payroll_month"], _l["fin.col_line"],
+                      byEmployee ? _l["emp.employee_no"] : "", byEmployee ? _l["fin.col_employee"] : "",
+                      _l["prv.gl_account"], _l["prv.account_name"],
                       _l["prv.cost_center"], _l["prv.debit_kwd"], _l["prv.credit_kwd"], _l["fin.col_description"]);
         foreach (var l in lines)
         {
             CsvWriter.Row(csv, journal.JournalNo, journal.JournalDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                          l.LineNumber.ToString(CultureInfo.InvariantCulture), l.AccountCode, l.AccountName, l.CostCenterName,
+                          (l.PayrollMonth ?? journal.PayrollMonth ?? journal.RunMonth).ToString("yyyy-MM", CultureInfo.InvariantCulture),
+                          l.LineNumber.ToString(CultureInfo.InvariantCulture), l.EmployeeNo ?? "", l.EmployeeName ?? "",
+                          l.AccountCode, l.AccountName, l.CostCenterName,
                           l.Debit == 0 ? "" : l.Debit.ToString("0.000", CultureInfo.InvariantCulture),
                           l.Credit == 0 ? "" : l.Credit.ToString("0.000", CultureInfo.InvariantCulture), l.Description);
         }
-        CsvWriter.Row(csv, journal.JournalNo, "", "", "", _l["prv.total"], "",
+        CsvWriter.Row(csv, journal.JournalNo, "", "", "", "", "", "", _l["prv.total"], "",
                       lines.Sum(x => x.Debit).ToString("0.000", CultureInfo.InvariantCulture),
                       lines.Sum(x => x.Credit).ToString("0.000", CultureInfo.InvariantCulture), "");
         return CsvWriter.File(this, csv, journal.JournalNo + ".csv");

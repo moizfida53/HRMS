@@ -158,6 +158,9 @@ public sealed class PayrollJournal
     public int LineCount { get; set; }
     public int UnmappedCount { get; set; }
     public int ExportCount { get; set; }
+    /// <summary>COMPANY (one entry for the payroll) or EMPLOYEE (an entry per employee).</summary>
+    public string EntryMode { get; set; } = "COMPANY";
+    public DateTime? PayrollMonth { get; set; }
     public DateTime? ExportedDate { get; set; }
     public string? PostedReference { get; set; }
     public DateTime? PostedDate { get; set; }
@@ -182,6 +185,12 @@ public sealed class JournalLine
     public decimal Credit { get; set; }
     public bool IsUnmapped { get; set; }
     public string? Description { get; set; }
+    /// <summary>Set on an "entry for each employee" journal (db/105); null on a company entry.</summary>
+    public long? EmployeeId { get; set; }
+    public string? EmployeeNo { get; set; }
+    public string? EmployeeName { get; set; }
+    /// <summary>The payroll month-year the line belongs to (first day of the month).</summary>
+    public DateTime? PayrollMonth { get; set; }
 }
 
 /// <summary>Payroll.AccountingDefaults - the salaries payable account of a company.</summary>

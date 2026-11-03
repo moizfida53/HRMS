@@ -10901,6 +10901,48 @@ tr.pr-row-cancelled .hrms-code-chip {
   border-radius: 10px;
 }
 
+.fin-mode {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-block-end: 0.75rem;
+}
+.fin-mode__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #3a3f3d;
+}
+.fin-mode__hint {
+  font-size: 0.725rem;
+  color: #626d6b;
+}
+.fin-mode .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+@media (max-width: 575.98px) {
+  .fin-mode .btn-group {
+    flex: 1 1 100%;
+  }
+  .fin-mode .btn-group .btn {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+}
+
+.fin-row--group th {
+  position: sticky;
+  inset-block-start: 0;
+  background: #f3f9f8;
+  border-block: 1px solid #cde7e4;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #212322;
+  text-align: start;
+}
+
 .fin-view-actions {
   display: flex;
   align-items: center;

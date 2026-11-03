@@ -38,8 +38,9 @@ public interface IPayrollFinanceRepository
 
     // ------------------------------------------------------- accounting
     Task<IReadOnlyList<FinanceRun>> JournalRunsAsync(int? companyId, string? companyIds, int? year, DateTime? month, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<JournalLine>> JournalPreviewAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
-    Task<SaveResult> CreateJournalAsync(long runId, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default);
+    /// <param name="mode">COMPANY (one entry for the payroll) or EMPLOYEE (an entry for each employee).</param>
+    Task<IReadOnlyList<JournalLine>> JournalPreviewAsync(long runId, string? mode, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
+    Task<SaveResult> CreateJournalAsync(long runId, string? mode, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default);
     Task<PagedResult<PayrollJournal>> JournalsAsync(FinanceFilter filter, CancellationToken cancellationToken = default);
     Task<PayrollJournal?> JournalAsync(long id, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<JournalLine>> JournalLinesAsync(long id, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
@@ -259,17 +260,22 @@ public sealed class PayrollFinanceRepository : IPayrollFinanceRepository
         return _sql.QueryAsync<FinanceRun>(StoredProcedure.JournalManage, p, cancellationToken);
     }
 
-    public Task<IReadOnlyList<JournalLine>> JournalPreviewAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<JournalLine>> JournalPreviewAsync(long runId, string? mode, int? companyId, string? companyIds, CancellationToken cancellationToken = default)
     {
         var p = Env("PREVIEW", companyId, companyIds);
         p.Add("@RunId", runId, DbType.Int64);
+        p.Add("@Mode", JournalMode(mode), DbType.AnsiString, size: 10);
         return _sql.QueryAsync<JournalLine>(StoredProcedure.JournalManage, p, cancellationToken);
     }
 
-    public Task<SaveResult> CreateJournalAsync(long runId, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default)
+    private static string JournalMode(string? mode) =>
+        string.Equals(mode, "EMPLOYEE", StringComparison.OrdinalIgnoreCase) ? "EMPLOYEE" : "COMPANY";
+
+    public Task<SaveResult> CreateJournalAsync(long runId, string? mode, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default)
     {
         var p = Env("CREATE", companyId, companyIds);
         p.Add("@RunId", runId, DbType.Int64);
+        p.Add("@Mode", JournalMode(mode), DbType.AnsiString, size: 10);
         return RunAsync(StoredProcedure.JournalManage, p, userId, 0, cancellationToken);
     }
 

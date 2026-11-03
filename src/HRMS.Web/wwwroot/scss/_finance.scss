@@ -337,6 +337,35 @@
   border-radius: $radius-md;
 }
 
+// GL entry for: Company | Employee (the journal preview popup)
+.fin-mode {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: space("2") space("3");
+  margin-block-end: space("3");
+
+  &__label { font-size: $fs-sm; font-weight: $fw-semibold; color: $ink-700; }
+  &__hint { font-size: $fs-xs; color: $ink-500; }
+  .btn { display: inline-flex; align-items: center; gap: .35rem; }
+
+  @include down("sm") {
+    .btn-group { flex: 1 1 100%; .btn { flex: 1 1 0; justify-content: center; } }
+  }
+}
+
+// an employee's lines in an "entry for each employee" journal
+.fin-row--group th {
+  position: sticky;
+  inset-block-start: 0;
+  background: $blue-050;
+  border-block: 1px solid $blue-200;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  color: $ink-900;
+  text-align: start;
+}
+
 .fin-view-actions {
   display: flex;
   align-items: center;

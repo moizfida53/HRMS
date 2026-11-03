@@ -6,6 +6,8 @@
     var j = Model.Journal;
     var act = Model.Rights.CanAct;
     var balanced = Model.TotalDebit == Model.TotalCredit;
+    var byEmp = Model.ByEmployee;
+    var month = j?.PayrollMonth ?? j?.RunMonth ?? run!.RunMonth;
     var title = j is null ? L["fin.journal_preview"] + " · " + run?.RunCode : L["fin.journal_0", j.JournalNo];
 }
 <div data-fin-view-title hidden>@title</div>
@@ -32,6 +34,16 @@
         </dd>
     </div>
     <div>
+        <dt>@L["fin.entry_for"]</dt>
+        <dd>
+            <span class="hrms-badge hrms-badge--@(byEmp ? "purple" : "muted")"><span class="hrms-badge__dot"></span>@(byEmp ? L["fin.entry_employee"] : L["fin.entry_company"])</span>
+            @if (byEmp && Model.EmployeeCount > 0)
+            {
+                <span class="hrms-text-sm hrms-muted ms-1">@L["fin.entry_n_employees", Model.EmployeeCount]</span>
+            }
+        </dd>
+    </div>
+    <div>
         <dt>@L["fin.balance_check"]</dt>
         <dd><span class="hrms-badge hrms-badge--@(balanced ? "success" : "danger")"><span class="hrms-badge__dot"></span>@(balanced ? L["prv.balanced"] : L["fin.not_balanced"])</span></dd>
     </div>
@@ -49,12 +61,29 @@
     <div class="pr-banner pr-banner--info mb-3" role="note">@Html.Icon("undo", 18)<div><strong>@L["fin.jv_reversed"].</strong> @j.ReverseReason</div></div>
 }
 
+@if (j is null && run is not null)
+{
+    @* GL entry for the Company (one entry) or for each Employee: reloads the preview in that mode *@
+    <div class="fin-mode" role="radiogroup" aria-label="@L["fin.entry_for"]">
+        <span class="fin-mode__label">@L["fin.entry_for"]</span>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn @(byEmp ? "btn-outline-secondary" : "btn-primary")" role="radio" aria-checked="@(!byEmp ? "true" : "false")"
+                    data-fin-view="@Url.Action("JournalView", "Accounting", new { run = run.PayrollRunId, mode = "COMPANY" })"
+                    title="@L["fin.entry_company_hint"]">@Html.Icon("building", 14)<span>@L["fin.entry_company"]</span></button>
+            <button type="button" class="btn @(byEmp ? "btn-primary" : "btn-outline-secondary")" role="radio" aria-checked="@(byEmp ? "true" : "false")"
+                    data-fin-view="@Url.Action("JournalView", "Accounting", new { run = run.PayrollRunId, mode = "EMPLOYEE" })"
+                    title="@L["fin.entry_employee_hint"]">@Html.Icon("users", 14)<span>@L["fin.entry_employee"]</span></button>
+        </div>
+        <span class="fin-mode__hint">@(byEmp ? L["fin.entry_employee_hint"] : L["fin.entry_company_hint"])</span>
+    </div>
+}
+
 <div class="fin-view-actions">
     @if (j is null && act && run is not null && Model.Lines.Count > 0)
     {
         <button type="button" class="btn btn-sm btn-primary"
-                data-fin-action="@Url.Action("CreateJournal", "Accounting")" data-fin-extra='{"run":"@run.PayrollRunId"}'
-                data-fin-title="@L["fin.create_journal"]" data-fin-text="@L["fin.create_journal_text"]" data-fin-ok="@L["fin.create_journal"]">@Html.Icon("plus", 14)<span>@L["fin.create_journal"]</span></button>
+                data-fin-action="@Url.Action("CreateJournal", "Accounting")" data-fin-extra='{"run":"@run.PayrollRunId","mode":"@Model.Mode"}'
+                data-fin-title="@L["fin.create_journal"]" data-fin-text="@(byEmp ? L["fin.create_journal_employee_text"] : L["fin.create_journal_text"])" data-fin-ok="@L["fin.create_journal"]">@Html.Icon("plus", 14)<span>@L["fin.create_journal"]</span></button>
     }
     @if (j is not null)
     {
@@ -103,8 +132,20 @@ else
                 </tr>
             </thead>
             <tbody>
+                @{ long? lastEmp = null; var firstGroup = true; }
                 @foreach (var l in Model.Lines)
                 {
+                    if (byEmp && (firstGroup || l.EmployeeId != lastEmp))
+                    {
+                        firstGroup = false;
+                        lastEmp = l.EmployeeId;
+                        <tr class="fin-row--group">
+                            <th scope="rowgroup" colspan="5">
+                                <span class="font-monospace">@l.EmployeeNo</span> · @l.EmployeeName
+                                <span class="st-inforce ms-2">@L.MonthYear(l.PayrollMonth ?? month)</span>
+                            </th>
+                        </tr>
+                    }
                     <tr class="@(l.IsUnmapped ? "fin-row--warn" : null)">
                         <td data-label="@L["prv.gl_account"]" class="font-monospace">
                             @l.AccountCode
