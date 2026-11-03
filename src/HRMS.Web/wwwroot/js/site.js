@@ -1191,3 +1191,45 @@
         };
     };
 })();
+
+/* =============================================================================
+ * Pending approvals (db/110): the side alert listing what waits for the user's
+ * approval. Shown after sign-in and whenever the counts change; × closes it and
+ * it stays closed for the session until the counts change. The bell opens it again.
+ * ========================================================================== */
+(function () {
+    "use strict";
+    var box = document.querySelector("[data-approvals]");
+    var bell = document.querySelector("[data-approvals-open]");
+    var KEY = "hrms-approvals-closed";
+    var read = function () { try { return window.sessionStorage.getItem(KEY); } catch (e) { return null; } };
+    var write = function (v) { try { window.sessionStorage.setItem(KEY, v); } catch (e) { /* private mode */ } };
+
+    var show = function () {
+        if (!box) { return; }
+        box.hidden = false;
+        // next frame, so the slide-in plays
+        window.requestAnimationFrame(function () { box.classList.add("is-shown"); });
+    };
+    var hide = function () {
+        if (!box) { return; }
+        box.classList.remove("is-shown");
+        window.setTimeout(function () { box.hidden = true; }, 220);
+        write(box.getAttribute("data-sig") || "1");
+    };
+
+    if (box) {
+        if (read() !== box.getAttribute("data-sig")) { window.setTimeout(show, 400); }
+        box.querySelector("[data-approvals-close]").addEventListener("click", hide);
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !box.hidden) { hide(); } });
+    }
+    if (bell) {
+        bell.addEventListener("click", function () {
+            if (!box) {
+                if (window.HRMS && HRMS.toast) { HRMS.toast(bell.getAttribute("title") || "", "info"); }
+                return;
+            }
+            if (box.hidden) { show(); } else { hide(); }
+        });
+    }
+})();

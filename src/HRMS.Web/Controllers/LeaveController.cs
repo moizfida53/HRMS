@@ -684,8 +684,12 @@ public sealed class LeaveController : Controller
         return employees.Any(e => e.EmployeeId == employeeId);
     }
 
-    private IActionResult Result(SaveResult result) =>
-        Json(result.Success ? ActionResponse.Ok(result.Id, _text.Tr(result.Message)) : ActionResponse.Failed(_text.Tr(result.Message), result.ErrorCode));
+    private IActionResult Result(SaveResult result)
+    {
+        // a change may add or clear an approval: refresh the sidebar badges and the bell (db/110)
+        if (result.Success) HttpContext.RequestServices.GetService<HRMS.Web.Services.IPayrollNavCounts>()?.Invalidate();
+        return Json(result.Success ? ActionResponse.Ok(result.Id, _text.Tr(result.Message)) : ActionResponse.Failed(_text.Tr(result.Message), result.ErrorCode));
+    }
 
     private IActionResult Denied() => Json(ActionResponse.Failed("You do not have permission to do this.", "FORBIDDEN"));
 }

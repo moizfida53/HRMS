@@ -153,6 +153,10 @@ public sealed class PayrollNavCounts : IPayrollNavCounts
         }
     }
 
+    /// <summary>Expires with every Invalidate() - the approval counts (ApprovalNotifications) use it too.</summary>
+    internal static Microsoft.Extensions.Primitives.IChangeToken ChangeToken() =>
+        new Microsoft.Extensions.Primitives.CancellationChangeToken(Volatile.Read(ref _reset).Token);
+
     public void Invalidate()
     {
         var old = Interlocked.Exchange(ref _reset, new CancellationTokenSource());

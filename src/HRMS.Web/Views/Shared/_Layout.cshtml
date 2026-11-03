@@ -1,6 +1,8 @@
+@using Microsoft.AspNetCore.Html
 @inject ICurrentUser CurrentUser
 @inject ICompanyFilter CompanyFilter
 @inject HRMS.Web.Services.IPayrollNavCounts PayrollNavCounts
+@inject HRMS.Web.Services.IApprovalNotifications Approvals
 @inject Microsoft.Extensions.Options.IOptions<AuthenticationPolicyOptions> AuthPolicy
 @{
     var activeArea = ViewData["ActiveArea"] as string ?? "organization";
@@ -27,6 +29,13 @@
     // ViewData["Embed"]: the page is shown inside a popup frame (the Dashboard's date
     // alerts) - the sidebar and top bar are hidden (_layout.scss, .hrms-embed).
     var embed = ViewData["Embed"] is true;
+
+    // db/110: what waits for this user's approval - sidebar badges, the bell, the side alert
+    var approvals = embed ? HRMS.Web.Services.ApprovalSummary.Empty : await Approvals.GetAsync();
+    var apPayrollGroup = approvals.For("PAYROLL") + approvals.For("PAYITEM") + approvals.For("SETTLEMENT");
+    var apLeave = approvals.For("LEAVE");
+    IHtmlContent ApBadge(int n) => n <= 0 ? HtmlString.Empty : new HtmlString(
+        $"<span class=\"hrms-nav-approval\" title=\"{System.Net.WebUtility.HtmlEncode(L["ap.badge_title", n])}\" aria-label=\"{System.Net.WebUtility.HtmlEncode(L["ap.badge_title", n])}\">{n.ToString(System.Globalization.CultureInfo.InvariantCulture)}</span>");
 }
 <!DOCTYPE html>
 <html lang="@L.Lang" dir="@L.Dir" class="@(embed ? "hrms-embed" : null)">
@@ -184,7 +193,7 @@
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle @(openLeave ? null : "collapsed")" data-bs-toggle="collapse"
                         data-bs-target="#nav-leave" aria-expanded="@(openLeave ? "true" : "false")" aria-controls="nav-leave">
-                    <span>@L["layout.leave"]</span>@Html.Icon("chevron-down", 14)
+                    <span>@L["layout.leave"]</span>@ApBadge(apLeave)@Html.Icon("chevron-down", 14)
                 </button>
                 <div class="collapse hrms-nav-group__items @(openLeave ? "show" : null)" id="nav-leave">
                     @if (CurrentUser.EmployeeId is not null)
@@ -196,7 +205,7 @@
                     @if (canLeave)
                     {
                         <a class="hrms-nav-link @(openLeave && leavePage == "requests" ? "is-active" : null)" asp-controller="Leave" asp-action="Index">
-                            @Html.Icon("calendar")<span>@L["lv.leave_management"]</span>
+                            @Html.Icon("calendar")<span>@L["lv.leave_management"]</span>@ApBadge(apLeave)
                         </a>
                     }
                     @if (canLeaveBalances)
@@ -240,7 +249,7 @@
             <div class="hrms-nav-group">
                 <button type="button" class="hrms-nav-group__toggle @(openPayroll ? null : "collapsed")" data-bs-toggle="collapse"
                         data-bs-target="#nav-payroll" aria-expanded="@(openPayroll ? "true" : "false")" aria-controls="nav-payroll">
-                    <span>@L["layout.payroll"]</span>@Html.Icon("chevron-down", 14)
+                    <span>@L["layout.payroll"]</span>@ApBadge(apPayrollGroup)@Html.Icon("chevron-down", 14)
                 </button>
                 <div class="collapse hrms-nav-group__items @(openPayroll ? "show" : null)" id="nav-payroll">
                     @{ HRMS.Web.Services.PayrollNavCountsResult? navCounts = null; }
@@ -256,7 +265,7 @@
                         }
                         <a class="hrms-nav-link @(sectionActive ? "is-active" : null)"
                            href="@(Context.Request.PathBase + HRMS.Web.Models.Payroll.PayrollNav.Url(section.Tabs[0].Slug))">
-                            @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>
+                            @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@(ApBadge(section.Key == "payitems" ? approvals.For("PAYITEM") : section.Key == "settlement" ? approvals.For("SETTLEMENT") : 0))
                         </a>
                     }
                 </div>
@@ -506,9 +515,15 @@
                     </button>
                 </form>
 
-                <button type="button" class="hrms-icon-button" aria-label="@L["layout.notifications"]" title="@L["layout.notifications"]">
+                @* the bell: what waits for the user's approval; it opens the side alert again *@
+                <button type="button" class="hrms-icon-button hrms-bell" data-approvals-open aria-controls="approvals-alert"
+                        aria-label="@(approvals.Total > 0 ? L["ap.badge_title", approvals.Total] : L["layout.notifications"])"
+                        title="@(approvals.Total > 0 ? L["ap.badge_title", approvals.Total] : L["ap.none"])">
                     @Html.Icon("bell", 19)
-                    <span class="hrms-icon-button__dot" aria-hidden="true"></span>
+                    @if (approvals.Total > 0)
+                    {
+                        <span class="hrms-bell__count" aria-hidden="true">@(approvals.Total > 99 ? "99+" : approvals.Total.ToString(System.Globalization.CultureInfo.InvariantCulture))</span>
+                    }
                 </button>
             </div>
         </header>
@@ -603,6 +618,44 @@
 </div>
 
 <div class="hrms-toast-host" id="toast-host" role="status" aria-live="polite" aria-atomic="false"></div>
+
+@* db/110: side alert - the kinds of approval waiting for the user. Shown after sign-in and
+   whenever the counts change; × closes it (remembered for the session until they change). *@
+@if (approvals.Total > 0)
+{
+    <aside class="hrms-approvals" id="approvals-alert" data-approvals data-sig="@approvals.Signature" role="alertdialog"
+           aria-labelledby="approvals-title" aria-describedby="approvals-text" hidden>
+        <div class="hrms-approvals__head">
+            <span class="hrms-approvals__icon" aria-hidden="true">@Html.Icon("bell", 18)</span>
+            <div class="hrms-approvals__heading">
+                <strong id="approvals-title">@L["ap.title"]</strong>
+                <span id="approvals-text">@L["ap.text"]</span>
+            </div>
+            <button type="button" class="hrms-approvals__close" data-approvals-close aria-label="@L["ap.close"]" title="@L["ap.close"]">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <ul class="hrms-approvals__list">
+            @foreach (var a in approvals.Items)
+            {
+                <li>
+                    <a class="hrms-approvals__item" href="@(Context.Request.PathBase + a.Url)">
+                        <span class="hrms-approvals__kind-icon" aria-hidden="true">@Html.Icon(a.Icon, 16)</span>
+                        <span class="hrms-approvals__kind">
+                            <strong>@L[a.TitleKey]</strong>
+                            @if (a.Oldest is { } old)
+                            {
+                                <small>@L["ap.oldest", L.Date(old)]</small>
+                            }
+                        </span>
+                        <span class="hrms-approvals__count">@a.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
+                        @Html.Icon("chevron-right", 14)
+                    </a>
+                </li>
+            }
+        </ul>
+    </aside>
+}
 
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>

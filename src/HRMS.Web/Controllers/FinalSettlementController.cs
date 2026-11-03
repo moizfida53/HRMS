@@ -314,8 +314,12 @@ public sealed class FinalSettlementController : Controller
         return Result(await _settlements.ActionAsync(action, id, OwnCompany, CompanyCsv, UserId, new SettlementActionArgs { Comment = comment }, Ct));
     }
 
-    private IActionResult Result(Domain.Common.SaveResult result) =>
-        Json(result.Success ? ActionResponse.Ok(result.Id, result.Message) : ActionResponse.Failed(result.Message, result.ErrorCode));
+    private IActionResult Result(Domain.Common.SaveResult result)
+    {
+        // a change may add or clear an approval: refresh the sidebar badges and the bell (db/110)
+        if (result.Success) HttpContext.RequestServices.GetService<HRMS.Web.Services.IPayrollNavCounts>()?.Invalidate();
+        return Json(result.Success ? ActionResponse.Ok(result.Id, result.Message) : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
 
     private IActionResult Denied() =>
         Json(ActionResponse.Failed("You do not have permission to do this.", "FORBIDDEN"));

@@ -1,0 +1,197 @@
+// ============================================================================
+// Pending approvals (db/110): amber count badges in the sidebar, the count on
+// the bell, and the side alert after sign-in (closed with ×).
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ---- sidebar badge: records waiting for the user's approval -----------------
+.hrms-nav-approval {
+  flex: 0 0 auto;
+  min-width: 1.35rem;
+  margin-inline-start: auto;
+  padding: 1px 6px;
+  border-radius: $radius-pill;
+  background: $amber-600;
+  color: $white;
+  font-size: 0.68rem;
+  font-weight: $fw-bold;
+  line-height: 1.5;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px rgba($amber-600, .18);
+  letter-spacing: 0;
+  text-transform: none;
+
+  // next to the record count of a sub-section: a little gap, the count stays last
+  + .hrms-nav-count { margin-inline-start: 4px; }
+}
+
+// on a group heading (Leave, Payroll): pushed to the chevron
+.hrms-nav-group__toggle .hrms-nav-approval { margin-inline: auto 6px; }
+.hrms-nav-parent .hrms-nav-approval { margin-inline-end: 4px; }
+
+// icon rail (nav-mini): a dot on the icon instead of the number
+html.nav-mini:not(.nav-peek) .hrms-sidebar {
+  .hrms-nav-link { position: relative; }
+  .hrms-nav-link .hrms-nav-approval {
+    position: absolute;
+    top: 4px;
+    inset-inline-end: 6px;
+    display: block !important;
+    min-width: 0;
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    font-size: 0;
+    border: 2px solid $white;
+    box-shadow: none;
+  }
+}
+
+// ---- the bell --------------------------------------------------------------
+.hrms-bell__count {
+  position: absolute;
+  top: 2px;
+  inset-inline-end: 1px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: $radius-pill;
+  border: 2px solid $white;
+  background: $red-600;
+  color: $white;
+  font-size: 0.62rem;
+  font-weight: $fw-bold;
+  line-height: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+// ---- the side alert --------------------------------------------------------
+.hrms-approvals {
+  position: fixed;
+  z-index: 1080;
+  inset-block-start: 72px;
+  inset-inline-end: 16px;
+  width: min(360px, calc(100vw - 32px));
+  border: 1px solid $line-200;
+  border-inline-start: 4px solid $amber-600;
+  border-radius: $radius-lg;
+  background: $white;
+  box-shadow: 0 16px 40px rgba($navy-900, .16), 0 2px 6px rgba($navy-900, .06);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(24px);
+  transition: opacity .22s ease, transform .22s ease;
+
+  [dir="rtl"] & { transform: translateX(-24px); }
+  &.is-shown { opacity: 1; transform: none; }
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    gap: space("3");
+    padding: space("3") space("3") space("2") space("4");
+  }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba($amber-600, .12);
+    color: $amber-700;
+  }
+
+  &__heading {
+    flex: 1 1 auto;
+    min-width: 0;
+    strong { display: block; font-size: $fs-sm; color: $ink-900; }
+    span { display: block; font-size: $fs-xs; color: $ink-500; }
+  }
+
+  &__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    margin: -2px -4px 0 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: $ink-500;
+    cursor: pointer;
+    @include focus-ring;
+
+    &:hover { background: $line-100; color: $ink-900; }
+  }
+
+  &__list {
+    margin: 0;
+    padding: 0 space("2") space("2");
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: space("3");
+    padding: space("2") space("2");
+    border-radius: $radius-md;
+    color: $ink-900;
+    text-decoration: none;
+
+    &:hover, &:focus-visible { background: $blue-050; color: $ink-900; }
+    > svg:last-child { color: $ink-400; flex: none; [dir="rtl"] & { transform: scaleX(-1); } }
+  }
+
+  &__kind-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: $radius;
+    background: $blue-050;
+    color: $blue-600;
+  }
+
+  &__kind {
+    flex: 1 1 auto;
+    min-width: 0;
+    strong { display: block; font-size: $fs-sm; font-weight: $fw-semibold; }
+    small { display: block; font-size: $fs-xs; color: $ink-500; }
+  }
+
+  &__count {
+    flex: none;
+    min-width: 1.75rem;
+    padding: 1px 8px;
+    border-radius: $radius-pill;
+    background: $amber-600;
+    color: $white;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @include down("sm") {
+    inset-block-start: auto;
+    inset-block-end: 12px;
+    inset-inline: 12px;
+    width: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) { transition: none; transform: none; }
+}
+
+@media print { .hrms-approvals { display: none !important; } }

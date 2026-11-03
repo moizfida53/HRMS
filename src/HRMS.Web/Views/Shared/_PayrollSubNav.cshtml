@@ -1,7 +1,9 @@
 @using HRMS.Web.Models.Payroll
 @inject ICurrentUser CurrentUser
 @model (PayrollNav.Section Section, bool Active, HRMS.Web.Services.PayrollNavCountsResult? Counts)
+@inject HRMS.Web.Services.IApprovalNotifications Approvals
 @{
+    var apPayroll = (await Approvals.GetAsync()).For("PAYROLL");
     // A payroll section that opens in the sidebar into its pages (sub-sections), each with
     // its record count where it has one: Payroll Processing, Payslips, Bank Processing,
     // Accounting (under Payroll) and Payroll Settings (under Setup).
@@ -12,7 +14,10 @@
 <button type="button" class="hrms-nav-link hrms-nav-parent @(Model.Active ? "is-open" : "collapsed")"
         data-bs-toggle="collapse" data-bs-target="#@subId"
         aria-expanded="@(Model.Active ? "true" : "false")" aria-controls="@subId">
-    @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@Html.Icon("chevron-down", 14, "hrms-nav-parent__chev")
+    @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@if (section.Key == "processing" && apPayroll > 0)
+    {
+        <span class="hrms-nav-approval" title="@L["ap.badge_title", apPayroll]" aria-hidden="true">@apPayroll.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
+    }@Html.Icon("chevron-down", 14, "hrms-nav-parent__chev")
 </button>
 <div class="collapse hrms-nav-sub @(Model.Active ? "show" : null)" id="@subId">
     @foreach (var tab in section.Tabs)
@@ -39,6 +44,11 @@
            href="@(Context.Request.PathBase + PayrollNav.Url(tab.Slug))"
            aria-current="@(subActive ? "page" : null)">
             <span>@L.Tr(tab.Title)</span>
+            @if (tab.Slug == "payrolls" && apPayroll > 0)
+            {
+                @* db/110: payrolls waiting for this user's approval *@
+                <span class="hrms-nav-approval" title="@L["ap.badge_title", apPayroll]" aria-label="@L["ap.badge_title", apPayroll]">@apPayroll.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
+            }
             @if (count is { } n)
             {
                 <span class="hrms-nav-count @(n == 0 ? "is-zero" : null)" title="@title" aria-label="@title">@n.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>

@@ -134,6 +134,7 @@ public static class StoredProcedure
     /// <summary>Pay items from an Excel file - every row or none.</summary>
     public const string PayItemImport = "Payroll.usp_PayItem_Import";
     public const string SalaryItemsFromContract = "Payroll.usp_SalaryItems_FromContract";
+    public const string PendingApprovals = "Core.usp_PendingApprovals";
 
     // ---- Final Settlement (db/39-40) ----
 
