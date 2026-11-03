@@ -3,12 +3,13 @@
     ViewData["Title"] = "Create Payroll";
     ViewData["ActiveArea"] = "payroll";
     ViewData["PayrollSection"] = "processing";
-    ViewData["Subtitle"] = L["pr.create_a_payroll_in_four_steps"];
+    ViewData["Subtitle"] = L["pr.cr_three_steps"];
     // Each employee is paid by their own payroll calendar (db/60): one draft per calendar in use.
     var resume = Model.Resume;
     var first = resume.FirstOrDefault();
     var inv = System.Globalization.CultureInfo.InvariantCulture;
-    string[] steps = [L["pr.scope"], L["common.employees"], L["pr.check"], L["common.create"]];
+    // three steps: Check shows the summary and creates the payroll (registration completed at once)
+    string[] steps = [L["pr.scope"], L["common.employees"], L["pr.cr_check_create"]];
     var resumeJson = System.Text.Json.JsonSerializer.Serialize(resume.Select(r => new { runId = r.PayrollRunId, calendarId = r.PayrollCalendarId, periodId = r.PayrollPeriodId }));
 }
 @{
@@ -222,19 +223,19 @@
                 <div class="mt-3" data-excluded-slot></div>
             </div>
 
-            @* ===================================================== 3. check *@
+            @* ======================================== 3. check + create *@
             <div data-step-pane="2" hidden>
                 <h2 class="pr-card-title">3. @steps[2]</h2>
                 <div data-check-slot></div>
-            </div>
 
-            @* ==================================================== 4. create *@
-            <div data-step-pane="3" hidden>
-                <div class="text-center py-3">
-                    <h2 class="pr-card-title" data-cr-final-title>@L["pr.ready_to_create_the_payroll"]</h2>
-                    <p class="hrms-muted mb-1">@L["pr.the_payroll_is_created_as_registered_review_it_in_the_pa"]</p>
+                @* the payroll(s) Create makes, with their totals; Create completes the registration too *@
+                <div class="cr-final-wrap">
+                    <div class="cr-final-wrap__head">
+                        <h3 class="pr-card-title mb-1" data-cr-final-title>@L["pr.ready_to_create_the_payroll"]</h3>
+                        <p class="hrms-muted mb-0">@L["pr.cr_create_goes_to_validation"]</p>
+                    </div>
+                    <div class="cr-final" data-cr-final-list></div>
                 </div>
-                <div class="cr-final" data-cr-final-list></div>
             </div>
         </div>
     </div>
@@ -243,6 +244,7 @@
         <div class="pr-actionbar__status"><span data-cr-status>@L["pr.nothing_is_saved_until_you_press_next"]</span></div>
         <div class="pr-actionbar__spacer"></div>
         <button type="button" class="btn btn-outline-danger" data-cr-discard hidden>@Html.Icon("trash", 15)<span>@L["pr.cr_discard_drafts"]</span></button>
+        <button type="button" class="btn btn-outline-primary" data-cr-save>@Html.Icon("save", 15)<span>@L["pr.cr_save_draft"]</span></button>
         <button type="button" class="btn btn-outline-secondary" data-step-back disabled>@Html.Icon("chevron-left", 15)<span>@L["layout.back"]</span></button>
         <button type="button" class="btn btn-primary" data-step-next>@L["emp.next"]@Html.Icon("chevron-right", 15)</button>
         <button type="button" class="btn btn-primary" data-cr-finalize hidden>@Html.Icon("calculator", 15)<span data-cr-finalize-text>@L["pr.create_payroll_2"]</span></button>

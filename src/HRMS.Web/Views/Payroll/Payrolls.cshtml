@@ -13,6 +13,32 @@
     var stageOptions = new[] { RunStage.Registered, RunStage.Validation, RunStage.AwaitingApproval, RunStage.Closed, RunStage.Cancelled };
 }
 <div class="pr-stack" data-pr-page="payrolls">
+    @* saved drafts first (Create Payroll > Save draft): continue where you left off *@
+    @if (Model.DraftGroups.Count > 0)
+    {
+        <section class="hrms-card pr-drafts" aria-labelledby="pr-drafts-title">
+            <div class="pr-drafts__head">
+                <span class="pr-drafts__icon" aria-hidden="true">@Html.Icon("save", 18)</span>
+                <div>
+                    <h2 class="pr-card-title mb-0" id="pr-drafts-title">@L["pr.cr_saved_drafts"]</h2>
+                    <p class="hrms-muted hrms-text-sm mb-0">@L["pr.cr_saved_drafts_text"]</p>
+                </div>
+            </div>
+            <ul class="pr-drafts__list list-unstyled mb-0">
+                @foreach (var g in Model.DraftGroups)
+                {
+                    <li class="pr-drafts__item">
+                        <div class="pr-drafts__main">
+                            <strong>@L.MonthYear(g.RunMonth)</strong>
+                            <span class="hrms-badge hrms-badge--@(g.RunType == RunType.Regular ? "info" : "purple")"><span class="hrms-badge__dot"></span>@L.Tr(RunType.Label(g.RunType))</span>
+                            <span class="pr-drafts__meta">@string.Join(", ", g.Calendars) · @L["pr.saved_0", L.Date(g.LastSaved)]</span>
+                        </div>
+                        <a class="btn btn-sm btn-primary" href="@Url.Action("Create", "Payroll", new { drafts = string.Join(",", g.Ids) })">@Html.Icon("chevron-right", 14)<span>@L["pr.continue"]</span></a>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
     <section class="hrms-card" data-runs data-url="@Url.Action("RunsGrid", "Payroll")" data-mode="payrolls">
         <div class="hrms-card__toolbar">
             <div class="hrms-card__filters">

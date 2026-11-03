@@ -105,7 +105,9 @@ public sealed class PayrollController : Controller
             SelectedMonth = ParseMonth(month),
             SelectedStage = stage is null ? "LIVE" : stage,
             CanProcess = Can(PermProcess),
-            PayslipPending = slips == "pending"
+            PayslipPending = slips == "pending",
+            // saved drafts first, so work left in Create Payroll can be continued
+            DraftGroups = Can(PermProcess) ? await DraftGroupsAsync() : Array.Empty<DraftGroup>()
         });
     }
 
@@ -1044,8 +1046,26 @@ public sealed class PayrollController : Controller
     [HttpPost("draft-discard")]
     public Task<IActionResult> DraftDiscard(long run) => RunAction(run, PermProcess, "DISCARD");
 
+    /// <summary>
+    /// Create Payroll: the draft becomes the payroll AND its registration is completed in one go -
+    /// the checks were done while it was a draft (step 3), so it goes straight to Validation.
+    /// If the move to Validation is refused, the payroll stays created (Registered) and the reason is shown.
+    /// </summary>
     [HttpPost("finalize")]
-    public Task<IActionResult> FinalizeRun(long run) => RunAction(run, PermProcess, "FINALIZE");
+    public async Task<IActionResult> FinalizeRun(long run)
+    {
+        if (!Can(PermProcess)) return Denied();
+        if (await LoadRunAsync(run) is null) return Denied();
+
+        var created = await _runs.RunActionAsync("FINALIZE", run, UserId, cancellationToken: Ct);
+        if (!created.Success) return Result(created);
+
+        var moved = await _runs.RunActionAsync("SET_STAGE", run, UserId, RunStage.Validation, null, cancellationToken: Ct);
+        HttpContext.RequestServices.GetService<IPayrollNavCounts>()?.Invalidate();
+        return Json(ActionResponse.Ok(run, moved.Success
+            ? _text.Tr("Payroll created. Registration is complete - it is now in Validation.")
+            : $"{_text.Tr(created.Message)} {_text.Tr(moved.Message)}"));
+    }
 
     [HttpPost("recalc")]
     public Task<IActionResult> Recalc(long run) => RunAction(run, PermProcess, "RECALC");

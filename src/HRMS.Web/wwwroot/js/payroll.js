@@ -846,6 +846,7 @@
            calendar (db/60), so one draft payroll is made per calendar in use; steps 2-4
            work on one draft at a time (the switcher above the steps). */
         var u = function (name) { return page.getAttribute("data-urls-" + name); };
+        var LAST = 2;   // Scope, Employees, Check (+ create)
         var txt = $("[data-cr-text]");
         var T = function (name) { return txt.getAttribute("data-" + name) || ""; };
         var fmt = function (s) { var a = arguments; return s.replace(/\{(\d+)\}/g, function (m, i) { return a[+i + 1] !== undefined ? a[+i + 1] : m; }); };
@@ -856,7 +857,8 @@
             emptyText: $("[data-cr-plan-empty-text]"), hero: $("[data-cr-plan-hero]"), title: $("[data-cr-plan-title]"),
             unassigned: $("[data-cr-unassigned]"), unassignedText: $("[data-cr-unassigned-text]"), sw: $("[data-cr-switch]"),
             next: $("[data-step-next]"), back: $("[data-step-back]"), finalize: $("[data-cr-finalize]"),
-            finalizeText: $("[data-cr-finalize-text]"), discard: $("[data-cr-discard]"), finalList: $("[data-cr-final-list]")
+            finalizeText: $("[data-cr-finalize-text]"), discard: $("[data-cr-discard]"), finalList: $("[data-cr-final-list]"),
+            save: $("[data-cr-save]")
         };
         var resumeList = [];
         try { resumeList = JSON.parse(page.getAttribute("data-resume") || "[]"); } catch (e) { resumeList = []; }
@@ -1069,7 +1071,7 @@
                     (i === st.current ? "true" : "false") + '" data-cr-switch-to="' + i + '">' +
                     '<span class="cr-switch__name">' + HRMS.escape(d.name || "") + "</span>" +
                     '<span class="cr-switch__meta">' + HRMS.escape([d.period, d.code].filter(Boolean).join(" · ")) + "</span></button>";
-            }).join("") + (st.drafts.length > 1 && st.step < 3 ? '<span class="cr-switch__hint">' + HRMS.escape(T("switch-hint")) + "</span>" : "");
+            }).join("") + (st.drafts.length > 1 && st.step < LAST ? '<span class="cr-switch__hint">' + HRMS.escape(T("switch-hint")) + "</span>" : "");
         };
         el.sw.addEventListener("click", function (ev) {
             var b = ev.target.closest("[data-cr-switch-to]");
@@ -1094,6 +1096,7 @@
 
         var show = function (step) {
             st.step = step;
+            // the last step (Check) shows the summary and creates the payroll
             $all("[data-step-pane]").forEach(function (p) { p.hidden = parseInt(p.getAttribute("data-step-pane"), 10) !== step; });
             $all("[data-step-head]").forEach(function (h) {
                 var i = parseInt(h.getAttribute("data-step-head"), 10);
@@ -1105,14 +1108,14 @@
                     : String(i + 1);
             });
             el.back.disabled = step === 0;
-            el.next.hidden = step === 3;
-            el.finalize.hidden = step !== 3;
+            el.next.hidden = step === LAST;
+            el.finalize.hidden = step !== LAST;
             el.finalizeText.textContent = st.drafts.length > 1 ? fmt(T("create-n"), st.drafts.length) : T("create-one");
             renderSwitch();
             window.scrollTo({ top: 0, behavior: "smooth" });
         };
 
-        // step 4: every payroll that will be created, with its totals
+        // step 3 (under the check): every payroll that will be created, with its totals
         var renderFinal = function () {
             $("[data-cr-final-title]").textContent = st.drafts.length > 1 ? fmt(T("final-title-n"), st.drafts.length) : $("[data-cr-final-title]").textContent;
             el.finalList.innerHTML = st.drafts.map(function (d, i) {
@@ -1131,12 +1134,11 @@
             if (step === 1) {
                 return Promise.all([empGrid.reload(), refreshSide(runId(), "create")]).then(function () { show(1); });
             }
-            if (step === 2) {
-                return loadInto($("[data-check-slot]"), withQs(u("check"), { run: runId() })).then(function () { show(2); });
-            }
-            if (step === 3) {
-                show(3);
-                return renderFinal();
+            if (step === LAST) {
+                return loadInto($("[data-check-slot]"), withQs(u("check"), { run: runId() })).then(function () {
+                    show(LAST);
+                    return renderFinal();
+                });
             }
             show(step);
             return Promise.resolve();
@@ -1155,6 +1157,22 @@
             goStep(st.step + 1);
         });
         el.back.addEventListener("click", function () { if (st.step > 0) { goStep(st.step - 1); } });
+
+        // Save draft: everything entered is kept as a draft; Payrolls shows saved drafts first
+        el.save.addEventListener("click", function () {
+            var leave = function () {
+                HRMS.toast(HRMS.t("js.pr_draft_saved", "Draft saved. Continue it any time from Payrolls."), "success");
+                window.setTimeout(function () { window.location.href = u("payrolls"); }, 600);
+            };
+            if (st.step > 0 && st.drafts.length) { leave(); return; }   // steps 2-3 save as they go
+            if (!el.month.value) { showError("month", true); return; }
+            if (!readyGroups().length) { showError("plan", true); el.hero.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+            if (descRequired() && !el.desc.value.trim()) {
+                showError("desc", true); el.desc.classList.add("is-invalid"); el.desc.focus(); return;
+            }
+            busy(el.save, true);
+            saveDrafts().then(function (ok) { busy(el.save, false); if (ok) { leave(); } });
+        });
         document.addEventListener("click", function (ev) {
             var g = ev.target.closest("[data-goto-step]");
             if (g) { ev.preventDefault(); goStep(parseInt(g.getAttribute("data-goto-step"), 10)); return; }

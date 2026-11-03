@@ -279,6 +279,8 @@ public sealed class CalendarPageModel
     public int? SelectedCalendarId { get; init; }
     public int SelectedYear { get; init; }
     public bool CanSetup { get; init; }
+    /// <summary>Payrolls: the user's saved drafts (Create Payroll > Save draft), shown first.</summary>
+    public IReadOnlyList<DraftGroup> DraftGroups { get; init; } = Array.Empty<DraftGroup>();
 }
 
 /// <summary>Create Payroll, step 1: the month and type the payrolls are made for (create-drafts).</summary>

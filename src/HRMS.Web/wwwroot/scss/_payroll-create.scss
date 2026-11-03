@@ -307,3 +307,43 @@
   &__meta { color: $ink-500; font-size: $fs-sm; }
   &__state { margin-inline-start: auto; }
 }
+
+// ---------------------------------------------------------------------------
+// Step 3 (Check): the payroll(s) Create makes, under the check list
+// ---------------------------------------------------------------------------
+.cr-final-wrap {
+  margin-block-start: space("5");
+  padding-block-start: space("4");
+  border-block-start: 1px solid $line-200;
+
+  &__head { margin-block-end: space("3"); }
+}
+
+// Payrolls: the saved drafts, shown before the payroll list
+.pr-drafts {
+  padding: space("4") space("5");
+  border-color: $blue-200;
+  background: linear-gradient(180deg, $blue-050, $white 70%);
+
+  &__head { display: flex; align-items: flex-start; gap: space("3"); margin-block-end: space("3"); }
+  &__icon {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    inline-size: 2.25rem; block-size: 2.25rem; border-radius: $radius-md;
+    background: $blue-600; color: $white;
+  }
+  &__list { display: grid; gap: space("2"); }
+  &__item {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: space("2") space("3");
+    padding: space("3") space("4");
+    border: 1px solid $line-200; border-radius: $radius-md; background: $white;
+
+    .btn { display: inline-flex; align-items: center; gap: .3rem; }
+  }
+  &__main { display: flex; align-items: center; flex-wrap: wrap; gap: space("2"); min-inline-size: 0; }
+  &__meta { font-size: $fs-xs; color: $ink-500; }
+
+  @include down("sm") {
+    padding: space("3");
+    &__item .btn { flex: 1 1 100%; justify-content: center; }
+  }
+}
