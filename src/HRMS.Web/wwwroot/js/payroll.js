@@ -223,6 +223,19 @@
         }
 
         root.addEventListener("click", function (ev) {
+            // a click anywhere on an employee row ticks / unticks it (not only on the checkbox);
+            // buttons, links, fields and a text selection keep their own behaviour
+            var empRow = ev.target.closest("tr.pr-emp-row");
+            if (empRow && self.slot.contains(empRow)
+                && !ev.target.closest("a, button, input, select, textarea, label, [data-lines-toggle], [data-emp-include]")
+                && !(window.getSelection && String(window.getSelection()).length > 0)) {
+                var rowCheck = $("[data-emp-check]", empRow);
+                if (rowCheck && !rowCheck.disabled) {
+                    rowCheck.checked = !rowCheck.checked;
+                    rowCheck.dispatchEvent(new Event("change", { bubbles: true }));
+                    return;
+                }
+            }
             var pageBtn = ev.target.closest("[data-page]");
             if (pageBtn && self.slot.contains(pageBtn) && !pageBtn.disabled) {
                 self.state.page = parseInt(pageBtn.getAttribute("data-page"), 10) || 1;

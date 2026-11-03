@@ -7630,6 +7630,18 @@ tr.pr-row-cancelled .hrms-code-chip {
   background: #f3f9f8;
 }
 
+.pr-emp-table tr.pr-emp-row:not(.is-excluded) {
+  cursor: pointer;
+}
+
+.pr-emp-table tr.pr-emp-row:not(.is-excluded):hover > td {
+  background: #f8fbfa;
+}
+
+.pr-emp-table tr.pr-emp-row.is-selected:hover > td {
+  background: #eaf4f2;
+}
+
 .pr-emp-table tr.pr-emp-row.is-missing .hrms-table__primary {
   color: var(--hrms-red-700, #b42318);
 }

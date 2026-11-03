@@ -326,6 +326,10 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
 .pr-emp-table td.pr-sel, .pr-emp-table th.pr-sel { width: 2.25rem; padding-inline-end: 0; }
 .pr-emp-table tr.pr-emp-row.is-open > td { background: var(--hrms-blue-050); border-block-end-color: transparent; }
 .pr-emp-table tr.pr-emp-row.is-selected > td { background: #f3f9f8; }
+// the whole row is clickable to select it (payroll.js); excluded rows have no checkbox
+.pr-emp-table tr.pr-emp-row:not(.is-excluded) { cursor: pointer; }
+.pr-emp-table tr.pr-emp-row:not(.is-excluded):hover > td { background: #f8fbfa; }
+.pr-emp-table tr.pr-emp-row.is-selected:hover > td { background: #eaf4f2; }
 .pr-emp-table tr.pr-emp-row.is-missing .hrms-table__primary { color: var(--hrms-red-700, #b42318); }
 .pr-days { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pr-emp-flag { display: block; margin-top: .2rem; }
