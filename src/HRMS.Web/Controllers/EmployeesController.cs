@@ -64,8 +64,10 @@ public sealed class EmployeesController : Controller
         IAssetRepository assets,
         IEmployeeProfileRepository profile,
         ILeaveRepository leave,
+        IPayItemRepository payItems,
         ILogger<EmployeesController> logger)
     {
+        _payItems = payItems;
         _profile = profile;
         _leave = leave;
         _assets = assets;
@@ -92,6 +94,7 @@ public sealed class EmployeesController : Controller
     private readonly IAssetRepository _assets;
     private readonly IEmployeeProfileRepository _profile;
     private readonly ILeaveRepository _leave;
+    private readonly IPayItemRepository _payItems;
 
     /// <summary>The list shows annual leave balances to users who may see leave balances (db/98).</summary>
     private bool ShowLeave => _currentUser.CanOpen("leave:balances");
@@ -774,6 +777,18 @@ public sealed class EmployeesController : Controller
                     message = $"{message} Annual leave could not be saved.";
                 }
             }
+        }
+
+        // db/107: the contract's salary + allowances become the salary pay items (new joiner, or a
+        // contract salary filled in for the first time) - the payroll is built on them
+        try
+        {
+            await _payItems.SalaryFromContractAsync(employeeId, _currentUser.UserId, Ct);
+        }
+        catch (Exception ex)
+        {
+            // db/107 not run yet: the payroll still creates them when it is calculated
+            _logger.LogWarning(ex, "Salary items of employee {EmployeeId} could not be created from the contract (run db/107).", employeeId);
         }
 
         // audit: the record as the database now holds it, against the one before the save

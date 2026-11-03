@@ -42,6 +42,11 @@ public interface IPayItemRepository
                                  CancellationToken cancellationToken = default);
     Task<PayItemImportResult> ImportAsync(IReadOnlyList<PayItemImportRow> rows, int? companyId, string? companyIds, long? userId,
                                           CancellationToken cancellationToken = default);
+    /// <summary>
+    /// db/107: the contract's basic salary and allowances become the employee's salary pay items
+    /// when they have none yet. Returns the number of items created.
+    /// </summary>
+    Task<int> SalaryFromContractAsync(long employeeId, long? userId, CancellationToken cancellationToken = default);
 }
 
 public sealed class PayItemRepository : IPayItemRepository
@@ -152,6 +157,16 @@ public sealed class PayItemRepository : IPayItemRepository
         p.Add("@UserId", userId, DbType.Int64);
         await _sql.ExecuteAsync(StoredProcedure.PayItemManage, p, cancellationToken).ConfigureAwait(false);
         return PayrollRunRepository.ReadResult(p, id);
+    }
+
+    public async Task<int> SalaryFromContractAsync(long employeeId, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = new DynamicParameters();
+        p.Add("@EmployeeId", employeeId, DbType.Int64);
+        p.Add("@UserId", userId, DbType.Int64);
+        p.Add("@Created", dbType: DbType.Int32, direction: ParameterDirection.Output);
+        await _sql.ExecuteAsync(StoredProcedure.SalaryItemsFromContract, p, cancellationToken).ConfigureAwait(false);
+        return p.Get<int?>("@Created") ?? 0;
     }
 
     public async Task<PayItemImportResult> ImportAsync(IReadOnlyList<PayItemImportRow> rows, int? companyId, string? companyIds, long? userId,
