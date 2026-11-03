@@ -1332,18 +1332,28 @@
             var empOpt = empSel && empSel.options[empSel.selectedIndex];
             var company = empOpt ? empOpt.getAttribute("data-company") : null;
 
-            // item types of this class and of the employee's company
+            // item types of this class and of the employee's company. Each company has its own types
+            // (the same names), so nothing is offered until an employee - and so a company - is chosen.
             var typeSel = $("[data-pi-type]", root);
+            if (!typeSel.hasAttribute("data-pi-type-state")) {
+                // disabled by the server = a locked / revised / salary item: it stays as it is
+                typeSel.setAttribute("data-pi-type-state", typeSel.disabled ? "locked" : "free");
+            }
+            var typeFree = typeSel.getAttribute("data-pi-type-state") === "free";
+            var noEmployee = !company;
+            if (typeFree) { typeSel.disabled = noEmployee; }
             var firstOk = null;
             Array.prototype.forEach.call(typeSel.options, function (o) {
                 var c = o.getAttribute("data-cls");
                 if (!c) { return; }
-                var ok = c === cls && (!company || o.getAttribute("data-company") === company);
-                o.hidden = !ok; o.disabled = !ok && !typeSel.disabled;
+                var ok = !!company && c === cls && o.getAttribute("data-company") === company;
+                o.hidden = !ok; o.disabled = !ok && typeFree;
                 if (ok && !firstOk) { firstOk = o; }
             });
             var cur = typeSel.options[typeSel.selectedIndex];
-            if (!typeSel.disabled && (!cur || cur.hidden)) { typeSel.value = firstOk ? firstOk.value : ""; }
+            if (typeFree && (noEmployee || !cur || cur.hidden)) { typeSel.value = noEmployee ? "" : firstOk ? firstOk.value : ""; }
+            var typeHint = $("[data-pi-type-hint]", root);
+            if (typeHint) { typeHint.hidden = !(typeFree && noEmployee); }
 
             // applies: instalments only for deductions
             var appliesSel = $("[data-pi-applies]", root);

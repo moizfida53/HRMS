@@ -92,6 +92,7 @@ else if (i?.IsPending == true)
                 <option value="@t.PayComponentId" data-cls="@t.ItemClass" data-company="@t.CompanyId" selected="@(t.PayComponentId == i?.PayComponentId)">@PayItemFormat.TypeName(L, t.ComponentName, t.ArabicName)</option>
             }
         </select>
+        <span class="form-text" data-pi-type-hint hidden>@L["pi.select_employee_first"]</span>
     </div>
 
     @* amount: salary, earnings, deductions (a loan's instalment is calculated) *@

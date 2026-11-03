@@ -24,6 +24,7 @@ FROM  (VALUES
         ('pi.ref_earlier_n', 'pi', N'Earlier items ({0})', N'بنود سابقة ({0})', NULL),
         ('pi.ref_focus_current', 'pi', N'{0} - current', N'{0} - الحالي', NULL),
         ('pi.ref_focus_before', 'pi', N'{0} - before (not in force now)', N'{0} - سابقاً (غير سارٍ الآن)', NULL),
+        ('pi.select_employee_first', 'pi', N'Select the employee first - the item types are those of their company.', N'اختر الموظف أولاً - أنواع البنود هي الخاصة بشركته.', NULL),
         ('pi.ref_focus_none', 'pi', N'{0} - none yet for this employee', N'{0} - لا يوجد بعد لهذا الموظف', NULL)
       ) AS s (LabelKey, Module, EnglishText, ArabicText, SourceText)
 WHERE NOT EXISTS (SELECT 1 FROM [Core].[UiLabels] AS l WHERE l.LabelKey = s.LabelKey COLLATE DATABASE_DEFAULT AND l.Deleted = 0);
