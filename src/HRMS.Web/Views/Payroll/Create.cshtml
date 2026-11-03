@@ -152,6 +152,17 @@
                         <summary>@L["pr.cr_plan_details"]</summary>
                         <div class="cr-plan__list" data-cr-plan-list role="list"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
                     </details>
+                    @* a draft already saved for this company and month: continue or discard it first *@
+                    <div class="pr-banner pr-banner--err mt-2" data-cr-draft-block role="alert" hidden>
+                        @Html.Icon("lock", 18)
+                        <div class="flex-grow-1">
+                            <div data-cr-draft-block-text></div>
+                            <div class="mt-2 d-flex gap-2 flex-wrap">
+                                <a class="btn btn-sm btn-primary" href="#" data-cr-draft-continue>@L["pr.continue"]</a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-cr-draft-discard>@L["pr.cr_discard_drafts"]</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="pr-banner pr-banner--info mt-2" data-cr-plan-empty hidden>@Html.Icon("info", 18)<div data-cr-plan-empty-text>@L["pr.cr_no_calendar_in_month"]</div></div>
                     <div class="pr-banner pr-banner--lock mt-2" data-cr-unassigned hidden>@Html.Icon("alert", 18)<div data-cr-unassigned-text></div></div>
                     <span class="field-validation-error" data-cr-error="plan" hidden>@L["pr.cr_nothing_to_create"]</span>

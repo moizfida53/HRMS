@@ -5,7 +5,9 @@
    three steps - Scope, Employees, Check & create. "Create payroll" on the
    Check step creates the payroll AND completes its registration (straight
    to Validation). "Save draft" keeps the work; Payrolls shows saved drafts
-   first so they can be continued.
+   first so they can be continued. Only one set of drafts per company and
+   month: another payroll for that month cannot be started until the saved
+   draft is continued or discarded.
    ===================================================================== */
 SET NOCOUNT ON;
 GO
@@ -19,6 +21,8 @@ FROM  (VALUES
         ('pr.cr_saved_drafts', 'pr', N'Saved drafts', N'المسودات المحفوظة', NULL),
         ('pr.cr_saved_drafts_text', 'pr', N'Payrolls you started in Create Payroll - continue where you left off.', N'مسيرات بدأتها في إنشاء المسير - تابع من حيث توقفت.', NULL),
         ('js.pr_draft_saved', 'js', N'Draft saved. Continue it any time from Payrolls.', N'تم حفظ المسودة. يمكنك متابعتها في أي وقت من صفحة المسيرات.', NULL),
+        ('pr.cr_draft_exists', 'pr', N'A draft payroll for {0} - {1} is already saved (last saved {2} by {3}). Continue it, or discard it before creating another payroll for this month.', N'توجد مسودة مسير رواتب محفوظة لـ {0} - {1} (آخر حفظ {2} بواسطة {3}). تابعها أو احذفها قبل إنشاء مسير آخر لهذا الشهر.', NULL),
+        ('pr.cr_another_user', 'pr', N'another user', N'مستخدم آخر', NULL),
         ('msg.pr_created_to_validation', 'msg', N'Payroll created. Registration is complete - it is now in Validation.', N'تم إنشاء المسير. اكتمل التسجيل - وهو الآن في مرحلة التدقيق.', N'Payroll created. Registration is complete - it is now in Validation.')
       ) AS s (LabelKey, Module, EnglishText, ArabicText, SourceText)
 WHERE NOT EXISTS (SELECT 1 FROM [Core].[UiLabels] AS l WHERE l.LabelKey = s.LabelKey COLLATE DATABASE_DEFAULT AND l.Deleted = 0);

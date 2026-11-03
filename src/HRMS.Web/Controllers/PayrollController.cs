@@ -386,7 +386,7 @@ public sealed class PayrollController : Controller
     /// employees are assigned to, with the period worked out (not chosen by the user).
     /// </summary>
     [HttpGet("create-plan")]
-    public async Task<IActionResult> CreatePlan(int companyId, string? month, string? type, string? frequency)
+    public async Task<IActionResult> CreatePlan(int companyId, string? month, string? type, string? frequency, string? drafts)
     {
         if (!Can(PermProcess)) return Forbid();
         if (!MayCreateFor(companyId)) return Forbid();
@@ -439,8 +439,39 @@ public sealed class PayrollController : Controller
             hasWeekly = plan.HasWeekly,
             otherEmployees = plan.OtherFrequencyEmployees,
             nextSeq = code?.NextSeq ?? 1,
-            nextCode = code?.RunCode
+            nextCode = code?.RunCode,
+            // a draft already saved for this company and month blocks a new payroll until it is discarded
+            draft = await OpenDraftAsync(companyId, selected, ParseRunIds(drafts)) is { } open
+                ? new
+                {
+                    ids = string.Join(",", open.Ids),
+                    url = Url.Action(nameof(Create), new { drafts = string.Join(",", open.Ids) }),
+                    message = open.Message
+                }
+                : null
         });
+    }
+
+    /// <summary>
+    /// The draft payroll(s) already saved for a company and month - by anyone - other than the
+    /// ones being worked on (<paramref name="mine"/>). Only one set of drafts per company and month:
+    /// it must be continued or discarded before another payroll is started for that month.
+    /// </summary>
+    private async Task<(IReadOnlyList<long> Ids, string Message)?> OpenDraftAsync(int companyId, DateTime month, IReadOnlyCollection<long> mine)
+    {
+        var drafts = await _runs.DraftsAsync(companyId, null, null, Ct);
+        var found = new List<(PayrollRun Run, DateTime Saved)>();
+        foreach (var d in drafts.Where(d => d.CompanyId == companyId && !mine.Contains(d.PayrollRunId)).Take(30))
+        {
+            if (await _runs.GetAsync(d.PayrollRunId, Ct) is { } r && r.Stage == RunStage.Draft && r.RunMonth == month) found.Add((r, d.LastSaved));
+        }
+        if (found.Count == 0) return null;
+
+        var last = found.Max(x => x.Saved);
+        var by = found.Select(x => x.Run.CreatedByName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));
+        var message = _text["pr.cr_draft_exists", found[0].Run.CompanyName, _text.MonthYear(month), _text.Date(last),
+                            by ?? _text["pr.cr_another_user"]];
+        return (found.Select(x => x.Run.PayrollRunId).ToList(), message);
     }
 
     /// <summary>
@@ -464,6 +495,17 @@ public sealed class PayrollController : Controller
         foreach (var id in ParseRunIds(input.Drafts))
         {
             if (await _runs.GetAsync(id, Ct) is { } r && r.Stage == RunStage.Draft && CanSee(r)) existing.Add(r);
+        }
+
+        // one set of drafts per company and month: an earlier draft must be continued or discarded first
+        if (await OpenDraftAsync(input.CompanyId, month, existing.Select(r => r.PayrollRunId).ToList()) is { } open)
+        {
+            return Json(new
+            {
+                success = false, message = open.Message, errorCode = "DRAFT_EXISTS",
+                draftIds = string.Join(",", open.Ids),
+                draftUrl = Url.Action(nameof(Create), new { drafts = string.Join(",", open.Ids) })
+            });
         }
 
         var plan = await BuildMonthPlanAsync(input.CompanyId, month, runType, generate: true,

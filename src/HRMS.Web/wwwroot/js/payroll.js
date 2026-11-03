@@ -887,7 +887,9 @@
         // nothing is chosen here; the list only explains the split
         var groups = function () { return st.plan ? st.plan.groups : []; };
         var isReady = function (g) { return g.state === "ready" || g.state === "generate"; };
-        var readyGroups = function () { return groups().filter(isReady); };
+        // a draft already saved for this company and month blocks a new payroll (continue or discard it)
+        var blockedByDraft = function () { return !!(st.plan && st.plan.draft); };
+        var readyGroups = function () { return blockedByDraft() ? [] : groups().filter(isReady); };
         var keyOf = function (calendarId, periodId) { return String(calendarId) + ":" + String(periodId || ""); };
         var codes = {};     // the payroll numbers the ready payrolls will get, by calendar:period
 
@@ -934,6 +936,16 @@
                     : groups().some(function (g) { return g.state === "closed"; }) ? fmt(T("month-closed"), month)
                     : groups().every(function (g) { return g.state === "none"; }) ? T("nobody")
                     : fmt(T("no-open"), month);
+            }
+            var block = $("[data-cr-draft-block]");
+            if (block) {
+                block.hidden = !blockedByDraft();
+                if (blockedByDraft()) {
+                    $("[data-cr-draft-block-text]", block).textContent = st.plan.draft.message;
+                    $("[data-cr-draft-continue]", block).href = st.plan.draft.url;
+                    $("[data-cr-draft-discard]", block).setAttribute("data-ids", st.plan.draft.ids);
+                    why = "";
+                }
             }
             el.emptyText.textContent = why;
             el.empty.hidden = !why;
@@ -995,7 +1007,8 @@
         var loadPlan = function () {
             el.list.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
             el.summary.textContent = "";
-            return HRMS.getJson(withQs(u("plan"), { companyId: el.company.value, month: el.month.value || page.getAttribute("data-month"), type: type(), frequency: freq() }))
+            return HRMS.getJson(withQs(u("plan"), { companyId: el.company.value, month: el.month.value || page.getAttribute("data-month"), type: type(), frequency: freq(),
+                                                     drafts: st.drafts.map(function (d) { return d.runId; }).join(",") }))
                 .then(renderPlan, fail);
         };
 
@@ -1241,6 +1254,14 @@
             var ids = st.drafts.map(function (d) { return d.runId; });
             if (ids.length) { discard(ids, el.discard); }
         });
+        // the draft that blocks this company and month (step 1 banner)
+        var blockDiscard = $("[data-cr-draft-discard]");
+        if (blockDiscard) {
+            blockDiscard.addEventListener("click", function () {
+                var ids = (blockDiscard.getAttribute("data-ids") || "").split(",").filter(Boolean);
+                if (ids.length) { discard(ids, blockDiscard); }
+            });
+        }
         $all("[data-draft-discard]").forEach(function (b) {
             b.addEventListener("click", function () { discard(b.getAttribute("data-draft-discard").split(","), b); });
         });
