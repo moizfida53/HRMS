@@ -156,6 +156,20 @@ public static class SettlementFormat
     }
 
     /// <summary>"8y 7m" for the list.</summary>
+    /// <summary>A number of days as years / months / days (365-day years, 30.4375-day months) - db/106 actual working.</summary>
+    public static string DaysYmd(IUiText L, int? days)
+    {
+        var n = Math.Max(0, days ?? 0);
+        var years = n / 365;
+        var rest = n - years * 365;
+        var months = (int)Math.Floor(rest / 30.4375m);
+        var d = (int)Math.Round(rest - months * 30.4375m);
+        return L["fs.service_ymd", years, months, d];
+    }
+
+    /// <summary>Days as months with one decimal (30.4375 days a month).</summary>
+    public static string Months(int? days) => Math.Round((days ?? 0) / 30.4375m, 1).ToString("0.#", Inv);
+
     public static string ServiceShort(IUiText L, decimal serviceYears)
     {
         var y = (int)Math.Floor(serviceYears);

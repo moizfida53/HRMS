@@ -886,6 +886,30 @@
   &__note { font-size: $fs-xs; color: $ink-500; }
   &__meta { font-size: $fs-xs; color: $ink-400; margin-top: space("1"); }
 
+  // db/106 (annual leave): work period vs actual working months since the last paid leave
+  &__work {
+    display: flex;
+    flex-direction: column;
+    margin-top: space("2");
+    padding-top: space("2");
+    border-top: 1px dashed $line-200;
+    font-size: $fs-xs;
+    color: $ink-500;
+
+    > span:last-child { color: $ink-700; font-weight: $fw-medium; }
+    &.is-flagged > span:last-child { color: $amber-700; font-weight: $fw-semibold; }
+  }
+  &__excluded {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    margin-top: space("1");
+    font-size: $fs-xs;
+    color: $amber-700;
+
+    svg { flex: none; margin-top: 2px; }
+  }
+
   &__bar {
     display: block;
     height: 5px;

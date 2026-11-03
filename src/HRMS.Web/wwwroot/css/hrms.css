@@ -8977,6 +8977,73 @@ tr.pr-row-cancelled .hrms-code-chip {
     break-inside: avoid;
   }
 }
+.fs-service {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #dce1e0;
+  border-radius: 10px;
+  background: #fafbfb;
+}
+.fs-service dt {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #626d6b;
+}
+.fs-service dd {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #212322;
+  font-variant-numeric: tabular-nums;
+}
+.fs-service dd span {
+  font-weight: 400;
+  color: #626d6b;
+}
+.fs-service.is-flagged {
+  border-color: color-mix(in srgb, #d97706 35%, #dce1e0);
+  background: #fffaeb;
+}
+.fs-service__flag {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #b54708;
+}
+.fs-service__flag svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.fs-calc tr.fs-row-flag td {
+  background: #fffaeb;
+}
+
+.fs-calc tr.fs-row-flag td:first-child {
+  box-shadow: inset 3px 0 0 #d97706;
+}
+
+.fs-info dd.fs-flag {
+  color: #b54708;
+  font-weight: 600;
+}
+
+.fs-st__note {
+  font-size: 0.7rem;
+  color: #4a5250;
+}
+.fs-st__note .fs-st__en, .fs-st__note .fs-st__ar {
+  display: inline;
+  margin-inline-end: 0.5rem;
+}
+
 .ps-page {
   gap: 1rem;
 }
@@ -15051,6 +15118,35 @@ html.hrms-embed .hrms-content {
   font-size: 0.725rem;
   color: #8e9896;
   margin-top: 0.25rem;
+}
+.lv-card__work {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #dce1e0;
+  font-size: 0.725rem;
+  color: #626d6b;
+}
+.lv-card__work > span:last-child {
+  color: #3a3f3d;
+  font-weight: 500;
+}
+.lv-card__work.is-flagged > span:last-child {
+  color: #b54708;
+  font-weight: 600;
+}
+.lv-card__excluded {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  margin-top: 0.25rem;
+  font-size: 0.725rem;
+  color: #b54708;
+}
+.lv-card__excluded svg {
+  flex: none;
+  margin-top: 2px;
 }
 .lv-card__bar {
   display: block;

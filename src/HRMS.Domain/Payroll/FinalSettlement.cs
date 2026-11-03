@@ -119,8 +119,17 @@ public sealed class FinalSettlement
     public DateTime? PayMonth { get; init; }
 
     public DateTime? HireDate { get; init; }
+    /// <summary>Actual working days (db/106): the work period less unpaid absences of more than a month.</summary>
     public int ServiceDays { get; init; }
     public decimal ServiceYears { get; init; }
+    /// <summary>db/106: hire date to last working day, calendar days (null = calculated before db/106).</summary>
+    public int? WorkPeriodDays { get; init; }
+    public int? UnpaidExcludedDays { get; init; }
+    /// <summary>db/106 leave: since the last paid annual leave - the work period vs the actual working days.</summary>
+    public DateTime? LeaveSinceDate { get; init; }
+    public int? LeaveWorkDays { get; init; }
+    public int? LeaveActualDays { get; init; }
+    public bool HasExcludedService => UnpaidExcludedDays is > 0;
     public bool IsKuwaiti { get; init; }
     public decimal MonthlySalary { get; init; }
     public decimal IndemnityBase { get; init; }
@@ -280,7 +289,15 @@ public sealed class SettlementDefaults
     public int? NoticePeriodDays { get; init; }
     public string? DepartmentName { get; init; }
     public string? DesignationName { get; init; }
+    /// <summary>Actual working days (db/106); WorkPeriodDays = hire to last day, UnpaidExcludedDays = the difference.</summary>
     public int ServiceDays { get; init; }
+    public int WorkPeriodDays { get; init; }
+    public int UnpaidExcludedDays { get; init; }
+    public DateTime? LeaveSinceDate { get; init; }
+    public int? LeaveWorkDays { get; init; }
+    public int? LeaveActualDays { get; init; }
+    /// <summary>The annual leave balance on the last working day (Leave module).</summary>
+    public decimal? AnnualBalance { get; init; }
     public decimal MonthlySalary { get; init; }
     public decimal IndemnityBase { get; init; }
     public decimal LeaveBase { get; init; }

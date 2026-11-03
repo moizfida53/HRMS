@@ -497,3 +497,43 @@
 
   .fs-st-signs { break-inside: avoid; }
 }
+
+// ---------------------------------------------------------------------------
+// db/106: work period vs actual working months (indemnity / leave). Flagged in
+// amber when unpaid leave of more than a month was left out.
+// ---------------------------------------------------------------------------
+.fs-service {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: .5rem 1rem;
+  margin: 0 0 .75rem;
+  padding: .6rem .75rem;
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+  background: $surface-2;
+
+  dt { font-size: .7rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: $ink-500; }
+  dd { margin: 0; font-size: .85rem; font-weight: 600; color: $ink-900; font-variant-numeric: tabular-nums;
+       span { font-weight: 400; color: $ink-500; } }
+
+  &.is-flagged { border-color: color-mix(in srgb, #{$amber-600} 35%, #{$line-200}); background: $amber-050; }
+
+  &__flag {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: flex-start;
+    gap: .4rem;
+    font-size: .78rem;
+    color: $amber-700;
+
+    svg { flex: none; margin-top: 2px; }
+  }
+}
+
+.fs-calc tr.fs-row-flag td { background: $amber-050; }
+.fs-calc tr.fs-row-flag td:first-child { box-shadow: inset 3px 0 0 $amber-600; }
+
+// the settlement form's "Actual working" value when months were left out
+.fs-info dd.fs-flag { color: $amber-700; font-weight: 600; }
+
+.fs-st__note { font-size: .7rem; color: $ink-600; .fs-st__en, .fs-st__ar { display: inline; margin-inline-end: .5rem; } }

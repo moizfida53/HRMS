@@ -354,6 +354,17 @@ public sealed class LeaveBalance
     public decimal Taken { get; set; }
     public decimal Pending { get; set; }
     public decimal? Available { get; set; }
+    /// <summary>db/106: unpaid absence of more than a month in the window - earns no leave (ExcludedEarned days less).</summary>
+    public int ExcludedDays { get; set; }
+    public decimal ExcludedEarned { get; set; }
+    /// <summary>db/106 (annual leave, EMPLOYEE): since the last paid annual leave - work period vs actual working.</summary>
+    public DateTime? SinceDate { get; set; }
+    public DateTime? LastPaidLeaveTo { get; set; }
+    public int? SinceWorkDays { get; set; }
+    public int? SinceExcludedDays { get; set; }
+    public int? SinceActualDays { get; set; }
+    public decimal? SinceWorkMonths { get; set; }
+    public decimal? SinceActualMonths { get; set; }
 
     public bool IsUnlimited => BalanceMode == LeaveBalanceMode.Unlimited;
 }

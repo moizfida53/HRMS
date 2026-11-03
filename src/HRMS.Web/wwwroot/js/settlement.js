@@ -93,6 +93,14 @@
         return HRMS.t("js.fs_service", "{0} years {1} months {2} days").replace("{0}", y).replace("{1}", m).replace("{2}", d);
     }
 
+    /** A number of days as years / months / days (365-day years, 30.4375-day months). */
+    function daysText(n) {
+        n = Math.max(0, Math.round(n || 0));
+        var y = Math.floor(n / 365), rest = n - y * 365, m = Math.floor(rest / 30.4375), d = Math.round(rest - m * 30.4375);
+        return HRMS.t("js.fs_service", "{0} years {1} months {2} days").replace("{0}", y).replace("{1}", m).replace("{2}", d);
+    }
+    function months(n) { return (Math.round((n || 0) / 30.4375 * 10) / 10).toString(); }
+
     /* =============================================================== form */
 
     function wireForm(form) {
@@ -107,7 +115,9 @@
         var isNew = ($("[name=FinalSettlementId]", form) || {}).value === "0";
         var userSetFrom = !isNew;
         var userSetEncash = !isNew;
+        var userSetBalance = !isNew;
         var seq = 0;
+        if (balance) { balance.addEventListener("input", function () { userSetBalance = true; }); }
 
         if (from) { from.addEventListener("input", function () { userSetFrom = true; }); }
         if (encash) { encash.addEventListener("input", function () { userSetEncash = true; }); }
@@ -132,6 +142,22 @@
                 }
                 set("hire", dateText(d.hireDate));
                 set("service", lwd && lwd.value ? serviceText(d.hireDate, lwd.value) : "—");
+                /* db/106: actual working (indemnity) vs the work period; leave since the last paid leave */
+                set("actual", !(lwd && lwd.value) ? "—" : d.excludedDays > 0
+                    ? HRMS.t("js.fs_actual_service", "{0} actual working · {1} excluded (unpaid over a month)")
+                        .replace("{0}", daysText(d.serviceDays)).replace("{1}", daysText(d.excludedDays))
+                    : daysText(d.serviceDays));
+                var actualRow = $('[data-fs-v="actual"]', info);
+                if (actualRow) { actualRow.classList.toggle("fs-flag", d.excludedDays > 0); }
+                set("leavesince", d.leaveSince && lwd && lwd.value
+                    ? HRMS.t("js.fs_leave_since", "Since {0}: {1} months worked of {2}")
+                        .replace("{0}", dateText(d.leaveSince)).replace("{1}", months(d.leaveActualDays)).replace("{2}", months(d.leaveWorkDays))
+                    : "—");
+                /* the annual leave balance on that day, when it was not typed in */
+                if (balance && !userSetBalance && d.annualBalance !== null && d.annualBalance !== undefined) {
+                    balance.value = Math.max(0, d.annualBalance);
+                    if (encash && exit && !userSetEncash) { encash.value = balance.value; }
+                }
                 set("salary", money(d.monthlySalary));
                 set("indemnity", money(d.indemnityBase));
                 set("leave", money(d.leaveBase));

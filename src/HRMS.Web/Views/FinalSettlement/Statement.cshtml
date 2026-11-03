@@ -65,9 +65,20 @@
             @if (s.IsExit)
             {
                 <tr>
-                    <th>@Pair("fs.st_service")</th><td>@service (@SettlementFormat.Years(s.ServiceYears))</td>
+                    <th>@Pair("fs.st_service")</th><td>@(s.WorkPeriodDays is null ? service : SettlementFormat.DaysYmd(L, s.ServiceDays)) (@SettlementFormat.Years(s.ServiceYears))</td>
                     <th>@Pair("fs.st_monthly_salary")</th><td>KWD @M(s.MonthlySalary)</td>
                 </tr>
+                if (s.WorkPeriodDays is { } wp)
+                {
+                    <tr>
+                        <th>@Pair("fs.st_work_period")</th><td>@SettlementFormat.DaysYmd(L, wp)</td>
+                        <th>@Pair("fs.st_actual_working")</th><td>@SettlementFormat.DaysYmd(L, s.ServiceDays)@(s.HasExcludedService ? " *" : "")</td>
+                    </tr>
+                    if (s.HasExcludedService)
+                    {
+                        <tr><td colspan="4" class="fs-st__note">* @Pair("fs.unpaid_excluded_n", s.UnpaidExcludedDays)</td></tr>
+                    }
+                }
                 <tr>
                     <th>@Pair("fs.st_indemnity_salary")</th><td>KWD @M(s.IndemnityBase)</td>
                     <th>@Pair("fs.st_leave_salary")</th><td>KWD @M(s.LeaveBase)</td>

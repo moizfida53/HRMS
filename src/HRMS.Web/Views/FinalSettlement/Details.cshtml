@@ -187,6 +187,14 @@
                     <table class="pr-calc fs-calc">
                         <tr><td>@L["fs.leave_balance_on", L.Date(s.LastWorkingDay)]<span class="pr-calc__sub">@L["fs.leave_balance_manual"]</span></td><td>@L["fs.n_days", SettlementFormat.Num(s.LeaveBalanceDays)]</td></tr>
                         <tr><td>@L["fs.days_to_encash"]</td><td>@L["fs.n_days", SettlementFormat.Num(s.EncashDays)]</td></tr>
+                        @if (s.LeaveSinceDate is { } since && s.LeaveWorkDays is { } lw)
+                        {
+                            @* db/106: since the last paid leave - work period vs actual working months *@
+                            <tr class="@(s.LeaveActualDays < lw ? "fs-row-flag" : null)">
+                                <td>@L["fs.leave_since_n", L.Date(since)]<span class="pr-calc__sub">@L["fs.work_period"] @L["fs.months_n", SettlementFormat.Months(lw)] · @L["fs.actual_working"] @L["fs.months_n", SettlementFormat.Months(s.LeaveActualDays)]</span></td>
+                                <td>@L["fs.months_n", SettlementFormat.Months(s.LeaveActualDays)]</td>
+                            </tr>
+                        }
                         <tr><td>@L["fs.daily_rate"]<span class="pr-calc__sub">@L["fs.leave_salary"] @Money(s.LeaveBase) ÷ @SettlementFormat.Num(s.DailyDivisor)</span></td><td>@PayrollFormat.Money(s.DailyDivisor > 0 ? Math.Round(s.LeaveBase / s.DailyDivisor, 3) : 0)</td></tr>
                         <tr class="is-total"><td>@L["fs.leave_encashment"]</td><td>@Money(s.LeaveAmount)</td></tr>
                     </table>
@@ -207,6 +215,18 @@
                     </div>
                     <div class="pr-card-body pt-0">
                         <p class="fs-note">@L["fs.indemnity_salary"]: @L["pr.kwd"] @Money(s.IndemnityBase) · @L["fs.service_years_n", SettlementFormat.Years(s.ServiceYears)]@(s.RuleSetCode is not null ? " · " + s.RuleSetCode : "")</p>
+                        @* db/106: work period vs actual working - unpaid leave of more than a month is not service *@
+                        @if (s.WorkPeriodDays is { } wp)
+                        {
+                            <dl class="fs-service @(s.HasExcludedService ? "is-flagged" : null)">
+                                <div><dt>@L["fs.work_period"]</dt><dd>@SettlementFormat.DaysYmd(L, wp) <span>(@L["fs.months_n", SettlementFormat.Months(wp)])</span></dd></div>
+                                <div><dt>@L["fs.actual_working"]</dt><dd>@SettlementFormat.DaysYmd(L, s.ServiceDays) <span>(@L["fs.months_n", SettlementFormat.Months(s.ServiceDays)])</span></dd></div>
+                                @if (s.HasExcludedService)
+                                {
+                                    <div class="fs-service__flag">@Html.Icon("alert", 14)<span>@L["fs.unpaid_excluded_n", s.UnpaidExcludedDays] @L["fs.indemnity_on_actual"]</span></div>
+                                }
+                            </dl>
+                        }
                         <table class="pr-calc fs-calc">
                             @foreach (var l in slabs)
                             {

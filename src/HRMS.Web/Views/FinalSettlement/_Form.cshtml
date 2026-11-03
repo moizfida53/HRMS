@@ -114,7 +114,12 @@
         </div>
         <dl class="pr-dl">
             <div><dt>@L["fs.joined"]</dt><dd data-fs-v="hire">—</dd></div>
-            <div><dt>@L["fs.service"]</dt><dd data-fs-v="service">—</dd></div>
+            <div><dt>@L["fs.work_period"]</dt><dd data-fs-v="service">—</dd></div>
+            @if (!Model.IsEncashment)
+            {
+                <div><dt>@L["fs.actual_working"]</dt><dd data-fs-v="actual">—</dd></div>
+            }
+            <div><dt>@L["fs.leave_since"]</dt><dd data-fs-v="leavesince">—</dd></div>
             <div><dt>@L["fs.monthly_salary"]</dt><dd data-fs-v="salary">—</dd></div>
             @if (!Model.IsEncashment)
             {

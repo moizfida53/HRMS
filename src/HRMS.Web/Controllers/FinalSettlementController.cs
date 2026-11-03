@@ -199,6 +199,12 @@ public sealed class FinalSettlementController : Controller
         {
             hireDate = d.HireDate?.ToString("yyyy-MM-dd"),
             serviceDays = d.ServiceDays,
+            workPeriodDays = d.WorkPeriodDays,
+            excludedDays = d.UnpaidExcludedDays,
+            leaveSince = d.LeaveSinceDate?.ToString("yyyy-MM-dd"),
+            leaveWorkDays = d.LeaveWorkDays,
+            leaveActualDays = d.LeaveActualDays,
+            annualBalance = d.AnnualBalance,
             monthlySalary = d.MonthlySalary,
             indemnityBase = d.IndemnityBase,
             leaveBase = d.LeaveBase,

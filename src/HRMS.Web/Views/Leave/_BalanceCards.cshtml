@@ -29,6 +29,18 @@ else
                         @L["lv.taken_n", LeaveFormat.Days(b.Taken)]
                         @if (b.Pending > 0) { <span>· @L["lv.pending_n", LeaveFormat.Days(b.Pending)]</span> }
                     </span>
+                    @* db/106 (annual leave): work period vs actual working months since the last paid leave *@
+                    if (b.SinceDate is { } since && b.SinceWorkMonths is { } wm)
+                    {
+                        <span class="lv-card__work @(b.SinceExcludedDays > 0 ? "is-flagged" : null)">
+                            <span>@(b.LastPaidLeaveTo is null ? L["lv.work_since_joining", L.Date(since)] : L["lv.work_since_leave", L.Date(since)])</span>
+                            <span>@L["lv.work_vs_actual", wm.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture), (b.SinceActualMonths ?? wm).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)]</span>
+                        </span>
+                    }
+                    if (b.ExcludedDays > 0)
+                    {
+                        <span class="lv-card__excluded">@Html.Icon("alert", 12)<span>@L["lv.unpaid_excluded", b.ExcludedDays, LeaveFormat.Days(b.ExcludedEarned)]</span></span>
+                    }
                 }
             </button>
         }
