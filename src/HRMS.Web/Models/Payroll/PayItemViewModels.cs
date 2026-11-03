@@ -44,6 +44,34 @@ public sealed class PayItemsGridModel
     public bool ManyCompanies { get; init; }
 }
 
+/// <summary>The form's reference panel: an employee's pay items, with what was paid and is still due.</summary>
+public sealed class PayItemReferenceModel
+{
+    public required PayItemEmployeeSummary Summary { get; init; }
+    public IReadOnlyList<PayItem> Items { get; init; } = Array.Empty<PayItem>();
+    public DateTime Month { get; init; }
+
+    private static readonly string[] ClassOrder = [ItemClass.Salary, ItemClass.Earning, ItemClass.Deduction, ItemClass.Loan];
+
+    /// <summary>In force this month (or still running / waiting for approval).</summary>
+    public bool IsCurrent(PayItem i) => !i.IsEnded && (i.AppliesMode switch
+    {
+        AppliesMode.Monthly => i.EndMonth is not { } end || end >= Month,
+        AppliesMode.Once => i.StartMonth >= Month || !i.IsUsed,
+        _ => (i.Balance ?? 0) > 0 || i.IsPending
+    });
+
+    public IEnumerable<PayItem> Current => Sorted(Items.Where(IsCurrent));
+    public IEnumerable<PayItem> Earlier => Sorted(Items.Where(i => !IsCurrent(i)));
+
+    private static IEnumerable<PayItem> Sorted(IEnumerable<PayItem> items) =>
+        items.OrderBy(i => Array.IndexOf(ClassOrder, i.ItemClass) is var k && k < 0 ? 9 : k)
+             .ThenBy(i => i.ComponentName).ThenByDescending(i => i.StartMonth);
+
+    /// <summary>Monthly earnings in force (salary items excluded).</summary>
+    public decimal MonthlyEarnings => Current.Where(i => i.ItemClass == ItemClass.Earning && i.AppliesMode == AppliesMode.Monthly && !i.IsPending).Sum(i => i.Amount);
+}
+
 public sealed class PayItemFormModel
 {
     public PayItem? Item { get; init; }

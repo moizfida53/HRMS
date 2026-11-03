@@ -115,6 +115,25 @@ public sealed class PayItemsController : Controller
         return summary is null ? Content(string.Empty) : PartialView("_PayItemEmployee", summary);
     }
 
+    /// <summary>
+    /// The Add / edit pay item form's reference panel: what the employee has now (salary, allowances,
+    /// earnings, deductions, loans) with the amounts paid and still due - every status, current first.
+    /// </summary>
+    [HttpGet("employee-items/{id:long}")]
+    public async Task<IActionResult> EmployeeItems(long id)
+    {
+        if (!Can(PermView)) return Forbid();
+        var summary = await _items.EmployeeSummaryAsync(id, OwnCompany, ThisMonth, Ct);
+        if (summary is null) return Content(string.Empty);
+        var list = await _items.ListAsync(Filter(null, id, null, "ALL", 1, 500), Ct);
+        return PartialView("_PayItemReference", new PayItemReferenceModel
+        {
+            Summary = summary,
+            Items = list.Items.Where(x => x.EmployeeId == id).ToList(),
+            Month = ThisMonth
+        });
+    }
+
     /// <summary>Figures for the loan checks of the form (monthly salary, balance, monthly deductions).</summary>
     [HttpGet("employee-figures/{id:long}")]
     public async Task<IActionResult> EmployeeFigures(long id)

@@ -1,0 +1,81 @@
+@using Microsoft.AspNetCore.Html
+@model PayItemReferenceModel
+@{
+    // The Add / edit pay item form, under the employee: what they have now - salary, allowances,
+    // earnings, deductions, loans - with what was paid and what is still due. payroll.js shows
+    // the rows of the class picked, highlights the item type picked and fills the focus line.
+    var s = Model.Summary;
+    var current = Model.Current.ToList();
+    var earlier = Model.Earlier.ToList();
+
+    string Line(PayItem i) => string.Join(" · ", new[]
+    {
+        PayItemFormat.TypeName(L, i.ComponentName, i.ComponentArabicName),
+        L["pr.kwd"] + " " + PayrollFormat.Money(i.Amount),
+        PayItemFormat.Applies(L, i),
+        PayItemFormat.StatusLabel(L, i),
+        i.AppliesMode == AppliesMode.Instalment && i.Balance is { } b ? L["pi.ref_due_0", PayrollFormat.Money(b)] : null
+    }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    string Due(PayItem i) => i.AppliesMode switch
+    {
+        AppliesMode.Instalment => i.Balance is { } b && b > 0 ? PayrollFormat.Money(b) : "—",
+        AppliesMode.Once => i.IsUsed ? "—" : PayrollFormat.Money(i.Amount),
+        _ => "—"
+    };
+
+    IHtmlContent Rows(IEnumerable<PayItem> items) => new HtmlString(string.Concat(items.Select(i =>
+    {
+        var paid = i.PaidCount > 0
+            ? $"{PayrollFormat.Money(i.PaidAmount)}<span>{System.Net.WebUtility.HtmlEncode(L["pi.ref_paid_n", PayrollFormat.Count(i.PaidCount)] + (i.LastPaidMonth is { } lp ? " · " + PayItemFormat.Month(L, lp) : ""))}</span>"
+            : "—";
+        return $"<tr data-ref-cls=\"{i.ItemClass}\" data-ref-type=\"{i.PayComponentId}\" data-ref-current=\"{(Model.IsCurrent(i) ? 1 : 0)}\" data-ref-line=\"{System.Net.WebUtility.HtmlEncode(Line(i))}\">"
+             + $"<td><strong>{System.Net.WebUtility.HtmlEncode(PayItemFormat.TypeName(L, i.ComponentName, i.ComponentArabicName))}</strong><span>{System.Net.WebUtility.HtmlEncode(PayItemFormat.Applies(L, i))}</span></td>"
+             + $"<td class=\"text-end pr-money\">{PayrollFormat.Money(i.Amount)}</td>"
+             + $"<td><span class=\"hrms-badge hrms-badge--{PayItemFormat.StatusBadge(i)}\"><span class=\"hrms-badge__dot\"></span>{System.Net.WebUtility.HtmlEncode(PayItemFormat.StatusLabel(L, i))}</span></td>"
+             + $"<td class=\"text-end pr-money pi-ref__paid\">{paid}</td>"
+             + $"<td class=\"text-end pr-money pi-ref__due\">{Due(i)}</td>"
+             + "</tr>";
+    })));
+}
+<section class="pi-ref" data-pi-ref-panel aria-label="@L["pi.ref_title"]">
+    <div class="pi-ref__figures">
+        <div><span>@L["pr.monthly_salary"]</span><strong class="pr-money">@PayrollFormat.Money(s.MonthlySalary)</strong></div>
+        <div><span>@L["pi.ref_monthly_earnings"]</span><strong class="pr-money">@PayrollFormat.Money(Model.MonthlyEarnings)</strong></div>
+        <div><span>@L["pi.ref_monthly_deductions"]</span><strong class="pr-money">@PayrollFormat.Money(s.MonthlyDeductions)</strong></div>
+        <div class="@(s.LoanBalance > 0 ? "is-due" : null)"><span>@L["pi.ref_loans_due"]</span><strong class="pr-money">@PayrollFormat.Money(s.LoanBalance)</strong></div>
+    </div>
+
+    @if (current.Count == 0 && earlier.Count == 0)
+    {
+        <p class="pi-ref__empty">@Html.Icon("info", 14)<span>@L["pi.ref_none"]</span></p>
+    }
+    else
+    {
+        <div class="pi-ref__table-wrap">
+            <table class="pi-ref__table">
+                <caption class="hrms-sr-only">@L["pi.ref_title"]</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">@L["pr.item_type"]</th>
+                        <th scope="col" class="text-end">@L["pr.amount_kwd"]</th>
+                        <th scope="col">@L["common.status"]</th>
+                        <th scope="col" class="text-end">@L["pi.ref_paid"]</th>
+                        <th scope="col" class="text-end">@L["pi.ref_due"]</th>
+                    </tr>
+                </thead>
+                <tbody data-ref-body="current">@Rows(current)</tbody>
+            </table>
+            <p class="pi-ref__empty" data-ref-class-empty hidden>@Html.Icon("info", 14)<span>@L["pi.ref_none_of_class"]</span></p>
+        </div>
+        @if (earlier.Count > 0)
+        {
+            <details class="pi-ref__earlier">
+                <summary>@L["pi.ref_earlier_n", earlier.Count]</summary>
+                <div class="pi-ref__table-wrap">
+                    <table class="pi-ref__table"><tbody data-ref-body="earlier">@Rows(earlier)</tbody></table>
+                </div>
+            </details>
+        }
+    }
+</section>

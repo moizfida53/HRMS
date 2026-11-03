@@ -60,6 +60,10 @@ else if (i?.IsPending == true)
         }
     </div>
 
+    @* what the employee has now (loaded when an employee is chosen): salary, allowances, earnings,
+       deductions and loans, with the amounts paid and still due - for reference *@
+    <div class="col-12" data-pi-ref hidden></div>
+
     <div class="col-12">
         <span class="form-label d-block">@L["pr.class"] <span class="req" aria-hidden="true">*</span></span>
         <div class="pr-choice pr-choice--4" data-pi-class-choice role="radiogroup" aria-label="@L["pr.class"]">
@@ -99,6 +103,17 @@ else if (i?.IsPending == true)
         }
         <input class="form-control pr-input-money" id="pi-amount" name="@(locked ? null : "Amount")" inputmode="decimal" placeholder="0.000" value="@amount" autocomplete="off" disabled="@lockAttr" data-pi-amount
                data-label-instalment="@L["pr.amount_per_instalment_kwd"]" data-label-default="@(revise ? L["pr.new_amount_kwd"] : L["pr.amount_kwd"])" />
+    </div>
+
+    @* the item type picked: what the employee has of it now (or had before) *@
+    <div class="col-12" data-pi-ref-focus hidden>
+        <div class="pi-ref-focus">
+            @Html.Icon("info", 16)
+            <div>
+                <strong data-pi-ref-focus-title></strong>
+                <ul class="pi-ref-focus__list" data-pi-ref-focus-list></ul>
+            </div>
+        </div>
     </div>
 
     @* salary: every month from - a change to an approved salary keeps the current amount

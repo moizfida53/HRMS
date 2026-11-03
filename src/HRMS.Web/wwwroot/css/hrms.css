@@ -8301,6 +8301,173 @@ tr.pr-row-cancelled .hrms-code-chip {
   margin-inline-end: 0.35rem;
 }
 
+.pi-ref {
+  border: 1px solid var(--hrms-line-200, #dfe5e4);
+  border-radius: 10px;
+  background: linear-gradient(180deg, var(--hrms-blue-050, #f3f9f8), #fff 85%);
+  overflow: hidden;
+}
+.pi-ref__figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--hrms-line-100, #e9edec);
+  border-block-end: 1px solid var(--hrms-line-100, #e9edec);
+}
+.pi-ref__figures > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.55rem 0.75rem;
+  background: rgba(255, 255, 255, 0.7);
+  min-width: 0;
+}
+.pi-ref__figures span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hrms-ink-500, #626d6b);
+}
+.pi-ref__figures strong {
+  font-size: 0.95rem;
+  color: var(--hrms-ink-900, #1b2120);
+}
+.pi-ref__figures .is-due strong {
+  color: var(--hrms-amber-700, #b54708);
+}
+@media (max-width: 575.98px) {
+  .pi-ref__figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.pi-ref__table-wrap {
+  max-height: 13rem;
+  overflow: auto;
+}
+.pi-ref__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.pi-ref__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.4rem 0.75rem;
+  background: #f7faf9;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--hrms-ink-500, #626d6b);
+  border-block-end: 1px solid var(--hrms-line-100, #e9edec);
+  white-space: nowrap;
+}
+.pi-ref__table td {
+  padding: 0.45rem 0.75rem;
+  border-block-end: 1px solid var(--hrms-line-100, #e9edec);
+  vertical-align: top;
+}
+.pi-ref__table td > span, .pi-ref__table .pi-ref__paid span {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--hrms-ink-500, #626d6b);
+}
+.pi-ref__table tr:last-child td {
+  border-block-end: 0;
+}
+.pi-ref__table tr.is-picked td {
+  background: #e9f5f3;
+}
+.pi-ref__table tr.is-picked td:first-child {
+  box-shadow: inset 3px 0 0 var(--hrms-blue-600, #0f766e);
+}
+.pi-ref__table .pi-ref__due {
+  font-weight: 600;
+}
+@media (max-width: 575.98px) {
+  .pi-ref__table thead {
+    display: none;
+  }
+  .pi-ref__table tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-block-end: 1px solid var(--hrms-line-100, #e9edec);
+  }
+  .pi-ref__table td {
+    padding: 0;
+    border: 0;
+  }
+  .pi-ref__table td:first-child {
+    grid-column: 1/-1;
+  }
+  .pi-ref__table tr.is-picked {
+    background: #e9f5f3;
+    box-shadow: inset 3px 0 0 var(--hrms-blue-600, #0f766e);
+  }
+  .pi-ref__table tr.is-picked td, .pi-ref__table tr.is-picked td:first-child {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+.pi-ref__empty {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--hrms-ink-500, #626d6b);
+}
+.pi-ref__earlier {
+  border-block-start: 1px solid var(--hrms-line-100, #e9edec);
+}
+.pi-ref__earlier summary {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--hrms-blue-700, #115e59);
+  cursor: pointer;
+}
+
+.pi-ref-focus {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--hrms-line-200, #dfe5e4);
+  border-radius: 10px;
+  background: #fafbfb;
+  font-size: 0.8rem;
+  color: var(--hrms-ink-700, #3b4442);
+}
+.pi-ref-focus > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--hrms-ink-500, #626d6b);
+}
+.pi-ref-focus.is-current {
+  border-color: #cde7e4;
+  background: #f3f9f8;
+}
+.pi-ref-focus.is-current > svg {
+  color: var(--hrms-blue-600, #0f766e);
+}
+.pi-ref-focus.is-none {
+  border-style: dashed;
+}
+.pi-ref-focus__list {
+  margin: 0.2rem 0 0;
+  padding-inline-start: 1rem;
+  color: var(--hrms-ink-600, #4a5250);
+}
+.pi-ref-focus__list li + li {
+  margin-top: 2px;
+}
+
 .fs-page {
   display: flex;
   flex-direction: column;

@@ -1384,6 +1384,38 @@
                     ? HRMS.t("js.pi_total_n", "Total {0}", fmt(a * n)) : "";
             }
             if (cls === "LOAN") { loanChecks(); }
+            syncRef(cls, typeSel.value, typeSel.options[typeSel.selectedIndex]);
+        };
+
+        /* the reference panel: what the employee has now - the class picked shows its rows, the item
+           type picked is highlighted and summed up next to the amount (current, else before, else none) */
+        var syncRef = function (cls, typeId, typeOpt) {
+            var root = piBody;
+            var panel = $("[data-pi-ref-panel]", root);
+            var focus = $("[data-pi-ref-focus]", root);
+            if (!panel) { if (focus) { focus.hidden = true; } return; }
+            var shown = 0;
+            $all("tr[data-ref-cls]", panel).forEach(function (tr) {
+                var on = tr.getAttribute("data-ref-cls") === cls;
+                tr.hidden = !on;
+                tr.classList.toggle("is-picked", on && !!typeId && tr.getAttribute("data-ref-type") === typeId);
+                if (on && tr.closest('[data-ref-body="current"]')) { shown++; }
+            });
+            var empty = $("[data-ref-class-empty]", panel);
+            if (empty) { empty.hidden = shown > 0; }
+            if (!focus) { return; }
+            if (!typeId) { focus.hidden = true; return; }
+            var rows = $all('tr[data-ref-type="' + typeId + '"]', panel);
+            var cur = rows.filter(function (r) { return r.getAttribute("data-ref-current") === "1"; });
+            var list = cur.length ? cur : rows.slice(0, 3);
+            var name = typeOpt ? typeOpt.textContent.trim() : "";
+            $("[data-pi-ref-focus-title]", focus).textContent = (cur.length ? pt("ref-current") : rows.length ? pt("ref-before") : pt("ref-none")).replace("{0}", name);
+            $("[data-pi-ref-focus-list]", focus).innerHTML = list.map(function (r) {
+                return "<li>" + HRMS.escape(r.getAttribute("data-ref-line") || "") + "</li>";
+            }).join("");
+            focus.hidden = false;
+            focus.firstElementChild.classList.toggle("is-current", cur.length > 0);
+            focus.firstElementChild.classList.toggle("is-none", rows.length === 0);
         };
 
         var fmt = function (v) {
@@ -1416,8 +1448,21 @@
         var loadFigures = function () {
             var empSel = $("[data-pi-employee]", piBody);
             figures = null;
+            var ref = $("[data-pi-ref]", piBody);
+            if (ref) { ref.hidden = true; ref.innerHTML = ""; }
             if (!empSel || !empSel.value) { syncForm(); return; }
-            HRMS.getJson(withId(pu("figures"), empSel.value)).then(function (f) { figures = f; syncForm(); }, function () { syncForm(); });
+            var emp = empSel.value;
+            if (ref && pu("reference")) {
+                ref.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
+                ref.hidden = false;
+                HRMS.getHtml(withId(pu("reference"), emp)).then(function (html) {
+                    if (empSel.value !== emp) { return; }      // another employee was picked meanwhile
+                    ref.innerHTML = html;
+                    ref.hidden = !html.trim();
+                    syncForm();
+                }, function () { ref.hidden = true; ref.innerHTML = ""; });
+            }
+            HRMS.getJson(withId(pu("figures"), emp)).then(function (f) { figures = f; syncForm(); }, function () { syncForm(); });
         };
 
         var openItemForm = function (id, title) {
