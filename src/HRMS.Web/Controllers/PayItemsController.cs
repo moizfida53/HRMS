@@ -53,6 +53,9 @@ public sealed class PayItemsController : Controller
     private bool IsSysAdmin => _currentUser.IsInRole("SYSADMIN") || Can("SYSTEM_ADMIN");
     /// <summary>May approve their own submissions (System Administrator, or the "approve own" right).</summary>
     private bool CanApproveOwn => IsSysAdmin || Can(PermApproveSelf);
+    /// <summary>Rows per page offered on the list.</summary>
+    private static readonly int[] PageSizes = [10, 25, 50];
+
     private static DateTime ThisMonth => new(DateTime.Today.Year, DateTime.Today.Month, 1);
 
     private PayItemRights Rights => new()
@@ -86,16 +89,19 @@ public sealed class PayItemsController : Controller
     }
 
     [HttpGet("grid")]
-    public async Task<IActionResult> Grid(string? search, long? emp, string? cls, string? status, int page = 1)
+    public async Task<IActionResult> Grid(string? search, long? emp, string? cls, string? status, int page = 1, int size = 25)
     {
         if (!Can(PermView)) return Forbid();
-        var result = await _items.ListAsync(Filter(search, emp, cls, status, page, 25), Ct);
+        size = PageSizes.Contains(size) ? size : 25;
+        var result = await _items.ListAsync(Filter(search, emp, cls, status, page, size), Ct);
         return PartialView("_PayItemsGrid", new PayItemsGridModel
         {
             Page = result,
             IsFiltered = !string.IsNullOrWhiteSpace(search) || emp is not null || !string.IsNullOrEmpty(cls) || (status ?? "OPEN") != "OPEN",
             Rights = Rights,
-            ManyCompanies = _companyFilter.SelectedIds.Count != 1 && OwnCompany is null
+            ManyCompanies = _companyFilter.SelectedIds.Count != 1 && OwnCompany is null,
+            PageSize = size,
+            PageSizes = PageSizes
         });
     }
 

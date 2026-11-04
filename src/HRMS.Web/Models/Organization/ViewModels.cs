@@ -123,6 +123,10 @@ public sealed class PaginationModel
     public required int TotalCount { get; init; }
     public required int FirstRow { get; init; }
     public required int LastRow { get; init; }
+    /// <summary>Rows per page now; with <see cref="PageSizes"/> the footer offers a "Rows per page" picker.</summary>
+    public int PageSize { get; init; }
+    /// <summary>The page sizes offered (e.g. 10 / 25 / 50); empty = no picker.</summary>
+    public IReadOnlyList<int> PageSizes { get; init; } = Array.Empty<int>();
 
     public bool HasPrevious => PageNumber > 1;
     public bool HasNext => PageNumber < TotalPages;

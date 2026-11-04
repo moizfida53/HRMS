@@ -8468,6 +8468,92 @@ tr.pr-row-cancelled .hrms-code-chip {
   margin-top: 2px;
 }
 
+.hrms-table-wrap:has(> .pr-pi-table) {
+  overflow-x: visible;
+}
+
+.pr-pi-table {
+  table-layout: auto;
+}
+.pr-pi-table th, .pr-pi-table td {
+  padding-inline: 0.6rem;
+}
+.pr-pi-table th {
+  white-space: normal;
+  line-height: 1.25;
+}
+.pr-pi-table td {
+  overflow-wrap: break-word;
+}
+.pr-pi-table th:first-child, .pr-pi-table td:first-child {
+  padding-inline-start: 1rem;
+}
+.pr-pi-table th:last-child, .pr-pi-table td:last-child {
+  padding-inline-end: 1rem;
+}
+.pr-pi-table .pr-money {
+  white-space: nowrap;
+}
+.pr-pi-table .pr-money .pr-per {
+  display: block;
+}
+.pr-pi-table .pr-pi-cell-emp {
+  min-width: 7.5rem;
+}
+.pr-pi-table .hrms-badge {
+  white-space: normal;
+  text-align: start;
+}
+.pr-pi-table .pr-pi-cell-emp .hrms-table__primary {
+  display: block;
+}
+.pr-pi-table .pr-pi-cell-status {
+  width: 1%;
+}
+.pr-pi-table .pr-pi-cell-status .hrms-badge {
+  white-space: normal;
+  align-items: flex-start;
+  max-width: 7.5rem;
+  line-height: 1.3;
+  text-align: start;
+}
+.pr-pi-table .pr-pi-cell-status .hrms-badge__dot {
+  flex: none;
+  margin-top: 0.38em;
+}
+.pr-pi-table .pr-pi-cell-status .pr-pi-level {
+  display: block;
+  max-width: 8rem;
+  white-space: normal;
+}
+.pr-pi-table .hrms-table__actions {
+  width: 1%;
+  min-width: 6.2rem;
+  white-space: normal;
+  text-align: end;
+}
+.pr-pi-table .hrms-table__actions > * {
+  margin-block: 2px;
+}
+.pr-pi-table .hrms-code-chip {
+  white-space: nowrap;
+}
+
+.hrms-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--hrms-ink-500, #626d6b);
+  white-space: nowrap;
+}
+.hrms-page-size .form-select {
+  width: auto;
+  min-width: 4.5rem;
+  padding-block: 0.2rem;
+}
+
 .fs-page {
   display: flex;
   flex-direction: column;

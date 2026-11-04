@@ -6,6 +6,20 @@
             @L["common.showing_range", Model.FirstRow.ToString("N0"), Model.LastRow.ToString("N0"), Model.TotalCount.ToString("N0")]
         </span>
 
+        @if (Model.PageSizes.Count > 0 && Model.TotalCount > Model.PageSizes.Min())
+        {
+            @* rows per page (the page's script listens for [data-page-size]) *@
+            <label class="hrms-page-size">
+                <span>@L["common.rows_per_page"]</span>
+                <select class="form-select form-select-sm" data-page-size aria-label="@L["common.rows_per_page"]">
+                    @foreach (var n in Model.PageSizes)
+                    {
+                        <option value="@n" selected="@(n == Model.PageSize)">@n</option>
+                    }
+                </select>
+            </label>
+        }
+
         @if (Model.TotalPages > 1)
         {
             <nav class="hrms-pagination" aria-label="@L["common.pagination"]">

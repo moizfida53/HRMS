@@ -600,3 +600,62 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
 
   &__list { margin: .2rem 0 0; padding-inline-start: 1rem; color: var(--hrms-ink-600, #4a5250); li + li { margin-top: 2px; } }
 }
+
+// ---------------------------------------------------------------------------
+// Pay Items list: fits its card - no sideways scrolling. Cells wrap instead of
+// forcing one line (amounts stay on one line), "Pending approval" takes two
+// lines when it must, and the row buttons stack two by two when space is short.
+// ---------------------------------------------------------------------------
+.hrms-table-wrap:has(> .pr-pi-table) { overflow-x: visible; }
+
+.pr-pi-table {
+  table-layout: auto;
+
+  th, td { padding-inline: .6rem; }
+  th { white-space: normal; line-height: 1.25; }
+  td { overflow-wrap: break-word; }
+  th:first-child, td:first-child { padding-inline-start: 1rem; }
+  th:last-child, td:last-child { padding-inline-end: 1rem; }
+
+  .pr-money { white-space: nowrap; }
+  .pr-money .pr-per { display: block; }        // "/ month" under the amount
+  .pr-pi-cell-emp { min-width: 7.5rem; }
+  .hrms-badge { white-space: normal; text-align: start; }
+  .pr-pi-cell-emp .hrms-table__primary { display: block; }
+
+  .pr-pi-cell-status {
+    width: 1%;
+    .hrms-badge {
+      white-space: normal;
+      align-items: flex-start;
+      max-width: 7.5rem;
+      line-height: 1.3;
+      text-align: start;
+    }
+    .hrms-badge__dot { flex: none; margin-top: .38em; }
+    .pr-pi-level { display: block; max-width: 8rem; white-space: normal; }
+  }
+
+  .hrms-table__actions {
+    width: 1%;
+    min-width: calc(4.6rem + 1.6rem);   // two buttons a row, plus the cell padding
+    white-space: normal;
+    text-align: end;
+    > * { margin-block: 2px; }
+  }
+
+  .hrms-code-chip { white-space: nowrap; }
+}
+
+// "Rows per page" picker in a list footer
+.hrms-page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0;
+  font-size: .8rem;
+  color: var(--hrms-ink-500, #626d6b);
+  white-space: nowrap;
+
+  .form-select { width: auto; min-width: 4.5rem; padding-block: .2rem; }
+}

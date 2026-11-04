@@ -42,6 +42,9 @@ public sealed class PayItemsGridModel
     public bool IsFiltered { get; init; }
     public required PayItemRights Rights { get; init; }
     public bool ManyCompanies { get; init; }
+    /// <summary>Rows per page now, and the sizes the footer offers (10 / 25 / 50).</summary>
+    public int PageSize { get; init; } = 25;
+    public IReadOnlyList<int> PageSizes { get; init; } = Array.Empty<int>();
 }
 
 /// <summary>The form's reference panel: an employee's pay items, with what was paid and is still due.</summary>

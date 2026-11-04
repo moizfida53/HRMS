@@ -1289,7 +1289,10 @@
         var withId = function (url, id) { return url.replace(/\/0(\?|$)/, "/" + id + "$1"); };
         var piSlot = $("[data-pi-slot]"), piCount = $("[data-pi-count]"), piKpis = $("[data-pi-kpis]"), piEmpCard = $("[data-pi-employee]");
         var piEmp = $("[data-pi-emp]"), piStatus = $("[data-pi-status]"), piSearch = $("[data-pi-search]");
-        var pState = { search: "", emp: piEmp.value, cls: "", status: piStatus.value, page: 1 };
+        var sizeKey = "hrms-pi-page-size";
+        var savedSize = (function () { try { return parseInt(window.localStorage.getItem(sizeKey), 10); } catch (e) { return NaN; } })();
+        var pState = { search: "", emp: piEmp.value, cls: "", status: piStatus.value, page: 1,
+                       size: [10, 25, 50].indexOf(savedSize) >= 0 ? savedSize : 25 };
 
         var loadItems = function () {
             return loadInto(piSlot, withQs(pu("grid"), pState)).then(function () { setCount(piSlot, piCount); });
@@ -1515,6 +1518,14 @@
         /* ---- row actions ---- */
         var piHistoryModal = $("#pi-history-modal"), piEndModal = $("#pi-end-modal");
         var endFor = null;
+        // rows per page: 10 / 25 / 50, back to page 1 (remembered in this browser)
+        piSlot.addEventListener("change", function (ev) {
+            if (!ev.target.matches("[data-page-size]")) { return; }
+            pState.size = parseInt(ev.target.value, 10) || 25;
+            pState.page = 1;
+            try { window.localStorage.setItem(sizeKey, String(pState.size)); } catch (e) { /* private mode */ }
+            loadItems();
+        });
         piSlot.addEventListener("click", function (ev) {
             var b = ev.target.closest("[data-page]");
             if (b && !b.disabled) { pState.page = parseInt(b.getAttribute("data-page"), 10) || 1; loadItems(); return; }
