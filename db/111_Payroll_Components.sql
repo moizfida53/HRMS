@@ -75,7 +75,9 @@ WHERE  c.IsNew = 1
                   WHERE rp.RoleId = r.RoleId AND rp.Deleted = 0 AND g.Deleted = 0 AND g.PermissionCode IN (c.FromCode1, c.FromCode2)))
   AND NOT EXISTS (SELECT 1 FROM [Security].[RolePermissions] x WHERE x.RoleId = r.RoleId AND x.PermissionId = p.PermissionId AND x.Deleted = 0);
 
-PRINT CONCAT(N'Payroll component rights created: ', (SELECT COUNT(1) FROM #Codes WHERE IsNew = 1), N', granted: ', @@ROWCOUNT);
+DECLARE @RightsGranted INT = @@ROWCOUNT;
+DECLARE @RightsCreated INT = (SELECT COUNT(1) FROM #Codes WHERE IsNew = 1);
+PRINT CONCAT(N'Payroll component rights created: ', @RightsCreated, N', granted: ', @RightsGranted);
 DROP TABLE #Codes;
 GO
 
@@ -169,9 +171,14 @@ BEGIN
     BEGIN
         DECLARE @New TABLE (ItemClass VARCHAR(10), ComponentCode NVARCHAR(30), PRIMARY KEY (ItemClass, ComponentCode));
         INSERT INTO @New (ItemClass, ComponentCode)
-        SELECT DISTINCT LEFT(v, CHARINDEX(':', v) - 1), SUBSTRING(v, CHARINDEX(':', v) + 1, 30)
+        /* "CLASS:CODE" values; the position is worked out once and never negative (an empty
+           value, or one without ":", gives an empty class and is left out) */
+        SELECT DISTINCT x.Cls, x.Code
         FROM  (SELECT LTRIM(RTRIM(value)) AS v FROM STRING_SPLIT(ISNULL(@Codes, N''), N',')) AS s
-        WHERE  CHARINDEX(':', v) > 1 AND LEFT(v, CHARINDEX(':', v) - 1) IN ('SALARY', 'EARNING', 'DEDUCTION', 'LOAN');
+        CROSS APPLY (SELECT CHARINDEX(':', s.v) AS Pos) AS c
+        CROSS APPLY (SELECT LEFT(s.v, CASE WHEN c.Pos > 1 THEN c.Pos - 1 ELSE 0 END) AS Cls,
+                            SUBSTRING(s.v, CASE WHEN c.Pos > 1 THEN c.Pos + 1 ELSE 1 END, 30) AS Code) AS x
+        WHERE  c.Pos > 1 AND x.Cls IN ('SALARY', 'EARNING', 'DEDUCTION', 'LOAN') AND LEN(x.Code) > 0;
 
         BEGIN TRANSACTION;
             UPDATE t SET Deleted = 1, DeletedBy = @ActionBy, DeletedDate = SYSUTCDATETIME()
