@@ -145,7 +145,7 @@ public sealed class PayItemsController : Controller
                                    .ToHashSet();
         }
 
-        return PartialView("_PayItemsGrid", new PayItemsGridModel
+        return PartialView(scope.Page.ItemClass == ItemClass.Salary ? "_SalaryRevisionsGrid" : "_PayItemsGrid", new PayItemsGridModel
         {
             WithSalaryHistory = withHistory,
             Page = result,
@@ -163,6 +163,30 @@ public sealed class PayItemsController : Controller
     {
         if (!CanViewAny) return Forbid();
         var summary = await _items.SummaryAsync(OwnCompany, CompanyCsv, ThisMonth, Ct) ?? new PayItemSummary { SummaryMonth = ThisMonth };
+
+        // Salary Revisions: the monthly salary, and this month's increments and decrements
+        if (PayrollComponents.ForClass(cls)?.ItemClass == ItemClass.Salary)
+        {
+            var scope = await _access.ForAsync(ItemClass.Salary, Ct);
+            if (!scope.CanView) return Forbid();
+            var all = await _items.ListAsync(Filter(null, null, scope, "ALL", 1, 10000), Ct);
+            var revisions = all.Items
+                .Where(i => i.ReplacedAmount is not null && i.StartMonth == ThisMonth && !i.IsEnded
+                            && i.Status is PayItemStatus.Active or PayItemStatus.Pending)
+                .Select(i => i.Amount - i.ReplacedAmount!.Value)
+                .ToList();
+            return PartialView("_SalaryKpis", new SalaryKpisModel
+            {
+                Summary = summary,
+                Month = ThisMonth,
+                IncrementCount = revisions.Count(d => d > 0),
+                IncrementAmount = revisions.Where(d => d > 0).Sum(),
+                DecrementCount = revisions.Count(d => d < 0),
+                DecrementAmount = -revisions.Where(d => d < 0).Sum(),
+                PendingCount = all.Items.Count(i => i.IsPending)
+            });
+        }
+
         ViewData["ItemClass"] = PayrollComponents.ForClass(cls)?.ItemClass;
         return PartialView("_PayItemKpis", summary);
     }
@@ -203,10 +227,15 @@ public sealed class PayItemsController : Controller
     {
         if (!CanViewAny) return Forbid();
         var s = await _items.EmployeeSummaryAsync(id, OwnCompany, ThisMonth, Ct);
-        return Json(s is null ? null : new
+        if (s is null) return Json(null);
+        var latest = await LatestBasicAsync(id);
+        return Json(new
         {
             monthlySalary = s.MonthlySalary,
             basicSalary = await BasicSalaryAsync(id),
+            // Salary Revisions: a new revision follows the latest approved Basic Salary (it may start later than now)
+            latestBasic = latest?.Amount ?? await BasicSalaryAsync(id),
+            latestBasicFrom = latest is null ? null : PayItemFormat.MonthValue(latest.StartMonth),
             loanBalance = s.LoanBalance,
             loanPending = s.LoanPending,
             monthlyDeductions = s.MonthlyDeductions,
@@ -388,6 +417,20 @@ public sealed class PayItemsController : Controller
     // =======================================================================
     // Loans & Advances
     // =======================================================================
+
+    /// <summary>The latest approved Basic Salary amount (the one a new revision replaces), whatever month it starts.</summary>
+    private async Task<PayItem?> LatestBasicAsync(long employeeId)
+    {
+        var salary = await _items.ListAsync(new PayItemFilter
+        {
+            CompanyId = OwnCompany, CompanyIds = CompanyCsv, EmployeeId = employeeId, ItemClass = ItemClass.Salary,
+            Status = "ACTIVE", PageNumber = 1, PageSize = 200
+        }, Ct);
+        return salary.Items
+            .Where(i => i.EmployeeId == employeeId && string.Equals(i.ComponentCode, "BASIC", StringComparison.OrdinalIgnoreCase)
+                        && i.AppliesMode == AppliesMode.Monthly && i.EndMonth is null)
+            .OrderByDescending(i => i.StartMonth).ThenByDescending(i => i.EmployeePayItemId).FirstOrDefault();
+    }
 
     /// <summary>The employee's Basic Salary now: the Basic Salary component in force, else the profile.</summary>
     private async Task<decimal> BasicSalaryAsync(long employeeId)

@@ -56,6 +56,19 @@ public sealed class PayItemsGridModel
     public IReadOnlySet<long>? WithSalaryHistory { get; init; }
 }
 
+/// <summary>Salary Revisions: the key figures - monthly salary and this month's increments / decrements.</summary>
+public sealed class SalaryKpisModel
+{
+    public required PayItemSummary Summary { get; init; }
+    public DateTime Month { get; init; }
+    public int IncrementCount { get; init; }
+    public decimal IncrementAmount { get; init; }
+    public int DecrementCount { get; init; }
+    public decimal DecrementAmount { get; init; }
+    /// <summary>Revisions waiting for approval (any month).</summary>
+    public int PendingCount { get; init; }
+}
+
 /// <summary>Salary Revisions: the employee's salary over time - the contract amount and every revision.</summary>
 public sealed class SalaryHistoryModel
 {

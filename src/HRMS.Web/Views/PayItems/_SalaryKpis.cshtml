@@ -1,0 +1,31 @@
+@model SalaryKpisModel
+@{
+    // Salary Revisions (db/111): the monthly salary, and the increments / decrements that take effect this month
+    var s = Model.Summary;
+    var month = PayItemFormat.Month(L, Model.Month);
+}
+<section class="pr-kpis pr-kpis--3" aria-label="@L["pr.key_figures"]">
+    <div class="hrms-card hrms-kpi">
+        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.monthly_salary"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("card", 16)</span></div>
+        <div class="hrms-kpi__value">@PayrollFormat.Money(s.MonthlySalary)</div>
+        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pr.kwd_0_employees_1_salary_items", PayrollFormat.Count(s.SalaryEmployees), PayrollFormat.Count(s.SalaryItems)]</span></div>
+    </div>
+    <div class="hrms-card hrms-kpi pc-kpi pc-kpi--up">
+        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pc.kpi_increments_0", month]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("trend", 16)</span></div>
+        <div class="hrms-kpi__value">+@PayrollFormat.Money(Model.IncrementAmount)</div>
+        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pc.kpi_n_revisions", PayrollFormat.Count(Model.IncrementCount)]</span></div>
+    </div>
+    <div class="hrms-card hrms-kpi pc-kpi pc-kpi--down">
+        <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pc.kpi_decrements_0", month]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("trend", 16, "is-flip")</span></div>
+        <div class="hrms-kpi__value">−@PayrollFormat.Money(Model.DecrementAmount)</div>
+        <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["pc.kpi_n_revisions", PayrollFormat.Count(Model.DecrementCount)]</span></div>
+    </div>
+</section>
+@if (Model.PendingCount > 0)
+{
+    <div class="pr-banner pr-banner--lock mt-3 pr-pi-pending">
+        @Html.Icon("clock", 18)
+        <div>@L["pc.kpi_pending_n", PayrollFormat.Count(Model.PendingCount)]</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-pi-show-pending>@L["pr.show_them"]</button>
+    </div>
+}

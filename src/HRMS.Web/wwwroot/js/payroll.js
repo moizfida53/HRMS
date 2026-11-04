@@ -1426,7 +1426,7 @@
             var empty = $("[data-ref-class-empty]", panel);
             if (empty) { empty.hidden = shown > 0; }
             if (!focus) { return; }
-            if (!typeId) { focus.hidden = true; return; }
+            if (!typeId || focus.hasAttribute("data-off")) { focus.hidden = true; return; }
             var rows = $all('tr[data-ref-type="' + typeId + '"]', panel);
             var cur = rows.filter(function (r) { return r.getAttribute("data-ref-current") === "1"; });
             var list = cur.length ? cur : rows.slice(0, 3);
@@ -1446,16 +1446,21 @@
         var syncRev = function () {
             var box = $("[data-pi-rev]", piBody);
             if (!box) { return; }
+            // the salary being revised: the approved amount being changed, or for a new revision the
+            // employee's latest approved Basic Salary (a revision follows the latest amount)
             var own = box.getAttribute("data-current");
-            var cur = own ? num(own) : (figures && figures.basicSalary > 0 ? figures.basicSalary : 0);
+            var cur = own ? num(own) : (figures && figures.latestBasic > 0 ? figures.latestBasic : 0);
             var down = !!$('input[name="pi-rev-kind"][value="DOWN"]:checked', box);
-            var chg = num($("[data-pi-rev-change]", box).value);
-            var ok = chg > 0;
+            var pct = !!$('input[name="pi-rev-unit"][value="PCT"]:checked', box);
+            var raw = num($("[data-pi-rev-change]", box).value);
+            var chg = raw > 0 ? (pct ? Math.round(cur * raw / 100 * 1000) / 1000 : raw) : 0;
+            var ok = chg > 0 && cur > 0;
             var next = ok ? Math.round((down ? cur - chg : cur + chg) * 1000) / 1000 : null;
             var tooBig = ok && down && next <= 0;
 
-            $("[data-pi-rev-current]", box).textContent = cur > 0 ? fmt(cur) : "—";
             $("[data-pi-rev-sign]", box).textContent = down ? "−" : "+";
+            $("[data-pi-rev-suffix]", box).textContent = pct ? "%" : HRMS.t("js.pr_kwd", "KWD");
+            $("[data-pi-rev-change]", box).placeholder = pct ? "0.0" : "0.000";
             var lbl = $("[data-pi-rev-change-label]", box);
             lbl.textContent = lbl.getAttribute(down ? "data-down" : "data-up");
             box.classList.toggle("is-down", down);
@@ -1463,10 +1468,20 @@
             $("[data-pi-rev-amount]", box).value = ok && !tooBig ? next.toFixed(3) : "";
             $("[data-pi-rev-error]", box).hidden = !tooBig;
             $("[data-pi-rev-change]", box).classList.toggle("is-invalid", tooBig);
+            // the change in both units, on the salary it revises
             var delta = $("[data-pi-rev-delta]", box);
-            delta.textContent = ok && !tooBig && cur > 0
-                ? (down ? "−" : "+") + fmt(chg) + " (" + (down ? "−" : "+") + (Math.round(chg / cur * 1000) / 10) + "%)" : "";
+            delta.textContent = ok && !tooBig
+                ? (down ? "−" : "+") + fmt(chg) + " (" + (down ? "−" : "+") + (Math.round(chg / cur * 1000) / 10) + "%) · " +
+                  HRMS.t("js.pc_on_0", "on {0}").replace("{0}", fmt(cur))
+                : (cur > 0 ? HRMS.t("js.pc_on_0", "on {0}").replace("{0}", fmt(cur)) : "");
             delta.className = "pc-revform__delta" + (ok && !tooBig ? (down ? " is-down" : " is-up") : "");
+
+            // a new revision applies after the latest amount's month
+            var from = $('[data-pi-start="SALARY"]', piBody);
+            if (!own && from && figures && figures.latestBasicFrom && !from.hasAttribute("data-user-set")) {
+                var after = Array.prototype.filter.call(from.options, function (o) { return o.value > figures.latestBasicFrom; })[0];
+                if (after && from.value <= figures.latestBasicFrom) { from.value = after.value; }
+            }
         };
 
         var fmt = function (v) {
@@ -1532,6 +1547,7 @@
         };
         piBody.addEventListener("change", function (ev) {
             if (ev.target.matches("[data-pi-employee]")) { loadFigures(); return; }
+            if (ev.target.matches('[data-pi-start="SALARY"]')) { ev.target.setAttribute("data-user-set", "1"); }
             syncForm();
         });
         piBody.addEventListener("input", function (ev) {
