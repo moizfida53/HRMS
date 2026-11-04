@@ -52,6 +52,8 @@ public sealed class PayItemsGridModel
     public IReadOnlyList<int> PageSizes { get; init; } = Array.Empty<int>();
     /// <summary>db/111: the page's class (Salary Revisions show the salary history icon).</summary>
     public string? ItemClass { get; init; }
+    /// <summary>Salary Revisions: the employees whose salary has more than one amount (history icon shown).</summary>
+    public IReadOnlySet<long>? WithSalaryHistory { get; init; }
 }
 
 /// <summary>Salary Revisions: the employee's salary over time - the contract amount and every revision.</summary>

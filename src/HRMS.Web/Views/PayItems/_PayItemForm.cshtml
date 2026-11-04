@@ -9,6 +9,10 @@
     var applies = i?.AppliesMode ?? (cls == ItemClass.Loan ? AppliesMode.Instalment : cls == ItemClass.Salary ? AppliesMode.Monthly : AppliesMode.Once);
     var amount = i is null ? "" : PayrollFormat.Money(i.Amount);
     var lockAttr = locked ? "disabled" : null;
+    // Salary Revisions (db/111): a new revision or a change of an approved amount is entered as an
+    // increment / decrement of the current salary - the item type is the Basic Salary (not asked)
+    var revision = Model.FixedClass && cls == ItemClass.Salary && (i is null || revise);
+    var revCurrent = revise ? i!.Amount.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) : "";
     var classInfo = new (string Value, string Label, string Hint)[]
     {
         (ItemClass.Salary, L["pr.salary"], L["pr.paid_every_month_basic_and_allowances"]),
@@ -80,7 +84,7 @@ else if (i?.IsPending == true)
         </div>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-6" hidden="@revision">
         <label class="form-label" for="pi-type">@L["pr.item_type"] <span class="req" aria-hidden="true">*</span></label>
         @if (locked || revise || (i is not null && cls == ItemClass.Salary))
         {
@@ -90,20 +94,58 @@ else if (i?.IsPending == true)
             <option value="">@L["pr.select_an_item_type"]</option>
             @foreach (var t in Model.Types.Where(x => x.IsActive || x.PayComponentId == i?.PayComponentId))
             {
-                <option value="@t.PayComponentId" data-cls="@t.ItemClass" data-company="@t.CompanyId" selected="@(t.PayComponentId == i?.PayComponentId)">@PayItemFormat.TypeName(L, t.ComponentName, t.ArabicName)</option>
+                <option value="@t.PayComponentId" data-cls="@t.ItemClass" data-company="@t.CompanyId" data-code="@t.ComponentCode" selected="@(t.PayComponentId == i?.PayComponentId)">@PayItemFormat.TypeName(L, t.ComponentName, t.ArabicName)</option>
             }
         </select>
         <span class="form-text" data-pi-type-hint hidden>@L["pi.select_employee_first"]</span>
     </div>
 
     @* amount: salary, earnings, deductions (a loan's instalment is calculated) *@
-    <div class="col-md-6" data-show-for="SALARY EARNING DEDUCTION">
+    @if (revision)
+    {
+        @* the revision: increment / decrement of the current salary, the new amount worked out (posted as Amount) *@
+        <div class="col-12" data-pi-rev data-current="@revCurrent" data-new="@(i is null ? "1" : null)">
+            <div class="pc-revform">
+                <div class="pc-revform__now">
+                    <span class="pc-revform__label">@(revise ? PayItemFormat.TypeName(L, i!.ComponentName, i.ComponentArabicName) : L["pc.current_basic"])</span>
+                    <strong class="pr-money" data-pi-rev-current>—</strong>
+                    <small>@(revise ? L["pr.effective_from"] + " " + PayItemFormat.Month(L, i!.StartMonth) : L["pc.current_basic_hint"])</small>
+                </div>
+
+                <div class="pc-revform__kind" role="radiogroup" aria-label="@L["pc.revision_type"]">
+                    <input type="radio" class="btn-check" name="pi-rev-kind" id="pi-rev-up" value="UP" checked />
+                    <label class="pc-revform__opt is-up" for="pi-rev-up">@Html.Icon("trend", 16)<span><strong>@L["pc.increment"]</strong><small>@L["pc.increment_hint"]</small></span></label>
+                    <input type="radio" class="btn-check" name="pi-rev-kind" id="pi-rev-down" value="DOWN" />
+                    <label class="pc-revform__opt is-down" for="pi-rev-down">@Html.Icon("trend", 16, "is-flip")<span><strong>@L["pc.decrement"]</strong><small>@L["pc.decrement_hint"]</small></span></label>
+                </div>
+
+                <div class="pc-revform__fields">
+                    <div>
+                        <label class="form-label" for="pi-rev-change"><span data-pi-rev-change-label data-up="@L["pc.increment_amount"]" data-down="@L["pc.decrement_amount"]">@L["pc.increment_amount"]</span> <span class="req" aria-hidden="true">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text pc-revform__sign" data-pi-rev-sign>+</span>
+                            <input class="form-control pr-input-money" id="pi-rev-change" inputmode="decimal" placeholder="0.000" autocomplete="off" data-pi-rev-change />
+                        </div>
+                        <div class="invalid-feedback d-block" data-pi-rev-error hidden>@L["pc.decrement_too_big"]</div>
+                    </div>
+                    <span class="pc-revform__arrow" aria-hidden="true">@Html.Icon("chevron-right", 18)</span>
+                    <div>
+                        <label class="form-label" for="pi-rev-new">@L["pc.new_revised_salary"]</label>
+                        <input class="form-control pr-input-money pc-revform__new" id="pi-rev-new" disabled placeholder="—" data-pi-rev-new />
+                        <span class="pc-revform__delta" data-pi-rev-delta></span>
+                    </div>
+                </div>
+                <input type="hidden" name="Amount" data-pi-rev-amount />
+            </div>
+        </div>
+    }
+    <div class="col-md-6" data-show-for="SALARY EARNING DEDUCTION" hidden="@revision">
         <label class="form-label" for="pi-amount"><span data-pi-amount-label>@(revise ? L["pr.new_amount_kwd"] : L["pr.amount_kwd"])</span> <span class="req" aria-hidden="true">*</span></label>
         @if (locked)
         {
             <input type="hidden" name="Amount" value="@i!.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)" />
         }
-        <input class="form-control pr-input-money" id="pi-amount" name="@(locked ? null : "Amount")" inputmode="decimal" placeholder="0.000" value="@amount" autocomplete="off" disabled="@lockAttr" data-pi-amount
+        <input class="form-control pr-input-money" id="pi-amount" name="@(locked || revision ? null : "Amount")" inputmode="decimal" placeholder="0.000" value="@amount" autocomplete="off" disabled="@lockAttr" data-pi-amount
                data-label-instalment="@L["pr.amount_per_instalment_kwd"]" data-label-default="@(revise ? L["pr.new_amount_kwd"] : L["pr.amount_kwd"])" />
     </div>
 
@@ -120,7 +162,7 @@ else if (i?.IsPending == true)
 
     @* salary: every month from - a change to an approved salary keeps the current amount
        (and its own Effective from) and starts a new amount from a later month *@
-    @if (revise)
+    @if (revise && !revision)
     {
         <div class="col-md-6" data-show-for="SALARY">
             <span class="form-label d-block">@L["pr.current_amount"]</span>

@@ -130,8 +130,24 @@ public sealed class PayItemsController : Controller
         if (scope is null || !scope.CanView) return Forbid();
         size = PageSizes.Contains(size) ? size : 25;
         var result = await _items.ListAsync(Filter(search, emp, scope, status, page, size), Ct);
+
+        // Salary Revisions: the history icon only for employees whose salary has changed (a salary
+        // component with more than one amount - the contract amount and at least one revision)
+        IReadOnlySet<long>? withHistory = null;
+        if (scope.Page.ItemClass == ItemClass.Salary && result.Items.Count > 0)
+        {
+            var all = await _items.ListAsync(Filter(null, emp, scope, "ALL", 1, 10000), Ct);
+            var onPage = result.Items.Select(i => i.EmployeeId).ToHashSet();
+            withHistory = all.Items.Where(i => onPage.Contains(i.EmployeeId))
+                                   .GroupBy(i => (i.EmployeeId, i.PayComponentId))
+                                   .Where(g => g.Count() > 1)
+                                   .Select(g => g.Key.EmployeeId)
+                                   .ToHashSet();
+        }
+
         return PartialView("_PayItemsGrid", new PayItemsGridModel
         {
+            WithSalaryHistory = withHistory,
             Page = result,
             IsFiltered = !string.IsNullOrWhiteSpace(search) || emp is not null || (status ?? "OPEN") != "OPEN",
             Rights = RightsOf(scope, UserId),
@@ -241,7 +257,9 @@ public sealed class PayItemsController : Controller
             _ => "edit"
         };
 
-        var defaultMonth = mode == "revise" ? Max(ThisMonth.AddMonths(1), item!.StartMonth.AddMonths(1)) : ThisMonth;
+        // a salary revision applies from a later month than the current amount: next month by default
+        var defaultMonth = mode == "revise" ? Max(ThisMonth.AddMonths(1), item!.StartMonth.AddMonths(1))
+                         : scope.Page.ItemClass == ItemClass.Salary ? ThisMonth.AddMonths(1) : ThisMonth;
         var types = await _items.TypesAsync(OwnCompany, CompanyCsv, Ct);
         return PartialView("_PayItemForm", new PayItemFormModel
         {

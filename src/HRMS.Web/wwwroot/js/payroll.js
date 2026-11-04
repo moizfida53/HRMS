@@ -1359,6 +1359,13 @@
             if (typeFree && (noEmployee || !cur || cur.hidden)) { typeSel.value = noEmployee ? "" : firstOk ? firstOk.value : ""; }
             var typeHint = $("[data-pi-type-hint]", root);
             if (typeHint) { typeHint.hidden = !(typeFree && noEmployee); }
+            // Salary Revisions: a new revision is always of the Basic Salary (not asked)
+            var revBox = $("[data-pi-rev]", root);
+            if (revBox && revBox.hasAttribute("data-new") && typeFree && company) {
+                var basicOpt = typeSel.querySelector('option[data-code="BASIC"][data-company="' + company + '"]');
+                if (basicOpt) { typeSel.value = basicOpt.value; }
+            }
+            syncRev();
 
             // applies: instalments only for deductions
             var appliesSel = $("[data-pi-applies]", root);
@@ -1433,6 +1440,35 @@
             focus.firstElementChild.classList.toggle("is-none", rows.length === 0);
         };
 
+        /* Salary Revisions: increment / decrement of the current salary -> the new revised amount
+           (shown disabled, posted as Amount). The current amount is the approved one being changed,
+           or for a new revision the employee's Basic Salary now. */
+        var syncRev = function () {
+            var box = $("[data-pi-rev]", piBody);
+            if (!box) { return; }
+            var own = box.getAttribute("data-current");
+            var cur = own ? num(own) : (figures && figures.basicSalary > 0 ? figures.basicSalary : 0);
+            var down = !!$('input[name="pi-rev-kind"][value="DOWN"]:checked', box);
+            var chg = num($("[data-pi-rev-change]", box).value);
+            var ok = chg > 0;
+            var next = ok ? Math.round((down ? cur - chg : cur + chg) * 1000) / 1000 : null;
+            var tooBig = ok && down && next <= 0;
+
+            $("[data-pi-rev-current]", box).textContent = cur > 0 ? fmt(cur) : "—";
+            $("[data-pi-rev-sign]", box).textContent = down ? "−" : "+";
+            var lbl = $("[data-pi-rev-change-label]", box);
+            lbl.textContent = lbl.getAttribute(down ? "data-down" : "data-up");
+            box.classList.toggle("is-down", down);
+            $("[data-pi-rev-new]", box).value = ok && !tooBig ? fmt(next) : "";
+            $("[data-pi-rev-amount]", box).value = ok && !tooBig ? next.toFixed(3) : "";
+            $("[data-pi-rev-error]", box).hidden = !tooBig;
+            $("[data-pi-rev-change]", box).classList.toggle("is-invalid", tooBig);
+            var delta = $("[data-pi-rev-delta]", box);
+            delta.textContent = ok && !tooBig && cur > 0
+                ? (down ? "−" : "+") + fmt(chg) + " (" + (down ? "−" : "+") + (Math.round(chg / cur * 1000) / 10) + "%)" : "";
+            delta.className = "pc-revform__delta" + (ok && !tooBig ? (down ? " is-down" : " is-up") : "");
+        };
+
         var fmt = function (v) {
             var s = Math.abs(v).toFixed(3).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             return (v < 0 ? "-" : "") + s;
@@ -1499,11 +1535,20 @@
             syncForm();
         });
         piBody.addEventListener("input", function (ev) {
-            if (ev.target.matches("[data-pi-total], [data-pi-count], [data-pi-amount]")) { syncForm(); }
+            if (ev.target.matches("[data-pi-total], [data-pi-count], [data-pi-amount], [data-pi-rev-change]")) { syncForm(); }
         });
         piForm.addEventListener("submit", function (ev) {
             ev.preventDefault();
             syncForm();
+            // a salary revision needs a valid increment / decrement
+            var revOut = $("[data-pi-rev-amount]", piBody);
+            if (revOut && !revOut.value) {
+                var chgIn = $("[data-pi-rev-change]", piBody);
+                chgIn.classList.add("is-invalid");
+                chgIn.focus();
+                HRMS.toast(HRMS.t("js.pc_enter_revision", "Enter the increment or decrement amount."), "error");
+                return;
+            }
             var fd = new FormData(piForm);
             ["Amount", "TotalAmount"].forEach(function (k) {
                 var v = fd.get(k);

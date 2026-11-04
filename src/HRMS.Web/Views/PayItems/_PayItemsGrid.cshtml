@@ -105,7 +105,7 @@ else
                             }
                         </td>
                         <td class="hrms-table__actions">
-                            @if (salaryPage)
+                            @if (salaryPage && Model.WithSalaryHistory?.Contains(i.EmployeeId) == true)
                             {
                                 <button type="button" class="btn-icon" data-pi-salary-history="@i.EmployeeId" title="@L["pc.salary_history"]" aria-label="@L["pc.salary_history_of_0", emp]">@Html.Icon("history", 15)</button>
                             }
