@@ -1,0 +1,40 @@
+@model (PayItem Item, PayItemRights Rights)
+@{
+    // the row buttons of a Payroll Components table: approve / reject (approvers), edit, history / end / delete
+    var i = Model.Item;
+    var r = Model.Rights;
+    var type = PayItemFormat.TypeName(L, i.ComponentName, i.ComponentArabicName);
+    var canEnd = !i.IsEnded && !i.IsPending && r.CanEdit;
+    var canDelete = !i.IsUsed && !i.IsEnded && r.CanDelete;
+}
+@if (i.IsPending && r.CanApprove(i))
+{
+    <button type="button" class="btn-icon btn-icon--success" data-pi-approve title="@L["pr.approve"]" aria-label="@L["pr.approve_0", type]" disabled="@(r.IsOwnSubmission(i) ? "disabled" : null)">@Html.Icon("check", 15)</button>
+}
+@if (i.IsPending && r.IsApprover)
+{
+    <button type="button" class="btn-icon btn-icon--danger" title="@L["pr.reject"]" aria-label="@L["pr.reject_0", type]"
+            data-reason-open data-reason-url="@Url.Action("Reject", "PayItems", new { id = i.EmployeePayItemId })"
+            data-reason-title="@L["pr.reject_pay_item"]" data-reason-text="@L["pr.the_item_is_removed_and_is_not_paid_enter_the_reason_it"]"
+            data-reason-label="@L["pr.reason"]" data-reason-button="@L["pr.reject"]" data-reason-danger="true" data-reason-refresh="payitems">@Html.Icon("x-circle", 15)</button>
+}
+@if (!i.IsEnded && r.CanEdit)
+{
+    <button type="button" class="btn-icon" data-pi-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", type]">@Html.Icon("edit", 15)</button>
+}
+<div class="dropdown d-inline-block">
+    <button type="button" class="btn-icon" data-bs-toggle="dropdown" aria-expanded="false" data-bs-popper-config='{"strategy":"fixed"}'
+            title="@L["pr.more"]" aria-label="@L["pr.more_actions_for_0", type]">@Html.Icon("more", 15)</button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><button type="button" class="dropdown-item" data-pi-history>@Html.Icon("history", 15)<span>@L["pr.history"]</span></button></li>
+        @if (canEnd)
+        {
+            <li><button type="button" class="dropdown-item" data-pi-end>@Html.Icon("power", 15)<span>@L["pr.end_item"]</span></button></li>
+        }
+        @if (canDelete)
+        {
+            <li><hr class="dropdown-divider" /></li>
+            <li><button type="button" class="dropdown-item text-danger" data-pi-delete>@Html.Icon("trash", 15)<span>@L["common.delete"]</span></button></li>
+        }
+    </ul>
+</div>

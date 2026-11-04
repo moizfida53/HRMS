@@ -806,3 +806,34 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
   &__error[hidden] { display: none; }
   &__arrow { margin-top: 2.1rem; }
 }
+
+// ---------------------------------------------------------------------------
+// Earnings & Allowances / Deductions / Loans & Advances: tables and key figures
+// ---------------------------------------------------------------------------
+.pc-kpi--warn .hrms-kpi__value { color: #b54708; }
+.pc-kpi--warn .hrms-kpi__icon { background: #fffaeb; color: #b54708; }
+
+.pc-table {
+  &__no { white-space: nowrap; color: var(--hrms-ink-600, #4a5250); }
+  &__up { color: #15803d; font-weight: 600; }
+  &__down { color: #b42318; font-weight: 600; }
+  &__balance { font-weight: 700; &.is-due { color: #b54708; } }
+  .pr-per { display: block; font-weight: 400; }
+}
+
+// how an item applies: one time / every month / instalments
+.pc-applies {
+  display: inline-block; padding: 1px 8px; border-radius: 999px;
+  font-size: .7rem; font-weight: 600; white-space: nowrap;
+  background: #f2f4f3; color: var(--hrms-ink-600, #4a5250);
+  &--monthly { background: #eef6ff; color: #1d4ed8; }
+  &--instalment { background: #f5f3ff; color: #6d28d9; }
+}
+
+// a loan: how much of it is repaid
+.pc-repaid {
+  min-width: 8rem;
+  &__bar { display: block; height: 6px; border-radius: 999px; background: #eef2f1; overflow: hidden; }
+  &__bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0f766e, #14b8a6); }
+  &__text { display: block; margin-top: 4px; font-size: .72rem; color: var(--hrms-ink-500, #626d6b); white-space: nowrap; }
+}

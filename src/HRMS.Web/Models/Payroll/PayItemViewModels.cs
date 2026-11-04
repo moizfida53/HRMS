@@ -56,6 +56,42 @@ public sealed class PayItemsGridModel
     public IReadOnlySet<long>? WithSalaryHistory { get; init; }
 }
 
+/// <summary>One key figure of a Payroll Components page.</summary>
+public sealed record ComponentKpi(string LabelKey, object?[] LabelArgs, string Value, string NoteKey, object?[] NoteArgs, string Icon, string? Tone = null);
+
+/// <summary>Earnings &amp; Allowances, Deductions, Loans &amp; Advances: the page's key figures and what waits for approval.</summary>
+public sealed class ComponentKpisModel
+{
+    public IReadOnlyList<ComponentKpi> Tiles { get; init; } = Array.Empty<ComponentKpi>();
+    public int PendingCount { get; init; }
+    public string PendingKey { get; init; } = "pc.kpi_pending_items_n";
+}
+
+/// <summary>What a pay item amounts to in a month (an item in force: approved, not ended).</summary>
+public static class ComponentMonth
+{
+    /// <summary>The amount the item pays / takes in the month (0 = none).</summary>
+    public static decimal In(PayItem i, DateTime month)
+    {
+        if (i.Status != PayItemStatus.Active || i.IsEnded) return 0;
+        return i.AppliesMode switch
+        {
+            AppliesMode.Monthly => i.StartMonth <= month && (i.EndMonth is null || i.EndMonth >= month) ? i.Amount : 0,
+            AppliesMode.Instalment => i.StartMonth <= month && i.PaidCount < (i.InstalmentCount ?? 0) ? i.Amount : 0,
+            _ => i.StartMonth == month ? i.Amount : 0
+        };
+    }
+
+    /// <summary>Instalments: the share repaid (0-100).</summary>
+    public static int RepaidPercent(PayItem i)
+    {
+        var total = i.TotalAmount ?? i.Amount * (i.InstalmentCount ?? 1);
+        if (total <= 0) return 0;
+        var balance = i.Balance ?? total;
+        return (int)Math.Clamp(Math.Round((total - balance) / total * 100m), 0, 100);
+    }
+}
+
 /// <summary>Salary Revisions: the key figures - monthly salary and this month's increments / decrements.</summary>
 public sealed class SalaryKpisModel
 {

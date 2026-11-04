@@ -1,0 +1,20 @@
+@model ComponentKpisModel
+@* Earnings & Allowances, Deductions, Loans & Advances (db/111): the page's own key figures *@
+<section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
+    @foreach (var t in Model.Tiles)
+    {
+        <div class="hrms-card hrms-kpi pc-kpi @(t.Tone is null ? null : "pc-kpi--" + t.Tone)">
+            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L[t.LabelKey, t.LabelArgs]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon(t.Icon, 16)</span></div>
+            <div class="hrms-kpi__value">@t.Value</div>
+            <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L[t.NoteKey, t.NoteArgs]</span></div>
+        </div>
+    }
+</section>
+@if (Model.PendingCount > 0)
+{
+    <div class="pr-banner pr-banner--lock mt-3 pr-pi-pending">
+        @Html.Icon("clock", 18)
+        <div>@L[Model.PendingKey, PayrollFormat.Count(Model.PendingCount)]</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-pi-show-pending>@L["pr.show_them"]</button>
+    </div>
+}

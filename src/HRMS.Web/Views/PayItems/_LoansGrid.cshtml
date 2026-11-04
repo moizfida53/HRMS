@@ -1,0 +1,87 @@
+@using HRMS.Web.Models.Organization
+@model PayItemsGridModel
+@{
+    // Loans & Advances (db/111): Emp No, Employee, Loan type + reference, Loan amount, Instalment / month, Repaid (progress), Balance, Start, Status, Actions
+    var pg = Model.Page;
+    var r = Model.Rights;
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["pr.1_item"] : L["pr.0_items", PayrollFormat.Count(pg.TotalCount)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "inbox", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["pr.no_pay_items_match_the_filters"] : L["pc.no_loans_yet"])</p>
+        <p class="hrms-empty__text">@L["pc.no_loans_text"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table pr-pi-table pc-table">
+            <caption class="hrms-sr-only">@L["pc.loans"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["pc.col_emp_no"]</th>
+                    <th scope="col">@L["pc.col_employee"]</th>
+                    <th scope="col">@L["pc.col_loan_type"]</th>
+                    <th scope="col" class="pr-money">@L["pc.col_loan_amount"]</th>
+                    <th scope="col" class="pr-money">@L["pc.col_instalment"]</th>
+                    <th scope="col">@L["pc.col_repaid"]</th>
+                    <th scope="col" class="pr-money">@L["pc.col_balance"]</th>
+                    <th scope="col">@L["pc.col_start"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in pg.Items)
+                {
+                    var emp = PayItemFormat.EmployeeName(L, i.EmployeeName, i.EmployeeArabicName);
+                    var type = PayItemFormat.TypeName(L, i.ComponentName, i.ComponentArabicName);
+                    var total = i.TotalAmount ?? i.Amount * (i.InstalmentCount ?? 1);
+                    var repaid = ComponentMonth.RepaidPercent(i);
+                    <tr data-id="@i.EmployeePayItemId" data-name="@type · @emp" data-mode="@i.AppliesMode" data-start="@PayItemFormat.MonthValue(i.StartMonth)"
+                        class="@(i.IsEnded ? "is-ended" : null)">
+                        <td data-label="@L["pc.col_emp_no"]" class="font-monospace pc-table__no">@i.EmployeeNo</td>
+                        <td data-label="@L["pc.col_employee"]" class="pr-pi-cell-emp">
+                            <span class="hrms-table__primary">@emp</span>
+                            @if (Model.ManyCompanies && i.CompanyName is not null)
+                            {
+                                <span class="pr-emp-sub">@i.CompanyName</span>
+                            }
+                        </td>
+                        <td data-label="@L["pc.col_loan_type"]">
+                            @type
+                            @if (i.SourceRef is not null)
+                            {
+                                <span class="hrms-code-chip ms-1">@i.SourceRef</span>
+                            }
+                        </td>
+                        <td data-label="@L["pc.col_loan_amount"]" class="pr-money">@PayrollFormat.Money(total)</td>
+                        <td data-label="@L["pc.col_instalment"]" class="pr-money">@PayrollFormat.Money(i.Amount)<span class="pr-per">@L["pr.month_2"]</span></td>
+                        <td data-label="@L["pc.col_repaid"]" class="pc-repaid">
+                            <span class="pc-repaid__bar" role="progressbar" aria-valuenow="@repaid" aria-valuemin="0" aria-valuemax="100" aria-label="@L["pc.col_repaid"]"><span style="width:@(repaid)%"></span></span>
+                            <span class="pc-repaid__text">@L["pc.n_of_m_paid", PayrollFormat.Count(i.PaidCount), PayrollFormat.Count(i.InstalmentCount ?? 0)] · @(repaid)%</span>
+                        </td>
+                        <td data-label="@L["pc.col_balance"]" class="pr-money pc-table__balance @((i.Balance ?? total) > 0 && !i.IsEnded ? "is-due" : null)">@PayrollFormat.Money(i.Balance ?? total)</td>
+                        <td data-label="@L["pc.col_start"]"><span class="pr-pi-from">@PayItemFormat.Month(L, i.StartMonth)</span></td>
+                        <td data-label="@L["common.status"]" class="pr-pi-cell-status">
+                            <span class="hrms-badge hrms-badge--@PayItemFormat.StatusBadge(i)"><span class="hrms-badge__dot"></span>@PayItemFormat.StatusLabel(L, i)</span>
+                            @if (i.IsPending)
+                            {
+                                <span class="pr-pi-level">@(i.ApprovalLevel == 0 ? L["pr.waiting_for_hr"] : L["pr.hr_approved_waiting_for_finance"])</span>
+                            }
+                        </td>
+                        <td class="hrms-table__actions">@await Html.PartialAsync("_PayItemActions", (i, r))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage,
+        PageSize = Model.PageSize, PageSizes = Model.PageSizes
+    })
+}
+</div>

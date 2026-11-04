@@ -145,7 +145,16 @@ public sealed class PayItemsController : Controller
                                    .ToHashSet();
         }
 
-        return PartialView(scope.Page.ItemClass == ItemClass.Salary ? "_SalaryRevisionsGrid" : "_PayItemsGrid", new PayItemsGridModel
+        // each Payroll Components page has its own table
+        var gridView = scope.Page.ItemClass switch
+        {
+            ItemClass.Salary => "_SalaryRevisionsGrid",
+            ItemClass.Earning => "_EarningsGrid",
+            ItemClass.Deduction => "_DeductionsGrid",
+            ItemClass.Loan => "_LoansGrid",
+            _ => "_PayItemsGrid"
+        };
+        return PartialView(gridView, new PayItemsGridModel
         {
             WithSalaryHistory = withHistory,
             Page = result,
@@ -185,6 +194,15 @@ public sealed class PayItemsController : Controller
                 DecrementAmount = -revisions.Where(d => d < 0).Sum(),
                 PendingCount = all.Items.Count(i => i.IsPending)
             });
+        }
+
+        // Earnings & Allowances, Deductions, Loans & Advances: their own key figures
+        if (PayrollComponents.ForClass(cls) is { } page)
+        {
+            var scope = await _access.ForAsync(page.ItemClass, Ct);
+            if (!scope.CanView) return Forbid();
+            var all = (await _items.ListAsync(Filter(null, null, scope, "ALL", 1, 10000), Ct)).Items;
+            return PartialView("_ComponentKpis", ComponentKpis(page.ItemClass, all));
         }
 
         ViewData["ItemClass"] = PayrollComponents.ForClass(cls)?.ItemClass;
@@ -412,6 +430,59 @@ public sealed class PayItemsController : Controller
     {
         if (await ItemScopeAsync(id) is not { Scope.CanDelete: true }) return Denied();
         return Result(await _items.ActionAsync("DELETE", id, OwnCompany, CompanyCsv, UserId, comment, cancellationToken: Ct));
+    }
+
+    /// <summary>The key figures of Earnings &amp; Allowances, Deductions or Loans &amp; Advances (this month).</summary>
+    private ComponentKpisModel ComponentKpis(string itemClass, IReadOnlyList<PayItem> all)
+    {
+        var m = ThisMonth;
+        var month = PayItemFormat.Month(_text, m);
+        string K(decimal v) => PayrollFormat.Money(v);
+        string N(int v) => PayrollFormat.Count(v);
+        var pending = all.Where(i => i.IsPending).ToList();
+        var inMonth = all.Select(i => (Item: i, Amount: ComponentMonth.In(i, m))).Where(x => x.Amount > 0).ToList();
+
+        if (itemClass == ItemClass.Loan)
+        {
+            var running = all.Where(i => i.Status == PayItemStatus.Active && !i.IsEnded && (i.Balance ?? 0) > 0).ToList();
+            var issued = all.Where(i => i.StartMonth.Year == m.Year && i.Status != PayItemStatus.Pending).ToList();
+            return new ComponentKpisModel
+            {
+                PendingCount = pending.Count,
+                PendingKey = "pc.kpi_pending_loans_n",
+                Tiles =
+                [
+                    new("pc.kpi_outstanding", [], K(running.Sum(i => i.Balance ?? 0)), "pc.kpi_n_running", [N(running.Count)], "inbox", "warn"),
+                    new("pc.kpi_due_0", [month], K(inMonth.Sum(x => x.Amount)), "pc.kpi_n_instalments", [N(inMonth.Count)], "calendar"),
+                    new("pc.kpi_issued_0", [m.Year], K(issued.Sum(i => i.TotalAmount ?? i.Amount)), "pc.kpi_n_loans", [N(issued.Count)], "card"),
+                    new("pc.kpi_pending", [], K(pending.Sum(i => i.TotalAmount ?? i.Amount)), "pc.kpi_n_waiting", [N(pending.Count)], "clock", pending.Count > 0 ? "warn" : null)
+                ]
+            };
+        }
+
+        var earning = itemClass == ItemClass.Earning;
+        var monthly = inMonth.Where(x => x.Item.AppliesMode == AppliesMode.Monthly).ToList();
+        var once = inMonth.Where(x => x.Item.AppliesMode == AppliesMode.Once).ToList();
+        var tiles = new List<ComponentKpi>
+        {
+            new(earning ? "pc.kpi_earnings_0" : "pc.kpi_deductions_0", [month], K(inMonth.Sum(x => x.Amount)),
+                "pc.kpi_n_employees_items", [N(inMonth.Select(x => x.Item.EmployeeId).Distinct().Count()), N(inMonth.Count)],
+                earning ? "percent" : "wallet", earning ? "up" : "down"),
+            new(earning ? "pc.kpi_recurring_allowances" : "pc.kpi_recurring_deductions", [], K(monthly.Sum(x => x.Amount)),
+                "pc.kpi_per_month_n", [N(monthly.Count)], "history"),
+            new(earning ? "pc.kpi_one_time_earnings_0" : "pc.kpi_one_time_deductions_0", [month], K(once.Sum(x => x.Amount)),
+                "pc.kpi_n_items", [N(once.Count)], earning ? "bolt" : "alert")
+        };
+        if (earning)
+        {
+            tiles.Add(new("pc.kpi_pending", [], K(pending.Sum(i => i.Amount)), "pc.kpi_n_waiting", [N(pending.Count)], "clock", pending.Count > 0 ? "warn" : null));
+        }
+        else
+        {
+            var instal = all.Where(i => i.AppliesMode == AppliesMode.Instalment && i.Status == PayItemStatus.Active && !i.IsEnded && (i.Balance ?? 0) > 0).ToList();
+            tiles.Add(new("pc.kpi_instalment_balance", [], K(instal.Sum(i => i.Balance ?? 0)), "pc.kpi_n_running", [N(instal.Count)], "inbox", instal.Count > 0 ? "warn" : null));
+        }
+        return new ComponentKpisModel { Tiles = tiles, PendingCount = pending.Count };
     }
 
     // =======================================================================
