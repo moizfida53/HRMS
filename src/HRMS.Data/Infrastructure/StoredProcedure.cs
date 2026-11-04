@@ -135,6 +135,8 @@ public static class StoredProcedure
     public const string PayItemImport = "Payroll.usp_PayItem_Import";
     public const string SalaryItemsFromContract = "Payroll.usp_SalaryItems_FromContract";
     public const string PendingApprovals = "Core.usp_PendingApprovals";
+    public const string RoleComponentTypes = "Security.usp_RoleComponentTypes";
+    public const string SalaryRevisionApply = "Payroll.usp_SalaryRevision_Apply";
 
     // ---- Final Settlement (db/39-40) ----
 

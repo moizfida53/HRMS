@@ -32,7 +32,7 @@
 
     // db/110: what waits for this user's approval - sidebar badges, the bell, the side alert
     var approvals = embed ? HRMS.Web.Services.ApprovalSummary.Empty : await Approvals.GetAsync();
-    var apPayrollGroup = approvals.For("PAYROLL") + approvals.For("PAYITEM") + approvals.For("SETTLEMENT");
+    var apPayrollGroup = approvals.For("PAYROLL") + approvals.Components + approvals.For("SETTLEMENT");
     var apLeave = approvals.For("LEAVE");
     IHtmlContent ApBadge(int n) => n <= 0 ? HtmlString.Empty : new HtmlString(
         $"<span class=\"hrms-nav-approval\" title=\"{System.Net.WebUtility.HtmlEncode(L["ap.badge_title", n])}\" aria-label=\"{System.Net.WebUtility.HtmlEncode(L["ap.badge_title", n])}\">{n.ToString(System.Globalization.CultureInfo.InvariantCulture)}</span>");
@@ -265,7 +265,7 @@
                         }
                         <a class="hrms-nav-link @(sectionActive ? "is-active" : null)"
                            href="@(Context.Request.PathBase + HRMS.Web.Models.Payroll.PayrollNav.Url(section.Tabs[0].Slug))">
-                            @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@(ApBadge(section.Key == "payitems" ? approvals.For("PAYITEM") : section.Key == "settlement" ? approvals.For("SETTLEMENT") : 0))
+                            @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@(ApBadge(section.Key == "settlement" ? approvals.For("SETTLEMENT") : 0))
                         </a>
                     }
                 </div>

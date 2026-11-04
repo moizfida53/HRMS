@@ -3,7 +3,9 @@
 @model (PayrollNav.Section Section, bool Active, HRMS.Web.Services.PayrollNavCountsResult? Counts)
 @inject HRMS.Web.Services.IApprovalNotifications Approvals
 @{
-    var apPayroll = (await Approvals.GetAsync()).For("PAYROLL");
+    // db/110 / db/111: records waiting for this user's approval, per sub-section and for the section
+    var ap = await Approvals.GetAsync();
+    var apSection = Model.Section.Key switch { "processing" => ap.For("PAYROLL"), "components" => ap.Components, _ => 0 };
     // A payroll section that opens in the sidebar into its pages (sub-sections), each with
     // its record count where it has one: Payroll Processing, Payslips, Bank Processing,
     // Accounting (under Payroll) and Payroll Settings (under Setup).
@@ -14,9 +16,9 @@
 <button type="button" class="hrms-nav-link hrms-nav-parent @(Model.Active ? "is-open" : "collapsed")"
         data-bs-toggle="collapse" data-bs-target="#@subId"
         aria-expanded="@(Model.Active ? "true" : "false")" aria-controls="@subId">
-    @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@if (section.Key == "processing" && apPayroll > 0)
+    @Html.Icon(section.Icon)<span>@L.Tr(section.Title)</span>@if (apSection > 0)
     {
-        <span class="hrms-nav-approval" title="@L["ap.badge_title", apPayroll]" aria-hidden="true">@apPayroll.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
+        <span class="hrms-nav-approval" title="@L["ap.badge_title", apSection]" aria-hidden="true">@apSection.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
     }@Html.Icon("chevron-down", 14, "hrms-nav-parent__chev")
 </button>
 <div class="collapse hrms-nav-sub @(Model.Active ? "show" : null)" id="@subId">
@@ -44,10 +46,10 @@
            href="@(Context.Request.PathBase + PayrollNav.Url(tab.Slug))"
            aria-current="@(subActive ? "page" : null)">
             <span>@L.Tr(tab.Title)</span>
-            @if (tab.Slug == "payrolls" && apPayroll > 0)
+            @if (ap.ForSlug(tab.Slug) is var apTab && apTab > 0)
             {
-                @* db/110: payrolls waiting for this user's approval *@
-                <span class="hrms-nav-approval" title="@L["ap.badge_title", apPayroll]" aria-label="@L["ap.badge_title", apPayroll]">@apPayroll.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
+                @* db/110 / db/111: records of this page waiting for this user's approval *@
+                <span class="hrms-nav-approval" title="@L["ap.badge_title", apTab]" aria-label="@L["ap.badge_title", apTab]">@apTab.ToString(System.Globalization.CultureInfo.InvariantCulture)</span>
             }
             @if (count is { } n)
             {

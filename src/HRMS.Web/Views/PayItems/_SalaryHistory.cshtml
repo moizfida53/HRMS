@@ -1,0 +1,68 @@
+@model SalaryHistoryModel
+@{
+    // Salary Revisions (db/111): the employee's salary over time - the contract amount (the default
+    // component) and every revision, per salary component, newest first, with the change each made.
+    var e = Model.Employee;
+    var name = PayItemFormat.EmployeeName(L, e.EmployeeName, e.EmployeeArabicName);
+    var groups = Model.Items
+        .GroupBy(i => i.PayComponentId)
+        .Select(g => g.OrderBy(i => i.StartMonth).ThenBy(i => i.EmployeePayItemId).ToList())
+        .OrderBy(g => string.Equals(g[0].ComponentCode, "BASIC", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+        .ThenBy(g => g[0].ComponentName)
+        .ToList();
+}
+<div class="pc-hist">
+    <div class="pc-hist__who">
+        <span class="hrms-avatar">@PayItemFormat.Initials(e.EmployeeName)</span>
+        <div><strong>@name</strong><span>@e.EmployeeNo@(string.IsNullOrWhiteSpace(e.DesignationName) ? "" : " · " + e.DesignationName)</span></div>
+        <div class="pc-hist__now"><span>@L["pc.salary_now"]</span><strong class="pr-money">@L["pr.kwd"] @PayrollFormat.Money(e.MonthlySalary)</strong></div>
+    </div>
+
+    @if (groups.Count == 0)
+    {
+        <p class="hrms-muted mb-0">@L["pc.no_salary_history"]</p>
+    }
+    @foreach (var g in groups)
+    {
+        var title = PayItemFormat.TypeName(L, g[0].ComponentName, g[0].ComponentArabicName);
+        <section class="pc-hist__component">
+            <h3>@title</h3>
+            <ol class="pc-hist__list">
+                @for (var k = g.Count - 1; k >= 0; k--)
+                {
+                    var i = g[k];
+                    // the amount before: the one it replaces, else the earlier amount of the component
+                    var prev = i.ReplacedAmount ?? (k > 0 ? g[k - 1].Amount : (decimal?)null);
+                    var diff = prev is { } p ? i.Amount - p : (decimal?)null;
+                    var current = !i.IsEnded && i.Status == PayItemStatus.Active && i.StartMonth <= Model.Month && (i.EndMonth is null || i.EndMonth >= Model.Month)
+                                  && !g.Any(x => x != i && x.Status == PayItemStatus.Active && x.StartMonth > i.StartMonth && x.StartMonth <= Model.Month);
+                    <li class="pc-hist__item @(current ? "is-current" : null) @(i.IsPending ? "is-pending" : null) @(i.IsEnded ? "is-ended" : null)">
+                        <span class="pc-hist__dot" aria-hidden="true"></span>
+                        <div class="pc-hist__body">
+                            <div class="pc-hist__line">
+                                <strong class="pr-money">@PayrollFormat.Money(i.Amount)</strong>
+                                @if (diff is { } d && d != 0)
+                                {
+                                    <span class="pc-rev @(d > 0 ? "is-up" : "is-down")">@(d > 0 ? L["pc.increment"] : L["pc.decrement"]) @(d > 0 ? "+" : "−")@PayrollFormat.Money(Math.Abs(d))@(prev > 0 ? $" ({(d > 0 ? "+" : "−")}{Math.Abs(d / prev!.Value * 100):0.#}%)" : "")</span>
+                                }
+                                <span class="hrms-badge hrms-badge--@PayItemFormat.StatusBadge(i)"><span class="hrms-badge__dot"></span>@PayItemFormat.StatusLabel(L, i)</span>
+                                @if (current)
+                                {
+                                    <span class="pc-hist__tag">@L["pc.in_force"]</span>
+                                }
+                            </div>
+                            <div class="pc-hist__meta">
+                                @L["pr.effective_from"] @PayItemFormat.Month(L, i.StartMonth)@(i.EndMonth is { } end ? " → " + PayItemFormat.Month(L, end) : "")
+                                · @(i.SourceRef == "CONTRACT" ? L["pc.contract_default"] : L["pc.revision"])
+                                @if (!string.IsNullOrWhiteSpace(i.Comment) && i.SourceRef != "CONTRACT")
+                                {
+                                    <span>· @i.Comment</span>
+                                }
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ol>
+        </section>
+    }
+</div>

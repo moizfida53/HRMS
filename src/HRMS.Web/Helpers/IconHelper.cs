@@ -84,6 +84,7 @@ public static class IconHelper
         ["cart"]      = """<circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h3l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.2L21 7.5H6.4"/>""",
         ["external"]  = """<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>""",
         ["save"]      = """<path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" transform="translate(0 0)"/><path d="M8 3v5h7V3"/><rect x="8" y="13" width="8" height="6" rx="1"/>""",
+        ["trend"]     = """<polyline points="3,17 9,11 13,15 21,7"/><polyline points="15,7 21,7 21,13"/>""",
         ["box"]       = """<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5"/><path d="M12 12v9"/>""",
         ["key"]       = """<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3"/><path d="M16.5 6.5l2.5 2.5"/><path d="M14 9l2 2"/>""",
         ["user-check"] = """<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 11l2 2 4-4"/>""",

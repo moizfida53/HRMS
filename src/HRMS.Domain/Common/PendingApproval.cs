@@ -20,9 +20,20 @@ public sealed class PendingApprovalRights
     public bool PayrollL1 { get; init; }
     public bool PayrollL2 { get; init; }
     public bool PayrollSelf { get; init; }
-    public bool PayItemL1 { get; init; }
-    public bool PayItemL2 { get; init; }
-    public bool PayItemSelf { get; init; }
+    /// <summary>db/111 Payroll Components: Salary Revisions, Earnings, Deductions, Loans (L1 / L2 / own).</summary>
+    public bool SalRevL1 { get; init; }
+    public bool SalRevL2 { get; init; }
+    public bool SalRevSelf { get; init; }
+    public bool EarnL1 { get; init; }
+    public bool EarnL2 { get; init; }
+    public bool EarnSelf { get; init; }
+    public bool DedL1 { get; init; }
+    public bool DedL2 { get; init; }
+    public bool DedSelf { get; init; }
+    public bool LoanL1 { get; init; }
+    public bool LoanL2 { get; init; }
+    public bool LoanSelf { get; init; }
+    public bool IsAdmin { get; init; }
     public bool SettlementL1 { get; init; }
     public bool SettlementL2 { get; init; }
     public bool SettlementSelf { get; init; }

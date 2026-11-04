@@ -34,11 +34,14 @@ public sealed class SecurityController : Controller
     private readonly IRefProtector _refs;
     private readonly IPasswordHasher _hasher;
     private readonly AuthenticationPolicyOptions _authPolicy;
+    private readonly IComponentRightsRepository _componentRights;
 
     public SecurityController(ISecurityAdminRepository security, ILookupRepository lookups, ICurrentUser currentUser,
                               ICompanyFilter companyFilter, IRefProtector refs, IPasswordHasher hasher,
-                              Microsoft.Extensions.Options.IOptions<AuthenticationPolicyOptions> authPolicy)
+                              Microsoft.Extensions.Options.IOptions<AuthenticationPolicyOptions> authPolicy,
+                              IComponentRightsRepository componentRights)
     {
+        _componentRights = componentRights;
         _hasher = hasher;
         _authPolicy = authPolicy.Value;
         _security = security;
@@ -119,8 +122,27 @@ public sealed class SecurityController : Controller
             Companies = OwnCompany is null ? await _lookups.GetAsync(LookupType.Company, cancellationToken: Ct) : Array.Empty<LookupItem>(),
             Levels = levels,
             Approvals = approvals,
-            Apps = AccessCatalog.Apps.Where(a => codes.Contains(a.Code)).Select(a => a.Code).ToHashSet(StringComparer.Ordinal)
+            Apps = AccessCatalog.Apps.Where(a => codes.Contains(a.Code)).Select(a => a.Code).ToHashSet(StringComparer.Ordinal),
+            ComponentTypes = await ComponentTypesAsync(),
+            LimitedTypes = role is null ? new HashSet<string>() : await RoleLimitsAsync(role.RoleId)
         });
+    }
+
+    // db/111: a role limited to chosen item types of the Payroll Components pages (none = every type)
+    private async Task<IReadOnlyList<HRMS.Domain.Payroll.ComponentTypeOption>> ComponentTypesAsync()
+    {
+        try { return await _componentRights.TypesAsync(Ct); }
+        catch (Exception) { return Array.Empty<HRMS.Domain.Payroll.ComponentTypeOption>(); }   // db/111 not run yet
+    }
+
+    private async Task<ISet<string>> RoleLimitsAsync(int roleId)
+    {
+        try
+        {
+            return (await _componentRights.RoleTypesAsync(roleId, Ct))
+                .Where(t => t.ComponentCode is not null).Select(t => $"{t.ItemClass}:{t.ComponentCode}").ToHashSet(StringComparer.Ordinal);
+        }
+        catch (Exception) { return new HashSet<string>(); }
     }
 
     /// <summary>
@@ -131,7 +153,7 @@ public sealed class SecurityController : Controller
     public async Task<IActionResult> SaveRole([FromForm(Name = "ref")] string? roleRef, [FromForm] string? roleCode, [FromForm] string? roleName,
                                               [FromForm] string? description, [FromForm] int? companyId, [FromForm] bool isActive,
                                               [FromForm] string[]? access, [FromForm] string[]? approval,
-                                              [FromForm] string[]? app)
+                                              [FromForm] string[]? app, [FromForm] string[]? itemtype)
     {
         if (!Can(PermRoleEdit)) return Denied();
 
@@ -185,6 +207,13 @@ public sealed class SecurityController : Controller
         }, _currentUser.UserId, Ct);
 
         if (!result.Success) return Json(ActionResponse.Failed(result.Message, result.ErrorCode));
+
+        // the item types the role is limited to on the Payroll Components pages (db/111)
+        if (itemtype is not null && result.Id > 0)
+        {
+            try { await _componentRights.SetRoleTypesAsync((int)result.Id, itemtype, _currentUser.UserId, Ct); }
+            catch (Exception) { /* db/111 not run yet: the role itself is saved */ }
+        }
         return Json(new
         {
             success = true,

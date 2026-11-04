@@ -20,6 +20,8 @@ public sealed class PayItemFilter
     public string? CompanyIds { get; set; }
     public long? EmployeeId { get; set; }
     public string? ItemClass { get; set; }
+    /// <summary>db/111: only these item types (codes) - a user limited to some types of a page; null = every type.</summary>
+    public IReadOnlyCollection<string>? ComponentCodes { get; set; }
     /// <summary>OPEN (active + pending), ACTIVE, PENDING, ENDED or ALL.</summary>
     public string? Status { get; set; }
     public string? Search { get; set; }
@@ -62,6 +64,12 @@ public sealed class PayItemRepository : IPayItemRepository
         Scope(p, filter.CompanyId, filter.CompanyIds);
         p.Add("@EmployeeId", filter.EmployeeId, DbType.Int64);
         p.Add("@ItemClass", Trim(filter.ItemClass, 10), DbType.AnsiString, size: 10);
+        // db/111: only for a user limited to some item types (an empty list matches nothing: a code
+        // that exists nowhere); not sent otherwise, so the list keeps working before db/111 is run
+        if (filter.ComponentCodes is not null)
+        {
+            p.Add("@ComponentCodes", filter.ComponentCodes.Count == 0 ? "\u0001" : string.Join(",", filter.ComponentCodes), DbType.String);
+        }
         p.Add("@StatusFilter", Trim(filter.Status, 10), DbType.AnsiString, size: 10);
         p.Add("@Search", Trim(filter.Search, 200), DbType.String, size: 200);
         p.Add("@PageNumber", Math.Max(1, filter.PageNumber), DbType.Int32);

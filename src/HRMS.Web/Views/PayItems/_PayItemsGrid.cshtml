@@ -3,6 +3,9 @@
 @{
     var pg = Model.Page;
     var r = Model.Rights;
+    // db/111: a Payroll Components page lists one class - no Class column; Salary Revisions add the salary history
+    var oneClass = Model.ItemClass is not null;
+    var salaryPage = Model.ItemClass == ItemClass.Salary;
 }
 <div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["pr.1_item"] : L["pr.0_items", PayrollFormat.Count(pg.TotalCount)])">
 @if (pg.TotalCount == 0)
@@ -21,7 +24,10 @@ else
             <thead>
                 <tr>
                     <th scope="col">@L["pr.employee"]</th>
-                    <th scope="col">@L["pr.class"]</th>
+                    @if (!oneClass)
+                    {
+                        <th scope="col">@L["pr.class"]</th>
+                    }
                     <th scope="col">@L["pr.item_type"]</th>
                     <th scope="col" class="pr-money">@L["pr.amount_kwd"]</th>
                     <th scope="col">@L["pr.effective_from"]</th>
@@ -43,7 +49,10 @@ else
                             <span class="hrms-table__primary">@emp</span>
                             <span class="pr-emp-sub">@i.EmployeeNo@(Model.ManyCompanies && i.CompanyName is not null ? " · " + i.CompanyName : "")</span>
                         </td>
-                        <td data-label="@L["pr.class"]"><span class="hrms-badge hrms-badge--@ItemClass.Badge(i.ItemClass)"><span class="hrms-badge__dot"></span>@PayItemFormat.ClassLabel(L, i.ItemClass)</span></td>
+                        @if (!oneClass)
+                        {
+                            <td data-label="@L["pr.class"]"><span class="hrms-badge hrms-badge--@ItemClass.Badge(i.ItemClass)"><span class="hrms-badge__dot"></span>@PayItemFormat.ClassLabel(L, i.ItemClass)</span></td>
+                        }
                         <td data-label="@L["pr.item_type"]">
                             @type
                             @if (i.SourceRef is not null && i.ItemClass == ItemClass.Loan)
@@ -60,6 +69,16 @@ else
                             @if (i.ReplacedAmount is { } was && i.IsPending)
                             {
                                 <span class="pr-was">@L["pr.was_0", PayrollFormat.Money(was)]</span>
+                            }
+                            @if (salaryPage && i.ReplacedAmount is { } before && before != i.Amount)
+                            {
+                                @* a salary revision: increment or decrement against the amount it replaces *@
+                                var diff = i.Amount - before;
+                                <span class="pc-rev @(diff > 0 ? "is-up" : "is-down")">@(diff > 0 ? L["pc.increment"] : L["pc.decrement"]) @(diff > 0 ? "+" : "−")@PayrollFormat.Money(Math.Abs(diff))@(before > 0 ? $" ({(diff > 0 ? "+" : "−")}{Math.Abs(diff / before * 100):0.#}%)" : "")</span>
+                            }
+                            @if (salaryPage && i.SourceRef == "CONTRACT")
+                            {
+                                <span class="pc-contract">@L["pc.contract_default"]</span>
                             }
                         </td>
                         @* the first payroll month the item counts in (and its last, when it ends) *@
@@ -86,6 +105,10 @@ else
                             }
                         </td>
                         <td class="hrms-table__actions">
+                            @if (salaryPage)
+                            {
+                                <button type="button" class="btn-icon" data-pi-salary-history="@i.EmployeeId" title="@L["pc.salary_history"]" aria-label="@L["pc.salary_history_of_0", emp]">@Html.Icon("history", 15)</button>
+                            }
                             @if (i.IsPending && r.CanApprove(i))
                             {
                                 <button type="button" class="btn-icon btn-icon--success" data-pi-approve title="@L["pr.approve"]" aria-label="@L["pr.approve_0", type]" disabled="@(r.IsOwnSubmission(i) ? "disabled" : null)">@Html.Icon("check", 15)</button>

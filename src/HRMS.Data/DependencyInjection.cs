@@ -87,7 +87,8 @@ public static class DependencyInjection
         services.AddScoped<IPayrollCalendarRepository, PayrollCalendarRepository>();
         services.AddScoped<IPayrollRunRepository, PayrollRunRepository>();
         services.AddScoped<IPayItemRepository, PayItemRepository>();
-        services.AddScoped<IApprovalRepository, ApprovalRepository>();   // db/110: what waits for the user's approval
+        services.AddScoped<IApprovalRepository, ApprovalRepository>();
+        services.AddScoped<IComponentRightsRepository, ComponentRightsRepository>();   // db/111: Payroll Components rights by item type   // db/110: what waits for the user's approval
 
         // ---- Payroll: final settlement and leave encashment (db/39-40) ----
         services.AddScoped<IFinalSettlementRepository, FinalSettlementRepository>();

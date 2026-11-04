@@ -211,6 +211,7 @@ builder.Services.AddHostedService<PayslipEmailSender>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPayrollNavCounts, PayrollNavCounts>();
 builder.Services.AddScoped<IApprovalNotifications, ApprovalNotifications>();
+builder.Services.AddScoped<IComponentAccess, ComponentAccess>();   // db/111: Payroll Components rights
 builder.Services.AddScoped<IEmployeeNames, EmployeeNames>();
 builder.Services.AddScoped<IEmployeeAuditor, EmployeeAuditor>();          // employee Audit Report (db/60)
 

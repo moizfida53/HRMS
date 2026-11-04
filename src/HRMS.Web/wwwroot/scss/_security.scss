@@ -568,3 +568,37 @@ $sec-full: $purple-700;
   .sec-app__tile, .sec-app__icon { transition: none; }
   .sec-app__tile:hover { transform: none; }
 }
+
+// ------------------------------------------- Payroll Components: item types (db/111) ----
+.sec-types {
+  &__pages {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    gap: space("3");
+    padding: space("4") space("5") space("5");
+    border-block-start: 1px solid $line-100;
+    @include cq-down("sm") { padding: space("3") space("4") space("4"); }
+  }
+  &__page { border: 1px solid $line-200; border-radius: $radius-lg; padding: space("3"); background: $white; }
+  &__head { display: flex; align-items: center; gap: space("2"); margin-block-end: space("2"); strong { font-size: $fs-sm; color: $ink-900; } }
+  &__icon { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: $radius; background: $blue-050; color: $blue-600; }
+  &__state {
+    margin-inline-start: auto; padding: 1px 8px; border-radius: $radius-pill;
+    background: $line-100; color: $ink-500; font-size: .68rem; font-weight: $fw-semibold;
+    &.is-limited { background: rgba($amber-600, .12); color: $amber-700; }
+  }
+  &__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+}
+
+.sec-type-chip {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px;
+  border: 1px solid $line-200; border-radius: $radius-pill;
+  background: $white; color: $ink-700;
+  font-size: .75rem; cursor: pointer; user-select: none;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+  &:hover { border-color: $blue-200; }
+  .btn-check:checked + & { background: $blue-600; border-color: $blue-600; color: $white; }
+  .btn-check:focus-visible + & { outline: 2px solid $blue-600; outline-offset: 2px; }
+  .btn-check:disabled + & { cursor: default; opacity: .7; }
+}

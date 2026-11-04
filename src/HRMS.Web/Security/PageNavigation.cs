@@ -51,6 +51,7 @@ public static class PageNavigation
         R(@"/payroll/settlement/\d+/statement", "/payroll/settlement/statement", "/payroll/settlement", idInPath: true),
         R(@"/payroll/settlement/statement", "/payroll/settlement/statement", "/payroll/settlement"),
         R(@"/payroll/pay-items", "/payroll/pay-items"),
+        R(@"/payroll/components/(salary|earnings|deductions|loans)", "", null),     // db/111: clean = its own path
         R(@"/payroll/pay-periods", "/payroll/pay-periods"),
         R(@"/payroll/create", "/payroll/create"),
         R(@"/payroll/run/\d+", "/payroll/run", "/payroll/payrolls", idInPath: true),

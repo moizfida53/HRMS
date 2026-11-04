@@ -64,7 +64,8 @@ else if (i?.IsPending == true)
        deductions and loans, with the amounts paid and still due - for reference *@
     <div class="col-12" data-pi-ref hidden></div>
 
-    <div class="col-12">
+    @* the class is the Payroll Components page's (db/111): kept for the form's logic, not shown *@
+    <div class="col-12" hidden="@Model.FixedClass">
         <span class="form-label d-block">@L["pr.class"] <span class="req" aria-hidden="true">*</span></span>
         <div class="pr-choice pr-choice--4" data-pi-class-choice role="radiogroup" aria-label="@L["pr.class"]">
             @foreach (var c in classInfo)
@@ -195,8 +196,8 @@ else if (i?.IsPending == true)
     <div class="col-12" data-show-for="LOAN">
         <ul class="pr-check" data-pi-loan-checks>
             <li><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text">@L["pr.monthly_instalment"]</span><span class="pr-check__meta"><strong>@L["pr.kwd"] <span data-pi-loan-monthly>—</span></strong></span></li>
-            <li data-pi-check="cap"><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text">@L["pr.within_3_monthly_salary"]</span><span class="pr-check__meta" data-pi-check-meta></span></li>
-            <li data-pi-check="share"><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text">@L["pr.instalment_other_deductions_share_of_salary"]</span><span class="pr-check__meta" data-pi-check-meta></span></li>
+            <li data-pi-check="cap"><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text">@L["pc.loan_within_basic"]</span><span class="pr-check__meta" data-pi-check-meta></span></li>
+            <li data-pi-check="share"><span class="pr-check__icon is-ok">@Html.Icon("check", 14)</span><span class="pr-check__text">@L["pc.loan_share_basic"]</span><span class="pr-check__meta" data-pi-check-meta></span></li>
         </ul>
         <span class="form-text">@L["pr.these_checks_are_a_guide_the_approvers_decide"]</span>
     </div>

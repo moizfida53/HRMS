@@ -1291,13 +1291,15 @@
         var piEmp = $("[data-pi-emp]"), piStatus = $("[data-pi-status]"), piSearch = $("[data-pi-search]");
         var sizeKey = "hrms-pi-page-size";
         var savedSize = (function () { try { return parseInt(window.localStorage.getItem(sizeKey), 10); } catch (e) { return NaN; } })();
-        var pState = { search: "", emp: piEmp.value, cls: "", status: piStatus.value, page: 1,
+        // db/111: each Payroll Components page lists one class
+        var pageClass = page.getAttribute("data-pi-page-class") || "";
+        var pState = { search: "", emp: piEmp.value, cls: pageClass, status: piStatus.value, page: 1,
                        size: [10, 25, 50].indexOf(savedSize) >= 0 ? savedSize : 25 };
 
         var loadItems = function () {
             return loadInto(piSlot, withQs(pu("grid"), pState)).then(function () { setCount(piSlot, piCount); });
         };
-        var loadKpis = function () { return loadInto(piKpis, pu("kpis")); };
+        var loadKpis = function () { return loadInto(piKpis, withQs(pu("kpis"), { cls: pageClass })); };
         var loadEmpCard = function () {
             if (!pState.emp) { piEmpCard.innerHTML = ""; return Promise.resolve(); }
             return loadInto(piEmpCard, withId(pu("employee"), pState.emp));
@@ -1448,15 +1450,18 @@
             var monthly = total > 0 && n > 0 ? Math.round(total / n * 1000) / 1000 : 0;
             $("[data-pi-loan-monthly]", root).textContent = monthly ? fmt(monthly) : "—";
             var capLi = $('[data-pi-check="cap"]', root), shareLi = $('[data-pi-check="share"]', root);
-            if (!figures || !(figures.monthlySalary > 0)) {
-                setCheck(capLi, "warn", HRMS.t("js.pi_no_salary", "No active salary items for this employee"));
+            // db/111: a loan may not exceed the Basic Salary (refused on save); an instalment with the
+            // other monthly deductions over 50% of it is allowed but flagged for the approvers
+            var basic = figures && figures.basicSalary > 0 ? figures.basicSalary : 0;
+            if (!basic) {
+                setCheck(capLi, "err", HRMS.t("js.pc_no_basic", "No Basic Salary for this employee"));
                 setCheck(shareLi, "warn", "—");
                 return;
             }
-            var cap = figures.monthlySalary * 3;
-            setCheck(capLi, total <= cap ? "ok" : "warn", fmt(total || 0) + (total <= cap ? " ≤ " : " > ") + fmt(cap));
-            var share = Math.round((monthly + (figures.monthlyDeductions || 0)) / figures.monthlySalary * 100);
-            setCheck(shareLi, share <= 50 ? "ok" : "warn", HRMS.t("js.pi_share", "{0}% of salary · limit 50%", share));
+            setCheck(capLi, total <= basic ? "ok" : "err", fmt(total || 0) + (total <= basic ? " ≤ " : " > ") + fmt(basic));
+            var limit = figures.maxSharePercent || 50;
+            var share = Math.round((monthly + (figures.monthlyDeductions || 0)) / basic * 100);
+            setCheck(shareLi, share <= limit ? "ok" : "warn", HRMS.t("js.pc_share", "{0}% of basic salary · limit {1}%", share).replace("{1}", limit));
         };
         var loadFigures = function () {
             var empSel = $("[data-pi-employee]", piBody);
@@ -1539,6 +1544,12 @@
                 hb.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
                 modal(piHistoryModal).show();
                 loadInto(hb, withId(pu("history"), id));
+            } else if (ev.target.closest("[data-pi-salary-history]")) {
+                // Salary Revisions: the employee's salary over time (contract + every revision)
+                var sb = $("[data-pi-history-body]");
+                sb.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
+                modal(piHistoryModal).show();
+                loadInto(sb, withId(pu("salary-history"), ev.target.closest("[data-pi-salary-history]").getAttribute("data-pi-salary-history")));
             } else if (ev.target.closest("[data-pi-approve]")) {
                 var ab = ev.target.closest("[data-pi-approve]");
                 confirmDialog(pt("approve-title") + " · " + name, pt("approve"), pt("approve-title")).then(function (ok) {
@@ -1618,6 +1629,7 @@
                 if (!chosen) { return; }
                 var fd = new FormData();
                 fd.append("file", chosen);
+                fd.append("cls", pageClass);
                 busy(impSave, true);
                 HRMS.post(pu("import"), fd).then(function (res) {
                     busy(impSave, false);

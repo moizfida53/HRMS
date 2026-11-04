@@ -1,19 +1,20 @@
 @model PayItemsPageModel
 @{
-    ViewData["Title"] = "Pay Items";
+    // Payroll Components (db/111): one page per kind of exception to the contract salary
+    var pg = Model.Page;
+    ViewData["Title"] = pg.Title;
+    ViewData["Heading"] = L[pg.TitleKey];
     ViewData["ActiveArea"] = "payroll";
-    ViewData["PayrollSection"] = "payitems";
-    ViewData["Subtitle"] = L["pr.salary_earnings_deductions_loans_and_advances_one_line_p"];
+    ViewData["PayrollSection"] = "components";
+    ViewData["PayrollPage"] = pg.Slug;
+    ViewData["Subtitle"] = L[pg.SubtitleKey];
     var r = Model.Rights;
-    var classes = new (string Value, string Label)[]
-    {
-        ("", L["pr.all"]), (ItemClass.Salary, L["pr.salary"]), (ItemClass.Earning, L["pr.earnings"]),
-        (ItemClass.Deduction, L["pr.deductions"]), (ItemClass.Loan, L["pr.loans_advances"])
-    };
+    var isSalary = pg.ItemClass == ItemClass.Salary;
     var status = Model.SelectedStatus is "ACTIVE" or "PENDING" or "ENDED" or "ALL" ? Model.SelectedStatus : "OPEN";
 }
 
-<div class="pr-stack" data-pr-page="payitems"
+<div class="pr-stack" data-pr-page="payitems" data-pi-page-class="@pg.ItemClass"
+     data-urls-salary-history="@Url.Action("SalaryHistory", "PayItems", new { employeeId = 0 })"
      data-urls-grid="@Url.Action("Grid", "PayItems")"
      data-urls-kpis="@Url.Action("Kpis", "PayItems")"
      data-urls-employee="@Url.Action("Employee", "PayItems", new { id = 0 })"
@@ -30,7 +31,7 @@
      data-urls-history="@Url.Action("History", "PayItems", new { id = 0 })"
      data-urls-export="@Url.Action("Export", "PayItems")"
      data-urls-import="@Url.Action("Import", "PayItems")"
-     data-text-new="@L["pr.add_pay_item"]"
+     data-text-new="@L["pc.add_" + pg.Route]"
      data-text-edit="@L["pr.edit_pay_item"]"
      data-text-revise="@L["pr.change_salary_item"]"
      data-text-approve-title="@L["pr.approve"]"
@@ -38,11 +39,12 @@
      data-text-delete-title="@L["common.delete"]"
      data-text-delete="@L["pr.delete_this_pay_item_it_has_not_been_paid_by_any_payroll"]">
 
+    @* what this page is for - the contract salary is the default, these are the exceptions (approved) *@
     <div class="pr-banner pr-banner--info">
-        @Html.Icon("info", 18)
+        @Html.Icon(pg.Icon, 18)
         <div>
-            <strong>@L["pr.one_list_for_everything_an_employee_is_paid_or_has_deduc"]</strong>
-            @L["pr.salary_items_repeat_every_month_earnings_and_deductions"]
+            <strong>@L["pc.default_title"]</strong>
+            @L["pc.intro_" + pg.Route]
         </div>
     </div>
 
@@ -64,14 +66,6 @@
                         <option value="@e.EmployeeId" selected="@(e.EmployeeId == Model.SelectedEmployeeId)">@PayItemFormat.EmployeeName(L, e.EmployeeName, e.EmployeeArabicName) · @e.EmployeeNo</option>
                     }
                 </select>
-                <div class="btn-group pr-seg" role="group" aria-label="@L["pr.class"]" data-pi-class>
-                    @foreach (var c in classes)
-                    {
-                        var cid = "pic-" + (c.Value == "" ? "all" : c.Value.ToLowerInvariant());
-                        <input type="radio" class="btn-check" name="pi-class" id="@cid" value="@c.Value" checked="@(c.Value == "")" />
-                        <label class="btn btn-outline-secondary btn-sm" for="@cid">@c.Label</label>
-                    }
-                </div>
                 <select class="form-select pr-pi-status" data-pi-status aria-label="@L["common.status"]">
                     <option value="OPEN" selected="@(status == "OPEN")">@L["pr.active_and_pending"]</option>
                     <option value="ACTIVE" selected="@(status == "ACTIVE")">@L["org.active"]</option>
@@ -165,7 +159,7 @@
                 <div class="modal-body">
                     <p class="hrms-muted hrms-text-sm">@L["pr.1_download_the_template_2_fill_one_row_per_item_3_upload"]</p>
                     <div class="mb-3">
-                        <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Template", "PayItems")">@Html.Icon("download", 15)<span>@L["pr.download_template_xlsx"]</span></a>
+                        <a class="btn btn-sm btn-outline-secondary" href="@Url.Action("Template", "PayItems", new { cls = pg.ItemClass })">@Html.Icon("download", 15)<span>@L["pr.download_template_xlsx"]</span></a>
                     </div>
                     <label class="pr-upload" data-pi-drop>
                         <span class="pr-upload__icon" aria-hidden="true">@Html.Icon("upload", 22)</span>
@@ -210,7 +204,7 @@
     <button type="button" class="btn btn-outline-secondary" data-pi-export>@Html.Icon("download", 15)<span>@L["common.export"]</span></button>
     @if (r.CanCreate)
     {
-        <button type="button" class="btn btn-primary" data-pi-add>@Html.Icon("plus", 15)<span>@L["pr.add_item"]</span></button>
+        <button type="button" class="btn btn-primary" data-pi-add>@Html.Icon("plus", 15)<span>@L["pc.add_" + pg.Route]</span></button>
     }
 }
 @section Scripts {

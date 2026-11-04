@@ -659,3 +659,49 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
 
   .form-select { width: auto; min-width: 4.5rem; padding-block: .2rem; }
 }
+
+// Payroll Components: the page's own figure leads, the others step back
+.pr-kpi-lead { border-color: var(--hrms-blue-200, #cde7e4); box-shadow: 0 0 0 3px rgba(15, 118, 110, .08); }
+.pr-kpi-dim { opacity: .72; }
+
+// Salary Revisions: increment / decrement against the replaced amount, the contract (default) amount
+.pc-rev {
+  display: block; margin-top: 2px;
+  font-size: .7rem; font-weight: 600; white-space: nowrap;
+  &.is-up { color: var(--hrms-green-700, #15803d); }
+  &.is-down { color: var(--hrms-red-700, #b42318); }
+}
+.pc-contract {
+  display: inline-block; margin-top: 3px; padding: 0 6px;
+  border-radius: 999px; background: var(--hrms-blue-050, #f3f9f8); border: 1px solid var(--hrms-blue-200, #cde7e4);
+  color: var(--hrms-blue-700, #115e59); font-size: .66rem; font-weight: 600; white-space: nowrap;
+}
+
+// Salary history (Salary Revisions): a timeline per salary component
+.pc-hist {
+  &__who {
+    display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+    padding-bottom: .75rem; margin-bottom: .75rem; border-bottom: 1px solid var(--hrms-line-100, #e9edec);
+    > div:nth-child(2) { flex: 1 1 auto; min-width: 0; strong { display: block; } span { display: block; font-size: .75rem; color: var(--hrms-ink-500, #626d6b); } }
+  }
+  &__now { text-align: end; span { display: block; font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--hrms-ink-500, #626d6b); } strong { font-size: 1.05rem; } }
+  &__component { margin-top: .75rem; h3 { font-size: .82rem; font-weight: 700; margin: 0 0 .4rem; color: var(--hrms-ink-900, #1b2120); } }
+  &__list { list-style: none; margin: 0; padding: 0 0 0 .25rem; }
+  &__item {
+    position: relative; display: flex; gap: .65rem; padding: 0 0 .7rem .9rem;
+    border-inline-start: 2px solid var(--hrms-line-200, #dfe5e4);
+    &:last-child { padding-bottom: 0; }
+    &.is-current { border-inline-start-color: var(--hrms-blue-600, #0f766e); }
+    &.is-ended { opacity: .7; }
+  }
+  &__dot {
+    position: absolute; inset-inline-start: -7px; top: 3px; width: 12px; height: 12px; border-radius: 50%;
+    background: #fff; border: 2px solid var(--hrms-line-200, #dfe5e4);
+    .is-current & { border-color: var(--hrms-blue-600, #0f766e); background: var(--hrms-blue-600, #0f766e); }
+    .is-pending & { border-color: var(--hrms-amber-600, #d97706); }
+  }
+  &__body { min-width: 0; }
+  &__line { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem .6rem; strong { font-size: .95rem; } .pc-rev { display: inline; margin: 0; } }
+  &__tag { font-size: .66rem; font-weight: 700; color: var(--hrms-blue-700, #115e59); text-transform: uppercase; letter-spacing: .04em; }
+  &__meta { font-size: .75rem; color: var(--hrms-ink-500, #626d6b); margin-top: 2px; }
+}

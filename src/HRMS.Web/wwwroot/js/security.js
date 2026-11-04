@@ -188,6 +188,15 @@
                 el.textContent = HRMS.t("js.sec_apps_count", "{0} of {1} apps").replace("{0}", n).replace("{1}", appBoxes.length);
                 el.classList.toggle("is-none", n === 0);
             };
+            /* Payroll Components: "every item type" until some are ticked */
+            var typeStates = function () {
+                $all("[data-sec-types-page]", f).forEach(function (pg) {
+                    var on = $all('input[name="itemtype"]:checked', pg).length > 0;
+                    var st = $("[data-sec-types-state]", pg);
+                    if (st) { st.textContent = st.getAttribute(on ? "data-some" : "data-all"); st.classList.toggle("is-limited", on); }
+                });
+            };
+            typeStates();
             var dirty = function () {
                 f.setAttribute("data-dirty", "true");
                 var d = $("[data-sec-dirty]", f);
@@ -233,7 +242,8 @@
                     dirty();
                     return;
                 }
-                if (t.closest(".sec-details") || t.name === "approval" || t.name === "app") { dirty(); }
+                if (t.name === "itemtype") { typeStates(); }
+                if (t.closest(".sec-details") || t.name === "approval" || t.name === "app" || t.name === "itemtype") { dirty(); }
             });
             f.addEventListener("input", function (e) { if (e.target.closest(".sec-details")) { dirty(); } });
 
@@ -351,6 +361,11 @@
                 });
                 $all('input[name="approval"]:checked', f).forEach(function (a) { body.append("approval", a.value); });
                 appBoxes.forEach(function (a) { if (a.checked) { body.append("app", a.value); } });
+                // item type limits: always sent (an empty value clears them all)
+                if ($("[data-sec-types]", f)) {
+                    body.append("itemtype", "");
+                    $all('input[name="itemtype"]:checked', f).forEach(function (a) { body.append("itemtype", a.value); });
+                }
 
                 var btn = $("[data-sec-save]", f);
                 busy(btn, true);

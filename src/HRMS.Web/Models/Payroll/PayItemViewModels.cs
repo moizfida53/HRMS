@@ -16,6 +16,9 @@ public sealed class PayItemRights
     public long? UserId { get; init; }
     /// <summary>May approve their own submissions (System Administrator or the "approve own" right).</summary>
     public bool CanApproveOwn { get; init; }
+    /// <summary>db/111: the Payroll Components page these rights are for, and the item types the user is limited to (null = all).</summary>
+    public string? ItemClass { get; init; }
+    public IReadOnlySet<string>? AllowedCodes { get; init; }
 
     public bool IsApprover => CanApproveHr || CanApproveFinance;
 
@@ -34,6 +37,8 @@ public sealed class PayItemsPageModel
     public string? SelectedStatus { get; init; }
     public required PayItemRights Rights { get; init; }
     public bool ManyCompanies { get; init; }
+    /// <summary>db/111: the Payroll Components page shown.</summary>
+    public required HRMS.Web.Security.ComponentPage Page { get; init; }
 }
 
 public sealed class PayItemsGridModel
@@ -45,6 +50,16 @@ public sealed class PayItemsGridModel
     /// <summary>Rows per page now, and the sizes the footer offers (10 / 25 / 50).</summary>
     public int PageSize { get; init; } = 25;
     public IReadOnlyList<int> PageSizes { get; init; } = Array.Empty<int>();
+    /// <summary>db/111: the page's class (Salary Revisions show the salary history icon).</summary>
+    public string? ItemClass { get; init; }
+}
+
+/// <summary>Salary Revisions: the employee's salary over time - the contract amount and every revision.</summary>
+public sealed class SalaryHistoryModel
+{
+    public required PayItemEmployeeSummary Employee { get; init; }
+    public IReadOnlyList<PayItem> Items { get; init; } = Array.Empty<PayItem>();
+    public DateTime Month { get; init; }
 }
 
 /// <summary>The form's reference panel: an employee's pay items, with what was paid and is still due.</summary>
@@ -80,6 +95,8 @@ public sealed class PayItemFormModel
     public PayItem? Item { get; init; }
     public long? EmployeeId { get; init; }
     public string ItemClass { get; init; } = Domain.Payroll.ItemClass.Earning;
+    /// <summary>db/111: opened from a Payroll Components page - the class is that page's, not chosen.</summary>
+    public bool FixedClass { get; init; }
     public IReadOnlyList<PayItemEmployeeOption> Employees { get; init; } = Array.Empty<PayItemEmployeeOption>();
     public IReadOnlyList<PayItemType> Types { get; init; } = Array.Empty<PayItemType>();
     public IReadOnlyList<DateTime> Months { get; init; } = Array.Empty<DateTime>();

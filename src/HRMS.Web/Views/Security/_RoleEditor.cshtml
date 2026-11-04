@@ -260,6 +260,43 @@
             <p class="sec-matrix__empty" data-sec-filter-empty hidden>@L["sec.no_pages_match"]</p>
         </section>
 
+        @* ------------------------------------------- Payroll Components: item types (db/111) *@
+        @if (Model.ComponentTypes.Count > 0)
+        {
+            <section class="hrms-card sec-access sec-types" aria-labelledby="sec-types-title" data-sec-types>
+                <div class="sec-access__head">
+                    <div>
+                        <h3 class="sec-card-title" id="sec-types-title">@L["sec.pc_types"]</h3>
+                        <p class="sec-card-sub">@L["sec.pc_types_text"]</p>
+                    </div>
+                </div>
+                <div class="sec-types__pages">
+                    @foreach (var pg in HRMS.Web.Security.PayrollComponents.Pages)
+                    {
+                        var types = Model.ComponentTypes.Where(t => t.ItemClass == pg.ItemClass).ToList();
+                        if (types.Count == 0) { continue; }
+                        var limited = types.Any(t => Model.LimitsTo(pg.ItemClass, t.ComponentCode));
+                        <div class="sec-types__page" data-sec-types-page="@pg.ItemClass">
+                            <div class="sec-types__head">
+                                <span class="sec-types__icon" aria-hidden="true">@Html.Icon(pg.Icon, 15)</span>
+                                <strong>@L[pg.TitleKey]</strong>
+                                <span class="sec-types__state" data-sec-types-state data-all="@L["sec.pc_all_types"]" data-some="@L["sec.pc_some_types"]">@(limited ? L["sec.pc_some_types"] : L["sec.pc_all_types"])</span>
+                            </div>
+                            <div class="sec-types__chips" role="group" aria-label="@L[pg.TitleKey]">
+                                @foreach (var t in types)
+                                {
+                                    var id = $"sec-t-{pg.ItemClass}-{t.ComponentCode}".ToLowerInvariant();
+                                    <input class="btn-check" type="checkbox" name="itemtype" value="@($"{pg.ItemClass}:{t.ComponentCode}")" id="@id"
+                                           checked="@Model.LimitsTo(pg.ItemClass, t.ComponentCode)" autocomplete="off" />
+                                    <label class="sec-type-chip" for="@id">@(L.IsArabic && !string.IsNullOrWhiteSpace(t.ArabicName) ? t.ArabicName : t.ComponentName)</label>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
         @* ------------------------------------------------ approvals *@
         <section class="hrms-card sec-access" aria-labelledby="sec-apr-title">
             <div class="sec-access__head">

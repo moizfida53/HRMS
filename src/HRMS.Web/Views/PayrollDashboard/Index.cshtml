@@ -34,7 +34,7 @@
         (a.PermitsExpiring, "is-serious", "id-card", "dash.att_permits", Url.Content("~/employees")),
         (a.UnverifiedRules, "is-warning", "shield", "dash.att_unverified", Url.Content("~/payroll/settings/rules")),
         (a.PayItemsPending, "is-info", "card", "dash.att_items_pending", Url.Content("~/payroll/pay-items")),
-        (a.LoansPending, "is-info", "wallet", "dash.att_loans_pending", Url.Content("~/payroll/pay-items")),
+        (a.LoansPending, "is-info", "wallet", "dash.att_loans_pending", Url.Content("~/payroll/components/loans")),
         (a.BankFilesToMake, "is-info", "bank", "dash.att_bank_files", Url.Action("FilePage", "BankProcessing")!),
         (a.JournalsToMake, "is-info", "book", "dash.att_journals_make", Url.Action("Journal", "Accounting", new { status = "NONE" })!),
         (a.JournalsToPost, "is-info", "send", "dash.att_journals_post", Url.Action("Posting", "Accounting", new { status = "OPEN" })!)

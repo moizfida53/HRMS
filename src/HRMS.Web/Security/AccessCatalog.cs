@@ -150,13 +150,20 @@ public static class AccessCatalog
             ]),
             new("PR.CALENDAR", "sec.pg_calendar", "sec.pg_calendar_hint",
                 C("PAYROLL_CALENDAR_VIEW"), C("PAYROLL_CALENDAR_EDIT"), C("PAYROLL_CALENDAR_DELETE")),
-            new("PR.PAYITEMS", "sec.pg_pay_items", "sec.pg_pay_items_hint",
-                C("PAYROLL_ITEM_VIEW"), C("PAYROLL_ITEM_CREATE", "PAYROLL_ITEM_EDIT"), C("PAYROLL_ITEM_DELETE")),
             new("PR.SETTLEMENT", "sec.pg_settlement", null,
                 C("PAYROLL_FS_VIEW"), C("PAYROLL_FS_PROCESS"), C("PAYROLL_FS_CANCEL"),
             [
                 new("PR.FS_PAY", "sec.fn_fs_pay", null, No, C("PAYROLL_FS_PAY"), No)
             ])
+        ]),
+        // db/111: Payroll Components - the exceptions to the contract salary, one page each, each with its own
+        // rights (a role can also be limited to chosen item types of a page: Security.RoleComponentTypes)
+        new("PC", "sec.mod_components", "card",
+        [
+            new("PC.SALARY", "sec.pg_pc_salary", "sec.pg_pc_hint", C("PAYROLL_SALREV_VIEW"), C("PAYROLL_SALREV_EDIT"), C("PAYROLL_SALREV_DELETE")),
+            new("PC.EARNING", "sec.pg_pc_earnings", "sec.pg_pc_hint", C("PAYROLL_EARN_VIEW"), C("PAYROLL_EARN_EDIT"), C("PAYROLL_EARN_DELETE")),
+            new("PC.DEDUCTION", "sec.pg_pc_deductions", "sec.pg_pc_hint", C("PAYROLL_DED_VIEW"), C("PAYROLL_DED_EDIT"), C("PAYROLL_DED_DELETE")),
+            new("PC.LOAN", "sec.pg_pc_loans", "sec.pg_pc_hint", C("PAYROLL_LOAN_VIEW"), C("PAYROLL_LOAN_EDIT"), C("PAYROLL_LOAN_DELETE"))
         ]),
         new("PS", "sec.mod_payslips", "receipt",
         [
@@ -188,8 +195,11 @@ public static class AccessCatalog
     [
         new("APR.PAYROLL", "sec.apr_payroll", "sec.apr_payroll_hint",
             "PAYROLL_RUN_APPROVE_HR", "PAYROLL_RUN_APPROVE_FINANCE", "PAYROLL_RUN_APPROVE_SELF"),
-        new("APR.PAYITEM", "sec.apr_pay_items", "sec.apr_pay_items_hint",
-            "PAYROLL_ITEM_APPROVE_L1", "PAYROLL_ITEM_APPROVE_L2", "PAYROLL_ITEM_APPROVE_SELF"),
+        // db/111: one approval per Payroll Components page
+        new("APR.SALREV", "sec.apr_pc_salary", "sec.apr_pc_hint", "PAYROLL_SALREV_APPROVE_L1", "PAYROLL_SALREV_APPROVE_L2", "PAYROLL_SALREV_APPROVE_SELF"),
+        new("APR.EARN", "sec.apr_pc_earnings", "sec.apr_pc_hint", "PAYROLL_EARN_APPROVE_L1", "PAYROLL_EARN_APPROVE_L2", "PAYROLL_EARN_APPROVE_SELF"),
+        new("APR.DED", "sec.apr_pc_deductions", "sec.apr_pc_hint", "PAYROLL_DED_APPROVE_L1", "PAYROLL_DED_APPROVE_L2", "PAYROLL_DED_APPROVE_SELF"),
+        new("APR.LOAN", "sec.apr_pc_loans", "sec.apr_pc_hint", "PAYROLL_LOAN_APPROVE_L1", "PAYROLL_LOAN_APPROVE_L2", "PAYROLL_LOAN_APPROVE_SELF"),
         new("APR.SETTLEMENT", "sec.apr_settlement", "sec.apr_settlement_hint",
             "PAYROLL_FS_APPROVE_L1", "PAYROLL_FS_APPROVE_L2", "PAYROLL_FS_APPROVE_SELF"),
         // db/68: level 1 = the line manager step (the employee's reporting manager always may), level 2 = HR
@@ -276,7 +286,11 @@ public static class AccessCatalog
         ["assets"] = ["ASSET_VIEW", "ASSET_EDIT"],
         ["payroll:dashboard"] = ["PAYROLL_DASHBOARD_VIEW"],
         ["payroll:processing"] = ["PAYROLL_RUN_VIEW", "PAYROLL_CALENDAR_VIEW"],
-        ["payroll:payitems"] = ["PAYROLL_ITEM_VIEW"],
+        ["payroll:components"] = ["PAYROLL_SALREV_VIEW", "PAYROLL_EARN_VIEW", "PAYROLL_DED_VIEW", "PAYROLL_LOAN_VIEW"],
+        ["tab:pc-salary"] = ["PAYROLL_SALREV_VIEW"],
+        ["tab:pc-earnings"] = ["PAYROLL_EARN_VIEW"],
+        ["tab:pc-deductions"] = ["PAYROLL_DED_VIEW"],
+        ["tab:pc-loans"] = ["PAYROLL_LOAN_VIEW"],
         ["payroll:settlement"] = ["PAYROLL_FS_VIEW"],
         ["payroll:payslips"] = ["PAYROLL_SLIP_VIEW", "PAYROLL_SLIP_GENERATE", "PAYROLL_SLIP_EMAIL"],
         ["payroll:bank"] = ["PAYROLL_BANK_VIEW"],

@@ -15,8 +15,22 @@ public sealed record ApprovalSummary(IReadOnlyList<ApprovalNotice> Items)
 
     public int Total => Items.Sum(i => i.Count);
 
-    /// <summary>The count of a kind (PAYROLL, PAYITEM, SETTLEMENT, LEAVE); 0 = none.</summary>
+    /// <summary>The count of a kind (PAYROLL, SALREV, EARN, DED, LOAN, SETTLEMENT, LEAVE); 0 = none.</summary>
     public int For(string kind) => Items.FirstOrDefault(i => i.Kind == kind)?.Count ?? 0;
+
+    /// <summary>The four Payroll Components pages together (db/111).</summary>
+    public int Components => For("SALREV") + For("EARN") + For("DED") + For("LOAN");
+
+    /// <summary>The count of a sidebar sub-section (its slug); 0 = none.</summary>
+    public int ForSlug(string slug) => slug switch
+    {
+        "payrolls" => For("PAYROLL"),
+        "pc-salary" => For("SALREV"),
+        "pc-earnings" => For("EARN"),
+        "pc-deductions" => For("DED"),
+        "pc-loans" => For("LOAN"),
+        _ => 0
+    };
 
     /// <summary>Changes whenever a count changes - the side alert closed with × stays closed until then.</summary>
     public string Signature => string.Join("|", Items.Select(i => $"{i.Kind}:{i.Count}"));
@@ -68,7 +82,12 @@ public sealed class ApprovalNotifications : IApprovalNotifications
             CompanyId = _user.ActiveCompanyId,
             CompanyIds = _companyFilter.Csv,
             PayrollL1 = Can("PAYROLL_RUN_APPROVE_HR"), PayrollL2 = Can("PAYROLL_RUN_APPROVE_FINANCE"), PayrollSelf = Can("PAYROLL_RUN_APPROVE_SELF"),
-            PayItemL1 = Can("PAYROLL_ITEM_APPROVE_L1"), PayItemL2 = Can("PAYROLL_ITEM_APPROVE_L2"), PayItemSelf = Can("PAYROLL_ITEM_APPROVE_SELF"),
+            // db/111: one approval per Payroll Components page (limited to the user's item types in the procedure)
+            SalRevL1 = Can("PAYROLL_SALREV_APPROVE_L1"), SalRevL2 = Can("PAYROLL_SALREV_APPROVE_L2"), SalRevSelf = Can("PAYROLL_SALREV_APPROVE_SELF"),
+            EarnL1 = Can("PAYROLL_EARN_APPROVE_L1"), EarnL2 = Can("PAYROLL_EARN_APPROVE_L2"), EarnSelf = Can("PAYROLL_EARN_APPROVE_SELF"),
+            DedL1 = Can("PAYROLL_DED_APPROVE_L1"), DedL2 = Can("PAYROLL_DED_APPROVE_L2"), DedSelf = Can("PAYROLL_DED_APPROVE_SELF"),
+            LoanL1 = Can("PAYROLL_LOAN_APPROVE_L1"), LoanL2 = Can("PAYROLL_LOAN_APPROVE_L2"), LoanSelf = Can("PAYROLL_LOAN_APPROVE_SELF"),
+            IsAdmin = Can("SYSTEM_ADMIN"),
             SettlementL1 = Can("PAYROLL_FS_APPROVE_L1"), SettlementL2 = Can("PAYROLL_FS_APPROVE_L2"), SettlementSelf = Can("PAYROLL_FS_APPROVE_SELF"),
             LeaveL1 = Can("LEAVE_APPROVE_L1"), LeaveL2 = Can("LEAVE_APPROVE_L2"), LeaveSelf = Can("LEAVE_APPROVE_SELF")
         };
@@ -82,7 +101,10 @@ public sealed class ApprovalNotifications : IApprovalNotifications
             var items = rows.Where(r => r.Count > 0).Select(r => r.Kind switch
             {
                 "PAYROLL" => new ApprovalNotice(r.Kind, r.Count, r.Oldest, "ap.kind_payroll", "calculator", "/payroll/payrolls?stage=AWAITING_APPROVAL"),
-                "PAYITEM" => new ApprovalNotice(r.Kind, r.Count, r.Oldest, "ap.kind_payitem", "card", "/payroll/pay-items?status=PENDING"),
+                "SALREV" => new ApprovalNotice(r.Kind, r.Count, r.Oldest, "ap.kind_salrev", "trend", "/payroll/components/salary?status=PENDING"),
+                "EARN" => new ApprovalNotice(r.Kind, r.Count, r.Oldest, "ap.kind_earn", "percent", "/payroll/components/earnings?status=PENDING"),
+                "DED" => new ApprovalNotice(r.Kind, r.Count, r.Oldest, "ap.kind_ded", "wallet", "/payroll/components/deductions?status=PENDING"),
+                "LOAN" => new ApprovalNotice(r.Kind, r.Count, r.Oldest, "ap.kind_loan", "inbox", "/payroll/components/loans?status=PENDING"),
                 "SETTLEMENT" => new ApprovalNotice(r.Kind, r.Count, r.Oldest, "ap.kind_settlement", "exit", "/payroll/settlement?status=PENDING"),
                 "LEAVE" => new ApprovalNotice(r.Kind, r.Count, r.Oldest, "ap.kind_leave", "calendar", "/leave?status=MINE"),
                 _ => null

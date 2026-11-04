@@ -34,6 +34,12 @@ public sealed class RoleEditorModel
 
     public bool SeesApp(string code) => Apps.Contains(code);
 
+    /// <summary>db/111: the item types of the Payroll Components pages, and the ones this role is limited to ("CLASS:CODE").</summary>
+    public IReadOnlyList<HRMS.Domain.Payroll.ComponentTypeOption> ComponentTypes { get; init; } = Array.Empty<HRMS.Domain.Payroll.ComponentTypeOption>();
+    public ISet<string> LimitedTypes { get; init; } = new HashSet<string>();
+
+    public bool LimitsTo(string itemClass, string code) => LimitedTypes.Contains($"{itemClass}:{code}");
+
     public AccessLevel LevelOf(string code) => Levels.GetValueOrDefault(code, AccessLevel.None);
     public bool Approves(string code, string column) => Approvals.TryGetValue(code, out var c) && c.Contains(column);
 }
