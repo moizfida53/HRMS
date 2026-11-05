@@ -1674,6 +1674,48 @@ a:hover {
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
 }
 
+input.form-control[type=date] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: calc(1.5em + 1rem + 2px);
+  line-height: 1.5;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input.form-control[type=date]::-webkit-date-and-time-value {
+  text-align: start;
+  min-height: 1.5em;
+  margin: 0;
+}
+input.form-control[type=date]::-webkit-datetime-edit {
+  padding: 0;
+  line-height: 1.5;
+}
+input.form-control[type=date]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+input.form-control[type=date]::-webkit-calendar-picker-indicator {
+  margin: 0;
+  margin-inline-start: 0.25rem;
+  padding: 0;
+  cursor: pointer;
+}
+@media (max-width: 575.98px) {
+  input.form-control[type=date] {
+    font-size: 16px;
+  }
+}
+
+.hrms-dob-col input.form-control[type=date] {
+  padding-inline: 0.6rem;
+}
+@media (min-width: 1200px) and (max-width: 1399.98px) {
+  .hrms-dob-col input.form-control[type=date] {
+    font-size: 0.8rem;
+  }
+}
+
 .form-text {
   font-size: 0.725rem;
   color: #98a2b3;
@@ -2921,13 +2963,11 @@ a:hover {
   padding: 0.5rem 0;
   border-bottom: 1px solid #eef1f5;
   font-size: 0.8rem;
+  --tone: #667085;
+  --tone-bg: #eef1f5;
 }
 .hrms-actions__item:last-child {
   border-bottom: 0;
-}
-.hrms-actions__item {
-  --tone: #667085;
-  --tone-bg: #eef1f5;
 }
 .hrms-actions__item.is-critical {
   --tone: #b42318;

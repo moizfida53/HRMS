@@ -478,6 +478,54 @@
   }
 }
 
+// Native date inputs render their inner edit field with different height,
+// padding and alignment than text inputs / selects, so the box sat visibly
+// off next to its neighbours (Date of Birth). Normalise it everywhere.
+input.form-control[type="date"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: calc(1.5em + 1rem + 2px);
+  line-height: 1.5;
+  -webkit-appearance: none;
+  appearance: none;
+
+  &::-webkit-date-and-time-value {
+    text-align: start;
+    min-height: 1.5em;
+    margin: 0;
+  }
+
+  &::-webkit-datetime-edit {
+    padding: 0;
+    line-height: 1.5;
+  }
+
+  &::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    margin: 0;
+    margin-inline-start: 0.25rem;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  @media (max-width: 575.98px) {
+    font-size: 16px; // stops iOS zooming on focus
+  }
+}
+
+// Date of Birth sits in a narrow xl-2 column: leave room for dd/mm/yyyy + icon.
+.hrms-dob-col input.form-control[type="date"] {
+  padding-inline: 0.6rem;
+
+  @media (min-width: 1200px) and (max-width: 1399.98px) {
+    font-size: 0.8rem;
+  }
+}
+
 .form-text {
   font-size: $fs-xs;
   color: $ink-400;

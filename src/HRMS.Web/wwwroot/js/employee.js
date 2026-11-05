@@ -16,6 +16,26 @@
 
     var HRMS = window.HRMS || (window.HRMS = {});
 
+    /* ============================== employment: end-date toggle ======== */
+
+    // Probation End Date and Termination Date share one slot. Terminated /
+    // Resigned shows the termination date; anything else shows probation.
+    // Both inputs stay in the form (only hidden), so neither value is lost.
+    (function initEndDateToggle() {
+        var slot = document.getElementById("emp-end-date-slot");
+        var status = document.getElementById("f-EmploymentStatus");
+        if (!slot || !status) { return; }
+        function sync() {
+            var ended = status.value === "Terminated" || status.value === "Resigned";
+            var prob = slot.querySelector('[data-end-date="probation"]');
+            var term = slot.querySelector('[data-end-date="termination"]');
+            if (prob) { prob.hidden = ended; }
+            if (term) { term.hidden = !ended; }
+        }
+        status.addEventListener("change", sync);
+        sync();
+    })();
+
     /* ======================================================= list grid === */
 
     (function initGrid() {
