@@ -8,6 +8,23 @@
     var start = revise ? Model.DefaultMonth : i?.StartMonth ?? Model.DefaultMonth;
     var applies = i?.AppliesMode ?? (cls == ItemClass.Loan ? AppliesMode.Instalment : cls == ItemClass.Salary ? AppliesMode.Monthly : AppliesMode.Once);
     var amount = i is null ? "" : PayrollFormat.Money(i.Amount);
+    // Deductions (db/111 page): the user enters the Total Amount and the period (From / To month); the monthly
+    // deductible amount is worked out (total / months) and posted as the Amount. Shown for a deduction only.
+    var dedMonths = i is null ? 1
+        : i.AppliesMode == AppliesMode.Instalment ? Math.Max(1, i.InstalmentCount ?? 1)
+        : i.AppliesMode == AppliesMode.Monthly && i.EndMonth is { } dEnd ? Math.Max(1, (dEnd.Year - i.StartMonth.Year) * 12 + dEnd.Month - i.StartMonth.Month + 1)
+        : 1;
+    DateTime? dedTo = i is null || i.AppliesMode == AppliesMode.Once ? null
+        : i.AppliesMode == AppliesMode.Instalment ? i.StartMonth.AddMonths(dedMonths - 1)
+        : i.EndMonth;
+    var dedTotal = i is null || (i.AppliesMode == AppliesMode.Monthly && i.EndMonth is null) ? ""
+        : PayrollFormat.Money(i.AppliesMode == AppliesMode.Instalment ? i.TotalAmount ?? i.Amount * dedMonths : i.Amount * dedMonths);
+    // the To month can reach well past the From list: a deduction may run for years
+    var dedFirst = Model.Months.Count > 0 ? Model.Months.Min() : new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    var dedLast = Model.Months.Count > 0 ? Model.Months.Max() : dedFirst;
+    var dedEnd = dedFirst.AddMonths(72) > dedLast ? dedFirst.AddMonths(72) : dedLast;
+    string ToMonthOptions(DateTime? selected) => string.Concat(Enumerable.Range(0, (dedEnd.Year - dedFirst.Year) * 12 + dedEnd.Month - dedFirst.Month + 1).Select(dedFirst.AddMonths).Select(m =>
+        $"<option value=\"{PayItemFormat.MonthValue(m)}\"{(selected is { } s && s.Year == m.Year && s.Month == m.Month ? " selected" : "")}>{System.Net.WebUtility.HtmlEncode(L.MonthYear(m))}</option>"));
     var lockAttr = locked ? "disabled" : null;
     // Salary Revisions (db/111): a new revision or a change of an approved amount is entered as an
     // increment / decrement of the current salary - the item type is the Basic Salary (not asked)
@@ -100,6 +117,19 @@ else if (i?.IsPending == true)
         <span class="form-text" data-pi-type-hint hidden>@L["pi.select_employee_first"]</span>
     </div>
 
+    @* Applies sits beside the Item type; the period (From / To) and the amounts follow *@
+    <div class="col-md-6" data-show-for="EARNING DEDUCTION">
+        <label class="form-label" for="pi-applies">@L["pr.applies"] <span class="req" aria-hidden="true">*</span></label>
+        @if (locked)
+        {
+            <input type="hidden" name="AppliesMode" value="@applies" />
+        }
+        <select class="form-select" id="pi-applies" data-pi-applies disabled="@lockAttr">
+            <option value="ONCE" selected="@(applies == AppliesMode.Once)">@L["pr.one_time"]</option>
+            <option value="MONTHLY" selected="@(applies == AppliesMode.Monthly)">@L["pr.every_month"]</option>
+            <option value="INSTALMENT" selected="@(applies == AppliesMode.Instalment)" data-cls-only="DEDUCTION">@L["pr.in_instalments"]</option>
+        </select>
+    </div>
     @* amount: salary, earnings, deductions (a loan's instalment is calculated) *@
     @if (revision)
     {
@@ -145,7 +175,7 @@ else if (i?.IsPending == true)
     }
     @if (!revision)
     {
-    <div class="col-md-6" data-show-for="SALARY EARNING DEDUCTION">
+    <div class="col-md-6" data-show-for="SALARY EARNING">
         <label class="form-label" for="pi-amount"><span data-pi-amount-label>@(revise ? L["pr.new_amount_kwd"] : L["pr.amount_kwd"])</span> <span class="req" aria-hidden="true">*</span></label>
         @if (locked)
         {
@@ -196,32 +226,37 @@ else if (i?.IsPending == true)
 
     @* earnings and deductions *@
     <div class="col-md-6" data-show-for="EARNING DEDUCTION">
-        <label class="form-label" for="pi-applies">@L["pr.applies"] <span class="req" aria-hidden="true">*</span></label>
-        @if (locked)
-        {
-            <input type="hidden" name="AppliesMode" value="@applies" />
-        }
-        <select class="form-select" id="pi-applies" data-pi-applies disabled="@lockAttr">
-            <option value="ONCE" selected="@(applies == AppliesMode.Once)">@L["pr.one_time"]</option>
-            <option value="MONTHLY" selected="@(applies == AppliesMode.Monthly)">@L["pr.every_month"]</option>
-            <option value="INSTALMENT" selected="@(applies == AppliesMode.Instalment)" data-cls-only="DEDUCTION">@L["pr.in_instalments"]</option>
-        </select>
-    </div>
-    <div class="col-md-6" data-show-for="EARNING DEDUCTION">
         <label class="form-label" for="pi-from"><span data-pi-from-label data-once="@L["pr.month"]" data-many="@L["pr.from_month"]">@L["pr.month"]</span> <span class="req" aria-hidden="true">*</span></label>
         <select class="form-select" id="pi-from" data-pi-start="EARNING DEDUCTION" disabled="@lockAttr">@Html.Raw(MonthOptions(start))</select>
     </div>
-    <div class="col-md-6" data-show-for="EARNING DEDUCTION" data-show-applies="MONTHLY">
+    <div class="col-md-6" data-show-for="EARNING" data-show-applies="MONTHLY">
         <label class="form-label" for="pi-until">@L["pr.until_month"]</label>
         <select class="form-select" id="pi-until" name="EndMonth" data-pi-until>
             <option value="">@L["pr.no_end_every_month"]</option>
             @Html.Raw(MonthOptions(i?.EndMonth))
         </select>
     </div>
-    <div class="col-md-6" data-show-for="DEDUCTION" data-show-applies="INSTALMENT">
-        <label class="form-label" for="pi-count-ded">@L["pr.instalments"] <span class="req" aria-hidden="true">*</span></label>
-        <input class="form-control" type="number" min="1" max="600" id="pi-count-ded" data-pi-count="DEDUCTION" value="@(i?.InstalmentCount ?? 2)" disabled="@lockAttr" />
-        <span class="form-text" data-pi-ded-total></span>
+    @* a deduction: To month (the period, with From month above), then the Total Amount and the Monthly Deductible
+       amount worked out from them. The number of instalments is the months from From to To. *@
+    <div class="col-md-6" data-show-for="DEDUCTION" data-show-applies="MONTHLY INSTALMENT">
+        <label class="form-label" for="pi-to-ded">@L["pr.to_month"] <span class="req" aria-hidden="true" data-pi-to-req>*</span></label>
+        <select class="form-select" id="pi-to-ded" name="EndMonth" data-pi-dto disabled="@lockAttr">
+            <option value="" data-open-ended>@L["pr.no_end_every_month"]</option>
+            @Html.Raw(ToMonthOptions(dedTo))
+        </select>
+        <span class="form-text" data-pi-dto-hint></span>
+    </div>
+    <input type="hidden" id="pi-count-ded" data-pi-count="DEDUCTION" value="@(i?.InstalmentCount ?? dedMonths)" />
+    <div class="col-md-6" data-show-for="DEDUCTION">
+        <label class="form-label" for="pi-ded-total">@L["pr.total_deduction_kwd"] <span class="req" aria-hidden="true">*</span></label>
+        <input class="form-control pr-input-money" id="pi-ded-total" inputmode="decimal" placeholder="0.000" autocomplete="off"
+               value="@dedTotal" disabled="@lockAttr" data-pi-dtotal />
+    </div>
+    <div class="col-md-6" data-show-for="DEDUCTION">
+        <label class="form-label" for="pi-ded-monthly"><span data-pi-dmonthly-label data-auto="@L["pr.monthly_deductible_kwd"]" data-manual="@L["pr.monthly_deduction_kwd"]">@L["pr.monthly_deductible_kwd"]</span></label>
+        <input class="form-control pr-input-money" id="pi-ded-monthly" inputmode="decimal" placeholder="—" autocomplete="off"
+               value="@(i is null ? "" : PayrollFormat.Money(i.Amount))" readonly disabled="@lockAttr" data-pi-dmonthly />
+        <span class="form-text" data-pi-dmonthly-hint></span>
     </div>
 
     @* loans and advances *@

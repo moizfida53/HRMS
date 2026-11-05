@@ -1378,7 +1378,7 @@
 
             $all("[data-show-for]", root).forEach(function (el) {
                 var forCls = (" " + el.getAttribute("data-show-for") + " ").indexOf(" " + cls + " ") >= 0;
-                var forApplies = !el.hasAttribute("data-show-applies") || el.getAttribute("data-show-applies") === applies;
+                var forApplies = !el.hasAttribute("data-show-applies") || (" " + el.getAttribute("data-show-applies") + " ").indexOf(" " + applies + " ") >= 0;
                 el.hidden = !(forCls && forApplies);
             });
             var fromLabel = $("[data-pi-from-label]", root);
@@ -1396,17 +1396,78 @@
             if (outStart && outStart.name && startSel) { outStart.value = startSel.value; }
             if (outCount && outCount.name) { outCount.value = applies === "INSTALMENT" && countIn ? countIn.value : ""; }
             var until = $("[data-pi-until]", root);
-            if (until) { until.disabled = applies !== "MONTHLY" || cls === "SALARY" || cls === "LOAN"; }
-
-            // deduction in instalments: the total
-            var dedTotal = $("[data-pi-ded-total]", root);
-            if (dedTotal) {
-                var a = num(amt && amt.value), n = parseInt(countIn && countIn.value, 10);
-                dedTotal.textContent = cls === "DEDUCTION" && applies === "INSTALMENT" && a > 0 && n > 0
-                    ? HRMS.t("js.pi_total_n", "Total {0}", fmt(a * n)) : "";
-            }
+            if (until) { until.disabled = applies !== "MONTHLY" || cls !== "EARNING"; }
+            if (cls === "DEDUCTION") { syncDeduction(applies, startSel, countIn, amt); }
             if (cls === "LOAN") { loanChecks(); }
             syncRef(cls, typeSel.value, typeSel.options[typeSel.selectedIndex]);
+        };
+
+        /* a deduction: Total Amount + the period (From / To month) -> the monthly deductible amount.
+           In instalments or every month with a To month: monthly = total / months (From and To both count).
+           One time: the total is the amount. Every month with no To month has no total: the monthly amount is typed. */
+        var monthsFromTo = function (from, to) {      // "2026-11", "2027-10" -> 12
+            var f = String(from || "").split("-"), t = String(to || "").split("-");
+            if (f.length < 2 || t.length < 2) { return 0; }
+            return (parseInt(t[0], 10) - parseInt(f[0], 10)) * 12 + parseInt(t[1], 10) - parseInt(f[1], 10) + 1;
+        };
+        var syncDeduction = function (applies, startSel, countIn, amt) {
+            var root = piBody;
+            var toSel = $("[data-pi-dto]", root), totalIn = $("[data-pi-dtotal]", root), monthlyIn = $("[data-pi-dmonthly]", root);
+            if (!toSel || !totalIn || !monthlyIn) { return; }
+            var locked = !!$("[data-pi-mode='locked']", root);
+            var from = startSel ? startSel.value : "";
+            var ranged = applies !== "ONCE";
+            toSel.disabled = locked || !ranged;          // not posted (and not asked) for a one-time deduction
+
+            // the To month cannot be before the From month; an instalment plan always has an end
+            var openOpt = toSel.querySelector("[data-open-ended]");
+            if (openOpt) { openOpt.hidden = applies === "INSTALMENT"; openOpt.disabled = applies === "INSTALMENT"; }
+            Array.prototype.forEach.call(toSel.options, function (o) {
+                if (!o.value) { return; }
+                var early = !!from && o.value < from;
+                o.hidden = early; o.disabled = early;
+            });
+            if (ranged && !locked) {
+                var cur = toSel.options[toSel.selectedIndex];
+                if (applies === "INSTALMENT" && (!toSel.value || (cur && cur.disabled))) {
+                    // a new instalment plan: one month by default (the To month after From), then the user picks
+                    var firstOk = Array.prototype.filter.call(toSel.options, function (o) { return o.value && !o.disabled; })[0];
+                    if (firstOk) { toSel.value = firstOk.value; }
+                } else if (cur && cur.disabled) { toSel.value = ""; }
+            }
+
+            var openEnded = applies === "MONTHLY" && !toSel.value;
+            var months = applies === "ONCE" ? 1 : toSel.value ? monthsFromTo(from, toSel.value) : 0;
+            var req = $("[data-pi-to-req]", root);
+            if (req) { req.hidden = applies !== "INSTALMENT"; }
+
+            totalIn.disabled = locked || openEnded;
+            monthlyIn.readOnly = !openEnded;
+            var lbl = $("[data-pi-dmonthly-label]", root);
+            if (lbl) { lbl.textContent = lbl.getAttribute(openEnded ? "data-manual" : "data-auto"); }
+            var hint = $("[data-pi-dmonthly-hint]", root), toHint = $("[data-pi-dto-hint]", root);
+            var monthly;
+            if (openEnded) {
+                monthly = num(monthlyIn.value) || 0;
+                if (hint) { hint.textContent = HRMS.t("js.pi_ded_open", "No To month: deducted every month until it is ended."); }
+            } else {
+                var total = num(totalIn.value) || 0;
+                monthly = total > 0 && months > 0 ? Math.round(total / months * 1000) / 1000 : 0;
+                monthlyIn.value = monthly ? fmt(monthly) : "";
+                var paid = Math.round(monthly * months * 1000) / 1000;
+                if (hint) {
+                    hint.textContent = !(monthly > 0) || months < 2 ? "" :
+                        paid !== Math.round(total * 1000) / 1000
+                            ? HRMS.t("js.pi_ded_rounded", "{0} × {1} months = {2} (rounded to the fils)", fmt(monthly), months, fmt(paid))
+                            : HRMS.t("js.pi_ded_months", "{0} × {1} months", fmt(monthly), months);
+                }
+            }
+            if (toHint) { toHint.textContent = ""; }
+            // the fields that are posted
+            if (amt) { amt.value = monthly > 0 ? monthly.toFixed(3) : ""; }
+            if (countIn) { countIn.value = months > 0 ? months : ""; }
+            var outCount = $('[data-pi-out="count"]', root);
+            if (outCount && outCount.name) { outCount.value = applies === "INSTALMENT" && months > 0 ? months : ""; }
         };
 
         /* the reference panel: what the employee has now - the class picked shows its rows, the item
@@ -1551,7 +1612,7 @@
             syncForm();
         });
         piBody.addEventListener("input", function (ev) {
-            if (ev.target.matches("[data-pi-total], [data-pi-count], [data-pi-amount], [data-pi-rev-change]")) { syncForm(); }
+            if (ev.target.matches("[data-pi-total], [data-pi-count], [data-pi-amount], [data-pi-rev-change], [data-pi-dtotal], [data-pi-dmonthly]")) { syncForm(); }
         });
         piForm.addEventListener("submit", function (ev) {
             ev.preventDefault();
@@ -1564,6 +1625,29 @@
                 chgIn.focus();
                 HRMS.toast(HRMS.t("js.pc_enter_revision", "Enter the increment or decrement amount."), "error");
                 return;
+            }
+            // a deduction needs its total (or the monthly amount when it has no end) and, in instalments, an end month
+            var dedTo = $("[data-pi-dto]", piBody), dedTotal = $("[data-pi-dtotal]", piBody), dedMonthly = $("[data-pi-dmonthly]", piBody);
+            var dedBox = dedTotal && !dedTotal.closest("[hidden]");
+            if (dedBox) {
+                var bad = null, msg = "";
+                var appliesNow = $('[data-pi-out="applies"]', piBody);
+                var openEnded = dedMonthly && !dedMonthly.readOnly && !dedMonthly.disabled;   // every month, no To month
+                if (openEnded) {
+                    if (!(num(dedMonthly.value) > 0)) { bad = dedMonthly; msg = HRMS.t("js.pi_ded_enter_monthly", "Enter the monthly deduction amount."); }
+                } else if (!dedTotal.disabled) {
+                    if (!(num(dedTotal.value) > 0)) { bad = dedTotal; msg = HRMS.t("js.pi_ded_enter_total", "Enter the total amount of the deduction."); }
+                    else if (dedTo && !dedTo.disabled && appliesNow && appliesNow.value === "INSTALMENT" && !dedTo.value) {
+                        bad = dedTo; msg = HRMS.t("js.pi_ded_pick_to", "Select the month of the last instalment.");
+                    }
+                }
+                if (bad) {
+                    bad.classList.add("is-invalid"); bad.focus();
+                    bad.addEventListener("input", function () { bad.classList.remove("is-invalid"); }, { once: true });
+                    bad.addEventListener("change", function () { bad.classList.remove("is-invalid"); }, { once: true });
+                    HRMS.toast(msg, "error");
+                    return;
+                }
             }
             var fd = new FormData(piForm);
             ["Amount", "TotalAmount"].forEach(function (k) {
