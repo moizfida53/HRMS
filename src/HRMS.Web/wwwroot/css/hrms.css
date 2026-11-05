@@ -2296,6 +2296,34 @@ tr[data-active=false] .btn-icon--success:hover {
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
 }
 
+.row > [class*=col] > .form-label:first-child {
+  display: block;
+}
+
+input.form-control[type=date] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: calc(1.5em + 1rem + 2px);
+  line-height: 1.5;
+  -webkit-appearance: none;
+  appearance: none;
+}
+input.form-control[type=date]::-webkit-date-and-time-value {
+  text-align: start;
+  min-height: 1.5em;
+  margin: 0;
+}
+input.form-control[type=date]::-webkit-datetime-edit, input.form-control[type=date]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+input.form-control[type=date]::-webkit-calendar-picker-indicator {
+  margin: 0;
+  margin-inline-start: 0.25rem;
+  padding: 0;
+  cursor: pointer;
+}
+
 .form-text {
   font-size: 0.725rem;
   color: #8e9896;
@@ -14110,9 +14138,19 @@ tr:hover .aud-only, .aud-only:focus-visible {
   align-items: center;
   gap: 0.25rem;
   min-width: 0;
+  min-height: 1.2rem;
+  margin-block-end: 0.25rem;
+  line-height: 1.5;
 }
 .hrms-label-row .form-label {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hrms-label-row .hrms-date-alert {
+  margin-block: -0.15rem;
 }
 
 .hrms-date-alert {

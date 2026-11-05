@@ -689,6 +689,44 @@ tr[data-active="false"] .btn-icon--success {
   }
 }
 
+// A field's label at the top of a grid column is a block: Bootstrap's
+// inline-block label sits in the column's 24px line box, so it was 1px taller
+// than a label row with a date-alert bell and the controls did not line up.
+.row > [class*="col"] > .form-label:first-child {
+  display: block;
+}
+
+// Native date inputs render their inner edit field with their own height,
+// padding and alignment, so a date box did not line up with the text inputs
+// and selects beside it. Give it the same box as .form-select.
+input.form-control[type="date"] {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: calc(1.5em + 1rem + 2px);
+  line-height: 1.5;
+  -webkit-appearance: none;
+  appearance: none;
+
+  &::-webkit-date-and-time-value {
+    text-align: start;
+    min-height: 1.5em;
+    margin: 0;
+  }
+
+  &::-webkit-datetime-edit,
+  &::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    margin: 0;
+    margin-inline-start: 0.25rem;
+    padding: 0;
+    cursor: pointer;
+  }
+}
+
 .form-text {
   font-size: $fs-xs;
   color: $ink-400;

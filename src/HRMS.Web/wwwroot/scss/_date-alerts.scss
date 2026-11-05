@@ -13,13 +13,29 @@
 @use "mixins" as *;
 
 // --------------------------------------------------------- label + bell ----
+// The row must be exactly as tall as a plain .form-label (one 0.8rem line at
+// line-height 1.5, then its 0.25rem gap), otherwise a date field with a bell
+// sits lower than the dropdowns beside it (Date of Birth next to Gender /
+// Marital Status). The bell overflows the line with negative margins instead
+// of pushing the input down.
 .hrms-label-row {
   display: flex;
   align-items: center;
   gap: space("1");
   min-width: 0;
+  min-height: 1.2rem;
+  margin-block-end: 0.25rem;
+  line-height: 1.5;
 
-  .form-label { margin-bottom: 0.5rem; }
+  .form-label {
+    margin-bottom: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hrms-date-alert { margin-block: -0.15rem; }
 }
 
 .hrms-date-alert {

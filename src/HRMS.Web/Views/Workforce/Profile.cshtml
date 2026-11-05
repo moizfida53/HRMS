@@ -38,6 +38,9 @@
     var showPersonal = wizard || Model.IsNew || acc.PersonalView;
     var showEmployment = wizard || Model.IsNew || acc.EmploymentView;
     var showCompliance = wizard || acc.ComplianceView;
+    // Work Permit Salary (a Kuwait Compliance value) is edited on Employment > Payroll & Bank,
+    // only where the Kuwait Compliance form exists and this user may see it
+    var wpsInPayroll = showCompliance && !Model.IsNew;
     var showDependents = wizard || acc.DependentView;
     var showDocuments = wizard || acc.DocumentView;
     // Civil ID / Passport / Residency / Work Permit images inside their Kuwait Compliance sections (db/71)
@@ -720,7 +723,7 @@
                     <div id="acc-employment-role" class="accordion-collapse collapse" data-bs-parent="#acc-employment">
                         <div class="accordion-body">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-PositionId">@L["emp.job_position"]</label>
                         <select class="form-select" id="f-PositionId" form="employee-form" name="PositionId">
                             <option value="">@L["common.select"]</option>
@@ -731,7 +734,7 @@
                         </select>
                         <span class="field-validation-error" data-valmsg-for="PositionId"></span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-DesignationId">@L["emp.designation"]</label>
                         <select class="form-select" id="f-DesignationId" form="employee-form" name="DesignationId">
                             <option value="">@L["common.select"]</option>
@@ -742,7 +745,7 @@
                         </select>
                         <span class="field-validation-error" data-valmsg-for="DesignationId"></span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-GradeId">@L["common.grade"]</label>
                         <select class="form-select" id="f-GradeId" form="employee-form" name="GradeId">
                             <option value="">@L["common.select"]</option>
@@ -753,7 +756,7 @@
                         </select>
                         <span class="field-validation-error" data-valmsg-for="GradeId"></span>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-ReportingManagerId">@L["emp.reporting_manager"]</label>
                         <select class="form-select" id="f-ReportingManagerId" form="employee-form" name="ReportingManagerId">
                             <option value="">@L["emp.none"]</option>
@@ -780,25 +783,7 @@
                     <div id="acc-employment-terms" class="accordion-collapse collapse" data-bs-parent="#acc-employment">
                         <div class="accordion-body">
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <div class="hrms-label-row"><label class="form-label" for="f-HireDate">@L["emp.hire_date"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>@{ AlertBell("HireDate"); }</div>
-                        <input class="form-control" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-HireDate" form="employee-form" name="HireDate" type="date"
-                               value="@e.HireDate?.ToString("yyyy-MM-dd")" />
-                        <span class="field-validation-error" data-valmsg-for="HireDate"></span>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="hrms-label-row"><label class="form-label" for="f-ProbationEndDate">@L["emp.probation_end_date"]</label>@{ AlertBell("ProbationEndDate"); }</div>
-                        <input class="form-control" id="f-ProbationEndDate" form="employee-form" name="ProbationEndDate" type="date"
-                               value="@e.ProbationEndDate?.ToString("yyyy-MM-dd")" />
-                        <span class="field-validation-error" data-valmsg-for="ProbationEndDate"></span>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="hrms-label-row"><label class="form-label" for="f-TerminationDate">@L["emp.termination_date"]</label>@{ AlertBell("TerminationDate"); }</div>
-                        <input class="form-control" id="f-TerminationDate" form="employee-form" name="TerminationDate" type="date"
-                               value="@e.TerminationDate?.ToString("yyyy-MM-dd")" />
-                        <span class="field-validation-error" data-valmsg-for="TerminationDate"></span>
-                    </div>
-                    <div class="col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-EmploymentType">@L["emp.employment_type"]</label>
                         <select class="form-select" id="f-EmploymentType" form="employee-form" name="EmploymentType">
                             <option value="">@L["common.select"]</option>
@@ -809,7 +794,7 @@
                         </select>
                         <span class="field-validation-error" data-valmsg-for="EmploymentType"></span>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-EmploymentStatus">@L["emp.employment_status"]</label>
                         <select class="form-select" id="f-EmploymentStatus" form="employee-form" name="EmploymentStatus">
                             @foreach (var status in new[] { "Active", "Probation", "OnLeave", "Suspended", "Terminated", "Resigned" })
@@ -820,14 +805,14 @@
                         <span class="form-text">@L["emp.independent_of_active_deactivated_below_an_emplo"]</span>
                         <span class="field-validation-error" data-valmsg-for="EmploymentStatus"></span>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-NoticePeriodDays">@L["emp.notice_period_days"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>
                         <input class="form-control" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-NoticePeriodDays" form="employee-form" name="NoticePeriodDays" type="number"
                                value="@e.NoticePeriodDays" min="0" max="365" />
                         <span class="field-validation-error" data-valmsg-for="NoticePeriodDays"></span>
                     </div>
                     @* db/82: the employee's own annual leave (an individual agreement); blank = the Annual Leave type's days *@
-                    <div class="col-md-4">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-AnnualLeaveDays">@L["emp.annual_leave_days"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>
                         <div class="input-group">
                             <input class="form-control" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-AnnualLeaveDays" form="employee-form" name="AnnualLeaveDays" type="number"
@@ -842,7 +827,30 @@
                             : L["emp.annual_leave_hint"])</span>
                         <span class="field-validation-error" data-valmsg-for="AnnualLeaveDays"></span>
                     </div>
-                    <div class="col-md-5">
+                    <div class="w-100 d-none d-lg-block" aria-hidden="true"></div>
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <div class="hrms-label-row"><label class="form-label" for="f-HireDate">@L["emp.hire_date"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>@{ AlertBell("HireDate"); }</div>
+                        <input class="form-control" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-HireDate" form="employee-form" name="HireDate" type="date"
+                               value="@e.HireDate?.ToString("yyyy-MM-dd")" />
+                        <span class="field-validation-error" data-valmsg-for="HireDate"></span>
+                    </div>
+                    @* Probation End Date / Termination Date share one slot: Terminated or Resigned shows the termination
+                       date, any other status the probation date (employee.js). Both stay in the form, so neither is lost. *@
+                    <div class="col-12 col-sm-6 col-lg-3" data-end-date-slot>
+                        <div data-end-date="probation" hidden="@(e.EmploymentStatus is "Terminated" or "Resigned" ? "hidden" : null)">
+                            <div class="hrms-label-row"><label class="form-label" for="f-ProbationEndDate">@L["emp.probation_end_date"]</label>@{ AlertBell("ProbationEndDate"); }</div>
+                            <input class="form-control" id="f-ProbationEndDate" form="employee-form" name="ProbationEndDate" type="date"
+                                   value="@e.ProbationEndDate?.ToString("yyyy-MM-dd")" />
+                            <span class="field-validation-error" data-valmsg-for="ProbationEndDate"></span>
+                        </div>
+                        <div data-end-date="termination" hidden="@(e.EmploymentStatus is "Terminated" or "Resigned" ? null : "hidden")">
+                            <div class="hrms-label-row"><label class="form-label" for="f-TerminationDate">@L["emp.termination_date"]</label>@{ AlertBell("TerminationDate"); }</div>
+                            <input class="form-control" id="f-TerminationDate" form="employee-form" name="TerminationDate" type="date"
+                                   value="@e.TerminationDate?.ToString("yyyy-MM-dd")" />
+                            <span class="field-validation-error" data-valmsg-for="TerminationDate"></span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-CompanyAssets">@L["emp.company_assets"]</label>
                         <input class="form-control" id="f-CompanyAssets" form="employee-form" name="CompanyAssets" type="text"
                                value="@e.CompanyAssets" maxlength="300" placeholder="@L["emp.e_g_laptop_mobile_company_vehicle"]" />
@@ -852,7 +860,7 @@
                     @* db/84: the assets this employee holds on Workforce > Assets *@
                     @if (Model.Assets is { } held)
                     {
-                        <div class="col-12">
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <span class="form-label d-block">@Html.Icon("box", 14) @L["as.profile_title"]</span>
                             @if (held.Count == 0)
                             {
@@ -891,25 +899,41 @@
                     <div id="acc-employment-payroll" class="accordion-collapse collapse" data-bs-parent="#acc-employment">
                         <div class="accordion-body">
                 <div class="row g-3">
-                    <div class="col-sm-6 col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-BasicSalary">@L["emp.basic_salary_kwd"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>
                         <input class="form-control text-end" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-BasicSalary" form="employee-form" name="BasicSalary" type="number"
                                value="@e.BasicSalary?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)" min="0" step="0.001" inputmode="decimal" />
                         <span class="field-validation-error" data-valmsg-for="BasicSalary"></span>
                     </div>
-                    <div class="col-sm-6 col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-Allowances">@L["emp.allowances_kwd"]</label>
                         <input class="form-control text-end" id="f-Allowances" form="employee-form" name="Allowances" type="number"
                                value="@e.Allowances?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)" min="0" step="0.001" inputmode="decimal" />
                         <span class="field-validation-error" data-valmsg-for="Allowances"></span>
                     </div>
-                    <div class="col-sm-6 col-md-3">
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-GrossSalary">@L["emp.gross_monthly_kwd"]</label>
                         <input class="form-control text-end" id="f-GrossSalary" type="text" readonly tabindex="-1"
                                value="@(e.GrossSalary?.ToString("N3", System.Globalization.CultureInfo.InvariantCulture) ?? "—")" />
                         <span class="form-text">@L["emp.basic_plus_allowances"]</span>
                     </div>
-                    <div class="col-sm-6 col-md-3">
+                    @* db/82: the salary registered on the work permit (Ministry of Labour). It is stored with Kuwait Compliance,
+                       so it belongs to compliance-form (form attribute) and is saved with that record by Save Changes. *@
+                    @if (wpsInPayroll)
+                    {
+                    <div class="col-12 col-sm-6 col-lg-3">
+                        <label class="form-label" for="f-WorkPermitSalary">@L["emp.work_permit_salary"] @if (mustFill) { <span class="req" aria-hidden="true" data-must-star="nonkw" hidden="@isKuwaiti">*</span> }</label>
+                        <div class="input-group">
+                            <input class="form-control pr-input-money" required="@(mustFill && !isKuwaiti ? "required" : null)" data-must-fill="nonkw"  id="f-WorkPermitSalary" form="compliance-form" name="WorkPermitSalary" disabled="@(!acc.ComplianceEdit ? "disabled" : null)" type="number"
+                                   value="@(c?.WorkPermitSalary?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))"
+                                   min="0" step="0.001" inputmode="decimal" placeholder="0.000" />
+                            <span class="input-group-text">@L["pr.kwd"]</span>
+                        </div>
+                        <span class="field-validation-error" data-valmsg-for="WorkPermitSalary"></span>
+                    </div>
+                    }
+                    <div class="w-100 d-none d-lg-block" aria-hidden="true"></div>
+                    <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-BankName">@L["emp.bank_name"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>
                         <input class="form-control" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-BankName" form="employee-form" name="BankName" type="text"
                                value="@e.BankName" maxlength="100" list="kw-banks" placeholder="@L["emp.e_g_nbk"]" />
@@ -921,7 +945,7 @@
                         </datalist>
                         <span class="field-validation-error" data-valmsg-for="BankName"></span>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-lg-6">
                         <label class="form-label" for="f-Iban">@L["emp.iban_account_no"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>
                         <input class="form-control font-monospace" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-Iban" form="employee-form" name="Iban" type="text"
                                value="@e.Iban" maxlength="34" placeholder="KW.." autocomplete="off" spellcheck="false" />
@@ -954,6 +978,9 @@
                 <input type="hidden" name="EmployeeId" value="@e.EmployeeId" />
                 @* the nationality on Personal Info (saved after this tab) - decides the non-Kuwaiti fields *@
                 <input type="hidden" name="_NationalityCountryId" value="@e.NationalityCountryId" data-nationality-mirror />
+                @* Work Permit Salary sits on Employment > Payroll & Bank. Where this user cannot edit (or see) that tab, its
+                   field is disabled / absent, so the stored value travels here instead of being cleared on save *@
+                @if (!employmentEdit || !showEmployment) { <input type="hidden" name="WorkPermitSalary" value="@(c?.WorkPermitSalary?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))" /> }
                 <fieldset class="hrms-ro-fieldset" disabled="@(!acc.ComplianceEdit)">
 
                 <div class="accordion hrms-accordion" id="acc-compliance">
@@ -1146,24 +1173,14 @@
                                    value="@c?.WorkPermitExpiryDate?.ToString("yyyy-MM-dd")" />
                             <span class="field-validation-error" data-valmsg-for="WorkPermitExpiryDate"></span>
                         </div>
-                        @* db/82: the salary and job title registered on the work permit (Ministry of Labour) *@
-                        <div class="col-md-4">
-                            <label class="form-label" for="f-WorkPermitSalary">@L["emp.work_permit_salary"] @if (mustFill) { <span class="req" aria-hidden="true" data-must-star="nonkw" hidden="@isKuwaiti">*</span> }</label>
-                            <div class="input-group">
-                                <input class="form-control pr-input-money" required="@(mustFill && !isKuwaiti ? "required" : null)" data-must-fill="nonkw"  id="f-WorkPermitSalary" name="WorkPermitSalary" type="number"
-                                       value="@(c?.WorkPermitSalary?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))"
-                                       min="0" step="0.001" inputmode="decimal" placeholder="0.000" />
-                                <span class="input-group-text">@L["pr.kwd"]</span>
-                            </div>
-                            <span class="field-validation-error" data-valmsg-for="WorkPermitSalary"></span>
-                        </div>
-                        <div class="col-md-4">
+                        @* db/82: the job title registered on the work permit (its salary is on Employment > Payroll & Bank) *@
+                        <div class="col-md-6">
                             <label class="form-label" for="f-WorkPermitDesignation">@L["emp.work_permit_designation_en"] @if (mustFill) { <span class="req" aria-hidden="true" data-must-star="nonkw" hidden="@isKuwaiti">*</span> }</label>
                             <input class="form-control" required="@(mustFill && !isKuwaiti ? "required" : null)" data-must-fill="nonkw"  id="f-WorkPermitDesignation" name="WorkPermitDesignation" type="text"
                                    value="@c?.WorkPermitDesignation" maxlength="150" dir="ltr" />
                             <span class="field-validation-error" data-valmsg-for="WorkPermitDesignation"></span>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label" for="f-WorkPermitDesignationAr">@L["emp.work_permit_designation_ar"] @if (mustFill) { <span class="req" aria-hidden="true" data-must-star="nonkw" hidden="@isKuwaiti">*</span> }</label>
                             <input class="form-control" required="@(mustFill && !isKuwaiti ? "required" : null)" data-must-fill="nonkw"  id="f-WorkPermitDesignationAr" name="WorkPermitDesignationAr" type="text"
                                    value="@c?.WorkPermitDesignationAr" maxlength="150" dir="rtl" lang="ar" />

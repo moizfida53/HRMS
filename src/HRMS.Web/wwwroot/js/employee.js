@@ -16,6 +16,27 @@
 
     var HRMS = window.HRMS || (window.HRMS = {});
 
+    /* ================================= employment: end-date toggle === */
+
+    // Probation End Date and Termination Date share one slot on Employment Terms:
+    // Terminated / Resigned shows the termination date, any other status the
+    // probation date. Both inputs stay in the form (only hidden), so neither
+    // stored value is lost when the employee is saved.
+    (function initEndDateToggle() {
+        var slot = document.querySelector("[data-end-date-slot]");
+        var status = document.getElementById("f-EmploymentStatus");
+        if (!slot || !status) { return; }
+        var probation = slot.querySelector('[data-end-date="probation"]');
+        var termination = slot.querySelector('[data-end-date="termination"]');
+        function sync() {
+            var ended = status.value === "Terminated" || status.value === "Resigned";
+            if (probation) { probation.hidden = ended; }
+            if (termination) { termination.hidden = !ended; }
+        }
+        status.addEventListener("change", sync);
+        sync();
+    })();
+
     /* ======================================================= list grid === */
 
     // Every employee is fetched ONCE when the page opens (grid?all=true). Search, the status
@@ -478,6 +499,15 @@
             var scope = form.id === "employee-form" ? document : form;
             var input = scope.querySelector('[name="' + name + '"][form], [name="' + name + '"]:not([form])');
             var target = scope.querySelector('[data-valmsg-for="' + name + '"]');
+            // a Kuwait Compliance field shown on another tab (Work Permit Salary on Payroll & Bank)
+            // attaches with form="compliance-form" and has its message beside it
+            var outside = form.id === "employee-form" ? null
+                : document.querySelector('[form="' + form.id + '"][name="' + name + '"]');
+            if (outside && !outside.disabled) {
+                input = outside;
+                var holder = outside.closest("[class*='col-']");
+                target = (holder && holder.querySelector('[data-valmsg-for="' + name + '"]')) || target;
+            }
 
             if (input) { input.classList.toggle("is-invalid", Boolean(message)); }
             if (target) { target.textContent = message || ""; }
@@ -515,7 +545,7 @@
         // The mandatory fields (marked *) still empty - every tab, not only the open one.
         function missingRequired() {
             var fields = Array.prototype.slice.call(document.querySelectorAll(
-                '[form="employee-form"][required], #employee-form [required], #compliance-form [required]'));
+                '[form="employee-form"][required], #employee-form [required], #compliance-form [required], [form="compliance-form"][required]'));
             return fields.filter(function (f) {
                 // a read-only tab (disabled fieldset) or a hidden field never blocks the save
                 if (f.matches(":disabled") || f.type === "hidden" || f.closest("[hidden]")) { return false; }
@@ -577,6 +607,14 @@
             var scope = form.id === "employee-form" ? document : form;
             scope.querySelectorAll("[data-valmsg-for]").forEach(function (span) { span.textContent = ""; });
             scope.querySelectorAll(".is-invalid").forEach(function (input) { input.classList.remove("is-invalid"); });
+            if (form.id !== "employee-form") {
+                document.querySelectorAll('[form="' + form.id + '"]').forEach(function (input) {
+                    input.classList.remove("is-invalid");
+                    var holder = input.closest("[class*='col-']");
+                    var span = holder && holder.querySelector('[data-valmsg-for="' + input.name + '"]');
+                    if (span) { span.textContent = ""; }
+                });
+            }
         }
 
         function submitButtonFor(form) {
@@ -660,6 +698,10 @@
         if (complianceForm) {
             ["input", "change"].forEach(function (type) {
                 complianceForm.addEventListener(type, function () { complianceDirty = true; });
+                // its fields shown on other tabs (form="compliance-form") do not bubble to the form
+                document.querySelectorAll('[form="compliance-form"]').forEach(function (field) {
+                    field.addEventListener(type, function () { complianceDirty = true; });
+                });
             });
         }
 
