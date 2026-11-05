@@ -106,7 +106,9 @@ public sealed partial class PayrollSettingsController : Controller
         var item = id > 0
             ? await _itemTypes.GetAsync(id, Ct)
             : new PayItemTypeSetting { CompanyId = OwnCompany ?? _companyFilter.SingleCompanyId ?? 0 };
-        if (item is null || !Owns(item.CompanyId, id > 0)) return NotFound();
+        // A new item has no company yet when "All companies" is selected (CompanyId 0): the company is chosen in
+        // the form, and ItemTypeSave checks it. Only an existing record must belong to a company the user may open.
+        if (item is null || (id > 0 && !Owns(item.CompanyId, true))) return NotFound();
 
         var companies = await CompaniesAsync(includeInactive: id > 0);
         var companyId = item.CompanyId > 0 ? item.CompanyId : companies.FirstOrDefault()?.Id;
