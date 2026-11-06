@@ -20,8 +20,11 @@
     var st = Model.Stages;
     var staged = st?.IsStaged == true;
     var single = st?.IsSingle == true;
-    string AuditKey(string a) => a switch { "REGENERATED" => "fin.audit_regenerated", "SENT" => "fin.audit_sent", "PAID" => "fin.audit_paid", _ => "fin.audit_generated" };
-    string KindKey(string k) => k switch { "MINISTRY" => "fin.kind_ministry", "COMPANY" => "fin.kind_company", "RETRY" => "fin.kind_retry", _ => "fin.kind_full" };
+    // db/118: posted to the GL = the bank files can no longer be generated again
+    var gl = st?.IsGlPosted == true;
+    var canGl = Model.CanPostGl;
+    string AuditKey(string a) => a switch { "REGENERATED" => "fin.audit_regenerated", "SENT" => "fin.audit_sent", "PAID" => "fin.audit_paid", "GL_POSTED" => "fin.audit_gl_posted", _ => "fin.audit_generated" };
+    string KindKey(string? k) => k switch { "MINISTRY" => "fin.kind_ministry", "COMPANY" => "fin.kind_company", "RETRY" => "fin.kind_retry", _ => "fin.kind_full" };
 
     // the fields every generate form asks: banks, value date, debit account, format (and the reason when it replaces a file)
     // async: its <option> tags are tag helpers, so the function must return a Task (MVC1006)
@@ -107,28 +110,6 @@
 
     @if (run is not null)
     {
-        <section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
-            <div class="hrms-card hrms-kpi">
-                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_by_bank"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("bank", 16)</span></div>
-                <div class="hrms-kpi__value">@PayrollFormat.Count(bank.Sum(b => b.EmployeeCount))</div>
-                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kwd_0", PayrollFormat.Money(bank.Sum(b => b.Amount))]</span></div>
-            </div>
-            <div class="hrms-card hrms-kpi @(cash is not null ? "fin-kpi--warn" : null)">
-                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_cash"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("wallet", 16)</span></div>
-                <div class="hrms-kpi__value">@PayrollFormat.Count(cash?.EmployeeCount ?? 0)</div>
-                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kpi_cash_note"]</span></div>
-            </div>
-            <div class="hrms-card hrms-kpi">
-                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_paid"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("check", 16)</span></div>
-                <div class="hrms-kpi__value">@PayrollFormat.Count(run.PaidCount)</div>
-                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kpi_in_file_note", PayrollFormat.Count(run.InFileCount)]</span></div>
-            </div>
-            <div class="hrms-card hrms-kpi @(run.FailedCount + run.RetryCount > 0 ? "fin-kpi--danger" : null)">
-                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_failed"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("alert", 16)</span></div>
-                <div class="hrms-kpi__value">@PayrollFormat.Count(run.FailedCount)</div>
-                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["fin.kpi_retry_note", PayrollFormat.Count(run.RetryCount)]</span></div>
-            </div>
-        </section>
 
         <div class="row g-3 align-items-start">
             @* ------------------------------------------------ review by bank *@
@@ -254,6 +235,12 @@
                             }
                             <div class="tab-content">
                             <div class="tab-pane fade @(!staged ? "show active" : null)" id="bf-pane-single" role="tabpanel" aria-labelledby="bf-tab-single">
+                            @if (gl)
+                            {
+                                <div class="pr-banner pr-banner--lock" role="note">@Html.Icon("lock", 18)<div>@L["fin.gl_locked"]</div></div>
+                            }
+                            else
+                            {
                             <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
                                 <input type="hidden" name="run" value="@run.PayrollRunId" />
                                 <input type="hidden" name="kind" value="FULL" />
@@ -305,6 +292,7 @@
                                     <span class="form-text m-0">@L["fin.generate_hint"]</span>
                                 </div>
                             </form>
+                            }
                             </div>
                             @if (st is not null)
                             {
@@ -337,14 +325,18 @@
                                             <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
                                                 <input type="hidden" name="run" value="@run.PayrollRunId" />
                                                 <input type="hidden" name="kind" value="MINISTRY" />
-                                                @{ await GenerateFields("m1", ministryLive, st.CompanyDone); }
+                                                @{ await GenerateFields("m1", ministryLive, gl); }
                                                 <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                                                    <button type="submit" class="btn @(st.MinistryDone ? "btn-outline-primary" : "btn-primary")" disabled="@(st.CompanyDone || st.MissingWpsCount > 0)">
+                                                    <button type="submit" class="btn @(st.MinistryDone ? "btn-outline-primary" : "btn-primary")" disabled="@(gl || st.MissingWpsCount > 0)">
                                                         @Html.Icon("download", 15)<span>@(ministryLive ? L["fin.step1_regenerate"] : L["fin.step1_generate"])</span>
                                                     </button>
-                                                    @if (st.CompanyDone)
+                                                    @if (gl)
                                                     {
-                                                        <span class="form-text m-0">@L["fin.step1_locked"]</span>
+                                                        <span class="form-text m-0">@L["fin.gl_locked"]</span>
+                                                    }
+                                                    else if (st.CompanyDone)
+                                                    {
+                                                        <span class="form-text m-0">@L["fin.step1_regen_note"]</span>
                                                     }
                                                 </div>
                                             </form>
@@ -381,9 +373,9 @@
                                                 <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
                                                     <input type="hidden" name="run" value="@run.PayrollRunId" />
                                                     <input type="hidden" name="kind" value="COMPANY" />
-                                                    @{ await GenerateFields("c2", companyLive, false); }
+                                                    @{ await GenerateFields("c2", companyLive, gl); }
                                                     <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                                                        <button type="submit" class="btn btn-primary" disabled="@(st.CompanyCount == 0 && st.CashCount == 0)">
+                                                        <button type="submit" class="btn btn-primary" disabled="@(gl || (st.CompanyCount == 0 && st.CashCount == 0))">
                                                             @Html.Icon("download", 15)<span>@(companyLive ? L["fin.step2_regenerate"] : L["fin.step2_generate"])</span>
                                                         </button>
                                                     </div>
@@ -429,6 +421,39 @@
             @await Html.PartialAsync("~/Views/BankProcessing/_FilesTable.cshtml", (Model.Files, Model.Rights, false))
         </section>
 
+        @* db/118: Post to GL - the journal is posted; the bank files are final from then on *@
+        @if (st is not null)
+        {
+            <section class="hrms-card bf-gl @(gl ? "is-posted" : null)" aria-label="@L["fin.post_gl"]">
+                @if (gl)
+                {
+                    <div class="bf-gl__body">
+                        <span class="bf-gl__icon" aria-hidden="true">@Html.Icon("check", 18)</span>
+                        <div>@L["fin.gl_posted_0_1_2", st.JournalNo ?? "", st.GlReference ?? "", L.Date(st.GlPostedDate)]</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="bf-gl__body">
+                        <span class="bf-gl__icon" aria-hidden="true">@Html.Icon("book", 18)</span>
+                        <div>
+                            <strong>@L["fin.post_gl"]</strong>
+                            <span class="d-block hrms-text-sm hrms-muted">@(st.FilesReady ? L["fin.post_gl_hint"] : L["fin.post_gl_needs_file"])</span>
+                        </div>
+                    </div>
+                    if (canGl)
+                    {
+                        <button type="button" class="btn btn-primary" disabled="@(!st.FilesReady)"
+                                data-fin-action="@Url.Action("PostGl", "BankProcessing", new { run = run.PayrollRunId })"
+                                data-fin-title="@L["fin.post_gl_title"] · @run.RunCode" data-fin-text="@L["fin.post_gl_text"]"
+                                data-fin-field="reference" data-fin-label="@L["fin.post_gl_ref"]" data-fin-ok="@L["fin.post_gl"]">
+                            @Html.Icon("book", 15)<span>@L["fin.post_gl"]</span>
+                        </button>
+                    }
+                }
+            </section>
+        }
+
         @* db/116: the audit of the bank file process - generated, generated again (with the reason), sent, paid *@
         @if (st is not null)
         {
@@ -448,7 +473,7 @@
                                 <li class="@(h.ActionCode is "PAID" ? "is-done" : h.ActionCode is "REGENERATED" ? "is-rejected" : "is-todo")">
                                     <span class="pr-timeline__dot"></span>
                                     <div class="pr-timeline__title">
-                                        @L[AuditKey(h.ActionCode)] · <span class="bf-kind bf-kind--@h.FileKind.ToLowerInvariant()">@L[KindKey(h.FileKind)]</span>
+                                        @L[AuditKey(h.ActionCode)]@if (h.FileKind is { } kind) { <span> · </span><span class="bf-kind bf-kind--@kind.ToLowerInvariant()">@L[KindKey(kind)]</span> }
                                         <span class="hrms-code-chip ms-1">@h.FileNo</span>
                                         @if (h.TotalAmount is { } amt)
                                         {

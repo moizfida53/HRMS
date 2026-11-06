@@ -136,6 +136,17 @@ public sealed class BankStages
     public int CompanyFiles { get; set; }
     public string? CompanyFileNos { get; set; }
     public decimal? CompanyFileAmount { get; set; }
+    public int FullFiles { get; set; }
+    /// <summary>db/118: the payroll's journal (not reversed) - posted to the GL locks the bank files.</summary>
+    public long? JournalId { get; set; }
+    public string? JournalNo { get; set; }
+    public string? JournalStatus { get; set; }
+    public string? GlReference { get; set; }
+    public DateTime? GlPostedDate { get; set; }
+
+    public bool IsGlPosted => JournalStatus == "POSTED";
+    /// <summary>The salaries are in a bank file: a single file, or both steps (step 2 may have nobody left).</summary>
+    public bool FilesReady => (IsSingle && FullFiles > 0) || (IsStaged && MinistryDone && (CompanyDone || (CompanyCount == 0 && CashCount == 0)));
 
     public bool IsStaged => Mode == "STAGED";
     public bool IsSingle => Mode == "SINGLE";
@@ -147,9 +158,10 @@ public sealed class BankStages
 public sealed class BankFileAuditEntry
 {
     public long BankFileAuditId { get; set; }
-    /// <summary>GENERATED / REGENERATED / SENT / PAID.</summary>
+    /// <summary>GENERATED / REGENERATED / SENT / PAID / GL_POSTED (db/118).</summary>
     public string ActionCode { get; set; } = string.Empty;
-    public string FileKind { get; set; } = BankStage.Full;
+    /// <summary>FULL / RETRY / MINISTRY / COMPANY; null for "Posted to GL".</summary>
+    public string? FileKind { get; set; }
     public string? FileNo { get; set; }
     public string? BankName { get; set; }
     public int? LineCount { get; set; }

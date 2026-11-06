@@ -20195,3 +20195,44 @@ html.nav-mini:not(.nav-peek) .hrms-sidebar .hrms-nav-link .hrms-nav-approval {
 .pr-emp-sub + .bf-kind, td > .bf-kind {
   margin-block-start: 2px;
 }
+
+.bf-gl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+.bf-gl__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1 1 18rem;
+}
+.bf-gl__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: #f3f9f8;
+  color: #0a6b63;
+}
+.bf-gl.is-posted {
+  border-color: rgba(26, 154, 92, 0.45);
+  background: #e2f5ea;
+}
+.bf-gl.is-posted .bf-gl__icon {
+  background: #1a9a5c;
+  color: #ffffff;
+}
+@container content (max-width: 479.98px) {
+  .bf-gl .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

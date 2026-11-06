@@ -126,3 +126,34 @@
   &--full, &--retry { @include soft-badge($ink-500, $line-100); }
 }
 .pr-emp-sub + .bf-kind, td > .bf-kind { margin-block-start: 2px; }
+
+// ------------------------------------------------------- Post to GL (db/118) ----
+.bf-gl {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: space("3");
+  padding: space("3") space("4");
+
+  &__body { display: flex; align-items: flex-start; gap: space("3"); min-width: 0; flex: 1 1 18rem; }
+
+  &__icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: $radius-pill;
+    background: $blue-050;
+    color: $blue-700;
+  }
+
+  &.is-posted { border-color: rgba($green-600, .45); background: $green-050; }
+  &.is-posted .bf-gl__icon { background: $green-600; color: $white; }
+
+  @include cq-down(xs) {
+    .btn { width: 100%; justify-content: center; }
+  }
+}

@@ -25,6 +25,8 @@ public interface IPayrollFinanceRepository
     Task<BankStages?> BankStagesAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     /// <summary>db/116: the audit of the payroll's bank files.</summary>
     Task<IReadOnlyList<BankFileAuditEntry>> BankAuditAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
+    /// <summary>db/118: records "Posted to GL" in the bank file process history (the journal must be posted).</summary>
+    Task<SaveResult> BankGlPostedAsync(long runId, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default);
     Task<SaveResult> CreateBankFileAsync(BankFileRequest request, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default);
     Task<PagedResult<BankFile>> BankFilesAsync(FinanceFilter filter, CancellationToken cancellationToken = default);
     /// <summary>One file with its text (counts the download when <paramref name="download"/>).</summary>
@@ -169,6 +171,9 @@ public sealed class PayrollFinanceRepository : IPayrollFinanceRepository
 
     public Task<IReadOnlyList<BankFileAuditEntry>> BankAuditAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default) =>
         _sql.QueryAsync<BankFileAuditEntry>(StoredProcedure.BankFileManage, RunEnv("AUDIT", runId, "FULL", null, companyId, companyIds), cancellationToken);
+
+    public Task<SaveResult> BankGlPostedAsync(long runId, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default) =>
+        RunAsync(StoredProcedure.BankFileManage, RunEnv("GL_POSTED", runId, "FULL", null, companyId, companyIds), userId, runId, cancellationToken);
 
     public Task<SaveResult> CreateBankFileAsync(BankFileRequest r, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default)
     {

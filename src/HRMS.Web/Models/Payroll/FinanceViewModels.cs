@@ -73,6 +73,8 @@ public sealed class BankFilePageModel
     /// <summary>db/116: the two-step process (null = db/116 not run).</summary>
     public BankStages? Stages { get; init; }
     public IReadOnlyList<BankFileAuditEntry> Audit { get; init; } = Array.Empty<BankFileAuditEntry>();
+    /// <summary>db/118: the user may post the payroll to the GL (PAYROLL_GL_POST).</summary>
+    public bool CanPostGl { get; init; }
 
     public bool HasLiveFile => Files.Any(f => f.Status != "SUPERSEDED" && f.FileKind == "FULL");
     public bool HasLive(string kind) => Files.Any(f => f.Status != "SUPERSEDED" && f.FileKind == kind);

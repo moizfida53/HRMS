@@ -121,7 +121,8 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
             Formats = formats,
             Files = files,
             Stages = stages,
-            Audit = audit
+            Audit = audit,
+            CanPostGl = Can("PAYROLL_GL_POST")
         });
     }
 
@@ -175,6 +176,34 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
             RunEmployeeIds = lines.Select(l => l.RunEmployeeId).ToList(),
             Reason = reason
         }, OwnCompany, CompanyCsv, UserId, Ct));
+    }
+
+    /// <summary>
+    /// db/118: Post to GL - the payroll's journal is created when it has none and marked posted with
+    /// the reference of the entry in the books; from then on its bank files cannot be generated again.
+    /// </summary>
+    [HttpPost("file/post-gl")]
+    public async Task<IActionResult> PostGl(long run, string? reference)
+    {
+        if (!Can("PAYROLL_GL_POST")) return Denied();
+        if (string.IsNullOrWhiteSpace(reference)) return Invalid("Enter the reference of the entry in the books.");
+        var stages = await _finance.BankStagesAsync(run, OwnCompany, CompanyCsv, Ct);
+        if (stages is null) return Invalid("Select a closed payroll - salaries are paid only for a closed payroll.");
+        if (stages.IsGlPosted) return Invalid("This payroll is already posted to the GL.");
+        if (!stages.FilesReady) return Invalid("Generate the bank file first (both steps in the two-step process).");
+
+        var journalId = stages.JournalId ?? 0;
+        if (journalId <= 0)
+        {
+            var made = await _finance.CreateJournalAsync(run, null, OwnCompany, CompanyCsv, UserId, Ct);
+            if (!made.Success) return Result(made);
+            journalId = made.Id;
+        }
+        var posted = await _finance.JournalActionAsync(journalId, "POSTED", reference, OwnCompany, CompanyCsv, UserId, Ct);
+        if (!posted.Success) return Result(posted);
+        var audit = await _finance.BankGlPostedAsync(run, OwnCompany, CompanyCsv, UserId, Ct);
+        HttpContext.RequestServices.GetService<IPayrollNavCounts>()?.Invalidate();
+        return Result(audit.Success ? audit : posted);
     }
 
     [HttpGet("file/{id:long}/download")]
