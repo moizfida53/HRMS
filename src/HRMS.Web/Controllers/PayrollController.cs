@@ -442,8 +442,8 @@ public sealed class PayrollController : Controller
             nextCode = code?.RunCode,
             // one regular payroll per company and month: one already created blocks another
             // (an extra payment for the month is an Off-cycle payroll)
-            created = runType == RunType.Regular && freq == FreqMonthly && await CreatedRegularAsync(companyId, selected) is { } made
-                ? new { codes = made.Codes, message = made.Message }
+            created = runType == RunType.Regular && freq == FreqMonthly && await CreatedRegularAsync(companyId, selected) is { } taken
+                ? new { codes = taken.Codes, message = taken.Message }
                 : null,
             // a draft already saved for this company and month blocks a new payroll until it is discarded
             draft = await OpenDraftAsync(companyId, selected, ParseRunIds(drafts)) is { } open
@@ -524,9 +524,9 @@ public sealed class PayrollController : Controller
         }
 
         // one regular payroll per company and month
-        if (runType == RunType.Regular && input.Frequency != FreqWeekly && await CreatedRegularAsync(input.CompanyId, month) is { } made)
+        if (runType == RunType.Regular && input.Frequency != FreqWeekly && await CreatedRegularAsync(input.CompanyId, month) is { } taken)
         {
-            return Json(ActionResponse.Failed(made.Message, "ALREADY_CREATED"));
+            return Json(ActionResponse.Failed(taken.Message, "ALREADY_CREATED"));
         }
 
         // one set of drafts per company and month: an earlier draft must be continued or discarded first
