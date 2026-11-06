@@ -53,6 +53,17 @@ public sealed class CollectionItem
     public bool IsDraft => RunStage == "DRAFT";
 }
 
+/// <summary>db/120: the work permit figures of one payroll (Create Payroll summary).</summary>
+public sealed class CollectionPreview
+{
+    /// <summary>The Work Permit Salary of the employees in the payroll.</summary>
+    public decimal WorkPermitPayable { get; init; }
+    public int WorkPermitCount { get; init; }
+    /// <summary>Work Permit Salary less Gross Monthly, where above zero - recorded when the payroll is approved.</summary>
+    public decimal CollectionAmount { get; init; }
+    public int CollectionCount { get; init; }
+}
+
 /// <summary>The key figures of a company's payroll month.</summary>
 public sealed class CollectionSummary
 {

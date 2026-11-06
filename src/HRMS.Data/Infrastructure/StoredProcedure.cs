@@ -134,6 +134,8 @@ public static class StoredProcedure
     public const string CollectionManage = "Payroll.usp_Collection_Manage";
     /// <summary>db/119: the Work Permit Collections of an approved (closed) payroll.</summary>
     public const string CollectionFromPayroll = "Payroll.usp_Collection_FromPayroll";
+    /// <summary>db/120: Work Permit Payable and the collection preview of one payroll.</summary>
+    public const string CollectionRunPreview = "Payroll.usp_Collection_RunPreview";
 
     /// <summary>Pay items from an Excel file - every row or none.</summary>
     public const string PayItemImport = "Payroll.usp_PayItem_Import";

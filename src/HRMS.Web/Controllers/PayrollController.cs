@@ -876,6 +876,20 @@ public sealed class PayrollController : Controller
         if (r is null) return NotFound();
         ViewData["Mode"] = mode ?? "register";
         ViewData["Run"] = r;
+        // db/120: the Create Payroll summary also shows Work Permit Payable and Total Collection Amount
+        if (mode == "final")
+        {
+            try
+            {
+                if (HttpContext.RequestServices.GetService<ICollectionRepository>() is { } collections)
+                    ViewData["WorkPermit"] = await collections.RunPreviewAsync(run, Ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                HttpContext.RequestServices.GetService<ILogger<PayrollController>>()?
+                    .LogWarning(ex, "Work permit figures could not be read for payroll {Run} (run db/120).", run);
+            }
+        }
         return PartialView("_RunKpis", await _runs.SummaryAsync(run, Ct));
     }
 

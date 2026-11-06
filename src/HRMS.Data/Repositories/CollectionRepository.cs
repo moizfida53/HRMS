@@ -27,6 +27,8 @@ public interface ICollectionRepository
                                   string? companyIds, long? userId, CancellationToken cancellationToken = default);
     /// <summary>db/119: records the Work Permit Collections of a payroll once it is approved (closed).</summary>
     Task FromPayrollAsync(long runId, long? userId, CancellationToken cancellationToken = default);
+    /// <summary>db/120: Work Permit Payable and Total Collection Amount of one payroll (any stage).</summary>
+    Task<CollectionPreview?> RunPreviewAsync(long runId, CancellationToken cancellationToken = default);
     /// <summary>Sets a received collection back to pending (with the reason).</summary>
     Task<SaveResult> ReopenAsync(long id, string? comment, string? companyIds, long? userId, CancellationToken cancellationToken = default);
 }
@@ -105,6 +107,13 @@ public sealed class CollectionRepository : ICollectionRepository
         p.Add("@RunId", runId, DbType.Int64);
         p.Add("@UserId", userId, DbType.Int64);
         return _sql.ExecuteAsync(StoredProcedure.CollectionFromPayroll, p, cancellationToken);
+    }
+
+    public Task<CollectionPreview?> RunPreviewAsync(long runId, CancellationToken cancellationToken = default)
+    {
+        var p = new DynamicParameters();
+        p.Add("@RunId", runId, DbType.Int64);
+        return _sql.QuerySingleOrDefaultAsync<CollectionPreview>(StoredProcedure.CollectionRunPreview, p, cancellationToken);
     }
 
     private static DynamicParameters Envelope(string action, int? companyId, string? companyIds)

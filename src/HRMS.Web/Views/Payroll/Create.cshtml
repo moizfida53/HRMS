@@ -246,17 +246,18 @@
 
             @* ======================================== 3. check + create *@
             <div data-step-pane="2" hidden>
-                <h2 class="pr-card-title">3. @steps[2]</h2>
-                <div data-check-slot></div>
-
-                @* the payroll(s) Create makes, with their totals; Create completes the registration too *@
-                <div class="cr-final-wrap">
+                @* the payroll(s) Create makes, with their totals (and the work permit figures) - first,
+                   above the checks; Create completes the registration too *@
+                <div class="cr-final-wrap cr-final-wrap--top">
                     <div class="cr-final-wrap__head">
                         <h3 class="pr-card-title mb-1" data-cr-final-title>@L["pr.ready_to_create_the_payroll"]</h3>
                         <p class="hrms-muted mb-0">@L["pr.cr_create_goes_to_validation"]</p>
                     </div>
                     <div class="cr-final" data-cr-final-list></div>
                 </div>
+
+                <h2 class="pr-card-title">3. @steps[2]</h2>
+                <div data-check-slot></div>
             </div>
         </div>
     </div>

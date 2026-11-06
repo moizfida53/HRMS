@@ -1086,7 +1086,8 @@
 
         /* ------------------------------------------- one draft at a time (2-4) */
         var renderSwitch = function () {
-            var show = st.step > 0 && st.drafts.length > 0;
+            // not on the last step: "Ready to create the payroll" lists every payroll there
+            var show = st.step > 0 && st.step < LAST && st.drafts.length > 0;
             el.sw.hidden = !show;
             if (!show) { return; }
             el.sw.innerHTML = st.drafts.map(function (d, i) {
