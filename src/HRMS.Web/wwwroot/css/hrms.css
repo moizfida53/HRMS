@@ -10492,6 +10492,14 @@ tr.pr-row-cancelled .hrms-code-chip {
   color: #b42318;
   border-top-color: #b42318;
 }
+.ps-doc__table--coll th {
+  color: #b54708;
+  background: #fffaeb;
+}
+.ps-doc__table--coll tfoot td {
+  color: #b54708;
+  border-top-color: #b54708;
+}
 
 .ps-doc--both .ps-doc__table th > .ps-doc__en + .ps-doc__ar,
 .ps-doc--both .ps-doc__table td:first-child > .ps-doc__en + .ps-doc__ar {
@@ -10513,6 +10521,13 @@ tr.pr-row-cancelled .hrms-code-chip {
   background: #e9edec;
   color: #4a5250;
   font-size: 0.725rem;
+}
+.ps-doc__note--block {
+  display: block;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  background: none;
+  border-radius: 0;
 }
 
 .ps-doc__net {

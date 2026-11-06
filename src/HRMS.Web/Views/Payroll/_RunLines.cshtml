@@ -3,13 +3,13 @@
     string Cls(string c) => c switch
     {
         "SALARY" => L["pr.salary"], "EARNING" => L["pr.earning"], "DEDUCTION" => L["pr.deduction"],
-        "LOAN" => L["pr.loan_advance"], _ => L["pr.statutory"]
+        "LOAN" => L["pr.loan_advance"], "COLLECTION" => L["pr.collection"], _ => L["pr.statutory"]
     };
-    string Badge(string c) => c switch { "SALARY" => "info", "EARNING" => "success", "DEDUCTION" => "warning", "LOAN" => "purple", _ => "muted" };
+    string Badge(string c) => c switch { "SALARY" => "info", "EARNING" => "success", "DEDUCTION" => "warning", "LOAN" => "purple", "COLLECTION" => "collect", _ => "muted" };
     string Src(string s) => s switch
     {
         "SALARY" => L["pr.salary_item"], "PROFILE" => L["pr.employee_profile"], "PAY_ITEM" => L["pr.pay_item"],
-        "LOAN" => L["pr.loan_advance"], "STATUTORY" => L["pr.calculated"], _ => L["pr.added_in_this_payroll"]
+        "LOAN" => L["pr.loan_advance"], "STATUTORY" => L["pr.calculated"], "COLLECTION" => L["pr.src_collection"], _ => L["pr.added_in_this_payroll"]
     };
 }
 @if (Model.IsExcluded)

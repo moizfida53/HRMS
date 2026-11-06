@@ -213,6 +213,29 @@
                     <tr><td>@T("ps.doc_total_deductions")</td><td class="ps-doc__amt">@M(Model.TotalDeductions)</td></tr>
                 </tfoot>
             </table>
+
+            @* db/115: Collection - paid with the salary and collected back from the employee; not an earning *@
+            @if (Model.Collections.Count > 0)
+            {
+                <table class="ps-doc__table ps-doc__table--coll">
+                    <caption class="hrms-sr-only">@L["pr.collection"]</caption>
+                    <thead>
+                        <tr><th scope="col">@T("ps.doc_collection")</th><th scope="col" class="ps-doc__amt">KWD</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in Model.Collections)
+                        {
+                            <tr>
+                                <td>@Data(l.ComponentName, l.ComponentArabicName)<span class="ps-doc__note ps-doc__note--block">@T("ps.doc_collection_note")</span></td>
+                                <td class="ps-doc__amt">@M(l.Amount)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr><td>@T("ps.doc_total_collection")</td><td class="ps-doc__amt">@M(Model.TotalCollections)</td></tr>
+                    </tfoot>
+                </table>
+            }
         </div>
 
         <div class="ps-doc__net">

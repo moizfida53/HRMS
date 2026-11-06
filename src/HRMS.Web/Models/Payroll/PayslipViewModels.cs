@@ -179,13 +179,17 @@ public sealed class PayslipDocumentModel
     public bool ShowArabic => Template != PayslipTemplate.English;
     public bool IsArabicOnly => Template == PayslipTemplate.Arabic;
 
-    /// <summary>Earnings: every line that adds to the pay.</summary>
-    public IReadOnlyList<PayrollRunLine> Earnings => Lines.Where(l => l.Amount > 0).ToList();
+    /// <summary>Earnings: every line that adds to the pay, except a Collection.</summary>
+    public IReadOnlyList<PayrollRunLine> Earnings => Lines.Where(l => l.Amount > 0 && l.ItemClass != "COLLECTION").ToList();
+
+    /// <summary>db/115: Collection (Work Permit Collection) - paid with the salary and collected back; its own table.</summary>
+    public IReadOnlyList<PayrollRunLine> Collections => Lines.Where(l => l.ItemClass == "COLLECTION").ToList();
 
     /// <summary>Deductions: every line that takes from the pay (shown as positive amounts).</summary>
     public IReadOnlyList<PayrollRunLine> Deductions => Lines.Where(l => l.Amount < 0).ToList();
 
     public decimal TotalEarnings => Earnings.Sum(l => l.Amount);
+    public decimal TotalCollections => Collections.Sum(l => l.Amount);
     public decimal TotalDeductions => -Deductions.Sum(l => l.Amount);
 }
 

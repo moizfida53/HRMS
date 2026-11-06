@@ -1511,7 +1511,7 @@ public sealed class PayrollController : Controller
 
     private static int ItemClassOrder(string itemClass) => itemClass switch
     {
-        "SALARY" => 0, "EARNING" => 1, "DEDUCTION" => 2, "LOAN" => 3, _ => 4
+        "SALARY" => 0, "EARNING" => 1, "COLLECTION" => 2, "DEDUCTION" => 3, "LOAN" => 4, _ => 5
     };
 
     private static string SafeFilePart(string text) =>

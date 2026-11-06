@@ -208,12 +208,12 @@ public static class PayrollFormat
     public static string ItemClass(IUiText L, string itemClass) => itemClass switch
     {
         "SALARY" => L["pr.salary"], "EARNING" => L["pr.earning"], "DEDUCTION" => L["pr.deduction"],
-        "LOAN" => L["pr.loan_advance"], _ => L["pr.statutory"]
+        "LOAN" => L["pr.loan_advance"], "COLLECTION" => L["pr.collection"], _ => L["pr.statutory"]
     };
 
     public static string ItemClassBadge(string itemClass) => itemClass switch
     {
-        "SALARY" => "info", "EARNING" => "success", "DEDUCTION" => "warning", "LOAN" => "purple", _ => "muted"
+        "SALARY" => "info", "EARNING" => "success", "DEDUCTION" => "warning", "LOAN" => "purple", "COLLECTION" => "collect", _ => "muted"
     };
 
     public static string Calendar(IUiText L, string name, string? arabic) =>

@@ -18,7 +18,12 @@
       Kuwait compliance (Kuwait.EmployeeCompliance), the difference is added
       to their pay as "Work Permit Collection", so the bank transfer reaches
       the work permit salary, and is recorded as a receivable the company
-      collects back from the employee (Payroll.Collections).
+      collects back from the employee (Payroll.Collections). The payroll line
+      has its own class COLLECTION (not an earning): the payroll lines, the
+      comparison and the payslip show it as Collection, on the payslip in its
+      own table. It is part of the net pay; the employee and payroll totals
+      keep counting it with the additions to the salary (EarningsTotal /
+      TotalEarnings) so Salary + Earnings - Deductions = Net in every report.
 
    3. Payroll Components > Collection: pick the company and the payroll
       month; the summary shows Total, Pending and Collected amounts; the
@@ -86,12 +91,24 @@ BEGIN
 END;
 GO
 
-/* payroll lines: the source COLLECTION (the line itself is an earning - it adds to the pay) */
+/* payroll lines: the class and the source COLLECTION - a line of its own kind, not an earning */
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_PayrollRunLines_Class' AND definition NOT LIKE N'%COLLECTION%')
+    ALTER TABLE [Payroll].[PayrollRunLines] DROP CONSTRAINT CK_PayrollRunLines_Class;
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_PayrollRunLines_Class')
+    ALTER TABLE [Payroll].[PayrollRunLines] WITH CHECK
+        ADD CONSTRAINT CK_PayrollRunLines_Class CHECK (ItemClass IN ('SALARY', 'EARNING', 'DEDUCTION', 'LOAN', 'STATUTORY', 'COLLECTION'));
 IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_PayrollRunLines_Source' AND definition NOT LIKE N'%COLLECTION%')
     ALTER TABLE [Payroll].[PayrollRunLines] DROP CONSTRAINT CK_PayrollRunLines_Source;
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_PayrollRunLines_Source')
     ALTER TABLE [Payroll].[PayrollRunLines] WITH CHECK
         ADD CONSTRAINT CK_PayrollRunLines_Source CHECK (Source IN ('SALARY', 'PROFILE', 'PAY_ITEM', 'LOAN', 'STATUTORY', 'RUN', 'COLLECTION'));
+GO
+
+/* lines written by the first version of this script (class EARNING) become Collection lines;
+   the totals do not change (a Collection is counted with the additions) */
+UPDATE [Payroll].[PayrollRunLines] SET ItemClass = 'COLLECTION'
+WHERE  Source = 'COLLECTION' AND ItemClass = 'EARNING';
+PRINT CONCAT(N'Payroll lines set to class Collection: ', @@ROWCOUNT);
 GO
 
 /* ---- 2. the receivables and their audit ---------------------------------- */
@@ -563,9 +580,9 @@ BEGIN
        Gross Monthly (contract Basic Salary + Allowances, Employee.EmployeePayroll)
        below the Work Permit Salary (Kuwait.EmployeeCompliance): the payroll pays
        the difference on top - the bank transfer reaches the work permit salary -
-       and the company collects it back from the employee. The line is an
-       earning of the company's "Work Permit Collection" item type (type
-       COLLECTION); the amount owed is a receivable on Payroll Components >
+       and the company collects it back from the employee. The line has the
+       class COLLECTION (not an earning), of the company's "Work Permit
+       Collection" item type; the amount owed is a receivable on Payroll Components >
        Collection (Payroll.Collections), marked there once received.
        Regular payrolls only; an excluded employee gets none. */
     DECLARE @CollId INT, @CollName NVARCHAR(150), @CollArabic NVARCHAR(150), @CollOrder SMALLINT;
@@ -589,7 +606,7 @@ BEGIN
 
         INSERT INTO [Payroll].[PayrollRunLines] (PayrollRunId, RunEmployeeId, EmployeeId, PayComponentId, ItemClass, ComponentName, ComponentArabicName,
                                                  Comment, Source, FullAmount, Amount, DisplayOrder)
-        SELECT  @RunId, c.RunEmployeeId, c.EmployeeId, @CollId, 'EARNING', @CollName, @CollArabic,
+        SELECT  @RunId, c.RunEmployeeId, c.EmployeeId, @CollId, 'COLLECTION', @CollName, @CollArabic,
                 LEFT(CONCAT(N'Work permit salary ', FORMAT(c.Wps, 'N3', 'en-US'), N' - gross monthly ', FORMAT(c.Gross, 'N3', 'en-US'),
                             N'; collected back from the employee'), 500),
                 'COLLECTION', c.Amt, c.Amt, @CollOrder
@@ -657,7 +674,9 @@ BEGIN
     JOIN   @T AS t ON t.RunEmployeeId = re.RunEmployeeId
     OUTER APPLY (
         SELECT  SUM(CASE WHEN l.ItemClass = 'SALARY' THEN l.Amount END)                     AS Sal,
-                SUM(CASE WHEN l.ItemClass = 'EARNING' THEN l.Amount END)                    AS Ern,
+                /* db/115: a Collection is paid with the salary - counted with the additions so the
+                   totals still add up to the net pay everywhere (reports, bank, journal) */
+                SUM(CASE WHEN l.ItemClass IN ('EARNING', 'COLLECTION') THEN l.Amount END)   AS Ern,
                 SUM(CASE WHEN l.ItemClass IN ('DEDUCTION', 'LOAN', 'STATUTORY') THEN l.Amount END) AS Ded,
                 COUNT(1)                                                                    AS Cnt,
                 SUM(CASE WHEN l.Source = 'RUN' THEN 1 ELSE 0 END)                           AS Added,
@@ -1406,6 +1425,11 @@ FROM  (VALUES
         ('msg.col_reason', 'msg', N'Enter why it is set back to pending.', N'أدخل سبب الإعادة إلى قيد التحصيل.', NULL),
         ('msg.col_already', 'msg', N'A selected collection was already marked as received. The list has been refreshed.', N'تم تسجيل استلام أحد التحصيلات المحددة مسبقاً. تم تحديث القائمة.', NULL),
         ('msg.col_gone', 'msg', N'A selected collection no longer exists. The list has been refreshed.', N'أحد التحصيلات المحددة لم يعد موجوداً. تم تحديث القائمة.', NULL),
+        ('pr.collection', 'pr', N'Collection', N'تحصيل', NULL),
+        ('pr.src_collection', 'pr', N'Work permit collection', N'تحصيل فرق راتب إذن العمل', NULL),
+        ('ps.doc_collection', 'ps', N'Collection', N'التحصيل', NULL),
+        ('ps.doc_total_collection', 'ps', N'Total collection', N'إجمالي التحصيل', NULL),
+        ('ps.doc_collection_note', 'ps', N'Paid with the salary; collected back from the employee', N'يُصرف مع الراتب ويُسترد من الموظف', NULL),
         ('msg.pc_type_three', 'msg', N'Choose whether this is an Earning, a Deduction or a Collection.', N'اختر ما إذا كان استحقاقاً أو استقطاعاً أو تحصيلاً.', NULL)
       ) AS s (LabelKey, Module, EnglishText, ArabicText, SourceText)
 WHERE NOT EXISTS (SELECT 1 FROM [Core].[UiLabels] AS l WHERE l.LabelKey = s.LabelKey COLLATE DATABASE_DEFAULT AND l.Deleted = 0);
