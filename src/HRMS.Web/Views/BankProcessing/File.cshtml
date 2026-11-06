@@ -24,7 +24,8 @@
     string KindKey(string k) => k switch { "MINISTRY" => "fin.kind_ministry", "COMPANY" => "fin.kind_company", "RETRY" => "fin.kind_retry", _ => "fin.kind_full" };
 
     // the fields every generate form asks: banks, value date, debit account, format (and the reason when it replaces a file)
-    void GenerateFields(string px, bool replaces, bool disabled)
+    // async: its <option> tags are tag helpers, so the function must return a Task (MVC1006)
+    async Task GenerateFields(string px, bool replaces, bool disabled)
     {
         <div class="col-sm-6">
             <label class="form-label" for="@(px)-bank">@L["fin.banks_in_file"]</label>
@@ -336,7 +337,7 @@
                                             <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
                                                 <input type="hidden" name="run" value="@run.PayrollRunId" />
                                                 <input type="hidden" name="kind" value="MINISTRY" />
-                                                @{ GenerateFields("m1", ministryLive, st.CompanyDone); }
+                                                @{ await GenerateFields("m1", ministryLive, st.CompanyDone); }
                                                 <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
                                                     <button type="submit" class="btn @(st.MinistryDone ? "btn-outline-primary" : "btn-primary")" disabled="@(st.CompanyDone || st.MissingWpsCount > 0)">
                                                         @Html.Icon("download", 15)<span>@(ministryLive ? L["fin.step1_regenerate"] : L["fin.step1_generate"])</span>
@@ -380,7 +381,7 @@
                                                 <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
                                                     <input type="hidden" name="run" value="@run.PayrollRunId" />
                                                     <input type="hidden" name="kind" value="COMPANY" />
-                                                    @{ GenerateFields("c2", companyLive, false); }
+                                                    @{ await GenerateFields("c2", companyLive, false); }
                                                     <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
                                                         <button type="submit" class="btn btn-primary" disabled="@(st.CompanyCount == 0 && st.CashCount == 0)">
                                                             @Html.Icon("download", 15)<span>@(companyLive ? L["fin.step2_regenerate"] : L["fin.step2_generate"])</span>
