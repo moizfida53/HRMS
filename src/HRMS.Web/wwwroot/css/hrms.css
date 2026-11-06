@@ -127,6 +127,7 @@ a:hover {
 }
 @media (max-width: 991.98px) {
   .hrms-sidebar {
+    z-index: 1035;
     transform: translateX(-100%);
     box-shadow: 0 12px 32px rgba(33, 35, 34, 0.12), 0 4px 8px rgba(33, 35, 34, 0.05);
   }

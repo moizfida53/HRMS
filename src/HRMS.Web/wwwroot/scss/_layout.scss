@@ -88,8 +88,10 @@ a {
     width: $sidebar-width-condensed;
   }
 
-  // Below lg the sidebar becomes an off-canvas drawer.
+  // Below lg the sidebar becomes an off-canvas drawer - above its backdrop
+  // (the backdrop sat over it, so the open drawer looked greyed out and took no taps).
   @include down("lg") {
+    z-index: $z-backdrop;
     transform: translateX(-100%);
     box-shadow: $shadow-lg;
 

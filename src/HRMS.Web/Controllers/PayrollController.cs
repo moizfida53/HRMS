@@ -705,10 +705,12 @@ public sealed class PayrollController : Controller
         {
             // the remembered payroll when it is at this stage, else the latest one at this stage,
             // else the remembered / latest one (which then opens on the page of its own stage)
-            var remembered = long.TryParse(Request.Cookies[RunCookie], out var rid) ? list.Items.FirstOrDefault(r => r.PayrollRunId == rid) : null;
+            // a cancelled payroll is never picked by itself (it is only opened from the Payrolls list)
+            var live = list.Items.Where(r => r.Stage != RunStage.Cancelled).ToList();
+            var remembered = long.TryParse(Request.Cookies[RunCookie], out var rid) ? live.FirstOrDefault(r => r.PayrollRunId == rid) : null;
             var wanted = pageStage switch { 0 => RunStage.Registered, 1 => RunStage.Validation, _ => RunStage.AwaitingApproval };
             var pick = (remembered?.Stage == wanted ? remembered : null)
-                       ?? list.Items.FirstOrDefault(r => r.Stage == wanted) ?? remembered ?? list.Items.FirstOrDefault();
+                       ?? live.FirstOrDefault(r => r.Stage == wanted) ?? remembered ?? live.FirstOrDefault();
             if (pick is not null)
             {
                 run = await _runs.GetAsync(pick.PayrollRunId, Ct);
@@ -1427,7 +1429,7 @@ public sealed class PayrollController : Controller
         }
 
         var run = await _runs.GetAsync(id, Ct);
-        return run is not null && CanSee(run) && run.Stage != RunStage.Draft ? run : null;
+        return run is not null && CanSee(run) && run.Stage is not (RunStage.Draft or RunStage.Cancelled) ? run : null;
     }
 
     /// <summary>The run, if the user may see it (company scope).</summary>

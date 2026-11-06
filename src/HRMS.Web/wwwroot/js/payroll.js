@@ -1245,7 +1245,7 @@
                 if (st.current >= st.drafts.length) { st.current = 0; }
                 remember();
                 if (!ok) { el.status.textContent = created.length ? fmt(T("created"), created.length) : ""; renderSwitch(); return; }
-                if (created.length === 1) { openRun(created[0]); return; }
+                // the new payroll(s) are shown on the Payrolls page (newest first)
                 window.location.href = u("payrolls");
             }, function (error) { busy(el.finalize, false); fail(error); });
         });
