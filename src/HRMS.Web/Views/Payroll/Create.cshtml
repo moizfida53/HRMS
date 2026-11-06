@@ -163,6 +163,16 @@
                             </div>
                         </div>
                     </div>
+                    @* one regular payroll per company and month - another payment for the month is Off-cycle *@
+                    <div class="pr-banner pr-banner--err mt-2" data-cr-created-block role="alert" hidden>
+                        @Html.Icon("lock", 18)
+                        <div class="flex-grow-1">
+                            <div data-cr-created-block-text></div>
+                            <div class="mt-2 d-flex gap-2 flex-wrap">
+                                <a class="btn btn-sm btn-outline-secondary" href="@Url.Content("~/payroll/payrolls")">@L["pr.cr_open_payrolls"]</a>
+                            </div>
+                        </div>
+                    </div>
                     <div class="pr-banner pr-banner--info mt-2" data-cr-plan-empty hidden>@Html.Icon("info", 18)<div data-cr-plan-empty-text>@L["pr.cr_no_calendar_in_month"]</div></div>
                     <div class="pr-banner pr-banner--lock mt-2" data-cr-unassigned hidden>@Html.Icon("alert", 18)<div data-cr-unassigned-text></div></div>
                     <span class="field-validation-error" data-cr-error="plan" hidden>@L["pr.cr_nothing_to_create"]</span>

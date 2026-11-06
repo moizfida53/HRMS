@@ -440,6 +440,11 @@ public sealed class PayrollController : Controller
             otherEmployees = plan.OtherFrequencyEmployees,
             nextSeq = code?.NextSeq ?? 1,
             nextCode = code?.RunCode,
+            // one regular payroll per company and month: one already created blocks another
+            // (an extra payment for the month is an Off-cycle payroll)
+            created = runType == RunType.Regular && freq == FreqMonthly && await CreatedRegularAsync(companyId, selected) is { } made
+                ? new { codes = made.Codes, message = made.Message }
+                : null,
             // a draft already saved for this company and month blocks a new payroll until it is discarded
             draft = await OpenDraftAsync(companyId, selected, ParseRunIds(drafts)) is { } open
                 ? new
@@ -450,6 +455,27 @@ public sealed class PayrollController : Controller
                 }
                 : null
         });
+    }
+
+    /// <summary>
+    /// The regular monthly payroll(s) already created for a company and month (any stage from
+    /// Registered to Closed; a cancelled one does not count). A company has one regular monthly
+    /// payroll a month - another payment for that month is an Off-cycle payroll. Weekly and
+    /// bi-weekly calendars pay several periods a month, so they keep the per-period check.
+    /// </summary>
+    private async Task<(string Codes, string Message)?> CreatedRegularAsync(int companyId, DateTime month)
+    {
+        var runs = await _runs.ListAsync(new RunListFilter
+        {
+            CompanyId = companyId, RunMonth = month, Type = RunType.Regular, PageSize = 50
+        }, Ct);
+        var live = runs.Items.Where(r => r.CompanyId == companyId && r.RunMonth == month && r.RunType == RunType.Regular
+                                         && r.PayFrequency == FreqMonthly
+                                         && r.Stage is not RunStage.Draft and not RunStage.Cancelled).ToList();
+        if (live.Count == 0) return null;
+        var codes = string.Join(", ", live.Select(r => r.RunCode).Where(c => !string.IsNullOrWhiteSpace(c)));
+        var stage = ReportText.Code(_text, live[0].Stage);
+        return (codes, _text["pr.cr_month_created", live[0].CompanyName ?? string.Empty, _text.MonthYear(month), codes, stage]);
     }
 
     /// <summary>
@@ -495,6 +521,12 @@ public sealed class PayrollController : Controller
         foreach (var id in ParseRunIds(input.Drafts))
         {
             if (await _runs.GetAsync(id, Ct) is { } r && r.Stage == RunStage.Draft && CanSee(r)) existing.Add(r);
+        }
+
+        // one regular payroll per company and month
+        if (runType == RunType.Regular && input.Frequency != FreqWeekly && await CreatedRegularAsync(input.CompanyId, month) is { } made)
+        {
+            return Json(ActionResponse.Failed(made.Message, "ALREADY_CREATED"));
         }
 
         // one set of drafts per company and month: an earlier draft must be continued or discarded first

@@ -889,7 +889,9 @@
         var isReady = function (g) { return g.state === "ready" || g.state === "generate"; };
         // a draft already saved for this company and month blocks a new payroll (continue or discard it)
         var blockedByDraft = function () { return !!(st.plan && st.plan.draft); };
-        var readyGroups = function () { return blockedByDraft() ? [] : groups().filter(isReady); };
+        // a regular payroll already created for this company and month blocks another one
+        var blockedByCreated = function () { return !!(st.plan && st.plan.created && type() === "REGULAR"); };
+        var readyGroups = function () { return blockedByDraft() || blockedByCreated() ? [] : groups().filter(isReady); };
         var keyOf = function (calendarId, periodId) { return String(calendarId) + ":" + String(periodId || ""); };
         var codes = {};     // the payroll numbers the ready payrolls will get, by calendar:period
 
@@ -944,6 +946,14 @@
                     $("[data-cr-draft-block-text]", block).textContent = st.plan.draft.message;
                     $("[data-cr-draft-continue]", block).href = st.plan.draft.url;
                     $("[data-cr-draft-discard]", block).setAttribute("data-ids", st.plan.draft.ids);
+                    why = "";
+                }
+            }
+            var made = $("[data-cr-created-block]");
+            if (made) {
+                made.hidden = !blockedByCreated() || blockedByDraft();
+                if (!made.hidden) {
+                    $("[data-cr-created-block-text]", made).textContent = st.plan.created.message;
                     why = "";
                 }
             }
