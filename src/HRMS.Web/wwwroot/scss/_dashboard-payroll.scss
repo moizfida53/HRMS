@@ -64,6 +64,61 @@
   .hrms-kpi__icon { background: rgba($white, .18); color: $white; }
 }
 
+// Current Period also carries the run status and the employees in the run
+.dash-period-info {
+  display: grid;
+  gap: space("1");
+  margin-block: space("2") space("1");
+  padding-block-start: space("2");
+  border-block-start: 1px solid rgba($white, .22);
+
+  &__row { display: flex; align-items: center; justify-content: space-between; gap: space("2"); min-width: 0; }
+  &__label { font-size: $fs-xs; opacity: .85; }
+  &__value { font-weight: $fw-bold; font-variant-numeric: tabular-nums; }
+  &__delta { margin-inline-start: space("1"); font-size: $fs-xs; font-weight: $fw-medium; opacity: .85; }
+
+  .hrms-badge { background: rgba($white, .92); }
+}
+
+// the payroll link on the teal card stays readable
+.dash-page .dash-kpi--period .hrms-kpi__note a { color: $white; text-decoration: underline; text-underline-offset: 2px; }
+
+@include cq-down(sm) {
+  .dash-period-info__row { flex-wrap: wrap; row-gap: 2px; }
+}
+
+// db/115: the month's collections - collected vs pending
+.dash-coll {
+  display: grid;
+  gap: space("1");
+  margin-block: space("1");
+
+  &__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: space("2");
+    font-size: $fs-sm;
+
+    strong { font-variant-numeric: tabular-nums; }
+    &.is-collected strong { color: $green-700; }
+    &.is-pending strong { color: $amber-700; }
+  }
+
+  &__bar {
+    height: 6px;
+    margin-block-start: space("1");
+    border-radius: $radius-pill;
+    background: $amber-050;
+    box-shadow: inset 0 0 0 1px rgba($amber-600, .25);
+    overflow: hidden;
+
+    > span { display: block; height: 100%; background: $green-600; border-radius: $radius-pill; @include motion(width); }
+  }
+
+  &__none { font-size: $fs-base; color: $ink-500; }
+}
+
 // ------------------------------------------------------------ trend ----
 .dash-trend {
   .pr-trend__bar {

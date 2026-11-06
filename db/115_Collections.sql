@@ -15,15 +15,14 @@
    2. Generating a payroll (regular payrolls): when an employee's Gross
       Monthly - Basic Salary + Allowances of the employment contract
       (Employee.EmployeePayroll) - is below the Work Permit Salary of the
-      Kuwait compliance (Kuwait.EmployeeCompliance), the difference is added
-      to their pay as "Work Permit Collection", so the bank transfer reaches
-      the work permit salary, and is recorded as a receivable the company
-      collects back from the employee (Payroll.Collections). The payroll line
-      has its own class COLLECTION (not an earning): the payroll lines, the
-      comparison and the payslip show it as Collection, on the payslip in its
-      own table. It is part of the net pay; the employee and payroll totals
-      keep counting it with the additions to the salary (EarningsTotal /
-      TotalEarnings) so Salary + Earnings - Deductions = Net in every report.
+      Kuwait compliance (Kuwait.EmployeeCompliance), the difference is
+      recorded as a "Work Permit Collection" (Payroll.Collections). It is for
+      the company's records only: the payroll writes NO line for it, so it is
+      not on the payslip, not in the net pay, the bank file, the journal or
+      the payroll reports. Lines written by the earlier versions of this
+      script are removed (payrolls not closed yet) and their totals corrected.
+      The Payroll Dashboard shows the month's Total collection and Collected
+      vs Pending (action DASHBOARD).
 
    3. Payroll Components > Collection: pick the company and the payroll
       month; the summary shows Total, Pending and Collected amounts; the
@@ -104,11 +103,50 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = N'CK_PayrollRunL
         ADD CONSTRAINT CK_PayrollRunLines_Source CHECK (Source IN ('SALARY', 'PROFILE', 'PAY_ITEM', 'LOAN', 'STATUTORY', 'RUN', 'COLLECTION'));
 GO
 
-/* lines written by the first version of this script (class EARNING) become Collection lines;
-   the totals do not change (a Collection is counted with the additions) */
-UPDATE [Payroll].[PayrollRunLines] SET ItemClass = 'COLLECTION'
-WHERE  Source = 'COLLECTION' AND ItemClass = 'EARNING';
-PRINT CONCAT(N'Payroll lines set to class Collection: ', @@ROWCOUNT);
+/* Collection is for the company's records only: the payroll lines written by the earlier
+   versions of this script are removed and the totals of those employees and payrolls corrected
+   (net pay without them). A CLOSED payroll is history - it is left as it was paid. */
+DECLARE @Fix TABLE (RunEmployeeId BIGINT PRIMARY KEY, PayrollRunId BIGINT NOT NULL);
+INSERT INTO @Fix (RunEmployeeId, PayrollRunId)
+SELECT DISTINCT l.RunEmployeeId, l.PayrollRunId
+FROM   [Payroll].[PayrollRunLines] AS l
+JOIN   [Payroll].[PayrollRuns] AS r ON r.PayrollRunId = l.PayrollRunId
+WHERE  l.Deleted = 0 AND l.Source = 'COLLECTION' AND r.Stage <> 'CLOSED';
+
+UPDATE l SET Deleted = 1, DeletedDate = SYSUTCDATETIME()
+FROM   [Payroll].[PayrollRunLines] AS l
+JOIN   @Fix AS f ON f.RunEmployeeId = l.RunEmployeeId
+WHERE  l.Deleted = 0 AND l.Source = 'COLLECTION';
+PRINT CONCAT(N'Collection payroll lines removed: ', @@ROWCOUNT);
+
+UPDATE re
+   SET EarningsTotal = ISNULL(x.Ern, 0),
+       NetPay        = ISNULL(x.Sal, 0) + ISNULL(x.Ern, 0) + ISNULL(x.Ded, 0),
+       LineCount     = ISNULL(x.Cnt, 0)
+FROM   [Payroll].[PayrollRunEmployees] AS re
+JOIN   @Fix AS f ON f.RunEmployeeId = re.RunEmployeeId
+OUTER APPLY (
+    SELECT  SUM(CASE WHEN l.ItemClass = 'SALARY' THEN l.Amount END) AS Sal,
+            SUM(CASE WHEN l.ItemClass = 'EARNING' THEN l.Amount END) AS Ern,
+            SUM(CASE WHEN l.ItemClass IN ('DEDUCTION', 'LOAN', 'STATUTORY') THEN l.Amount END) AS Ded,
+            COUNT(1) AS Cnt
+    FROM    [Payroll].[PayrollRunLines] AS l
+    WHERE   l.RunEmployeeId = re.RunEmployeeId AND l.Deleted = 0
+) AS x;
+
+UPDATE r
+   SET TotalEarnings = ISNULL(x.Ern, 0), TotalNet = ISNULL(x.Net, 0)
+FROM   [Payroll].[PayrollRuns] AS r
+OUTER APPLY (SELECT SUM(re.EarningsTotal) AS Ern, SUM(re.NetPay) AS Net
+             FROM [Payroll].[PayrollRunEmployees] AS re WHERE re.PayrollRunId = r.PayrollRunId AND re.Deleted = 0) AS x
+WHERE  r.PayrollRunId IN (SELECT PayrollRunId FROM @Fix);
+PRINT CONCAT(N'Payrolls with corrected totals: ', @@ROWCOUNT);
+
+DECLARE @ClosedWithLines INT = (SELECT COUNT(DISTINCT l.PayrollRunId) FROM [Payroll].[PayrollRunLines] AS l
+                                JOIN [Payroll].[PayrollRuns] AS r ON r.PayrollRunId = l.PayrollRunId
+                                WHERE l.Deleted = 0 AND l.Source = 'COLLECTION' AND r.Stage = 'CLOSED');
+IF @ClosedWithLines > 0
+    PRINT CONCAT(N'NOTE: ', @ClosedWithLines, N' closed payroll(s) still hold Work Permit Collection lines - left as they were paid.');
 GO
 
 /* ---- 2. the receivables and their audit ---------------------------------- */
@@ -204,7 +242,7 @@ BEGIN
         (@CompanyId, N'WP_COLLECTION', N'Work Permit Collection', N'تحصيل فرق راتب إذن العمل', NULL, 'COLLECTION', 'VARIABLE', 'SYSTEM',
          0, 0, 0, 0, 0,
          0, 0, 1, 900, 'WP_COLLECTION', 1,
-         N'Added by the payroll when the gross monthly salary (Basic + Allowances) is below the work permit salary; collected back from the employee (Payroll Components > Collection).',
+         N'Recorded by the payroll when the gross monthly salary (Basic + Allowances) is below the work permit salary - company records only, not on the payslip or the bank file (Payroll Components > Collection).',
          1, @UserId);
 END;
 GO
@@ -578,15 +616,14 @@ BEGIN
 
     /* ---- 5d. db/115: Work Permit Collection ----------------------------
        Gross Monthly (contract Basic Salary + Allowances, Employee.EmployeePayroll)
-       below the Work Permit Salary (Kuwait.EmployeeCompliance): the payroll pays
-       the difference on top - the bank transfer reaches the work permit salary -
-       and the company collects it back from the employee. The line has the
-       class COLLECTION (not an earning), of the company's "Work Permit
-       Collection" item type; the amount owed is a receivable on Payroll Components >
-       Collection (Payroll.Collections), marked there once received.
-       Regular payrolls only; an excluded employee gets none. */
-    DECLARE @CollId INT, @CollName NVARCHAR(150), @CollArabic NVARCHAR(150), @CollOrder SMALLINT;
-    SELECT TOP (1) @CollId = PayComponentId, @CollName = ComponentName, @CollArabic = ArabicName, @CollOrder = DisplayOrder
+       below the Work Permit Salary (Kuwait.EmployeeCompliance): the difference
+       is recorded as a Work Permit Collection (Payroll.Collections) for the
+       company's records - shown on Payroll Components > Collection and on the
+       Payroll Dashboard. It is NOT a payroll line: not on the payslip, not in
+       the net pay, the bank file or the journal. Regular payrolls only; an
+       excluded employee gets none. */
+    DECLARE @CollId INT;
+    SELECT TOP (1) @CollId = PayComponentId
     FROM   [Payroll].[PayComponents]
     WHERE  CompanyId = @CompanyId AND SystemCode = 'WP_COLLECTION' AND Deleted = 0 AND IsActive = 1;
 
@@ -604,13 +641,7 @@ BEGIN
           AND   ISNULL(ep.BasicSalary, 0) > 0            -- no contract salary: nothing to compare with
           AND   k.WorkPermitSalary > g.Gross;
 
-        INSERT INTO [Payroll].[PayrollRunLines] (PayrollRunId, RunEmployeeId, EmployeeId, PayComponentId, ItemClass, ComponentName, ComponentArabicName,
-                                                 Comment, Source, FullAmount, Amount, DisplayOrder)
-        SELECT  @RunId, c.RunEmployeeId, c.EmployeeId, @CollId, 'COLLECTION', @CollName, @CollArabic,
-                LEFT(CONCAT(N'Work permit salary ', FORMAT(c.Wps, 'N3', 'en-US'), N' - gross monthly ', FORMAT(c.Gross, 'N3', 'en-US'),
-                            N'; collected back from the employee'), 500),
-                'COLLECTION', c.Amt, c.Amt, @CollOrder
-        FROM    @Coll AS c;
+        /* company records only: no payroll line - not on the payslip, not in the net pay or the bank file */
     END;
 
     /* the receivables of the employees just calculated: new ones are added (PENDING), a
@@ -674,9 +705,7 @@ BEGIN
     JOIN   @T AS t ON t.RunEmployeeId = re.RunEmployeeId
     OUTER APPLY (
         SELECT  SUM(CASE WHEN l.ItemClass = 'SALARY' THEN l.Amount END)                     AS Sal,
-                /* db/115: a Collection is paid with the salary - counted with the additions so the
-                   totals still add up to the net pay everywhere (reports, bank, journal) */
-                SUM(CASE WHEN l.ItemClass IN ('EARNING', 'COLLECTION') THEN l.Amount END)   AS Ern,
+                SUM(CASE WHEN l.ItemClass = 'EARNING' THEN l.Amount END)                    AS Ern,
                 SUM(CASE WHEN l.ItemClass IN ('DEDUCTION', 'LOAN', 'STATUTORY') THEN l.Amount END) AS Ded,
                 COUNT(1)                                                                    AS Cnt,
                 SUM(CASE WHEN l.Source = 'RUN' THEN 1 ELSE 0 END)                           AS Added,
@@ -1096,7 +1125,7 @@ GO
 /* ---- 6. Payroll.usp_Collection_Manage - the Collection page -------------- */
 CREATE OR ALTER PROCEDURE [Payroll].[usp_Collection_Manage]
     @Action         VARCHAR(20),
-    @CompanyId      INT             = NULL,     -- the company picked on the page (required)
+    @CompanyId      INT             = NULL,     -- the company picked on the page (DASHBOARD: NULL = every company in scope)
     @CompanyIds     NVARCHAR(2000)  = NULL,     -- the companies the user may open (CSV; NULL = any)
     @Month          DATE            = NULL,     -- the payroll month (any day of it)
     @Status         VARCHAR(10)     = NULL,     -- LIST: PENDING / COLLECTED / NULL = both (pending first)
@@ -1117,7 +1146,7 @@ BEGIN
     SET XACT_ABORT ON;
     SELECT @ResultCode = 'SUCCESS', @ResultMessage = NULL, @TotalCount = 0, @NewId = NULL;
 
-    IF @Action NOT IN ('MONTHS', 'LIST', 'SUMMARY', 'COLLECT', 'REOPEN', 'HISTORY')
+    IF @Action NOT IN ('MONTHS', 'LIST', 'SUMMARY', 'DASHBOARD', 'COLLECT', 'REOPEN', 'HISTORY')
     BEGIN
         SELECT @ResultCode = 'INVALID_ACTION', @ResultMessage = N'Unsupported action.';
         RETURN;
@@ -1145,7 +1174,8 @@ BEGIN
     JOIN    [Payroll].[PayrollRuns] AS r ON r.PayrollRunId = c.PayrollRunId
     WHERE   c.Deleted = 0 AND r.Deleted = 0 AND r.Stage <> 'CANCELLED'
       AND   (@AnyCompany = 1 OR c.CompanyId IN (SELECT CompanyId FROM @Allowed))
-      AND   (@Action IN ('COLLECT', 'REOPEN', 'HISTORY') OR (c.CompanyId = @CompanyId AND (@Month IS NULL OR c.RunMonth = @Month)));
+      AND   (@Action IN ('COLLECT', 'REOPEN', 'HISTORY')
+             OR ((c.CompanyId = @CompanyId OR (@Action = 'DASHBOARD' AND @CompanyId IS NULL)) AND (@Month IS NULL OR c.RunMonth = @Month)));
 
     /* ======================= MONTHS ============================== */
     /* the payroll months of the company (regular payrolls), newest first, with how much is due */
@@ -1164,8 +1194,9 @@ BEGIN
         RETURN;
     END;
 
-    /* ======================= SUMMARY ============================= */
-    IF @Action = 'SUMMARY'
+    /* ======================= SUMMARY / DASHBOARD ================= */
+    /* DASHBOARD: the Payroll Dashboard's month - every company in scope, or the one given */
+    IF @Action IN ('SUMMARY', 'DASHBOARD')
     BEGIN
         SELECT  ISNULL(SUM(c.Amount), 0)                                              AS TotalAmount,
                 COUNT(c.CollectionId)                                                 AS TotalCount,
@@ -1347,7 +1378,7 @@ SELECT s.LabelKey, s.Module, s.EnglishText, s.ArabicText, s.SourceText
 FROM  (VALUES
         /* Pay Item Types */
         ('st.collection', 'st', N'Collection', N'تحصيل', NULL),
-        ('st.collection_hint', 'st', N'Paid with the salary, collected back', N'يُصرف مع الراتب ويُسترد من الموظف', NULL),
+        ('st.collection_hint', 'st', N'Company records only - not on the payslip or bank file', N'لسجلات الشركة فقط - لا يظهر في قسيمة الراتب أو ملف البنك', NULL),
         ('st.collections', 'st', N'Collections', N'التحصيلات', NULL),
         ('st.class_collection', 'st', N'Collection', N'تحصيل', NULL),
         /* Security > Roles */
@@ -1355,9 +1386,9 @@ FROM  (VALUES
         ('sec.pg_pc_collection_hint', 'sec', N'Read = see the collections; Write = mark as received and set back to pending', N'القراءة = عرض التحصيلات؛ الكتابة = تسجيل الاستلام وإعادتها إلى قيد التحصيل', NULL),
         /* the page */
         ('col.title', 'col', N'Collection', N'التحصيل', NULL),
-        ('col.subtitle', 'col', N'Work permit salary differences paid with the payroll and collected back from employees', N'فروق راتب إذن العمل المصروفة مع الرواتب والمستردة من الموظفين', NULL),
+        ('col.subtitle', 'col', N'Work permit salary differences - company records', N'فروق راتب إذن العمل - سجلات الشركة', NULL),
         ('col.intro_title', 'col', N'Work Permit Collection.', N'تحصيل فرق راتب إذن العمل.', NULL),
-        ('col.intro_text', 'col', N'When an employee''s gross monthly salary (Basic + Allowances) is below the work permit salary, the payroll pays the difference so the bank transfer reaches the work permit salary. The company collects it back from the employee - mark it here once received.', N'عندما يكون إجمالي الراتب الشهري للموظف (الأساسي + البدلات) أقل من راتب إذن العمل، تصرف الرواتب الفرق ليصل التحويل البنكي إلى راتب إذن العمل. تسترد الشركة هذا الفرق من الموظف - سجّل استلامه هنا.', NULL),
+        ('col.intro_text', 'col', N'When an employee''s gross monthly salary (Basic + Allowances) is below the work permit salary, generating the payroll records the difference here. It is for the company''s records only - not on the payslip, in the net pay or the bank file. Mark it here once collected.', N'عندما يكون إجمالي الراتب الشهري للموظف (الأساسي + البدلات) أقل من راتب إذن العمل، يُسجَّل الفرق هنا عند إنشاء الرواتب. وهو لسجلات الشركة فقط - لا يظهر في قسيمة الراتب أو صافي الراتب أو ملف البنك. سجّل تحصيله هنا.', NULL),
         ('col.pick_label', 'col', N'Company and payroll month', N'الشركة وشهر الرواتب', NULL),
         ('col.payroll_month', 'col', N'Payroll month', N'شهر الرواتب', NULL),
         ('col.loading_months', 'col', N'Loading months…', N'جارٍ تحميل الأشهر…', NULL),
@@ -1427,12 +1458,33 @@ FROM  (VALUES
         ('msg.col_gone', 'msg', N'A selected collection no longer exists. The list has been refreshed.', N'أحد التحصيلات المحددة لم يعد موجوداً. تم تحديث القائمة.', NULL),
         ('pr.collection', 'pr', N'Collection', N'تحصيل', NULL),
         ('pr.src_collection', 'pr', N'Work permit collection', N'تحصيل فرق راتب إذن العمل', NULL),
-        ('ps.doc_collection', 'ps', N'Collection', N'التحصيل', NULL),
-        ('ps.doc_total_collection', 'ps', N'Total collection', N'إجمالي التحصيل', NULL),
-        ('ps.doc_collection_note', 'ps', N'Paid with the salary; collected back from the employee', N'يُصرف مع الراتب ويُسترد من الموظف', NULL),
+        ('dash.coll_total', 'dash', N'Total collection (KWD)', N'إجمالي التحصيل (د.ك)', NULL),
+        ('dash.coll_n_employees', 'dash', N'{0} employees · company records', N'{0} موظفين · سجلات الشركة', NULL),
+        ('dash.coll_status', 'dash', N'Collected vs pending', N'المحصّل مقابل قيد التحصيل', NULL),
+        ('dash.coll_collected_0', 'dash', N'Collected {0}', N'تم تحصيل {0}', NULL),
+        ('dash.coll_pending_0', 'dash', N'Pending {0}', N'قيد التحصيل {0}', NULL),
+        ('dash.coll_none', 'dash', N'Nothing to collect', N'لا يوجد ما يُحصّل', NULL),
+        ('dash.coll_open', 'dash', N'Open Collection', N'فتح التحصيل', NULL),
+        ('dash.net_excl_collection', 'dash', N'excluding collection', N'بدون التحصيل', NULL),
+        ('dash.employees_0', 'dash', N'{0} employees', N'{0} موظفين', NULL),
         ('msg.pc_type_three', 'msg', N'Choose whether this is an Earning, a Deduction or a Collection.', N'اختر ما إذا كان استحقاقاً أو استقطاعاً أو تحصيلاً.', NULL)
       ) AS s (LabelKey, Module, EnglishText, ArabicText, SourceText)
 WHERE NOT EXISTS (SELECT 1 FROM [Core].[UiLabels] AS l WHERE l.LabelKey = s.LabelKey COLLATE DATABASE_DEFAULT AND l.Deleted = 0);
 DECLARE @LabelsInserted INT = @@ROWCOUNT;
 PRINT CONCAT(N'Collection labels inserted: ', @LabelsInserted);
+
+/* the texts reworded since the first run (Collection is for the company's records only) */
+UPDATE l SET EnglishText = v.EnglishText, ArabicText = v.ArabicText
+FROM   [Core].[UiLabels] AS l
+JOIN  (VALUES
+        ('st.collection_hint', N'Company records only - not on the payslip or bank file', N'لسجلات الشركة فقط - لا يظهر في قسيمة الراتب أو ملف البنك'),
+        ('col.subtitle', N'Work permit salary differences - company records', N'فروق راتب إذن العمل - سجلات الشركة'),
+        ('col.intro_text', N'When an employee''s gross monthly salary (Basic + Allowances) is below the work permit salary, generating the payroll records the difference here. It is for the company''s records only - not on the payslip, in the net pay or the bank file. Mark it here once collected.', N'عندما يكون إجمالي الراتب الشهري للموظف (الأساسي + البدلات) أقل من راتب إذن العمل، يُسجَّل الفرق هنا عند إنشاء الرواتب. وهو لسجلات الشركة فقط - لا يظهر في قسيمة الراتب أو صافي الراتب أو ملف البنك. سجّل تحصيله هنا.')
+      ) AS v (LabelKey, EnglishText, ArabicText) ON v.LabelKey = l.LabelKey COLLATE DATABASE_DEFAULT
+WHERE  l.Deleted = 0 AND (l.EnglishText <> v.EnglishText OR ISNULL(l.ArabicText, N'') <> v.ArabicText);
+
+UPDATE [Payroll].[PayComponents]
+   SET Description = N'Recorded by the payroll when the gross monthly salary (Basic + Allowances) is below the work permit salary - company records only, not on the payslip or the bank file (Payroll Components > Collection).'
+ WHERE SystemCode = 'WP_COLLECTION' AND Deleted = 0 AND Description LIKE N'Added by the payroll%';
+
 GO

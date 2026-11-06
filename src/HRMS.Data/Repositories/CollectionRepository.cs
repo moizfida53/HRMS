@@ -16,6 +16,8 @@ public interface ICollectionRepository
     /// <summary>The company's payroll months (regular payrolls), newest first.</summary>
     Task<IReadOnlyList<CollectionMonth>> MonthsAsync(int companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<CollectionSummary> SummaryAsync(int companyId, string? companyIds, DateTime month, CancellationToken cancellationToken = default);
+    /// <summary>The Payroll Dashboard: the month's collections of the user's company, else of the companies in scope.</summary>
+    Task<CollectionSummary> DashboardAsync(int? companyId, string? companyIds, DateTime month, CancellationToken cancellationToken = default);
     /// <summary>Not collected first. <paramref name="status"/>: PENDING, COLLECTED or null for both.</summary>
     Task<IReadOnlyList<CollectionItem>> ListAsync(int companyId, string? companyIds, DateTime month, string? status, string? search,
                                                   CancellationToken cancellationToken = default);
@@ -42,6 +44,14 @@ public sealed class CollectionRepository : ICollectionRepository
     public async Task<CollectionSummary> SummaryAsync(int companyId, string? companyIds, DateTime month, CancellationToken cancellationToken = default)
     {
         var p = Envelope("SUMMARY", companyId, companyIds);
+        p.Add("@Month", month, DbType.Date);
+        return await _sql.QuerySingleOrDefaultAsync<CollectionSummary>(StoredProcedure.CollectionManage, p, cancellationToken).ConfigureAwait(false)
+               ?? new CollectionSummary();
+    }
+
+    public async Task<CollectionSummary> DashboardAsync(int? companyId, string? companyIds, DateTime month, CancellationToken cancellationToken = default)
+    {
+        var p = Envelope("DASHBOARD", companyId, companyIds);
         p.Add("@Month", month, DbType.Date);
         return await _sql.QuerySingleOrDefaultAsync<CollectionSummary>(StoredProcedure.CollectionManage, p, cancellationToken).ConfigureAwait(false)
                ?? new CollectionSummary();

@@ -19,11 +19,31 @@ public sealed class PayrollDashboardController : PayrollFinanceControllerBase
     private static readonly string[] ViewPermissions = ["PAYROLL_DASHBOARD_VIEW"];
 
     private readonly IPayrollFinanceRepository _finance;
+    private readonly ICollectionRepository _collections;
+    private readonly ILogger<PayrollDashboardController> _logger;
 
-    public PayrollDashboardController(IPayrollFinanceRepository finance, ICurrentUser currentUser, ICompanyFilter companyFilter)
+    public PayrollDashboardController(IPayrollFinanceRepository finance, ICollectionRepository collections, ICurrentUser currentUser,
+                                      ICompanyFilter companyFilter, ILogger<PayrollDashboardController> logger)
         : base(currentUser, companyFilter)
     {
         _finance = finance;
+        _collections = collections;
+        _logger = logger;
+    }
+
+    /// <summary>db/115: the month's Work Permit Collections for those who may see them (null = not shown).</summary>
+    private async Task<CollectionSummary?> CollectionsAsync(DateTime month)
+    {
+        if (!Can(CollectionsController.PermView)) return null;
+        try
+        {
+            return await _collections.DashboardAsync(OwnCompany, CompanyCsv, month, Ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Collections could not be read for the dashboard (run db/115).");
+            return null;
+        }
     }
 
     [HttpGet("")]
@@ -50,6 +70,7 @@ public sealed class PayrollDashboardController : PayrollFinanceControllerBase
             Departments = await _finance.DashboardDepartmentsAsync(m, OwnCompany, CompanyCsv, Ct),
             Calendar = await _finance.DashboardCalendarAsync(m, OwnCompany, CompanyCsv, Ct),
             Attention = await _finance.DashboardAttentionAsync(m, OwnCompany, CompanyCsv, Ct) ?? new DashboardAttention(),
+            Collections = await CollectionsAsync(m),
             ManyCompanies = ManyCompanies,
             CanRun = Can("PAYROLL_RUN_VIEW") || Can("PAYROLL_RUN_CREATE"),
             CanSlips = Can("PAYROLL_SLIP_GENERATE") || Can("PAYROLL_SLIP_VIEW"),

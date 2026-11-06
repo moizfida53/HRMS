@@ -507,12 +507,6 @@ $ps-stack: "sm";
     th { color: $ps-ded; background: $red-050; }
     tfoot td { color: $ps-ded; border-top-color: $ps-ded; }
   }
-
-  // db/115: Collection - paid with the salary, collected back; not an earning
-  &--coll {
-    th { color: $amber-700; background: $amber-050; }
-    tfoot td { color: $amber-700; border-top-color: $amber-700; }
-  }
 }
 
 .ps-doc--both .ps-doc__table th,
@@ -535,9 +529,6 @@ $ps-stack: "sm";
   background: $line-100;
   color: $ink-600;
   font-size: $fs-xs;
-
-  // a note on its own line under the item (Collection)
-  &--block { display: block; margin: .15rem 0 0; padding: 0; background: none; border-radius: 0; }
 }
 
 // net salary bar

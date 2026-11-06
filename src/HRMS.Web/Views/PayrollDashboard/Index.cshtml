@@ -5,6 +5,7 @@
     // Payroll > Payroll Dashboard (db/53): one payroll month at a glance.
     var s = Model.Summary;
     var a = Model.Attention;
+    var coll = Model.Collections;   // db/115: null = the user may not see the collections
     var month = Model.Month;
     var prevMonth = month.AddMonths(-1);
     ViewData["Title"] = "Payroll Dashboard";
@@ -57,34 +58,34 @@
 
 <div class="pr-stack dash-page">
     @* ------------------------------------------------ key figures *@
-    <section class="pr-kpis" aria-label="@L["pr.key_figures"]">
+    @* Current Period also holds the run status and the employees in the run; with the right to see
+       them (db/115), the month's Work Permit Collections - company records, not in the net pay *@
+    <section class="pr-kpis @(coll is null ? "pr-kpis--3" : null)" aria-label="@L["pr.key_figures"]">
         <div class="hrms-card hrms-kpi dash-kpi--period">
             <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["pr.current_period"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span></div>
             <div class="hrms-kpi__value">@L.MonthYear(month)</div>
-            <div class="hrms-kpi__foot">
-                <span class="hrms-kpi__note">
-                    @if (s.CalendarName is not null)
+            <div class="dash-period-info">
+                <div class="dash-period-info__row">
+                    <span class="dash-period-info__label">@L["prv.run_status"]</span>
+                    @if (s.MainStage is not null)
                     {
-                        @s.CalendarName@(s.CutOffDate is { } co ? " · " + L["dash.cut_off_0", L.Date(co)] : "")
+                        <span class="hrms-badge hrms-badge--@StageBadge(s.MainStage)"><span class="hrms-badge__dot"></span>@ReportText.Code(L, s.MainStage)</span>
                     }
                     else
                     {
-                        @L["dash.no_payroll_yet"]
+                        <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["dash.not_started"]</span>
                     }
-                </span>
-            </div>
-        </div>
-        <div class="hrms-card hrms-kpi">
-            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["prv.run_status"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("calculator", 16)</span></div>
-            <div class="hrms-kpi__value">
-                @if (s.MainStage is not null)
-                {
-                    <span class="hrms-badge hrms-badge--@StageBadge(s.MainStage)"><span class="hrms-badge__dot"></span>@ReportText.Code(L, s.MainStage)</span>
-                }
-                else
-                {
-                    <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["dash.not_started"]</span>
-                }
+                </div>
+                <div class="dash-period-info__row">
+                    <span class="dash-period-info__label">@L["prv.employees_in_run"]</span>
+                    <span class="dash-period-info__value">
+                        @PayrollFormat.Count(s.EmployeeCount)
+                        @if (empChange is not null)
+                        {
+                            <span class="dash-period-info__delta">@Delta(empChange)</span>
+                        }
+                    </span>
+                </div>
             </div>
             <div class="hrms-kpi__foot">
                 <span class="hrms-kpi__note">
@@ -96,18 +97,12 @@
                     {
                         <a href="@Url.Content("~/payroll/payrolls")">@L["dash.create_payroll"]</a>
                     }
+                    · @L["prv.0_joiners_1_leavers", s.Joiners, s.Leavers]
+                    @if (s.CalendarName is not null)
+                    {
+                        <span class="d-block">@s.CalendarName@(s.CutOffDate is { } co ? " · " + L["dash.cut_off_0", L.Date(co)] : "")</span>
+                    }
                 </span>
-            </div>
-        </div>
-        <div class="hrms-card hrms-kpi">
-            <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["prv.employees_in_run"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("users", 16)</span></div>
-            <div class="hrms-kpi__value">@PayrollFormat.Count(s.EmployeeCount)</div>
-            <div class="hrms-kpi__foot">
-                @if (empChange is not null)
-                {
-                    <span class="hrms-kpi__delta @(empChange > 0 ? "is-good" : empChange < 0 ? "is-bad" : null)">@Delta(empChange)</span>
-                }
-                <span class="hrms-kpi__note">@L["prv.0_joiners_1_leavers", s.Joiners, s.Leavers]</span>
             </div>
         </div>
         <div class="hrms-card hrms-kpi">
@@ -118,7 +113,7 @@
                 {
                     <span class="hrms-kpi__delta">@Delta(netChange)</span>
                 }
-                <span class="hrms-kpi__note">@L["dash.vs_0", L.MonthYear(prevMonth)]</span>
+                <span class="hrms-kpi__note">@L["dash.vs_0", L.MonthYear(prevMonth)]@(coll is not null ? " · " + L["dash.net_excl_collection"] : "")</span>
             </div>
         </div>
         <div class="hrms-card hrms-kpi">
@@ -126,6 +121,40 @@
             <div class="hrms-kpi__value">@PayrollFormat.Money(s.EmployerCost)</div>
             <div class="hrms-kpi__foot"><span class="hrms-kpi__note" title="@L["dash.cost_hint", PayrollFormat.Money(s.Gross), PayrollFormat.Money(s.EmployerPifss)]">@L["prv.kwd_gross_employer_pifss"]</span></div>
         </div>
+        @if (coll is not null)
+        {
+            var collectedPct = coll.TotalAmount > 0 ? (int)Math.Round(coll.CollectedAmount / coll.TotalAmount * 100m) : 0;
+            <div class="hrms-card hrms-kpi">
+                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["dash.coll_total"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("wallet", 16)</span></div>
+                <div class="hrms-kpi__value">@PayrollFormat.Money(coll.TotalAmount)</div>
+                <div class="hrms-kpi__foot">
+                    <span class="hrms-kpi__note">@L["dash.coll_n_employees", PayrollFormat.Count(coll.TotalCount)] · <a href="@Url.Content("~/payroll/components/collection")">@L["dash.coll_open"]</a></span>
+                </div>
+            </div>
+            <div class="hrms-card hrms-kpi">
+                <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["dash.coll_status"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("check", 16)</span></div>
+                @if (coll.TotalCount == 0)
+                {
+                    <div class="hrms-kpi__value dash-coll__none">@L["dash.coll_none"]</div>
+                }
+                else
+                {
+                    <div class="dash-coll">
+                        <div class="dash-coll__row is-collected">
+                            <span>@L["dash.coll_collected_0", PayrollFormat.Count(coll.CollectedCount)]</span>
+                            <strong>@PayrollFormat.Money(coll.CollectedAmount)</strong>
+                        </div>
+                        <div class="dash-coll__row is-pending">
+                            <span>@L["dash.coll_pending_0", PayrollFormat.Count(coll.PendingCount)]</span>
+                            <strong>@PayrollFormat.Money(coll.PendingAmount)</strong>
+                        </div>
+                        <div class="dash-coll__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@collectedPct"
+                             aria-label="@L["col.progress", collectedPct]"><span style="width:@(collectedPct)%"></span></div>
+                    </div>
+                }
+                <div class="hrms-kpi__foot"><span class="hrms-kpi__note">@L["col.progress", collectedPct]</span></div>
+            </div>
+        }
     </section>
 
     <div class="pr-row pr-row--wide-left">

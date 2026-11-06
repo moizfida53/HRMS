@@ -277,6 +277,8 @@ public sealed class PayrollDashboardModel
     public IReadOnlyList<DashboardDepartment> Departments { get; init; } = Array.Empty<DashboardDepartment>();
     public IReadOnlyList<DashboardPeriod> Calendar { get; init; } = Array.Empty<DashboardPeriod>();
     public required DashboardAttention Attention { get; init; }
+    /// <summary>db/115: the month's Work Permit Collections (company records) - null when the user may not see them.</summary>
+    public CollectionSummary? Collections { get; init; }
     public bool ManyCompanies { get; init; }
     public bool CanRun { get; init; }
     public bool CanSlips { get; init; }
