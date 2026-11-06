@@ -77,6 +77,10 @@ public sealed class PayrollFundingRow
     public decimal CashPayment { get; init; }
     /// <summary>EQUAL / COLLECT / BALANCE / CASH / NO_WPS.</summary>
     public string FundingCase { get; init; } = "EQUAL";
+    /// <summary>db/122: the figures saved when the payroll was approved (not worked out now).</summary>
+    public bool IsSnapshot { get; init; }
+    public DateTime? SnapshotDate { get; init; }
+    public string? SnapshotByName { get; init; }
 }
 
 /// <summary>db/121: the funding summary of a payroll - the totals and the cases, from its rows.</summary>
@@ -85,6 +89,11 @@ public sealed class PayrollFunding
     public static readonly IReadOnlyList<string> Cases = ["EQUAL", "COLLECT", "BALANCE", "CASH", "NO_WPS"];
 
     public IReadOnlyList<PayrollFundingRow> Rows { get; init; } = Array.Empty<PayrollFundingRow>();
+
+    /// <summary>db/122: a closed payroll shows its funding as approved.</summary>
+    public bool IsSnapshot => Rows.Count > 0 && Rows[0].IsSnapshot;
+    public DateTime? SnapshotDate => Rows.Count > 0 ? Rows[0].SnapshotDate : null;
+    public string? SnapshotByName => Rows.Count > 0 ? Rows[0].SnapshotByName : null;
 
     public decimal NetPayable => Rows.Sum(r => r.NetPay);
     public decimal NetPayableByBank => Rows.Where(r => r.Method == "BANK").Sum(r => r.NetPay);

@@ -163,6 +163,20 @@
         runSelect.addEventListener("change", function () { openRun(runSelect.value); });
     }
 
+    // db/121-122: the payroll funding popup (work permit transfer, balance transfer, to collect)
+    var fundingModal = $("#funding-modal");
+    if (fundingModal) {
+        document.addEventListener("click", function (ev) {
+            var b = ev.target.closest("[data-funding-open]");
+            if (!b) { return; }
+            $("[data-funding-title]", fundingModal).textContent = b.getAttribute("data-funding-title") || "";
+            var body = $("[data-funding-body]", fundingModal);
+            body.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
+            modal(fundingModal).show();
+            loadInto(body, b.getAttribute("data-funding-open"));
+        });
+    }
+
     document.addEventListener("click", function (ev) {
         var stage = ev.target.closest("[data-run-stage]");
         if (stage && urls.stage) {

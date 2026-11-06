@@ -20124,6 +20124,33 @@ html.nav-mini:not(.nav-peek) .hrms-sidebar .hrms-nav-link .hrms-nav-approval {
   overflow: auto;
 }
 
+.fund--popup {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fund__stamp {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin: 0.5rem 0 0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  background: #fafbfb;
+  font-size: 0.725rem;
+  color: #4a5250;
+}
+.fund__stamp > svg {
+  flex: 0 0 auto;
+  margin-block-start: 1px;
+}
+.fund__stamp.is-approved {
+  background: #e2f5ea;
+  color: #0e6b3e;
+  font-weight: 600;
+}
+
 .bf-mode {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));

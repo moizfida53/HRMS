@@ -894,6 +894,20 @@ public sealed class PayrollController : Controller
         return PartialView("_RunKpis", await _runs.SummaryAsync(run, Ct));
     }
 
+    /// <summary>
+    /// db/121-122: the payroll funding in a popup (the "Payroll funding" button of the payroll's
+    /// pages) - worked out now, or, for a closed payroll, as it was approved.
+    /// </summary>
+    [HttpGet("funding")]
+    public async Task<IActionResult> Funding(long run)
+    {
+        var r = await LoadRunAsync(run);
+        if (r is null) return NotFound();
+        if (HttpContext.RequestServices.GetService<ICollectionRepository>() is not { } collections) return NotFound();
+        ViewData["Popup"] = true;
+        return PartialView("_RunFunding", await collections.FundingAsync(run, Ct));
+    }
+
     [HttpGet("check")]
     public async Task<IActionResult> Check(long run)
     {
@@ -1246,7 +1260,11 @@ public sealed class PayrollController : Controller
             try
             {
                 if (HttpContext.RequestServices.GetService<ICollectionRepository>() is { } collections)
+                {
                     await collections.FromPayrollAsync(run, UserId, Ct);
+                    // db/122: the payroll funding is kept as approved, for the approver and Payroll History
+                    await collections.FundingSnapshotAsync(run, UserId, Ct);
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

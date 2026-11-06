@@ -31,6 +31,8 @@ public interface ICollectionRepository
     Task<CollectionPreview?> RunPreviewAsync(long runId, CancellationToken cancellationToken = default);
     /// <summary>db/121: the funding of one payroll (any stage) - work permit transfer, balance transfer, to collect.</summary>
     Task<PayrollFunding> FundingAsync(long runId, CancellationToken cancellationToken = default);
+    /// <summary>db/122: saves the payroll funding as approved (a closed payroll shows it from then on).</summary>
+    Task FundingSnapshotAsync(long runId, long? userId, CancellationToken cancellationToken = default);
     /// <summary>Sets a received collection back to pending (with the reason).</summary>
     Task<SaveResult> ReopenAsync(long id, string? comment, string? companyIds, long? userId, CancellationToken cancellationToken = default);
 }
@@ -124,6 +126,14 @@ public sealed class CollectionRepository : ICollectionRepository
         p.Add("@RunId", runId, DbType.Int64);
         var rows = await _sql.QueryAsync<PayrollFundingRow>(StoredProcedure.PayrollFunding, p, cancellationToken).ConfigureAwait(false);
         return new PayrollFunding { Rows = rows };
+    }
+
+    public Task FundingSnapshotAsync(long runId, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = new DynamicParameters();
+        p.Add("@RunId", runId, DbType.Int64);
+        p.Add("@UserId", userId, DbType.Int64);
+        return _sql.ExecuteAsync(StoredProcedure.PayrollFundingSnapshot, p, cancellationToken);
     }
 
     private static DynamicParameters Envelope(string action, int? companyId, string? companyIds)

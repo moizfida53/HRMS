@@ -155,3 +155,21 @@
   &__cases tfoot th, &__cases tfoot td { font-weight: $fw-bold; }
   &__emps { max-height: 28rem; overflow: auto; }
 }
+
+// db/122: in the popup the panel has no frame of its own; the stamp says whether
+// the figures are as approved (kept) or worked out now
+.fund--popup { margin: 0; padding: 0; border: 0; }
+.fund__stamp {
+  display: flex;
+  align-items: flex-start;
+  gap: space("1");
+  margin: space("2") 0 0;
+  padding: space("1") space("2");
+  border-radius: $radius;
+  background: $surface-2;
+  font-size: $fs-xs;
+  color: $ink-600;
+
+  > svg { flex: 0 0 auto; margin-block-start: 1px; }
+  &.is-approved { background: $green-050; color: $green-700; font-weight: $fw-semibold; }
+}

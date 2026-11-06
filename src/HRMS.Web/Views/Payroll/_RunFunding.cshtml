@@ -25,11 +25,23 @@
         "EQUAL" => "info", "COLLECT" => "warning", "BALANCE" => "success", "CASH" => "muted", _ => "danger"
     };
     string M(decimal v) => v == 0 ? "—" : PayrollFormat.Money(v);
+    var popup = ViewData["Popup"] is true;
+    var approvedAt = f.SnapshotDate is { } sd ? DateTime.SpecifyKind(sd, DateTimeKind.Utc).ToLocalTime() : (DateTime?)null;
 }
-<section class="fund" aria-labelledby="@(uid)-title">
+<section class="fund @(popup ? "fund--popup" : null)" aria-labelledby="@(uid)-title">
     <header class="fund__head">
-        <h4 class="fund__title" id="@(uid)-title">@Html.Icon("bank", 16) @L["fund.title"]</h4>
+        <h4 class="fund__title @(popup ? "hrms-sr-only" : null)" id="@(uid)-title">@Html.Icon("bank", 16) @L["fund.title"]</h4>
         <p class="fund__sub">@L["fund.subtitle"]</p>
+        @if (f.IsSnapshot && approvedAt is { } at)
+        {
+            <p class="fund__stamp is-approved">@Html.Icon("check", 14)<span>@(string.IsNullOrWhiteSpace(f.SnapshotByName)
+                ? L["fund.as_approved_0", L.Date(at) + " " + at.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)]
+                : L["fund.as_approved_0_1", L.Date(at) + " " + at.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture), f.SnapshotByName])</span></p>
+        }
+        else if (popup)
+        {
+            <p class="fund__stamp">@Html.Icon("info", 14)<span>@L["fund.live"]</span></p>
+        }
     </header>
 
     @if (noWps > 0)

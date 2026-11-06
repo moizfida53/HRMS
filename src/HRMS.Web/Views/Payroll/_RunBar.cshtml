@@ -39,6 +39,14 @@
         }
     </ol>
     <div class="pr-runbar__actions">
+        @* db/121-122: how the net pay reaches the employees - for the approver, and kept for Payroll History *@
+        @if (!run.IsCancelled && run.RunType == RunType.Regular)
+        {
+            <button type="button" class="btn btn-sm btn-outline-primary" data-funding-open="@Url.Action("Funding", "Payroll", new { run = run.PayrollRunId })"
+                    data-funding-title="@L["fund.popup_title_0", run.RunCode ?? ""]" title="@L["fund.button_hint"]">
+                @Html.Icon("bank", 14)<span>@L["fund.button"]</span>
+            </button>
+        }
         @if (run.IsCancelled)
         {
             <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["emp.cancelled"]</span>
@@ -59,3 +67,19 @@
         }
     </div>
 </section>
+
+@* the payroll funding popup (loaded on request) *@
+<div class="modal fade" id="funding-modal" tabindex="-1" aria-hidden="true" aria-labelledby="funding-modal-title">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="funding-modal-title" data-funding-title></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-funding-body></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+            </div>
+        </div>
+    </div>
+</div>
