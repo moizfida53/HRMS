@@ -1317,7 +1317,8 @@ WHERE  c.IsNew = 1
   AND NOT EXISTS (SELECT 1 FROM [Security].[RolePermissions] x WHERE x.RoleId = r.RoleId AND x.PermissionId = p.PermissionId AND x.Deleted = 0);
 
 DECLARE @CollGranted INT = @@ROWCOUNT;
-PRINT CONCAT(N'Collection rights created: ', (SELECT COUNT(1) FROM #CollCodes WHERE IsNew = 1), N', granted: ', @CollGranted);
+DECLARE @CollCreated INT = (SELECT COUNT(1) FROM #CollCodes WHERE IsNew = 1);   -- PRINT takes no subquery
+PRINT CONCAT(N'Collection rights created: ', @CollCreated, N', granted: ', @CollGranted);
 DROP TABLE #CollCodes;
 GO
 
