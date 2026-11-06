@@ -149,7 +149,7 @@ public static class ReportText
 {
     private static readonly HashSet<string> Known = new(StringComparer.Ordinal)
     {
-        "NEW", "LEFT", "CHANGED", "FULL", "RETRY", "GENERATED", "SENT", "SUPERSEDED",
+        "NEW", "LEFT", "CHANGED", "FULL", "RETRY", "MINISTRY", "COMPANY", "GENERATED", "SENT", "SUPERSEDED",
         "DRAFT", "REGISTERED", "VALIDATION", "AWAITING_APPROVAL", "CLOSED", "CANCELLED",
         "CREATED", "SUBMITTED", "APPROVED", "REJECTED", "RETURNED", "REOPENED", "RECALCULATED"
     };

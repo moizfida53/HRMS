@@ -65,6 +65,8 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
         IReadOnlyList<CompanyBankAccount> accounts = [];
         IReadOnlyList<BankFile> files = [];
         IReadOnlyList<BankFileFormat> formats = [];
+        BankStages? stages = null;
+        IReadOnlyList<BankFileAuditEntry> audit = [];
         if (selected is not null)
         {
             review = await _finance.BankReviewAsync(selected.PayrollRunId, "FULL", null, OwnCompany, CompanyCsv, Ct);
@@ -78,6 +80,18 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
             {
                 CompanyId = OwnCompany, CompanyIds = CompanyCsv, RunId = selected.PayrollRunId, PageSize = 50
             }, Ct)).Items;
+
+            // db/116: the two-step process (Ministry Payroll, then Company Payroll) and the audit
+            try
+            {
+                stages = await _finance.BankStagesAsync(selected.PayrollRunId, OwnCompany, CompanyCsv, Ct);
+                audit = await _finance.BankAuditAsync(selected.PayrollRunId, OwnCompany, CompanyCsv, Ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                HttpContext.RequestServices.GetService<ILogger<BankProcessingController>>()?
+                    .LogWarning(ex, "The two-step bank process could not be read (run db/116).");
+            }
         }
 
         return View("~/Views/BankProcessing/File.cshtml", new BankFilePageModel
@@ -105,7 +119,9 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
             RetryReview = retry,
             Accounts = accounts,
             Formats = formats,
-            Files = files
+            Files = files,
+            Stages = stages,
+            Audit = audit
         });
     }
 
@@ -114,7 +130,8 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
     public async Task<IActionResult> Generate(long run, string? kind, int? bank, int format, int account, DateTime? valueDate, string? reason)
     {
         if (!Can(PermProcess)) return Denied();
-        kind = kind == "RETRY" ? "RETRY" : "FULL";
+        // db/116: FULL (one file of the net pay), RETRY, or the two steps MINISTRY then COMPANY
+        kind = kind is "RETRY" or BankStage.Ministry or BankStage.Company ? kind : BankStage.Full;
         if (format <= 0) return Invalid("Select an active bank format.");
         if (account <= 0) return Invalid("Select an active salary account of the payroll's company.");
         if (valueDate is null) return Invalid("Enter the value date.");
@@ -123,7 +140,21 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
         if (runs.FirstOrDefault(r => r.PayrollRunId == run) is not { } payroll) return Invalid("Select a closed payroll - salaries are paid only for a closed payroll.");
 
         var lines = await _finance.BankLinesAsync(run, kind, bank, OwnCompany, CompanyCsv, Ct);
-        if (lines.Count == 0) return Invalid("There is nobody to pay in this file.");
+        if (lines.Count == 0)
+        {
+            // a step with nobody to pay still says why (step 1 not done, a work permit salary missing ...)
+            if (kind is BankStage.Ministry or BankStage.Company)
+            {
+                var check = await _finance.CreateBankFileAsync(new BankFileRequest
+                {
+                    RunId = run, Kind = kind, BankId = bank, BankFileFormatId = format, CompanyBankAccountId = account,
+                    ValueDate = valueDate.Value.Date, FileName = "-", Content = string.Empty, RunEmployeeIds = [], Reason = reason
+                }, OwnCompany, CompanyCsv, UserId, Ct);
+                if (!check.Success && check.ErrorCode != "VALIDATION") return Result(check);
+                if (kind == BankStage.Company) return Invalid("Nobody is left to pay in the Company Payroll - the Ministry Payroll transferred the full net pay.");
+            }
+            return Invalid("There is nobody to pay in this file.");
+        }
 
         var bankFormat = await _rules.BankFileFormatAsync(format, Ct);
         if (bankFormat is null || !bankFormat.IsActive || bankFormat.Fields.Count == 0) return Invalid("Select an active bank format.");

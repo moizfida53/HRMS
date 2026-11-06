@@ -922,9 +922,9 @@
                     @if (wpsInPayroll)
                     {
                     <div class="col-12 col-sm-6 col-lg-3">
-                        <label class="form-label" for="f-WorkPermitSalary">@L["emp.work_permit_salary"] @if (mustFill) { <span class="req" aria-hidden="true" data-must-star="nonkw" hidden="@isKuwaiti">*</span> }</label>
+                        <label class="form-label" for="f-WorkPermitSalary">@L["emp.work_permit_salary"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>
                         <div class="input-group">
-                            <input class="form-control pr-input-money" required="@(mustFill && !isKuwaiti ? "required" : null)" data-must-fill="nonkw"  id="f-WorkPermitSalary" form="compliance-form" name="WorkPermitSalary" disabled="@(!acc.ComplianceEdit ? "disabled" : null)" type="number"
+                            <input class="form-control pr-input-money" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-WorkPermitSalary" form="compliance-form" name="WorkPermitSalary" disabled="@(!acc.ComplianceEdit ? "disabled" : null)" type="number"
                                    value="@(c?.WorkPermitSalary?.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture))"
                                    min="0" step="0.001" inputmode="decimal" placeholder="0.000" />
                             <span class="input-group-text">@L["pr.kwd"]</span>

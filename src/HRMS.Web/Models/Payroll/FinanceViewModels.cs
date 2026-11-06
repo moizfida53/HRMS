@@ -70,8 +70,12 @@ public sealed class BankFilePageModel
     public IReadOnlyList<CompanyBankAccount> Accounts { get; init; } = Array.Empty<CompanyBankAccount>();
     public IReadOnlyList<BankFileFormat> Formats { get; init; } = Array.Empty<BankFileFormat>();
     public IReadOnlyList<BankFile> Files { get; init; } = Array.Empty<BankFile>();
+    /// <summary>db/116: the two-step process (null = db/116 not run).</summary>
+    public BankStages? Stages { get; init; }
+    public IReadOnlyList<BankFileAuditEntry> Audit { get; init; } = Array.Empty<BankFileAuditEntry>();
 
     public bool HasLiveFile => Files.Any(f => f.Status != "SUPERSEDED" && f.FileKind == "FULL");
+    public bool HasLive(string kind) => Files.Any(f => f.Status != "SUPERSEDED" && f.FileKind == kind);
     public int? DefaultFormatId => Formats.FirstOrDefault(f => f.IsDefault)?.BankFileFormatId ?? Formats.FirstOrDefault()?.BankFileFormatId;
 }
 

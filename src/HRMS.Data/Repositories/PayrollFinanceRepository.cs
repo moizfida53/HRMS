@@ -21,6 +21,10 @@ public interface IPayrollFinanceRepository
     Task<IReadOnlyList<FinanceRun>> BankRunsAsync(int? companyId, string? companyIds, int? year, DateTime? month, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BankReviewRow>> BankReviewAsync(long runId, string kind, int? bankId, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BankFileLine>> BankLinesAsync(long runId, string kind, int? bankId, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
+    /// <summary>db/116: the payroll's two-step process (Ministry Payroll, then Company Payroll).</summary>
+    Task<BankStages?> BankStagesAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
+    /// <summary>db/116: the audit of the payroll's bank files.</summary>
+    Task<IReadOnlyList<BankFileAuditEntry>> BankAuditAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default);
     Task<SaveResult> CreateBankFileAsync(BankFileRequest request, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default);
     Task<PagedResult<BankFile>> BankFilesAsync(FinanceFilter filter, CancellationToken cancellationToken = default);
     /// <summary>One file with its text (counts the download when <paramref name="download"/>).</summary>
@@ -159,6 +163,12 @@ public sealed class PayrollFinanceRepository : IPayrollFinanceRepository
     public Task<IReadOnlyList<BankFileLine>> BankLinesAsync(long runId, string kind, int? bankId, int? companyId, string? companyIds,
                                                            CancellationToken cancellationToken = default) =>
         _sql.QueryAsync<BankFileLine>(StoredProcedure.BankFileManage, RunEnv("LINES", runId, kind, bankId, companyId, companyIds), cancellationToken);
+
+    public Task<BankStages?> BankStagesAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default) =>
+        _sql.QuerySingleOrDefaultAsync<BankStages>(StoredProcedure.BankFileManage, RunEnv("STAGES", runId, "FULL", null, companyId, companyIds), cancellationToken);
+
+    public Task<IReadOnlyList<BankFileAuditEntry>> BankAuditAsync(long runId, int? companyId, string? companyIds, CancellationToken cancellationToken = default) =>
+        _sql.QueryAsync<BankFileAuditEntry>(StoredProcedure.BankFileManage, RunEnv("AUDIT", runId, "FULL", null, companyId, companyIds), cancellationToken);
 
     public Task<SaveResult> CreateBankFileAsync(BankFileRequest r, int? companyId, string? companyIds, long? userId, CancellationToken cancellationToken = default)
     {

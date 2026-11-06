@@ -42,6 +42,11 @@ else
                             {
                                 <span class="st-inforce st-inforce--warn ms-1">@L["fin.reissue"]</span>
                             }
+                            else if (f.FileKind is "MINISTRY" or "COMPANY")
+                            {
+                                @* db/116: step 1 / step 2 of the two-step process *@
+                                <span class="bf-kind bf-kind--@f.FileKind.ToLowerInvariant() ms-1">@L[f.FileKind == "MINISTRY" ? "fin.kind_ministry" : "fin.kind_company"]</span>
+                            }
                             <span class="pr-emp-sub font-monospace" dir="ltr">@f.FileName</span>
                         </td>
                         @if (Model.ShowRun)

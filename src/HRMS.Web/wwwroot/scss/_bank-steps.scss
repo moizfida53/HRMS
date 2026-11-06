@@ -1,0 +1,128 @@
+// ============================================================================
+// Bank Processing > Bank File (db/116): the two-step process
+// - the choice: one file of the net pay, or Ministry Payroll then Company Payroll
+// - the two steps as numbered cards (done / current / locked)
+// - the kind badge of a file / payment (Ministry, Company)
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ------------------------------------------------------------ the choice ----
+.bf-mode {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: space("2");
+  margin-block-end: space("2");
+
+  &__opt {
+    display: flex;
+    align-items: flex-start;
+    gap: space("2");
+    padding: space("2") space("3");
+    border: 1px solid $line-200;
+    border-radius: $radius;
+    background: $white;
+    color: $ink-700;
+    text-align: start;
+    cursor: pointer;
+    @include motion(border-color, background-color, box-shadow);
+    @include focus-ring;
+
+    > svg { flex: 0 0 auto; margin-block-start: 2px; color: $blue-600; }
+    span { display: flex; flex-direction: column; min-width: 0; }
+    strong { font-size: $fs-base; color: $ink-900; }
+    small { font-size: $fs-xs; color: $ink-500; }
+
+    &:hover:not(:disabled) { border-color: $blue-500; }
+    &.active { border-color: $blue-600; background: $blue-050; box-shadow: inset 0 0 0 1px $blue-600; }
+    &:disabled { opacity: .5; cursor: not-allowed; }
+  }
+}
+
+// ------------------------------------------------------------- the steps ----
+.bf-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: space("3");
+}
+
+.bf-step {
+  position: relative;
+  padding: space("3");
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  background: $white;
+
+  &__head { display: flex; align-items: flex-start; gap: space("3"); margin-block-end: space("2"); }
+
+  &__no {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: $radius-pill;
+    background: $line-100;
+    color: $ink-700;
+    font-weight: $fw-bold;
+  }
+
+  &__title { margin: 0; font-size: 1rem; font-weight: $fw-bold; color: $ink-900; }
+  &__text { margin: 2px 0 0; font-size: $fs-sm; color: $ink-500; }
+
+  &__figs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: space("2");
+    margin: 0 0 space("3");
+    padding: space("2") space("3");
+    border-radius: $radius;
+    background: $surface-2;
+
+    > div { min-width: 0; }
+    dt { font-size: $fs-xs; font-weight: $fw-semibold; color: $ink-500; text-transform: uppercase; letter-spacing: .04em; }
+    dd { margin: 0; font-weight: $fw-bold; color: $ink-900; overflow-wrap: anywhere; }
+  }
+
+  &__note {
+    display: flex;
+    align-items: flex-start;
+    gap: space("1");
+    margin: 0 0 space("2");
+    font-size: $fs-sm;
+    color: $ink-600;
+
+    > svg { flex: 0 0 auto; margin-block-start: 2px; color: $amber-600; }
+  }
+
+  &.is-current { border-color: $blue-600; box-shadow: 0 0 0 1px $blue-600 inset; }
+  &.is-current .bf-step__no { background: $blue-600; color: $white; }
+  &.is-done .bf-step__no { background: $green-600; color: $white; }
+  &.is-locked { background: $surface-2; }
+  &.is-locked .bf-step__figs { background: $white; }
+
+  @include cq-down(xs) {
+    &__figs { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  }
+}
+
+// ------------------------------------------------------------- the kind ----
+.bf-kind {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 space("2");
+  border-radius: $radius-pill;
+  font-size: $fs-xs;
+  font-weight: $fw-bold;
+  line-height: 1.6;
+  white-space: nowrap;
+
+  &--ministry { @include soft-badge($purple-700, $purple-050); }
+  &--company { @include soft-badge($blue-700, $blue-050); }
+  &--full, &--retry { @include soft-badge($ink-500, $line-100); }
+}
+.pr-emp-sub + .bf-kind, td > .bf-kind { margin-block-start: 2px; }

@@ -19994,3 +19994,204 @@ html.nav-mini:not(.nav-peek) .hrms-sidebar .hrms-nav-link .hrms-nav-approval {
     margin-block-end: 0.25rem;
   }
 }
+.bf-mode {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 0.5rem;
+  margin-block-end: 0.5rem;
+}
+.bf-mode__opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #dce1e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #3a3f3d;
+  text-align: start;
+  cursor: pointer;
+  transition-property: border-color, background-color, box-shadow;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .bf-mode__opt {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+.bf-mode__opt:focus {
+  outline: none;
+}
+.bf-mode__opt:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 130, 122, 0.28);
+  border-color: #0d827a;
+}
+.bf-mode__opt > svg {
+  flex: 0 0 auto;
+  margin-block-start: 2px;
+  color: #0d827a;
+}
+.bf-mode__opt span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.bf-mode__opt strong {
+  font-size: 0.85rem;
+  color: #212322;
+}
+.bf-mode__opt small {
+  font-size: 0.725rem;
+  color: #626d6b;
+}
+.bf-mode__opt:hover:not(:disabled) {
+  border-color: #149a8f;
+}
+.bf-mode__opt.active {
+  border-color: #0d827a;
+  background: #f3f9f8;
+  box-shadow: inset 0 0 0 1px #0d827a;
+}
+.bf-mode__opt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bf-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.bf-step {
+  position: relative;
+  padding: 0.75rem;
+  border: 1px solid #dce1e0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+.bf-step__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-block-end: 0.5rem;
+}
+.bf-step__no {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: #e9edec;
+  color: #3a3f3d;
+  font-weight: 700;
+}
+.bf-step__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #212322;
+}
+.bf-step__text {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: #626d6b;
+}
+.bf-step__figs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #fafbfb;
+}
+.bf-step__figs > div {
+  min-width: 0;
+}
+.bf-step__figs dt {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: #626d6b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.bf-step__figs dd {
+  margin: 0;
+  font-weight: 700;
+  color: #212322;
+  overflow-wrap: anywhere;
+}
+.bf-step__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: #4a5250;
+}
+.bf-step__note > svg {
+  flex: 0 0 auto;
+  margin-block-start: 2px;
+  color: #d97706;
+}
+.bf-step.is-current {
+  border-color: #0d827a;
+  box-shadow: 0 0 0 1px #0d827a inset;
+}
+.bf-step.is-current .bf-step__no {
+  background: #0d827a;
+  color: #ffffff;
+}
+.bf-step.is-done .bf-step__no {
+  background: #1a9a5c;
+  color: #ffffff;
+}
+.bf-step.is-locked {
+  background: #fafbfb;
+}
+.bf-step.is-locked .bf-step__figs {
+  background: #ffffff;
+}
+@container content (max-width: 479.98px) {
+  .bf-step__figs {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+.bf-kind {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: 0.725rem;
+  font-weight: 700;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.bf-kind--ministry {
+  color: #6941c6;
+  background-color: #f9f5ff;
+  border: 1px solid rgba(105, 65, 198, 0.12);
+}
+.bf-kind--company {
+  color: #0a6b63;
+  background-color: #f3f9f8;
+  border: 1px solid rgba(10, 107, 99, 0.12);
+}
+.bf-kind--full, .bf-kind--retry {
+  color: #626d6b;
+  background-color: #e9edec;
+  border: 1px solid rgba(98, 109, 107, 0.12);
+}
+
+.pr-emp-sub + .bf-kind, td > .bf-kind {
+  margin-block-start: 2px;
+}

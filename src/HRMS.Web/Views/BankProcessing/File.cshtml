@@ -15,6 +15,57 @@
     var defaultAccount = Model.Accounts.FirstOrDefault(a => a.IsDefault) ?? Model.Accounts.FirstOrDefault();
     var valueDate = (run?.PaymentDate ?? DateTime.Today).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     var downloadUrl = Url.Action("Download", "BankProcessing", new { id = 0 })!.Replace("/0/", "/__id__/");
+
+    // db/116: the two-step process (Ministry Payroll, then Company Payroll); null = db/116 not run
+    var st = Model.Stages;
+    var staged = st?.IsStaged == true;
+    var single = st?.IsSingle == true;
+    string AuditKey(string a) => a switch { "REGENERATED" => "fin.audit_regenerated", "SENT" => "fin.audit_sent", "PAID" => "fin.audit_paid", _ => "fin.audit_generated" };
+    string KindKey(string k) => k switch { "MINISTRY" => "fin.kind_ministry", "COMPANY" => "fin.kind_company", "RETRY" => "fin.kind_retry", _ => "fin.kind_full" };
+
+    // the fields every generate form asks: banks, value date, debit account, format (and the reason when it replaces a file)
+    void GenerateFields(string px, bool replaces, bool disabled)
+    {
+        <div class="col-sm-6">
+            <label class="form-label" for="@(px)-bank">@L["fin.banks_in_file"]</label>
+            <select class="form-select" id="@(px)-bank" name="bank" data-searchable disabled="@disabled">
+                <option value="">@L["fin.all_banks"]</option>
+                @foreach (var b in bank.Where(b => b.BankId is not null))
+                {
+                    <option value="@b.BankId">@b.BankName</option>
+                }
+            </select>
+        </div>
+        <div class="col-sm-6">
+            <label class="form-label" for="@(px)-date">@L["prv.value_date"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" type="date" id="@(px)-date" name="valueDate" value="@valueDate" disabled="@disabled" />
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="@(px)-account">@L["prv.debit_account"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="@(px)-account" name="account" data-searchable disabled="@disabled">
+                @foreach (var a in Model.Accounts)
+                {
+                    <option value="@a.CompanyBankAccountId" selected="@(a.CompanyBankAccountId == defaultAccount?.CompanyBankAccountId)">@a.AccountTitle · @a.BankName · @FinanceFormat.Iban(a.Iban)</option>
+                }
+            </select>
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="@(px)-format">@L["prv.format"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="@(px)-format" name="format" data-searchable disabled="@disabled">
+                @foreach (var f in Model.Formats)
+                {
+                    <option value="@f.BankFileFormatId" selected="@(f.BankFileFormatId == Model.DefaultFormatId)">@f.FormatName@(f.BankName is not null ? " · " + f.BankName : "")@(f.IsDefault ? " · " + L["st.default"] : "")</option>
+                }
+            </select>
+        </div>
+        if (replaces)
+        {
+            <div class="col-12">
+                <label class="form-label" for="@(px)-reason">@L["fin.regenerate_reason"] <span class="req" aria-hidden="true">*</span></label>
+                <textarea class="form-control" id="@(px)-reason" name="reason" rows="2" maxlength="500" placeholder="@L["prv.regenerating_a_file_asks_for_a_reason"]" disabled="@disabled"></textarea>
+            </div>
+        }
+    }
 }
 <div class="pr-stack fin-page" data-fin-page data-fin-download="@downloadUrl">
     <section class="hrms-card">
@@ -182,6 +233,26 @@
                         }
                         else
                         {
+                            if (st is not null)
+                            {
+                                @* db/116: one file of the net pay, or the two steps (Ministry Payroll, then Company Payroll) *@
+                                <div class="bf-mode nav" role="tablist" aria-label="@L["fin.process"]">
+                                    <button type="button" class="bf-mode__opt @(!staged ? "active" : null)" id="bf-tab-single" data-bs-toggle="pill" data-bs-target="#bf-pane-single"
+                                            role="tab" aria-controls="bf-pane-single" aria-selected="@(!staged ? "true" : "false")" disabled="@staged">
+                                        @Html.Icon("download", 15)<span><strong>@L["fin.mode_single"]</strong><small>@L["fin.mode_single_hint"]</small></span>
+                                    </button>
+                                    <button type="button" class="bf-mode__opt @(staged ? "active" : null)" id="bf-tab-staged" data-bs-toggle="pill" data-bs-target="#bf-pane-staged"
+                                            role="tab" aria-controls="bf-pane-staged" aria-selected="@(staged ? "true" : "false")" disabled="@single">
+                                        @Html.Icon("layers", 15)<span><strong>@L["fin.mode_staged"]</strong><small>@L["fin.mode_staged_hint"]</small></span>
+                                    </button>
+                                </div>
+                                if (staged || single)
+                                {
+                                    <p class="form-text mt-0">@(staged ? L["fin.mode_locked_staged"] : L["fin.mode_locked_single"])</p>
+                                }
+                            }
+                            <div class="tab-content">
+                            <div class="tab-pane fade @(!staged ? "show active" : null)" id="bf-pane-single" role="tabpanel" aria-labelledby="bf-tab-single">
                             <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
                                 <input type="hidden" name="run" value="@run.PayrollRunId" />
                                 <input type="hidden" name="kind" value="FULL" />
@@ -233,6 +304,95 @@
                                     <span class="form-text m-0">@L["fin.generate_hint"]</span>
                                 </div>
                             </form>
+                            </div>
+                            @if (st is not null)
+                            {
+                                var ministryLive = Model.HasLive("MINISTRY");
+                                var companyLive = Model.HasLive("COMPANY");
+                                <div class="tab-pane fade @(staged ? "show active" : null)" id="bf-pane-staged" role="tabpanel" aria-labelledby="bf-tab-staged">
+                                    <ol class="bf-steps">
+                                        @* ---- step 1: Ministry Payroll - the work permit salary *@
+                                        <li class="bf-step @(st.MinistryDone ? "is-done" : "is-current")">
+                                            <div class="bf-step__head">
+                                                <span class="bf-step__no" aria-hidden="true">@(st.MinistryDone ? "✓" : "1")</span>
+                                                <div>
+                                                    <h3 class="bf-step__title">@L["fin.step1_title"]</h3>
+                                                    <p class="bf-step__text">@L["fin.step1_text"]</p>
+                                                </div>
+                                            </div>
+                                            <dl class="bf-step__figs">
+                                                <div><dt>@L["common.employees"]</dt><dd>@PayrollFormat.Count(st.MinistryCount)</dd></div>
+                                                <div><dt>@L["pr.amount_kwd"]</dt><dd class="pr-money">@PayrollFormat.Money(st.MinistryDone ? st.MinistryFileAmount ?? st.MinistryAmount : st.MinistryAmount)</dd></div>
+                                                <div><dt>@L["fin.bank_file"]</dt><dd>@(st.MinistryFileNos ?? (string)L["fin.not_generated"])</dd></div>
+                                            </dl>
+                                            @if (st.MissingWpsCount > 0)
+                                            {
+                                                <div class="pr-banner pr-banner--err mb-3" role="alert">
+                                                    @Html.Icon("alert", 18)
+                                                    <div><strong>@L["fin.wps_missing_0", st.MissingWpsCount]</strong> @st.MissingWpsNames@(st.MissingWpsCount > 5 ? " …" : "")
+                                                        <a href="@Url.Content("~/employees")">@L["fin.open_employees"]</a></div>
+                                                </div>
+                                            }
+                                            <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
+                                                <input type="hidden" name="run" value="@run.PayrollRunId" />
+                                                <input type="hidden" name="kind" value="MINISTRY" />
+                                                @{ GenerateFields("m1", ministryLive, st.CompanyDone); }
+                                                <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                                                    <button type="submit" class="btn @(st.MinistryDone ? "btn-outline-primary" : "btn-primary")" disabled="@(st.CompanyDone || st.MissingWpsCount > 0)">
+                                                        @Html.Icon("download", 15)<span>@(ministryLive ? L["fin.step1_regenerate"] : L["fin.step1_generate"])</span>
+                                                    </button>
+                                                    @if (st.CompanyDone)
+                                                    {
+                                                        <span class="form-text m-0">@L["fin.step1_locked"]</span>
+                                                    }
+                                                </div>
+                                            </form>
+                                        </li>
+
+                                        @* ---- step 2: Company Payroll - the net pay less what step 1 transferred *@
+                                        <li class="bf-step @(st.CompanyDone ? "is-done" : st.MinistryDone ? "is-current" : "is-locked")">
+                                            <div class="bf-step__head">
+                                                <span class="bf-step__no" aria-hidden="true">@(st.CompanyDone ? "✓" : "2")</span>
+                                                <div>
+                                                    <h3 class="bf-step__title">@L["fin.step2_title"]</h3>
+                                                    <p class="bf-step__text">@L["fin.step2_text"]</p>
+                                                </div>
+                                            </div>
+                                            <dl class="bf-step__figs">
+                                                <div><dt>@L["common.employees"]</dt><dd>@PayrollFormat.Count(st.CompanyCount)</dd></div>
+                                                <div><dt>@L["pr.amount_kwd"]</dt><dd class="pr-money">@PayrollFormat.Money(st.CompanyDone ? st.CompanyFileAmount ?? st.CompanyAmount : st.CompanyAmount)</dd></div>
+                                                <div><dt>@L["fin.bank_file"]</dt><dd>@(st.CompanyFileNos ?? (string)L["fin.not_generated"])</dd></div>
+                                            </dl>
+                                            @if (st.OverCount > 0)
+                                            {
+                                                <p class="bf-step__note">@Html.Icon("info", 14)<span>@L["fin.step2_over_0_1", st.OverCount, PayrollFormat.Money(st.OverAmount)]</span></p>
+                                            }
+                                            @if (st.CashCount > 0)
+                                            {
+                                                <p class="bf-step__note">@Html.Icon("wallet", 14)<span>@L["fin.step2_cash_0_1", st.CashCount, PayrollFormat.Money(st.CashAmount)]</span></p>
+                                            }
+                                            @if (!st.MinistryDone)
+                                            {
+                                                <p class="hrms-muted hrms-text-sm mb-0">@Html.Icon("lock", 14) @L["fin.step2_locked"]</p>
+                                            }
+                                            else
+                                            {
+                                                <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
+                                                    <input type="hidden" name="run" value="@run.PayrollRunId" />
+                                                    <input type="hidden" name="kind" value="COMPANY" />
+                                                    @{ GenerateFields("c2", companyLive, false); }
+                                                    <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                                                        <button type="submit" class="btn btn-primary" disabled="@(st.CompanyCount == 0 && st.CashCount == 0)">
+                                                            @Html.Icon("download", 15)<span>@(companyLive ? L["fin.step2_regenerate"] : L["fin.step2_generate"])</span>
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            }
+                                        </li>
+                                    </ol>
+                                </div>
+                            }
+                            </div>
                         }
                     </div>
                 </section>
@@ -267,6 +427,53 @@
             <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["fin.files_of_payroll"]</h2></header>
             @await Html.PartialAsync("~/Views/BankProcessing/_FilesTable.cshtml", (Model.Files, Model.Rights, false))
         </section>
+
+        @* db/116: the audit of the bank file process - generated, generated again (with the reason), sent, paid *@
+        @if (st is not null)
+        {
+            <section class="hrms-card hrms-panel">
+                <header class="hrms-panel__head"><h2 class="hrms-panel__title">@L["fin.process_history"]</h2></header>
+                <div class="pr-card-body">
+                    @if (Model.Audit.Count == 0)
+                    {
+                        <p class="hrms-muted mb-0">@L["fin.no_process_history"]</p>
+                    }
+                    else
+                    {
+                        <ol class="pr-timeline">
+                            @foreach (var h in Model.Audit)
+                            {
+                                var local = DateTime.SpecifyKind(h.ActionDate, DateTimeKind.Utc).ToLocalTime();
+                                <li class="@(h.ActionCode is "PAID" ? "is-done" : h.ActionCode is "REGENERATED" ? "is-rejected" : "is-todo")">
+                                    <span class="pr-timeline__dot"></span>
+                                    <div class="pr-timeline__title">
+                                        @L[AuditKey(h.ActionCode)] · <span class="bf-kind bf-kind--@h.FileKind.ToLowerInvariant()">@L[KindKey(h.FileKind)]</span>
+                                        <span class="hrms-code-chip ms-1">@h.FileNo</span>
+                                        @if (h.TotalAmount is { } amt)
+                                        {
+                                            <span class="hrms-muted ms-1">@L["pr.kwd"] @PayrollFormat.Money(amt)@(h.LineCount is { } n ? " · " + L["fin.n_employees", n] : "")</span>
+                                        }
+                                    </div>
+                                    <div class="pr-timeline__meta">@h.ActionByName · @L.Date(local) @local.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)@(h.BankName is not null ? " · " + h.BankName : "")</div>
+                                    @if (!string.IsNullOrWhiteSpace(h.ReplacedFileNos))
+                                    {
+                                        <div class="pr-timeline__meta">@L["fin.audit_replaces_0", h.ReplacedFileNos]</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(h.Reason))
+                                    {
+                                        <div class="pr-timeline__text">@h.Reason</div>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(h.Reference))
+                                    {
+                                        <div class="pr-timeline__meta">@L["fin.reference_0", h.Reference]</div>
+                                    }
+                                </li>
+                            }
+                        </ol>
+                    }
+                </div>
+            </section>
+        }
     }
 </div>
 @await Html.PartialAsync("~/Views/PayrollFinance/_Dialog.cshtml")

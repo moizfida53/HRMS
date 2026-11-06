@@ -102,6 +102,65 @@ public sealed class BankFile
     public int FailedCount { get; set; }
 }
 
+/// <summary>
+/// db/116: how a payroll's salaries go to the bank - one file of the net pay (FULL), or two
+/// steps: the Ministry Payroll (the work permit salary) and then the Company Payroll (the net
+/// pay less what the Ministry Payroll transferred; nothing when that is zero or less).
+/// </summary>
+public static class BankStage
+{
+    public const string Full = "FULL";
+    public const string Ministry = "MINISTRY";
+    public const string Company = "COMPANY";
+}
+
+/// <summary>db/116: a payroll's two-step process - its mode and the figures of each step.</summary>
+public sealed class BankStages
+{
+    /// <summary>NONE (nothing generated yet), SINGLE (one file of the net pay) or STAGED (Ministry + Company).</summary>
+    public string Mode { get; set; } = "NONE";
+    public decimal MinistryAmount { get; set; }
+    public int MinistryCount { get; set; }
+    public int MissingWpsCount { get; set; }
+    public string? MissingWpsNames { get; set; }
+    public decimal CompanyAmount { get; set; }
+    public int CompanyCount { get; set; }
+    /// <summary>Employees whose Ministry transfer is more than their net pay - left out of step 2.</summary>
+    public int OverCount { get; set; }
+    public decimal OverAmount { get; set; }
+    public int CashCount { get; set; }
+    public decimal CashAmount { get; set; }
+    public int MinistryFiles { get; set; }
+    public string? MinistryFileNos { get; set; }
+    public decimal? MinistryFileAmount { get; set; }
+    public int CompanyFiles { get; set; }
+    public string? CompanyFileNos { get; set; }
+    public decimal? CompanyFileAmount { get; set; }
+
+    public bool IsStaged => Mode == "STAGED";
+    public bool IsSingle => Mode == "SINGLE";
+    public bool MinistryDone => MinistryFiles > 0;
+    public bool CompanyDone => CompanyFiles > 0;
+}
+
+/// <summary>db/116: one line of the bank file process audit (Payroll.BankFileAudit).</summary>
+public sealed class BankFileAuditEntry
+{
+    public long BankFileAuditId { get; set; }
+    /// <summary>GENERATED / REGENERATED / SENT / PAID.</summary>
+    public string ActionCode { get; set; } = string.Empty;
+    public string FileKind { get; set; } = BankStage.Full;
+    public string? FileNo { get; set; }
+    public string? BankName { get; set; }
+    public int? LineCount { get; set; }
+    public decimal? TotalAmount { get; set; }
+    public string? Reason { get; set; }
+    public string? Reference { get; set; }
+    public string? ReplacedFileNos { get; set; }
+    public DateTime ActionDate { get; set; }
+    public string? ActionByName { get; set; }
+}
+
 /// <summary>Payroll.BankPayments - a row of the payment register.</summary>
 public sealed class BankPayment
 {
@@ -113,6 +172,8 @@ public sealed class BankPayment
     public string Method { get; set; } = "BANK";
     /// <summary>PENDING / IN_FILE / PAID / FAILED.</summary>
     public string Status { get; set; } = "PENDING";
+    /// <summary>db/116: FULL (single file), MINISTRY (step 1) or COMPANY (step 2).</summary>
+    public string Stage { get; set; } = BankStage.Full;
     public string? Iban { get; set; }
     public string? Reference { get; set; }
     public string? FailureReason { get; set; }

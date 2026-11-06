@@ -113,6 +113,11 @@
                                     {
                                         <span class="pr-emp-sub font-monospace">@p.FileNo</span>
                                     }
+                                    @* db/116: the step of the two-step process this payment belongs to *@
+                                    @if (p.Stage is BankStage.Ministry or BankStage.Company)
+                                    {
+                                        <span class="bf-kind bf-kind--@p.Stage.ToLowerInvariant()">@L[p.Stage == BankStage.Ministry ? "fin.kind_ministry" : "fin.kind_company"]</span>
+                                    }
                                 </td>
                                 <td data-label="@L["st.iban"]" class="col-p3 font-monospace hrms-text-sm" dir="ltr">@FinanceFormat.Iban(p.Iban)</td>
                                 <td data-label="@L["pr.amount_kwd"]" class="text-end pr-money">@PayrollFormat.Money(p.Amount)</td>

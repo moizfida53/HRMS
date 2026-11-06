@@ -1321,13 +1321,14 @@ public sealed class EmployeesController : Controller
         Need(string.IsNullOrWhiteSpace(k.PassportNumber), nameof(k.PassportNumber));
         Need(k.PassportCountryId is null, nameof(k.PassportCountryId));
         Need(k.PassportExpiryDate is null, nameof(k.PassportExpiryDate));
+        // db/116: the Ministry Payroll transfers the work permit salary - every employee needs it
+        Need(k.WorkPermitSalary is null or <= 0, nameof(k.WorkPermitSalary));
         if (!kuwaiti)
         {
             Need(string.IsNullOrWhiteSpace(k.ResidencyNumber), nameof(k.ResidencyNumber));
             Need(string.IsNullOrWhiteSpace(k.ResidencyType), nameof(k.ResidencyType));
             Need(k.ResidencyExpiryDate is null, nameof(k.ResidencyExpiryDate));
             Need(string.IsNullOrWhiteSpace(k.SponsorName), nameof(k.SponsorName));
-            Need(k.WorkPermitSalary is null or <= 0, nameof(k.WorkPermitSalary));
             Need(string.IsNullOrWhiteSpace(k.WorkPermitDesignation), nameof(k.WorkPermitDesignation));
             Need(string.IsNullOrWhiteSpace(k.WorkPermitDesignationAr), nameof(k.WorkPermitDesignationAr));
         }
