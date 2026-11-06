@@ -1,0 +1,170 @@
+@model PayrollFunding
+@*
+   db/121: the funding of a payroll - how its net pay reaches the employees.
+     1. four figures: Net payable · Step 1 work permit transfer · Step 2 balance transfer · To collect
+     2. the check: work permit + balance - to collect = net payable by bank (+ cash = net payable)
+     3. by case: Net = WPS · Net < WPS (collect) · Net > WPS (balance) · no IBAN (cash) · no WPS
+     4. per employee (opened on request)
+*@
+@{
+    var f = Model;
+    var uid = "fund-" + Guid.NewGuid().ToString("N")[..8];
+    var bankCount = f.Rows.Count(r => r.Method == "BANK");
+    var wpsCount = f.Rows.Count(r => r.WorkPermitTransfer > 0);
+    var balanceCount = f.Rows.Count(r => r.BalanceTransfer > 0);
+    var collectCount = f.Rows.Count(r => r.ToCollect > 0);
+    var cashCount = f.Count("CASH");
+    var noWps = f.Count("NO_WPS");
+    string Key(string c) => c switch
+    {
+        "EQUAL" => "fund.case_equal", "COLLECT" => "fund.case_collect", "BALANCE" => "fund.case_balance",
+        "CASH" => "fund.case_cash", _ => "fund.case_no_wps"
+    };
+    string Tone(string c) => c switch
+    {
+        "EQUAL" => "info", "COLLECT" => "warning", "BALANCE" => "success", "CASH" => "muted", _ => "danger"
+    };
+    string M(decimal v) => v == 0 ? "—" : PayrollFormat.Money(v);
+}
+<section class="fund" aria-labelledby="@(uid)-title">
+    <header class="fund__head">
+        <h4 class="fund__title" id="@(uid)-title">@Html.Icon("bank", 16) @L["fund.title"]</h4>
+        <p class="fund__sub">@L["fund.subtitle"]</p>
+    </header>
+
+    @if (noWps > 0)
+    {
+        <div class="pr-banner pr-banner--err mb-3" role="alert">@Html.Icon("alert", 18)<div>@L["fund.no_wps_warning_0", noWps]</div></div>
+    }
+
+    @* 1. the four figures *@
+    <div class="fund__figs">
+        <div class="fund__fig">
+            <span class="fund__label">@L["fund.net_payable"]</span>
+            <strong class="fund__value">@PayrollFormat.Money(f.NetPayable)</strong>
+            <span class="fund__note">@L["fund.net_payable_note_0", PayrollFormat.Count(f.Rows.Count)]</span>
+        </div>
+        <div class="fund__fig fund__fig--step1">
+            <span class="fund__label">@L["fund.wp_transfer"]</span>
+            <strong class="fund__value">@PayrollFormat.Money(f.WorkPermitTransfer)</strong>
+            <span class="fund__note">@L["fund.wp_transfer_note_0", PayrollFormat.Count(wpsCount)]</span>
+        </div>
+        <div class="fund__fig fund__fig--step2">
+            <span class="fund__label">@L["fund.balance"]</span>
+            <strong class="fund__value">@PayrollFormat.Money(f.BalanceTransfer)</strong>
+            <span class="fund__note">@L["fund.balance_note_0", PayrollFormat.Count(balanceCount)]</span>
+        </div>
+        <div class="fund__fig fund__fig--collect">
+            <span class="fund__label">@L["fund.collect"]</span>
+            <strong class="fund__value">@PayrollFormat.Money(f.ToCollect)</strong>
+            <span class="fund__note">@L["fund.collect_note_0", PayrollFormat.Count(collectCount)]</span>
+        </div>
+    </div>
+
+    @* 2. the check *@
+    <div class="fund__check @(f.IsBalanced ? "is-ok" : "is-off")">
+        <div class="fund__equation" dir="ltr">
+            <span>@PayrollFormat.Money(f.WorkPermitTransfer)</span><span class="fund__op">+</span>
+            <span>@PayrollFormat.Money(f.BalanceTransfer)</span><span class="fund__op">−</span>
+            <span>@PayrollFormat.Money(f.ToCollect)</span><span class="fund__op">=</span>
+            <strong>@PayrollFormat.Money(f.NetPayableByBank)</strong>
+            <span class="hrms-badge hrms-badge--@(f.IsBalanced ? "success" : "danger") ms-1"><span class="hrms-badge__dot"></span>@(f.IsBalanced ? L["fund.balanced"] : L["fund.not_balanced"])</span>
+        </div>
+        <div class="fund__legend">@L["fund.reconcile"]</div>
+        @if (cashCount > 0)
+        {
+            <div class="fund__legend">@L["fund.cash_0_1", PayrollFormat.Money(f.Cash), PayrollFormat.Count(cashCount), PayrollFormat.Money(f.NetPayable)]</div>
+        }
+    </div>
+
+    @* 3. by case *@
+    <div class="hrms-table-wrap mt-3">
+        <table class="hrms-table fund__cases">
+            <caption class="hrms-sr-only">@L["fund.by_case"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["fund.case"]</th>
+                    <th scope="col" class="text-end">@L["fund.employees"]</th>
+                    <th scope="col" class="pr-money">@L["fund.col_net"]</th>
+                    <th scope="col" class="pr-money">@L["fund.col_step1"]</th>
+                    <th scope="col" class="pr-money">@L["fund.col_step2"]</th>
+                    <th scope="col" class="pr-money">@L["fund.col_collect"]</th>
+                    <th scope="col" class="pr-money">@L["fund.col_cash"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in PayrollFunding.Cases)
+                {
+                    var rows = f.Of(c).ToList();
+                    if (rows.Count == 0) { continue; }
+                    <tr>
+                        <td data-label="@L["fund.case"]">
+                            <span class="hrms-badge hrms-badge--@Tone(c)"><span class="hrms-badge__dot"></span>@L[Key(c)]</span>
+                            <span class="pr-emp-sub">@L[Key(c) + "_hint"]</span>
+                        </td>
+                        <td data-label="@L["fund.employees"]" class="text-end hrms-numeric">@PayrollFormat.Count(rows.Count)</td>
+                        <td data-label="@L["fund.col_net"]" class="pr-money">@PayrollFormat.Money(rows.Sum(r => r.NetPay))</td>
+                        <td data-label="@L["fund.col_step1"]" class="pr-money">@M(rows.Sum(r => r.WorkPermitTransfer))</td>
+                        <td data-label="@L["fund.col_step2"]" class="pr-money">@M(rows.Sum(r => r.BalanceTransfer))</td>
+                        <td data-label="@L["fund.col_collect"]" class="pr-money fund__collect">@M(rows.Sum(r => r.ToCollect))</td>
+                        <td data-label="@L["fund.col_cash"]" class="pr-money">@M(rows.Sum(r => r.CashPayment))</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th scope="row">@L["fund.total"]</th>
+                    <td class="text-end hrms-numeric">@PayrollFormat.Count(f.Rows.Count)</td>
+                    <td class="pr-money">@PayrollFormat.Money(f.NetPayable)</td>
+                    <td class="pr-money">@PayrollFormat.Money(f.WorkPermitTransfer)</td>
+                    <td class="pr-money">@PayrollFormat.Money(f.BalanceTransfer)</td>
+                    <td class="pr-money fund__collect">@PayrollFormat.Money(f.ToCollect)</td>
+                    <td class="pr-money">@PayrollFormat.Money(f.Cash)</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    @* 4. per employee *@
+    @if (f.Rows.Count > 0)
+    {
+        <button class="btn btn-sm btn-outline-secondary mt-3" type="button" data-bs-toggle="collapse" data-bs-target="#@(uid)-emp"
+                aria-expanded="false" aria-controls="@(uid)-emp">@Html.Icon("users", 14)<span>@L["fund.show_employees_0", PayrollFormat.Count(f.Rows.Count)]</span></button>
+        <div class="collapse" id="@(uid)-emp">
+            <div class="hrms-table-wrap mt-2 fund__emps">
+                <table class="hrms-table">
+                    <caption class="hrms-sr-only">@L["fund.employees"]</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">@L["pc.col_emp_no"]</th>
+                            <th scope="col">@L["pc.col_employee"]</th>
+                            <th scope="col">@L["fund.case"]</th>
+                            <th scope="col" class="pr-money">@L["fund.col_net"]</th>
+                            <th scope="col" class="pr-money">@L["fund.col_wps"]</th>
+                            <th scope="col" class="pr-money">@L["fund.col_step1"]</th>
+                            <th scope="col" class="pr-money">@L["fund.col_step2"]</th>
+                            <th scope="col" class="pr-money">@L["fund.col_collect"]</th>
+                            <th scope="col" class="pr-money">@L["fund.col_cash"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in f.Rows)
+                        {
+                            <tr>
+                                <td data-label="@L["pc.col_emp_no"]" class="font-monospace pc-table__no">@r.EmployeeNo</td>
+                                <td data-label="@L["pc.col_employee"]"><span class="hrms-table__primary">@r.EmployeeName</span>@if (!string.IsNullOrWhiteSpace(r.DepartmentName)) { <span class="pr-emp-sub">@r.DepartmentName</span> }</td>
+                                <td data-label="@L["fund.case"]"><span class="hrms-badge hrms-badge--@Tone(r.FundingCase)"><span class="hrms-badge__dot"></span>@L[Key(r.FundingCase)]</span></td>
+                                <td data-label="@L["fund.col_net"]" class="pr-money">@PayrollFormat.Money(r.NetPay)</td>
+                                <td data-label="@L["fund.col_wps"]" class="pr-money">@PayrollFormat.Money(r.Wps)</td>
+                                <td data-label="@L["fund.col_step1"]" class="pr-money">@M(r.WorkPermitTransfer)</td>
+                                <td data-label="@L["fund.col_step2"]" class="pr-money">@M(r.BalanceTransfer)</td>
+                                <td data-label="@L["fund.col_collect"]" class="pr-money fund__collect">@M(r.ToCollect)</td>
+                                <td data-label="@L["fund.col_cash"]" class="pr-money">@M(r.CashPayment)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</section>

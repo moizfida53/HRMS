@@ -20001,6 +20001,129 @@ html.nav-mini:not(.nav-peek) .hrms-sidebar .hrms-nav-link .hrms-nav-approval {
     margin-block-end: 0.25rem;
   }
 }
+.fund {
+  margin-block-start: 1rem;
+  padding: 1rem;
+  border: 1px solid #dce1e0;
+  border-radius: 12px;
+  background: #ffffff;
+}
+.fund__head {
+  margin-block-end: 0.75rem;
+}
+.fund__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #212322;
+}
+.fund__sub {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: #626d6b;
+}
+.fund__figs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+@container content (max-width: 1039.98px) {
+  .fund__figs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container content (max-width: 479.98px) {
+  .fund__figs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.fund__fig {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: #fafbfb;
+  border-inline-start: 4px solid #cdd4d2;
+}
+.fund__fig--step1 {
+  border-inline-start-color: #6941c6;
+}
+.fund__fig--step2 {
+  border-inline-start-color: #0d827a;
+}
+.fund__fig--collect {
+  border-inline-start-color: #d97706;
+}
+.fund__label {
+  font-size: 0.725rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #626d6b;
+}
+.fund__value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #212322;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.fund__fig--collect .fund__value {
+  color: #b54708;
+}
+.fund__note {
+  font-size: 0.725rem;
+  color: #626d6b;
+}
+.fund__check {
+  margin-block-start: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px dashed #cdd4d2;
+}
+.fund__check.is-ok {
+  border-color: rgba(26, 154, 92, 0.5);
+  background: #e2f5ea;
+}
+.fund__check.is-off {
+  border-color: rgba(220, 38, 38, 0.5);
+  background: #fef3f2;
+}
+.fund__equation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #212322;
+}
+.fund__op {
+  color: #626d6b;
+  font-weight: 700;
+}
+.fund__legend {
+  margin-block-start: 2px;
+  font-size: 0.725rem;
+  color: #4a5250;
+}
+.fund__collect {
+  color: #b54708;
+  font-weight: 600;
+}
+.fund__cases tfoot th, .fund__cases tfoot td {
+  font-weight: 700;
+}
+.fund__emps {
+  max-height: 28rem;
+  overflow: auto;
+}
+
 .bf-mode {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));

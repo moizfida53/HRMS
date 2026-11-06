@@ -136,6 +136,8 @@ public static class StoredProcedure
     public const string CollectionFromPayroll = "Payroll.usp_Collection_FromPayroll";
     /// <summary>db/120: Work Permit Payable and the collection preview of one payroll.</summary>
     public const string CollectionRunPreview = "Payroll.usp_Collection_RunPreview";
+    /// <summary>db/121: per employee, the work permit transfer, the balance transfer and what is collected.</summary>
+    public const string PayrollFunding = "Payroll.usp_Payroll_Funding";
 
     /// <summary>Pay items from an Excel file - every row or none.</summary>
     public const string PayItemImport = "Payroll.usp_PayItem_Import";

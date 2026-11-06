@@ -39,6 +39,8 @@ public sealed class CollectionItem
     public string? EmployeeArabicName { get; init; }
     public string? DepartmentName { get; init; }
     public decimal GrossMonthly { get; init; }
+    /// <summary>db/121: the net pay the collection was worked out from (null for older ones).</summary>
+    public decimal? NetPayable { get; init; }
     public decimal WorkPermitSalary { get; init; }
     public decimal Amount { get; init; }
     public string Status { get; init; } = CollectionStatus.Pending;
@@ -51,6 +53,49 @@ public sealed class CollectionItem
     public bool IsCollected => Status == CollectionStatus.Collected;
     /// <summary>A draft payroll can still change: its collections are not marked yet.</summary>
     public bool IsDraft => RunStage == "DRAFT";
+}
+
+/// <summary>
+/// db/121: what one employee of a payroll is transferred (Payroll.ufn_RunFunding): step 1 the work
+/// permit salary, step 2 the net pay above it; step 1 paying more than the net pay is collected back.
+/// </summary>
+public sealed class PayrollFundingRow
+{
+    public long RunEmployeeId { get; init; }
+    public long EmployeeId { get; init; }
+    public string? EmployeeNo { get; init; }
+    public string? EmployeeName { get; init; }
+    public string? DepartmentName { get; init; }
+    /// <summary>BANK / CASH (no IBAN).</summary>
+    public string Method { get; init; } = "BANK";
+    public string? BankName { get; init; }
+    public decimal NetPay { get; init; }
+    public decimal? Wps { get; init; }
+    public decimal WorkPermitTransfer { get; init; }
+    public decimal BalanceTransfer { get; init; }
+    public decimal ToCollect { get; init; }
+    public decimal CashPayment { get; init; }
+    /// <summary>EQUAL / COLLECT / BALANCE / CASH / NO_WPS.</summary>
+    public string FundingCase { get; init; } = "EQUAL";
+}
+
+/// <summary>db/121: the funding summary of a payroll - the totals and the cases, from its rows.</summary>
+public sealed class PayrollFunding
+{
+    public static readonly IReadOnlyList<string> Cases = ["EQUAL", "COLLECT", "BALANCE", "CASH", "NO_WPS"];
+
+    public IReadOnlyList<PayrollFundingRow> Rows { get; init; } = Array.Empty<PayrollFundingRow>();
+
+    public decimal NetPayable => Rows.Sum(r => r.NetPay);
+    public decimal NetPayableByBank => Rows.Where(r => r.Method == "BANK").Sum(r => r.NetPay);
+    public decimal WorkPermitTransfer => Rows.Sum(r => r.WorkPermitTransfer);
+    public decimal BalanceTransfer => Rows.Sum(r => r.BalanceTransfer);
+    public decimal ToCollect => Rows.Sum(r => r.ToCollect);
+    public decimal Cash => Rows.Sum(r => r.CashPayment);
+    public int Count(string fundingCase) => Rows.Count(r => r.FundingCase == fundingCase);
+    public IEnumerable<PayrollFundingRow> Of(string fundingCase) => Rows.Where(r => r.FundingCase == fundingCase);
+    /// <summary>Work permit transfer + balance transfer - to collect = net payable by bank.</summary>
+    public bool IsBalanced => WorkPermitTransfer + BalanceTransfer - ToCollect == NetPayableByBank;
 }
 
 /// <summary>db/120: the work permit figures of one payroll (Create Payroll summary).</summary>

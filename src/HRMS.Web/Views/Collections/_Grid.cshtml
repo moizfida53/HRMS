@@ -72,7 +72,7 @@ else
                             }
                             <th scope="col">@L["pc.col_emp_no"]</th>
                             <th scope="col">@L["pc.col_employee"]</th>
-                            <th scope="col" class="pr-money">@L["col.gross_monthly"]</th>
+                            <th scope="col" class="pr-money">@L["col.net_payable"]</th>
                             <th scope="col" class="pr-money">@L["col.work_permit_salary"]</th>
                             <th scope="col" class="pr-money">@L["col.amount"]</th>
                             <th scope="col">@L["common.status"]</th>
@@ -103,7 +103,7 @@ else
                                         <span class="pr-emp-sub">@i.DepartmentName</span>
                                     }
                                 </td>
-                                <td data-label="@L["col.gross_monthly"]" class="pr-money">@PayrollFormat.Money(i.GrossMonthly)</td>
+                                <td data-label="@L["col.net_payable"]" class="pr-money">@PayrollFormat.Money(i.NetPayable ?? i.GrossMonthly)</td>
                                 <td data-label="@L["col.work_permit_salary"]" class="pr-money">@PayrollFormat.Money(i.WorkPermitSalary)</td>
                                 <td data-label="@L["col.amount"]" class="pr-money col-table__amount">@PayrollFormat.Money(i.Amount)</td>
                                 <td data-label="@L["common.status"]">
