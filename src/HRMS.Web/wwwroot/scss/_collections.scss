@@ -1,0 +1,88 @@
+// ============================================================================
+// Payroll Components > Collection (db/115): Work Permit Collection receivables
+// - the company / payroll month picker, the three key figures with the share
+//   received, the list (pending first) with a tick column for "mark the
+//   selected as received", and the class badge of a Collection pay item type.
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// the class badge on Pay Item Types
+.hrms-badge--collect { @include soft-badge($blue-700, $blue-050); }
+
+// key figures: received in green
+.pc-kpi--ok .hrms-kpi__value { color: $green-700; }
+.pc-kpi--ok .hrms-kpi__icon { background: $green-050; color: $green-700; }
+
+// how much of the month is received
+.col-progress {
+  height: 8px;
+  margin-block-start: space("3");
+  border-radius: $radius-pill;
+  background: $line-100;
+  overflow: hidden;
+
+  &__bar {
+    display: block;
+    height: 100%;
+    border-radius: $radius-pill;
+    background: $green-600;
+    @include motion(width);
+  }
+}
+
+// the ticked rows: one action for all of them
+.col-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: space("2");
+  padding: space("2") space("3");
+  border-block-end: 1px solid $line-200;
+  background: $blue-050;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+
+  &[hidden] { display: none; }
+}
+
+.col-table {
+  &__check { width: 2.5rem; text-align: center; }
+  &__amount { font-weight: $fw-bold; color: $ink-900; }
+
+  &__actions {
+    white-space: nowrap;
+    text-align: end;
+
+    > * + * { margin-inline-start: space("1"); }
+    .btn { display: inline-flex; align-items: center; gap: space("1"); }
+  }
+
+  tr.is-picked > td { background: $blue-050; }
+  tr.is-collected .col-table__amount { color: $ink-500; }
+}
+
+// the date received, the receipt reference and who marked it - one block
+.col-received {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.35;
+  white-space: nowrap;
+
+  &__sub { font-size: $fs-xs; color: $ink-500; white-space: nowrap; }
+}
+
+// phones: the actions wrap under the row's figures, the tick stays first
+@include cq-down(sm) {
+  .col-pick .hrms-search { max-width: none; }
+  .col-received { align-items: flex-end; text-align: end; }
+  .col-table__actions {
+    text-align: start;
+    white-space: normal;
+
+    .btn { width: 100%; justify-content: center; margin-block-end: space("1"); }
+  }
+}

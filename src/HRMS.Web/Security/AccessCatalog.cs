@@ -163,7 +163,9 @@ public static class AccessCatalog
             new("PC.SALARY", "sec.pg_pc_salary", "sec.pg_pc_hint", C("PAYROLL_SALREV_VIEW"), C("PAYROLL_SALREV_EDIT"), C("PAYROLL_SALREV_DELETE")),
             new("PC.EARNING", "sec.pg_pc_earnings", "sec.pg_pc_hint", C("PAYROLL_EARN_VIEW"), C("PAYROLL_EARN_EDIT"), C("PAYROLL_EARN_DELETE")),
             new("PC.DEDUCTION", "sec.pg_pc_deductions", "sec.pg_pc_hint", C("PAYROLL_DED_VIEW"), C("PAYROLL_DED_EDIT"), C("PAYROLL_DED_DELETE")),
-            new("PC.LOAN", "sec.pg_pc_loans", "sec.pg_pc_hint", C("PAYROLL_LOAN_VIEW"), C("PAYROLL_LOAN_EDIT"), C("PAYROLL_LOAN_DELETE"))
+            new("PC.LOAN", "sec.pg_pc_loans", "sec.pg_pc_hint", C("PAYROLL_LOAN_VIEW"), C("PAYROLL_LOAN_EDIT"), C("PAYROLL_LOAN_DELETE")),
+            // db/115: Work Permit Collection receivables - Write = mark as received / set back to pending
+            new("PC.COLLECTION", "sec.pg_pc_collection", "sec.pg_pc_collection_hint", C("PAYROLL_COLL_VIEW"), C("PAYROLL_COLL_EDIT"), No)
         ]),
         new("PS", "sec.mod_payslips", "receipt",
         [
@@ -286,11 +288,12 @@ public static class AccessCatalog
         ["assets"] = ["ASSET_VIEW", "ASSET_EDIT"],
         ["payroll:dashboard"] = ["PAYROLL_DASHBOARD_VIEW"],
         ["payroll:processing"] = ["PAYROLL_RUN_VIEW", "PAYROLL_CALENDAR_VIEW"],
-        ["payroll:components"] = ["PAYROLL_SALREV_VIEW", "PAYROLL_EARN_VIEW", "PAYROLL_DED_VIEW", "PAYROLL_LOAN_VIEW"],
+        ["payroll:components"] = ["PAYROLL_SALREV_VIEW", "PAYROLL_EARN_VIEW", "PAYROLL_DED_VIEW", "PAYROLL_LOAN_VIEW", "PAYROLL_COLL_VIEW"],
         ["tab:pc-salary"] = ["PAYROLL_SALREV_VIEW"],
         ["tab:pc-earnings"] = ["PAYROLL_EARN_VIEW"],
         ["tab:pc-deductions"] = ["PAYROLL_DED_VIEW"],
         ["tab:pc-loans"] = ["PAYROLL_LOAN_VIEW"],
+        ["tab:pc-collection"] = ["PAYROLL_COLL_VIEW"],
         ["payroll:settlement"] = ["PAYROLL_FS_VIEW"],
         ["payroll:payslips"] = ["PAYROLL_SLIP_VIEW", "PAYROLL_SLIP_GENERATE", "PAYROLL_SLIP_EMAIL"],
         ["payroll:bank"] = ["PAYROLL_BANK_VIEW"],

@@ -1,0 +1,46 @@
+@model IReadOnlyList<CollectionHistoryEntry>
+@* Collection (db/115): the audit of one receivable - created, recalculated, received, set back, removed *@
+@{
+    string State(CollectionHistoryEntry h) => h.ActionCode switch
+    {
+        "REMOVED" or "REOPENED" => "is-rejected",
+        "COLLECTED" => "is-done",
+        _ => "is-todo"
+    };
+}
+@if (Model.Count == 0)
+{
+    <p class="hrms-muted">@L["col.no_history"]</p>
+}
+else
+{
+    <ol class="pr-timeline">
+        @foreach (var h in Model)
+        {
+            var local = DateTime.SpecifyKind(h.ActionDate, DateTimeKind.Utc).ToLocalTime();
+            <li class="@State(h)">
+                <span class="pr-timeline__dot"></span>
+                <div class="pr-timeline__title">
+                    @L[CollectionFormat.ActionKey(h.ActionCode)]
+                    @if (h.OldAmount is { } o && h.NewAmount is { } n && o != n)
+                    {
+                        <span class="pr-diff ms-1"><del>@PayrollFormat.Money(o)</del> <ins>@PayrollFormat.Money(n)</ins></span>
+                    }
+                    else if ((h.NewAmount ?? h.OldAmount) is { } a)
+                    {
+                        <span class="hrms-muted ms-1">@L["pr.kwd"] @PayrollFormat.Money(a)</span>
+                    }
+                </div>
+                <div class="pr-timeline__meta">@h.ActionByName · @L.Date(local) @local.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
+                @if (h.CollectedDate is { } cd)
+                {
+                    <div class="pr-timeline__meta">@L["col.received_on"] @L.Date(cd)@if (!string.IsNullOrWhiteSpace(h.Reference)) { <span> · @L["col.reference"]: @h.Reference</span> }</div>
+                }
+                @if (!string.IsNullOrWhiteSpace(h.Comment))
+                {
+                    <div class="pr-timeline__text">@h.Comment</div>
+                }
+            </li>
+        }
+    </ol>
+}

@@ -49,6 +49,7 @@ public static class SettingsFormat
         "EARNING" => "st.class_earning",
         "LOAN" => "st.class_loan",
         "STATUTORY" => "st.class_statutory",
+        "COLLECTION" => "st.class_collection",
         _ => "st.class_deduction"
     };
 
@@ -58,6 +59,7 @@ public static class SettingsFormat
         "EARNING" => "success",
         "LOAN" => "purple",
         "STATUTORY" => "warning",
+        "COLLECTION" => "collect",
         _ => "danger"
     };
 

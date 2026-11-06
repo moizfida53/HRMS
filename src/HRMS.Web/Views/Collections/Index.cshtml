@@ -1,0 +1,136 @@
+@model CollectionPageModel
+@{
+    // Payroll Components > Collection (db/115): Work Permit Collection receivables per company and payroll month
+    ViewData["Title"] = "Collection";
+    ViewData["Heading"] = L["col.title"];
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "components";
+    ViewData["PayrollPage"] = "pc-collection";
+    ViewData["Subtitle"] = L["col.subtitle"];
+    var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+}
+
+<div class="pr-stack" data-col-page
+     data-url-months="@Url.Action("Months", "Collections")"
+     data-url-grid="@Url.Action("Grid", "Collections")"
+     data-url-history="@Url.Action("History", "Collections")"
+     data-url-collect="@Url.Action("Collect", "Collections")"
+     data-url-reopen="@Url.Action("Reopen", "Collections")">
+
+    <div class="pr-banner pr-banner--info">
+        @Html.Icon("wallet", 18)
+        <div><strong>@L["col.intro_title"]</strong> @L["col.intro_text"]</div>
+    </div>
+
+    @* the company and the payroll month first - the summary and the list follow them *@
+    <section class="hrms-card col-pick" aria-label="@L["col.pick_label"]">
+        <div class="row g-3 align-items-end p-3">
+            <div class="col-12 col-md-6 col-xl-4">
+                <label class="form-label" for="col-company">@L["common.company"]</label>
+                <select class="form-select" id="col-company" data-col-company disabled="@(Model.Companies.Count <= 1 ? "disabled" : null)">
+                    @foreach (var c in Model.Companies)
+                    {
+                        <option value="@c.Id" selected="@(c.Id == Model.SelectedCompanyId)">@c.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3 col-xl-3">
+                <label class="form-label" for="col-month">@L["col.payroll_month"]</label>
+                <select class="form-select" id="col-month" data-col-month disabled>
+                    <option value="">@L["col.loading_months"]</option>
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3 col-xl-2">
+                <label class="form-label" for="col-status">@L["common.status"]</label>
+                <select class="form-select" id="col-status" data-col-status>
+                    <option value="">@L["col.all_pending_first"]</option>
+                    <option value="PENDING">@L["col.status_pending"]</option>
+                    <option value="COLLECTED">@L["col.status_collected"]</option>
+                </select>
+            </div>
+            <div class="col-12 col-xl-3">
+                <label class="form-label" for="col-search">@L["col.search"]</label>
+                <label class="hrms-search w-100">
+                    @Html.Icon("search", 16)
+                    <input type="search" id="col-search" data-col-search autocomplete="off" placeholder="@L["col.search_placeholder"]" />
+                </label>
+            </div>
+        </div>
+    </section>
+
+    <div data-col-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+</div>
+
+@* ---- mark as received ---- *@
+<div class="modal fade" id="col-collect-modal" tabindex="-1" aria-hidden="true" aria-labelledby="col-collect-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" data-col-collect-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="col-collect-title">@L["col.mark_received"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="hrms-text-sm mb-3" data-col-collect-what></p>
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="col-date">@L["col.date_received"] <span class="req" aria-hidden="true">*</span></label>
+                        <input class="form-control" type="date" id="col-date" name="collectedDate" max="@today" value="@today" required />
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="col-ref">@L["col.reference"]</label>
+                        <input class="form-control" id="col-ref" name="reference" maxlength="100" autocomplete="off" placeholder="@L["col.reference_hint"]" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="col-comment">@L["pr.comment"]</label>
+                        <textarea class="form-control" id="col-comment" name="comment" rows="2" maxlength="500" placeholder="@L["col.comment_hint"]"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="submit" class="btn btn-primary" data-col-collect-save>@Html.Icon("check", 15)<span>@L["col.mark_received"]</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ---- set back to pending ---- *@
+<div class="modal fade" id="col-reopen-modal" tabindex="-1" aria-hidden="true" aria-labelledby="col-reopen-title">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" data-col-reopen-form novalidate>
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="col-reopen-title">@L["col.set_back"]</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body">
+                <p class="hrms-text-sm" data-col-reopen-what></p>
+                <label class="form-label" for="col-reopen-comment">@L["col.why_set_back"] <span class="req" aria-hidden="true">*</span></label>
+                <textarea class="form-control" id="col-reopen-comment" rows="2" maxlength="500" required></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.cancel"]</button>
+                <button type="submit" class="btn btn-danger" data-col-reopen-save>@L["col.set_back"]</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* ---- audit ---- *@
+<div class="modal fade" id="col-history-modal" tabindex="-1" aria-hidden="true" aria-labelledby="col-history-title">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="col-history-title">@L["pr.history"] <span class="hrms-muted" data-col-history-name></span></h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+            </div>
+            <div class="modal-body" data-col-history-body></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/collections.js" asp-append-version="true"></script>
+}

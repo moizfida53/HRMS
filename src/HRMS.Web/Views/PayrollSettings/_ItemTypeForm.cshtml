@@ -55,8 +55,9 @@
         </div>
         <div class="col-12">
             <span class="form-label d-block">@L["st.type"] <span class="req" aria-hidden="true">*</span></span>
-            <div class="pr-choice st-choice" data-st-choice role="radiogroup" aria-label="@L["st.type"]">
-                @foreach (var (value, key, hint) in new[] { ("EARNING", "st.earning", "st.earning_hint"), ("DEDUCTION", "st.deduction", "st.deduction_hint") })
+            @* db/115: a Collection is paid with the salary and collected back from the employee (Payroll Components > Collection) *@
+            <div class="pr-choice st-choice st-choice--3" data-st-choice role="radiogroup" aria-label="@L["st.type"]">
+                @foreach (var (value, key, hint) in new[] { ("EARNING", "st.earning", "st.earning_hint"), ("DEDUCTION", "st.deduction", "st.deduction_hint"), ("COLLECTION", "st.collection", "st.collection_hint") })
                 {
                     <label class="@(t.ComponentType == value ? "is-selected" : null)">
                         <input type="radio" class="form-check-input" name="@(locked ? null : "ComponentType")" value="@value" checked="@(t.ComponentType == value)" disabled="@locked" data-st-field="ComponentType" />

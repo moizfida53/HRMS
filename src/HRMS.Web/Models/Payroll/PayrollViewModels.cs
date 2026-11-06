@@ -34,7 +34,9 @@ public static class PayrollNav
         new("components", "Payroll Components", "card",
         [
             new("pc-salary", "Salary Revisions", true), new("pc-earnings", "Earnings & Allowances", true),
-            new("pc-deductions", "Deductions", true), new("pc-loans", "Loans & Advances", true)
+            new("pc-deductions", "Deductions", true), new("pc-loans", "Loans & Advances", true),
+            // db/115: Work Permit Collection - what the payroll paid on top and the company collects back
+            new("pc-collection", "Collection", true)
         ], SubNav: true),
         new("settlement", "Final Settlement", "exit",
             [new("fs-list", "Settlements", true), new("fs-new", "New Settlement", true), new("fs-encashment", "Leave Encashment", true)]),
@@ -83,7 +85,7 @@ public static class PayrollNav
     public static string? SubSection(string? slug) => slug switch
     {
         "slip-generate" or "slip-employee" or "slip-email" => slug,
-        "pc-salary" or "pc-earnings" or "pc-deductions" or "pc-loans" => slug,
+        "pc-salary" or "pc-earnings" or "pc-deductions" or "pc-loans" or "pc-collection" => slug,
         "bk-file" or "bk-register" or "bk-history" or "ac-journal" or "ac-posting" or "ac-allocation" => slug,
         _ when slug?.StartsWith("st-", StringComparison.Ordinal) == true => slug,
         "slip-view" => "slip-employee",
@@ -108,6 +110,7 @@ public static class PayrollNav
         "pc-earnings" => "/payroll/components/earnings",
         "pc-deductions" => "/payroll/components/deductions",
         "pc-loans" => "/payroll/components/loans",
+        "pc-collection" => "/payroll/components/collection",
         "fs-list" => "/payroll/settlement",
         "fs-new" => "/payroll/settlement/new",
         "fs-encashment" => "/payroll/settlement/encashment",

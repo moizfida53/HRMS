@@ -19789,3 +19789,115 @@ html.nav-mini:not(.nav-peek) .hrms-sidebar .hrms-nav-link .hrms-nav-approval {
     display: none !important;
   }
 }
+.hrms-badge--collect {
+  color: #0a6b63;
+  background-color: #f3f9f8;
+  border: 1px solid rgba(10, 107, 99, 0.12);
+}
+
+.pc-kpi--ok .hrms-kpi__value {
+  color: #0e6b3e;
+}
+
+.pc-kpi--ok .hrms-kpi__icon {
+  background: #e2f5ea;
+  color: #0e6b3e;
+}
+
+.col-progress {
+  height: 8px;
+  margin-block-start: 0.75rem;
+  border-radius: 999px;
+  background: #e9edec;
+  overflow: hidden;
+}
+.col-progress__bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #1a9a5c;
+  transition-property: width;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .col-progress__bar {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+
+.col-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-block-end: 1px solid #dce1e0;
+  background: #f3f9f8;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.col-bulk[hidden] {
+  display: none;
+}
+
+.col-table__check {
+  width: 2.5rem;
+  text-align: center;
+}
+.col-table__amount {
+  font-weight: 700;
+  color: #212322;
+}
+.col-table__actions {
+  white-space: nowrap;
+  text-align: end;
+}
+.col-table__actions > * + * {
+  margin-inline-start: 0.25rem;
+}
+.col-table__actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.col-table tr.is-picked > td {
+  background: #f3f9f8;
+}
+.col-table tr.is-collected .col-table__amount {
+  color: #626d6b;
+}
+
+.col-received {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.col-received__sub {
+  font-size: 0.725rem;
+  color: #626d6b;
+  white-space: nowrap;
+}
+
+@container content (max-width: 639.98px) {
+  .col-pick .hrms-search {
+    max-width: none;
+  }
+  .col-received {
+    align-items: flex-end;
+    text-align: end;
+  }
+  .col-table__actions {
+    text-align: start;
+    white-space: normal;
+  }
+  .col-table__actions .btn {
+    width: 100%;
+    justify-content: center;
+    margin-block-end: 0.25rem;
+  }
+}

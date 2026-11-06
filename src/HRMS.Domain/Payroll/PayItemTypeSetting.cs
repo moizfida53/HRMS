@@ -32,7 +32,7 @@ public sealed class PayItemTypeSetting
     [StringLength(100)]
     public string? PayslipLabel { get; set; }
 
-    /// <summary>EARNING / DEDUCTION.</summary>
+    /// <summary>EARNING / DEDUCTION / COLLECTION (db/115).</summary>
     public string ComponentType { get; set; } = "EARNING";
 
     /// <summary>FIXED / VARIABLE.</summary>
@@ -91,11 +91,12 @@ public sealed class PayItemTypeSetting
     public string? CostCenterName { get; set; }
     public int StructureCount { get; set; }
 
-    /// <summary>SALARY / EARNING / DEDUCTION / LOAN / STATUTORY - how it is grouped (same rule as the ItemClass column of db/34).</summary>
+    /// <summary>SALARY / EARNING / DEDUCTION / LOAN / STATUTORY / COLLECTION - how it is grouped (same rule as the ItemClass column of db/34).</summary>
     public string ItemClass => SystemCode switch
     {
         "PIFSS_EE" => "STATUTORY",
         "LOAN" or "SALARY_ADVANCE" => "LOAN",
+        _ when ComponentType == "COLLECTION" => "COLLECTION",
         _ when ComponentType == "EARNING" && IsRecurring && ValueType == "FIXED" => "SALARY",
         _ when ComponentType == "EARNING" => "EARNING",
         _ => "DEDUCTION"
@@ -111,7 +112,7 @@ public sealed class PayItemTypeFilter
     public int? CompanyId { get; init; }
     public string? CompanyIds { get; init; }
     public string? Search { get; init; }
-    /// <summary>EARNING / DEDUCTION, or null for both.</summary>
+    /// <summary>EARNING / DEDUCTION / COLLECTION, or null for all.</summary>
     public string? ComponentType { get; init; }
     public bool? IsActive { get; init; }
     public int PageNumber { get; init; } = 1;

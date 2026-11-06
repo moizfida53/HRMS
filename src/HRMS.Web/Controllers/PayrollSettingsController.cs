@@ -85,7 +85,7 @@ public sealed partial class PayrollSettingsController : Controller
             CompanyId = OwnCompany,
             CompanyIds = CompanyCsv,
             Search = search,
-            ComponentType = type is "EARNING" or "DEDUCTION" ? type : null,
+            ComponentType = ComponentTypes.IsValid(type) ? type : null,
             IsActive = status switch { "active" => true, "inactive" => false, _ => null },
             PageNumber = Math.Max(1, page),
             PageSize = 50

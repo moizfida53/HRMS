@@ -130,6 +130,8 @@ public static class StoredProcedure
 
     /// <summary>Pay items: list, key figures, save, approve, reject, end, delete, history.</summary>
     public const string PayItemManage = "Payroll.usp_PayItem_Manage";
+    /// <summary>db/115: Payroll Components &gt; Collection (Work Permit Collection receivables).</summary>
+    public const string CollectionManage = "Payroll.usp_Collection_Manage";
 
     /// <summary>Pay items from an Excel file - every row or none.</summary>
     public const string PayItemImport = "Payroll.usp_PayItem_Import";
