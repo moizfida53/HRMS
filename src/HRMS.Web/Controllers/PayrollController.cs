@@ -1221,7 +1221,23 @@ public sealed class PayrollController : Controller
             return Json(ActionResponse.Failed("You are not an approver for this level.", "FORBIDDEN"));
         }
 
-        return Result(await _runs.RunActionAsync("APPROVE", run, UserId, comment: comment, allowSelfApproval: CanApproveOwn, cancellationToken: Ct));
+        var approved = await _runs.RunActionAsync("APPROVE", run, UserId, comment: comment, allowSelfApproval: CanApproveOwn, cancellationToken: Ct);
+
+        // db/119: Work Permit Collections are recorded once the payroll is approved (closed), not before
+        if (approved.Success && await _runs.GetAsync(run, Ct) is { Stage: RunStage.Closed })
+        {
+            try
+            {
+                if (HttpContext.RequestServices.GetService<ICollectionRepository>() is { } collections)
+                    await collections.FromPayrollAsync(run, UserId, Ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                HttpContext.RequestServices.GetService<ILogger<PayrollController>>()?
+                    .LogWarning(ex, "Work Permit Collections could not be recorded for payroll {Run} (run db/119).", run);
+            }
+        }
+        return Result(approved);
     }
 
     [HttpPost("return")]
