@@ -143,7 +143,14 @@
         var self = this;
         self.slot.setAttribute("aria-busy", "true");
         return HRMS.getHtml(withQs(self.attr("grid"), self.filters())).then(function (html) {
+            // tooltips of the list being replaced (e.g. the companies of a pay item type) are closed first
+            if (window.bootstrap && bootstrap.Tooltip) {
+                $all('[data-bs-toggle="tooltip"]', self.slot).forEach(function (el) { var t = bootstrap.Tooltip.getInstance(el); if (t) { t.dispose(); } });
+            }
             self.slot.innerHTML = html;
+            if (window.bootstrap && bootstrap.Tooltip) {
+                $all('[data-bs-toggle="tooltip"]', self.slot).forEach(function (el) { bootstrap.Tooltip.getOrCreateInstance(el); });
+            }
             self.slot.removeAttribute("aria-busy");
             var holder = $("[data-count-text]", self.slot);
             HRMS.setCountText(self.count, holder ? holder.getAttribute("data-count-text") : "");
@@ -262,6 +269,62 @@
         });
         wireLines(root);
         wireSample(root);
+        wireCompanies(root);
+    }
+
+    /* Pay Item Types: the companies it is created for (a checklist with "All companies").
+       The cost center belongs to one company: it is offered only when one company is ticked. */
+    function wireCompanies(root) {
+        var box = $("[data-st-companies]", root);
+        if (!box) { return; }
+        var all = $("[data-st-companies-all]", box);
+        var count = $("[data-st-companies-count]", box);
+        var cc = $("[data-st-costcenter]", root);
+        var ccNote = $("[data-st-costcenter-note]", root);
+        var ccCompany = null;
+
+        function boxes() { return $all("[data-st-company]", box); }
+        function sync(loadCostCenters) {
+            var list = boxes();
+            var ticked = list.filter(function (b) { return b.checked; });
+            list.forEach(function (b) { b.closest(".st-company").classList.toggle("is-selected", b.checked); });
+            if (all) { all.checked = ticked.length === list.length; all.indeterminate = ticked.length > 0 && ticked.length < list.length; }
+            if (count) {
+                count.textContent = list.length > 1 && ticked.length === list.length ? count.getAttribute("data-all")
+                    : ticked.length === 1 ? count.getAttribute("data-one")
+                    : count.getAttribute("data-many").replace("{0}", ticked.length);
+            }
+            if (!cc) { return; }
+            var one = ticked.length === 1 ? ticked[0].value : null;
+            cc.disabled = !one;
+            if (ccNote) { ccNote.hidden = !!one; }
+            if (!one) { cc.value = ""; }
+            else if (loadCostCenters && one !== ccCompany) {
+                HRMS.getJson(withQs(box.getAttribute("data-cc-url"), { companyId: one })).then(function (items) {
+                    var keep = cc.options[0] && !cc.options[0].value ? cc.options[0] : null;
+                    cc.innerHTML = "";
+                    if (keep) { cc.appendChild(keep); }
+                    (items || []).forEach(function (o) {
+                        var opt = document.createElement("option");
+                        opt.value = o.id; opt.textContent = o.text;
+                        cc.appendChild(opt);
+                    });
+                    cc.dispatchEvent(new Event("hrms:refresh"));
+                });
+            }
+            ccCompany = one;
+            cc.dispatchEvent(new Event("hrms:refresh"));
+        }
+        var first = boxes().filter(function (b) { return b.checked; });
+        ccCompany = first.length === 1 ? first[0].value : null;
+        if (all) {
+            all.addEventListener("change", function () {
+                boxes().forEach(function (b) { if (!b.disabled) { b.checked = all.checked; } });
+                sync(true);
+            });
+        }
+        box.addEventListener("change", function (ev) { if (ev.target.matches("[data-st-company]")) { sync(true); } });
+        sync(false);
     }
 
     /* Editable rows inside a form (e.g. indemnity service slabs):

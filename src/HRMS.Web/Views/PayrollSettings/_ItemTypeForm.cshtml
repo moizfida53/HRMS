@@ -5,6 +5,9 @@
     string? N(decimal? v, string format = "0.###") => v?.ToString(format, inv);
     // a standard type keeps its code and type (the engine knows it by them); Basic Salary stays active
     var locked = t.IsStandard;
+    var picked = Model.SelectedCompanyIds;
+    var allPicked = Model.Companies.Count > 0 && Model.Companies.All(c => picked.Contains(c.Id));
+    var single = picked.Count == 1;
 }
 <input type="hidden" name="PayComponentId" value="@t.PayComponentId" />
 @if (locked)
@@ -12,22 +15,47 @@
     <div class="pr-banner pr-banner--lock mb-3">@Html.Icon("lock", 18)<div><strong>@L["st.standard_type"]</strong> @L["st.standard_type_text"]</div></div>
     <input type="hidden" name="ComponentCode" value="@t.ComponentCode" />
     <input type="hidden" name="ComponentType" value="@t.ComponentType" />
-    <input type="hidden" name="CompanyId" value="@t.CompanyId" />
 }
 
 <fieldset class="hrms-fieldset">
     <legend>@L["st.item_type"]</legend>
     <div class="row g-3">
-        <div class="col-md-6">
-            <label class="form-label" for="it-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
-            <select class="form-select" id="it-company" name="@(locked ? null : "CompanyId")" disabled="@locked"
-                    data-searchable data-options-target="#it-costcenter" data-options-url="@Url.Action("CostCenters", "PayrollSettings")">
-                @foreach (var co in Model.Companies)
+        @* The companies it is created for - one pay item type per company, kept the same in each *@
+        <div class="col-12">
+            <div class="st-companies" data-st-companies data-cc-url="@Url.Action("CostCenters", "PayrollSettings")"
+                 role="group" aria-labelledby="it-companies-label">
+                <div class="st-companies__head">
+                    <span class="form-label mb-0" id="it-companies-label">@L["st.created_for"] <span class="req" aria-hidden="true">*</span></span>
+                    <span class="st-companies__count" data-st-companies-count aria-live="polite"
+                          data-one="@L["st.1_company"]" data-many="@L["st.0_companies", "{0}"]" data-all="@L["st.all_companies"]">
+                        @(allPicked && Model.Companies.Count > 1 ? L["st.all_companies"] : picked.Count == 1 ? L["st.1_company"] : L["st.0_companies", picked.Count])
+                    </span>
+                </div>
+                @if (Model.Companies.Count > 1 && !locked)
                 {
-                    <option value="@co.Id" selected="@(co.Id == t.CompanyId)">@co.Text</option>
+                    <label class="st-companies__all form-check">
+                        <input type="checkbox" class="form-check-input" data-st-companies-all checked="@allPicked" />
+                        <span class="form-check-label">@L["st.all_companies"]</span>
+                    </label>
                 }
-            </select>
-            <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+                <div class="st-companies__list">
+                    @foreach (var co in Model.Companies)
+                    {
+                        var on = picked.Contains(co.Id);
+                        var isFixed = locked || Model.FixedCompanyIds.Contains(co.Id);
+                        <label class="st-company @(on ? "is-selected" : null) @(isFixed ? "is-fixed" : null)">
+                            <input type="checkbox" class="form-check-input" name="@(isFixed ? null : "CompanyIds")" value="@co.Id" checked="@on" disabled="@isFixed" data-st-company />
+                            <span class="st-company__name">@co.Text</span>
+                        </label>
+                        @if (isFixed && on)
+                        {
+                            <input type="hidden" name="CompanyIds" value="@co.Id" />
+                        }
+                    }
+                </div>
+                <span class="field-validation-error" data-valmsg-for="CompanyIds"></span>
+                <p class="form-text mb-0">@(locked ? L["st.created_for_standard_hint"] : L["st.created_for_hint"])</p>
+            </div>
         </div>
         <div class="col-md-6">
             <label class="form-label" for="it-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
@@ -167,13 +195,15 @@
         </div>
         <div class="col-md-6">
             <label class="form-label" for="it-costcenter">@L["st.cost_center"]</label>
-            <select class="form-select" id="it-costcenter" name="CostCenterId" data-searchable>
+            @* a cost center belongs to one company: chosen only when it is created for one company *@
+            <select class="form-select" id="it-costcenter" name="CostCenterId" data-searchable disabled="@(!single)" data-st-costcenter>
                 <option value="">@L["st.employee_cost_center"]</option>
                 @foreach (var c in Model.CostCenters)
                 {
                     <option value="@c.Id" selected="@(c.Id == t.CostCenterId)">@c.Text</option>
                 }
             </select>
+            <span class="form-text" data-st-costcenter-note hidden="@single">@L["st.cost_center_many_hint"]</span>
         </div>
         <div class="col-12">
             <label class="form-label" for="it-desc">@L["st.description"]</label>

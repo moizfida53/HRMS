@@ -32,10 +32,33 @@ public sealed class SettingsGridModel<T>
     public bool CanEditDefaults { get; init; }
 }
 
+/// <summary>
+/// One pay item type as listed: the same code in every company it is created for (a pay item
+/// type is stored once per company - Payroll.PayComponents - and shown once).
+/// </summary>
+public sealed class ItemTypeGroup
+{
+    /// <summary>The row shown (and edited): the user's own company's, else the first.</summary>
+    public required PayItemTypeSetting Item { get; init; }
+    /// <summary>Every company's row of this code (in the user's scope).</summary>
+    public required IReadOnlyList<PayItemTypeSetting> Rows { get; init; }
+    /// <summary>Created for every company the user works in.</summary>
+    public bool AllCompanies { get; init; }
+
+    public int CompanyCount => Rows.Count;
+    public int ActiveCount => Rows.Count(r => r.IsActive);
+    public bool AnyActive => ActiveCount > 0;
+    public string CompanyNames => string.Join(", ", Rows.Select(r => r.CompanyName).Where(n => !string.IsNullOrWhiteSpace(n)).Order(StringComparer.CurrentCultureIgnoreCase));
+}
+
 public sealed class ItemTypeFormModel
 {
     public required PayItemTypeSetting Item { get; init; }
     public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
+    /// <summary>The companies it is created for (ticked in the form).</summary>
+    public IReadOnlyCollection<int> SelectedCompanyIds { get; init; } = Array.Empty<int>();
+    /// <summary>A standard type cannot be taken away from a company that has it (only deactivated).</summary>
+    public IReadOnlyCollection<int> FixedCompanyIds { get; init; } = Array.Empty<int>();
     public IReadOnlyList<LookupItem> CostCenters { get; init; } = Array.Empty<LookupItem>();
     public bool IsNew => Item.PayComponentId <= 0;
 }

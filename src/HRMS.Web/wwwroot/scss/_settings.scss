@@ -344,3 +344,65 @@
 
   strong { display: block; color: $ink-900; }
 }
+
+// ---------------------------------------------------------------------------
+// db/124: Pay Item Types - the companies it is created for
+// ---------------------------------------------------------------------------
+.st-companies {
+  padding: space("3");
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+  background: $surface-2;
+
+  &__head { display: flex; align-items: center; justify-content: space-between; gap: space("2"); margin-block-end: space("2"); }
+  &__count { @include soft-badge($blue-700, $blue-100); padding: .1rem .55rem; border-radius: $radius-pill; font-size: $fs-xs; font-weight: $fw-semibold; }
+  &__all { display: inline-flex; align-items: center; gap: .4rem; margin: 0 0 space("2"); font-weight: $fw-semibold; }
+
+  &__list {
+    display: grid;
+    gap: space("2");
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+    max-height: 220px;
+    overflow-y: auto;
+    @include thin-scrollbar;
+  }
+  .form-text { margin-block-start: space("2"); }
+}
+
+.st-company {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+  padding: .45rem .65rem;
+  border: 1px solid $line-200;
+  border-radius: $radius;
+  background: $white;
+  cursor: pointer;
+  @include motion(border-color, background-color, box-shadow);
+
+  .form-check-input { margin: 0; flex: 0 0 auto; }
+  &__name { @include truncate; font-size: $fs-sm; }
+  &:hover { border-color: $blue-200; }
+  &.is-selected { border-color: $blue-600; background: $blue-050; box-shadow: inset 0 0 0 1px $blue-600; }
+  &.is-fixed { cursor: default; opacity: .85; }
+}
+
+// the Companies column of the list
+.st-co {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  max-width: 180px;
+  padding: .15rem .55rem;
+  border-radius: $radius-pill;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  @include soft-badge($ink-600, $line-100);
+  cursor: help;
+  @include focus-ring;
+
+  &--all { @include soft-badge($green-700, $green-050); }
+  &--one { cursor: default; }
+  &__name { @include truncate; }
+}

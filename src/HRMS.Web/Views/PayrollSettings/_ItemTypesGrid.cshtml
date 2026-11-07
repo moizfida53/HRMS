@@ -1,5 +1,5 @@
 @using HRMS.Web.Models.Organization
-@model SettingsGridModel<PayItemTypeSetting>
+@model SettingsGridModel<ItemTypeGroup>
 @{
     var pg = Model.Page;
     var countText = pg.TotalCount == 1 ? L["st.1_item_type"] : L["st.0_item_types", PayrollFormat.Count(pg.TotalCount)];
@@ -28,6 +28,7 @@ else
                 <tr>
                     <th scope="col">@L["common.code"]</th>
                     <th scope="col">@L["st.item_type"]</th>
+                    <th scope="col">@L["st.companies"]</th>
                     <th scope="col">@L["st.class"]</th>
                     <th scope="col" class="col-p2">@L["st.calculation"]</th>
                     <th scope="col" class="col-p3">@L["st.included_in"]</th>
@@ -37,10 +38,11 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var t in pg.Items)
+                @foreach (var g in pg.Items)
                 {
+                    var t = g.Item;
                     var name = L.IsArabic && !string.IsNullOrWhiteSpace(t.ArabicName) ? t.ArabicName! : t.ComponentName;
-                    <tr data-id="@t.PayComponentId" data-name="@name" class="@(t.IsActive ? null : "is-ended")">
+                    <tr data-id="@t.PayComponentId" data-name="@name" class="@(g.AnyActive ? null : "is-ended")">
                         <td data-label="@L["common.code"]" class="hrms-nowrap">
                             <span class="hrms-code-chip">@t.ComponentCode</span>
                             @if (t.IsStandard)
@@ -50,7 +52,24 @@ else
                         </td>
                         <td data-label="@L["st.item_type"]">
                             <span class="hrms-table__primary">@name</span>
-                            <span class="pr-emp-sub" lang="@(L.IsArabic ? "en" : "ar")" dir="auto">@(L.IsArabic ? t.ComponentName : t.ArabicName)@(Model.ManyCompanies ? " · " + t.CompanyName : "")</span>
+                            <span class="pr-emp-sub" lang="@(L.IsArabic ? "en" : "ar")" dir="auto">@(L.IsArabic ? t.ComponentName : t.ArabicName)</span>
+                        </td>
+                        @* the companies it is created for: All, the one company, or how many (their names on hover) *@
+                        <td data-label="@L["st.companies"]" class="hrms-nowrap">
+                            @if (g.AllCompanies)
+                            {
+                                <span class="st-co st-co--all" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="@g.CompanyNames"
+                                      aria-label="@L["st.all_companies"]: @g.CompanyNames">@Html.Icon("building", 13)<span>@L["st.all"]</span></span>
+                            }
+                            else if (g.CompanyCount == 1)
+                            {
+                                <span class="st-co st-co--one" title="@g.CompanyNames">@Html.Icon("building", 13)<span class="st-co__name">@g.CompanyNames</span></span>
+                            }
+                            else
+                            {
+                                <span class="st-co" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="@g.CompanyNames"
+                                      aria-label="@L["st.0_companies", g.CompanyCount]: @g.CompanyNames">@Html.Icon("building", 13)<span>@L["st.0_companies", g.CompanyCount]</span></span>
+                            }
                         </td>
                         <td data-label="@L["st.class"]"><span class="hrms-badge hrms-badge--@SettingsFormat.ClassBadge(t.ItemClass)"><span class="hrms-badge__dot"></span>@L[SettingsFormat.ClassKey(t.ItemClass)]</span></td>
                         <td data-label="@L["st.calculation"]" class="col-p2 hrms-text-sm">
@@ -79,7 +98,14 @@ else
                         </td>
                         <td data-label="@L["st.gl_account"]" class="col-p3 hrms-text-sm">@(t.GLAccountCode ?? "—")</td>
                         <td data-label="@L["common.status"]">
-                            <span class="hrms-badge hrms-badge--@(t.IsActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(t.IsActive ? L["org.active"] : L["org.inactive"])</span>
+                            @if (g.ActiveCount > 0 && g.ActiveCount < g.CompanyCount)
+                            {
+                                <span class="hrms-badge hrms-badge--warning" title="@string.Join(", ", g.Rows.Where(r => r.IsActive).Select(r => r.CompanyName))"><span class="hrms-badge__dot"></span>@L["st.active_0_of_1", g.ActiveCount, g.CompanyCount]</span>
+                            }
+                            else
+                            {
+                                <span class="hrms-badge hrms-badge--@(g.AnyActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(g.AnyActive ? L["org.active"] : L["org.inactive"])</span>
+                            }
                         </td>
                         <td class="hrms-table__actions">
                             @if (Model.Rights.CanEdit)
@@ -87,7 +113,7 @@ else
                                 <button type="button" class="btn-icon" data-st-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
                                 @if (!t.IsBasic)
                                 {
-                                    <button type="button" class="btn-icon btn-icon--success" data-st-toggle title="@(t.IsActive ? L["common.deactivate"] : L["common.activate"])" aria-label="@(t.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
+                                    <button type="button" class="btn-icon btn-icon--success" data-st-toggle title="@(g.AnyActive ? L["common.deactivate"] : L["common.activate"])" aria-label="@(g.AnyActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
                                 }
                             }
                             @if (Model.Rights.CanDelete && !t.IsStandard)
