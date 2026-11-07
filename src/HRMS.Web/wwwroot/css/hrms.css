@@ -21011,3 +21011,28 @@ html.nav-mini:not(.nav-peek) .hrms-sidebar .hrms-nav-link .hrms-nav-approval {
     display: none !important;
   }
 }
+.hrms-table .pr-col-open {
+  width: 1%;
+  white-space: nowrap;
+  padding-inline-end: 0;
+}
+
+.hrms-table td.pr-col-open {
+  text-align: start;
+}
+
+.pr-run-stage {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-block-start: 0.35rem;
+}
+
+.pr-run-stage .pr-mini-stages {
+  margin-inline-end: 0.25rem;
+}
+
+.ws-next-cell {
+  min-width: 9.5rem;
+}

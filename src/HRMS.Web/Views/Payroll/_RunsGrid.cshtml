@@ -52,14 +52,13 @@ else
             <caption class="hrms-sr-only">@L["pr.payrolls"]</caption>
             <thead>
                 <tr>
+                    <th scope="col" class="pr-col-open"><span class="hrms-sr-only">@L["common.actions"]</span></th>
                     <th scope="col">@L["layout.payroll"]</th>
                     <th scope="col">@L["common.company"]</th>
                     <th scope="col" class="col-p2">@L["pr.period"]</th>
                     <th scope="col" class="col-p3">@L["pr.calendar"]</th>
-                    <th scope="col" class="col-p3">@L["org.type"]</th>
                     <th scope="col" class="text-center col-p3">@L["common.employees"]</th>
                     <th scope="col" class="pr-money col-p2">@L["pr.net_kwd"]</th>
-                    <th scope="col">@L["pr.stage"]</th>
                     @if (showPayout)
                     {
                         <th scope="col" class="col-p2">@L["ws.col_payout"]</th>
@@ -73,7 +72,6 @@ else
                     {
                         <th scope="col" class="col-p2">@L["pr.closed_cancelled_by"]</th>
                     }
-                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -82,9 +80,36 @@ else
                     var idx = r.FlowIndex;
                     var po = r.Payout;
                     <tr class="@(r.IsCancelled ? "pr-row-cancelled" : null)" data-run-id="@r.PayrollRunId">
+                        <td class="hrms-table__actions pr-col-open">
+                            @if (Model.PayslipPending && Model.CanSlips)
+                            {
+                                @* opens Generate Payslips with this payroll's popup open (an opaque reference, not its id) *@
+                                <a class="btn btn-sm btn-primary pr-goto-slips" href="@Url.Action("Generate", "Payslips", new { open = Refs.Protect(RefPurpose.PayslipRun, r.PayrollRunId) })">
+                                    @Html.Icon("receipt", 14)<span>@L["pr.goto_payslips"]</span>
+                                </a>
+                            }
+                            <a class="btn-icon" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })" title="@L["pr.open"]" aria-label="@L["common.open_named", r.RunCode]">@Html.Icon(r.IsEditable ? "edit" : "eye", 15)</a>
+                            @if (history && !r.IsCancelled)
+                            {
+                                <a class="btn-icon" href="@Url.Action("Export", "Payroll", new { run = r.PayrollRunId })" title="@L["common.export"]" aria-label="@L["pr.export_0", r.RunCode]">@Html.Icon("download", 15)</a>
+                            }
+                        </td>
                         <td data-label="@L["layout.payroll"]" class="hrms-nowrap">
                             <a class="pr-run-link" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })"><span class="hrms-code-chip">@r.RunCode</span></a>
-                            <span class="pr-emp-sub pr-run-desc">@(string.IsNullOrWhiteSpace(r.Description) ? L["pr.regular_payroll"] : r.Description)</span>
+                            <span class="pr-emp-sub pr-run-desc">@(!string.IsNullOrWhiteSpace(r.Description) ? r.Description : r.RunType == RunType.Regular ? L["pr.regular_payroll"] : L.Tr(RunType.Label(r.RunType)))</span>
+                            @* the stage sits under the payroll (no column of its own - the list fits without scrolling) *@
+                            <span class="pr-run-stage">
+                                @if (!r.IsCancelled)
+                                {
+                                    <span class="pr-mini-stages ws-mini-stages" aria-hidden="true">
+                                        @for (var i = 0; i < 6; i++)
+                                        {
+                                            <i class="@(i < idx || (idx == 5 && i == 5) ? "is-done" : (i == idx ? "is-current" : null))"></i>
+                                        }
+                                    </span>
+                                }
+                                <span class="hrms-badge hrms-badge--@r.StageBadge"><span class="hrms-badge__dot"></span>@L.Tr(r.StageLabel)@(r.Stage == RunStage.AwaitingApproval ? " " + L["pr.level_0_of_2", r.ApprovalLevel + 1] : "")</span>
+                            </span>
                         </td>
                         <td data-label="@L["common.company"]">
                             <span class="pr-run-company" title="@r.CompanyName">@r.CompanyName</span>
@@ -95,7 +120,6 @@ else
                         </td>
                         <td data-label="@L["pr.period"]" class="col-p2">@PayrollFormat.Period(L, r)</td>
                         <td data-label="@L["pr.calendar"]" class="col-p3">@PayrollFormat.Calendar(L, r.CalendarName, r.CalendarArabicName)</td>
-                        <td data-label="@L["org.type"]" class="col-p3">@L.Tr(RunType.Label(r.RunType))</td>
                         <td data-label="@L["common.employees"]" class="text-center col-p3">
                             @PayrollFormat.Count(r.EmployeeCount)
                             @if (r.ExcludedCount > 0)
@@ -104,18 +128,6 @@ else
                             }
                         </td>
                         <td data-label="@L["pr.net_kwd"]" class="pr-money col-p2">@(r.IsCancelled ? "—" : PayrollFormat.Money(r.TotalNet))</td>
-                        <td data-label="@L["pr.stage"]" class="hrms-nowrap">
-                            @if (!r.IsCancelled)
-                            {
-                                <span class="pr-mini-stages ws-mini-stages" aria-hidden="true">
-                                    @for (var i = 0; i < 6; i++)
-                                    {
-                                        <i class="@(i < idx || (idx == 5 && i == 5) ? "is-done" : (i == idx ? "is-current" : null))"></i>
-                                    }
-                                </span>
-                            }
-                            <span class="hrms-badge hrms-badge--@r.StageBadge"><span class="hrms-badge__dot"></span>@L.Tr(r.StageLabel)@(r.Stage == RunStage.AwaitingApproval ? " " + L["pr.level_0_of_2", r.ApprovalLevel + 1] : "")</span>
-                        </td>
                         @if (showPayout)
                         {
                             <td data-label="@L["ws.col_payout"]" class="col-p2 hrms-nowrap">
@@ -134,7 +146,7 @@ else
                                     <span class="hrms-muted">—</span>
                                 }
                             </td>
-                            <td data-label="@L["ws.next_action"]" class="col-p2">
+                            <td data-label="@L["ws.next_action"]" class="col-p2 ws-next-cell">
                                 @if (r.IsClosed && po?.NextAction is { } na)
                                 {
                                     <a class="ws-next-link" href="@Url.Content(WorkspaceNav.Path(na.Tab, r.PayrollRunId))">@L[na.Key]@Html.Icon("chevron-right", 13)</a>
@@ -162,20 +174,6 @@ else
                                 @(r.IsCancelled ? r.CancelledByName : r.ClosedByName) · @L.Date(r.IsCancelled ? r.CancelledDate : r.ClosedDate)
                             </td>
                         }
-                        <td class="hrms-table__actions">
-                            @if (Model.PayslipPending && Model.CanSlips)
-                            {
-                                @* opens Generate Payslips with this payroll's popup open (an opaque reference, not its id) *@
-                                <a class="btn btn-sm btn-primary pr-goto-slips" href="@Url.Action("Generate", "Payslips", new { open = Refs.Protect(RefPurpose.PayslipRun, r.PayrollRunId) })">
-                                    @Html.Icon("receipt", 14)<span>@L["pr.goto_payslips"]</span>
-                                </a>
-                            }
-                            <a class="btn-icon" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })" title="@L["pr.open"]" aria-label="@L["common.open_named", r.RunCode]">@Html.Icon(r.IsEditable ? "edit" : "eye", 15)</a>
-                            @if (history && !r.IsCancelled)
-                            {
-                                <a class="btn-icon" href="@Url.Action("Export", "Payroll", new { run = r.PayrollRunId })" title="@L["common.export"]" aria-label="@L["pr.export_0", r.RunCode]">@Html.Icon("download", 15)</a>
-                            }
-                        </td>
                     </tr>
                 }
             </tbody>
