@@ -238,12 +238,26 @@ else if (i?.IsPending == true)
     </div>
     @* a deduction: To month (the period, with From month above), then the Total Amount and the Monthly Deductible
        amount worked out from them. The number of instalments is the months from From to To. *@
+    @* Number of months and To month side by side: a number of months typed sets the To month (From + months - 1,
+       locked); with no number the To month is picked and the number of months follows it (still editable) *@
     <div class="col-md-6" data-show-for="DEDUCTION" data-show-applies="MONTHLY INSTALMENT">
-        <label class="form-label" for="pi-to-ded">@L["pr.to_month"] <span class="req" aria-hidden="true" data-pi-to-req>*</span></label>
-        <select class="form-select" id="pi-to-ded" name="EndMonth" data-pi-dto disabled="@lockAttr">
-            <option value="" data-open-ended>@L["pr.no_end_every_month"]</option>
-            @Html.Raw(ToMonthOptions(dedTo))
-        </select>
+        <div class="pi-period">
+            <div class="pi-period__count">
+                <label class="form-label" for="pi-ded-months">@L["pr.number_of_months"]</label>
+                <input class="form-control" type="number" id="pi-ded-months" min="1" max="600" step="1" inputmode="numeric" autocomplete="off"
+                       placeholder="—" value="@(dedTo is null ? "" : dedMonths.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                       data-src="@(dedTo is null ? null : "to")" disabled="@lockAttr" data-pi-dmonths />
+            </div>
+            <div class="pi-period__to">
+                <label class="form-label" for="pi-to-ded">@L["pr.to_month"] <span class="req" aria-hidden="true" data-pi-to-req>*</span></label>
+                <select class="form-select" id="pi-to-ded" data-pi-dto disabled="@lockAttr">
+                    <option value="" data-open-ended>@L["pr.no_end_every_month"]</option>
+                    @Html.Raw(ToMonthOptions(dedTo))
+                </select>
+            </div>
+        </div>
+        @* the To month posted (the select is locked while a number of months is typed) *@
+        <input type="hidden" name="@(locked ? null : "EndMonth")" data-pi-dto-out value="@(dedTo is { } dt ? PayItemFormat.MonthValue(dt) : "")" />
         <span class="form-text" data-pi-dto-hint></span>
     </div>
     <input type="hidden" id="pi-count-ded" data-pi-count="DEDUCTION" value="@(i?.InstalmentCount ?? dedMonths)" />

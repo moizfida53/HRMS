@@ -1422,6 +1422,8 @@
             if (outCount && outCount.name) { outCount.value = applies === "INSTALMENT" && countIn ? countIn.value : ""; }
             var until = $("[data-pi-until]", root);
             if (until) { until.disabled = applies !== "MONTHLY" || cls !== "EARNING"; }
+            var dedOut = $("[data-pi-dto-out]", root);
+            if (dedOut && cls !== "DEDUCTION") { dedOut.disabled = true; }
             if (cls === "DEDUCTION") { syncDeduction(applies, startSel, countIn, amt); }
             if (cls === "LOAN") { loanChecks(); }
             syncRef(cls, typeSel.value, typeSel.options[typeSel.selectedIndex]);
@@ -1434,6 +1436,13 @@
             var f = String(from || "").split("-"), t = String(to || "").split("-");
             if (f.length < 2 || t.length < 2) { return 0; }
             return (parseInt(t[0], 10) - parseInt(f[0], 10)) * 12 + parseInt(t[1], 10) - parseInt(f[1], 10) + 1;
+        };
+        var addMonths = function (ym, n) {            // "2026-08", 11 -> "2027-07"
+            var p = String(ym || "").split("-");
+            if (p.length < 2) { return ""; }
+            var d = parseInt(p[0], 10) * 12 + parseInt(p[1], 10) - 1 + n;
+            var y = Math.floor(d / 12), m = d % 12 + 1;
+            return y + "-" + (m < 10 ? "0" : "") + m;
         };
         var syncDeduction = function (applies, startSel, countIn, amt) {
             var root = piBody;
@@ -1452,7 +1461,26 @@
                 var early = !!from && o.value < from;
                 o.hidden = early; o.disabled = early;
             });
-            if (ranged && !locked) {
+            // Number of months typed: the To month follows it (From + months - 1) and is locked;
+            // with no number the To month is picked and the number of months shows what it comes to
+            var monthsIn = $("[data-pi-dmonths]", root);
+            if (monthsIn) { monthsIn.disabled = locked || !ranged; }
+            var typedMonths = monthsIn && monthsIn.getAttribute("data-src") === "user" ? parseInt(monthsIn.value, 10) : NaN;
+            var byCount = ranged && !locked && !!from && typedMonths > 0;
+            if (byCount) {
+                var target = addMonths(from, Math.min(typedMonths, 600) - 1);
+                if (!toSel.querySelector('option[value="' + target + '"]')) {
+                    var p2 = target.split("-"), extra = document.createElement("option");
+                    extra.value = target;
+                    extra.textContent = new Date(parseInt(p2[0], 10), parseInt(p2[1], 10) - 1, 1)
+                        .toLocaleDateString(document.documentElement.lang || undefined, { month: "long", year: "numeric" });
+                    toSel.appendChild(extra);
+                }
+                toSel.value = target;
+            }
+            toSel.disabled = locked || !ranged || byCount;
+            toSel.dispatchEvent(new Event("hrms:refresh"));
+            if (ranged && !locked && !byCount) {
                 var cur = toSel.options[toSel.selectedIndex];
                 if (applies === "INSTALMENT" && (!toSel.value || (cur && cur.disabled))) {
                     // a new instalment plan: one month by default (the To month after From), then the user picks
@@ -1463,6 +1491,13 @@
 
             var openEnded = applies === "MONTHLY" && !toSel.value;
             var months = applies === "ONCE" ? 1 : toSel.value ? monthsFromTo(from, toSel.value) : 0;
+            // the number of months follows the To month unless it was typed
+            if (monthsIn && !byCount && monthsIn !== document.activeElement) {
+                monthsIn.value = ranged && months > 0 ? months : "";
+                if (monthsIn.getAttribute("data-src") === "user" && !monthsIn.value) { monthsIn.removeAttribute("data-src"); }
+            }
+            var dOut = $("[data-pi-dto-out]", root);
+            if (dOut) { dOut.disabled = !ranged; dOut.value = ranged ? toSel.value : ""; }
             var req = $("[data-pi-to-req]", root);
             if (req) { req.hidden = applies !== "INSTALMENT"; }
 
@@ -1634,9 +1669,22 @@
         piBody.addEventListener("change", function (ev) {
             if (ev.target.matches("[data-pi-employee]")) { loadFigures(); return; }
             if (ev.target.matches('[data-pi-start="SALARY"]')) { ev.target.setAttribute("data-user-set", "1"); }
+            // a To month picked: the number of months shows what it comes to (and stays editable)
+            if (ev.target.matches("[data-pi-dto]")) { var mi = $("[data-pi-dmonths]", piBody); if (mi) { mi.setAttribute("data-src", "to"); } }
             syncForm();
         });
         piBody.addEventListener("input", function (ev) {
+            // a number of months typed sets the To month; cleared, the To month is picked again
+            if (ev.target.matches("[data-pi-dmonths]")) {
+                if (parseInt(ev.target.value, 10) > 0) { ev.target.setAttribute("data-src", "user"); }
+                else {
+                    ev.target.removeAttribute("data-src");
+                    var ts = $("[data-pi-dto]", piBody);
+                    if (ts && $('[data-pi-out="applies"]', piBody).value === "MONTHLY") { ts.value = ""; }
+                }
+                syncForm();
+                return;
+            }
             if (ev.target.matches("[data-pi-total], [data-pi-count], [data-pi-amount], [data-pi-rev-change], [data-pi-dtotal], [data-pi-dmonthly]")) { syncForm(); }
         });
         piForm.addEventListener("submit", function (ev) {

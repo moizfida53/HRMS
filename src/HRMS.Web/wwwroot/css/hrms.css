@@ -9084,6 +9084,22 @@ tr.pr-row-cancelled .hrms-code-chip {
   white-space: nowrap;
 }
 
+/* db/125: Add deduction - Number of months beside To month */
+.pi-period {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 0.75rem;
+}
+
+.pi-period__count .form-control {
+  text-align: end;
+}
+
+.pi-period select:disabled {
+  background-color: var(--hrms-surface);
+  cursor: not-allowed;
+}
+
 .fs-page {
   display: flex;
   flex-direction: column;

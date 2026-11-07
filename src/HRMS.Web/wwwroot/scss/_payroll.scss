@@ -837,3 +837,8 @@ tr.pr-row-cancelled .hrms-code-chip { text-decoration: line-through; }
   &__bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0f766e, #14b8a6); }
   &__text { display: block; margin-top: 4px; font-size: .72rem; color: var(--hrms-ink-500, #626d6b); white-space: nowrap; }
 }
+
+/* db/125: Add deduction - Number of months beside To month */
+.pi-period { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: .75rem; }
+.pi-period__count .form-control { text-align: end; }
+.pi-period select:disabled { background-color: var(--hrms-surface); cursor: not-allowed; }
