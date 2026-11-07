@@ -1,0 +1,255 @@
+@model AttPatternFormModel
+@{
+    var p = Model.Pattern;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string N(decimal? v, string f = "0.##") => v?.ToString(f, inv) ?? "";
+    string? T(TimeSpan? t) => t?.ToString("hh\\:mm", inv);
+    var off = (p.WeeklyOffDays ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    var dayKeys = new[] { ("SAT", "att.d_sat"), ("SUN", "att.d_sun"), ("MON", "att.d_mon"), ("TUE", "att.d_tue"), ("WED", "att.d_wed"), ("THU", "att.d_thu"), ("FRI", "att.d_fri") };
+    var types = new[] { (AttCodes.Amount, "att.ded_amount"), (AttCodes.DayPercent, "att.ded_day_percent"), (AttCodes.Prorata, "att.ded_prorata") };
+
+    async Task SlabRow(int i, AttendanceSlab s)
+    {
+        <tr>
+            <td data-label="@L["att.slab_rule"]">
+                <select class="form-select form-select-sm" name="Slabs[@i].RuleKind" aria-label="@L["att.slab_rule"]">
+                    <option value="LATE" selected="@(s.RuleKind == AttCodes.Late)">@L["att.rule_late"]</option>
+                    <option value="SHORT" selected="@(s.RuleKind == AttCodes.Short)">@L["att.rule_short"]</option>
+                </select>
+            </td>
+            <td data-label="@L["att.slab_from"]"><input class="form-control form-control-sm" type="number" min="0" max="1440" name="Slabs[@i].FromMinutes" value="@s.FromMinutes" aria-label="@L["att.slab_from"]" /></td>
+            <td data-label="@L["att.slab_to"]"><input class="form-control form-control-sm" type="number" min="0" max="1440" name="Slabs[@i].ToMinutes" value="@s.ToMinutes" placeholder="@L["att.and_above"]" aria-label="@L["att.slab_to"]" /></td>
+            <td data-label="@L["att.slab_deduct"]">
+                <select class="form-select form-select-sm" name="Slabs[@i].DeductionType" aria-label="@L["att.slab_deduct"]">
+                    @foreach (var (v, k) in types)
+                    {
+                        <option value="@v" selected="@(s.DeductionType == v)">@L[k]</option>
+                    }
+                </select>
+            </td>
+            <td data-label="@L["att.slab_value"]"><input class="form-control form-control-sm" type="number" min="0" step="0.001" name="Slabs[@i].Value" value="@N(s.Value, "0.###")" aria-label="@L["att.slab_value"]" dir="ltr" /></td>
+            <td class="st-lines__act"><button type="button" class="btn-icon btn-icon--danger" data-st-line-remove title="@L["common.delete"]" aria-label="@L["common.delete"]">@Html.Icon("trash", 14)</button></td>
+        </tr>
+        await Task.CompletedTask;
+    }
+}
+<input type="hidden" name="PatternId" value="@p.PatternId" />
+<div data-st-wide></div>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["att.pattern"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="ap-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
+            <select class="form-select" id="ap-company" name="CompanyId" data-searchable>
+                @foreach (var c in Model.Companies)
+                {
+                    <option value="@c.Id" selected="@(c.Id == p.CompanyId)">@c.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control text-uppercase" id="ap-code" name="PatternCode" value="@p.PatternCode" maxlength="30" dir="ltr" placeholder="DAY-SHIFT" autocomplete="off" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-name">@L["st.name_english"] <span class="req" aria-hidden="true">*</span></label>
+            <input class="form-control" id="ap-name" name="PatternName" value="@p.PatternName" maxlength="150" placeholder="@L["att.name_placeholder"]" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-ar">@L["st.name_arabic"]</label>
+            <input class="form-control" id="ap-ar" name="ArabicName" value="@p.ArabicName" maxlength="150" dir="rtl" lang="ar" />
+        </div>
+        <div class="col-12">
+            <span class="form-label d-block">@L["att.type"]</span>
+            <div class="pr-choice st-choice" data-st-choice role="radiogroup" aria-label="@L["att.type"]">
+                @foreach (var (value, key, hint) in new[] { (AttCodes.Fixed, "att.type_fixed", "att.type_fixed_hint"), (AttCodes.Flexible, "att.type_flexible", "att.type_flexible_hint") })
+                {
+                    <label class="@(p.PatternType == value ? "is-selected" : null)">
+                        <input type="radio" class="form-check-input" name="PatternType" value="@value" checked="@(p.PatternType == value)" data-st-field="PatternType" />
+                        <span><strong>@L[key]</strong><span>@L[hint]</span></span>
+                    </label>
+                }
+            </div>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["att.hours"]</legend>
+    <div class="row g-3">
+        <div class="col-6 col-md-3" data-show-if="PatternType=FIXED">
+            <label class="form-label" for="ap-start">@L["att.shift_start"]</label>
+            <input class="form-control" type="time" id="ap-start" name="ShiftStart" value="@T(p.ShiftStart)" />
+        </div>
+        <div class="col-6 col-md-3" data-show-if="PatternType=FIXED">
+            <label class="form-label" for="ap-end">@L["att.shift_end"]</label>
+            <input class="form-control" type="time" id="ap-end" name="ShiftEnd" value="@T(p.ShiftEnd)" />
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label" for="ap-req">@L["att.required_hours"]</label>
+            <input class="form-control" id="ap-req" name="RequiredHours" value="@AttFormat.HmOrZero(p.RequiredMinutes)" placeholder="8:00" dir="ltr" />
+            <span class="form-text">@L["att.required_hint"]</span>
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label" for="ap-break">@L["att.break_minutes"]</label>
+            <input class="form-control" type="number" min="0" max="600" id="ap-break" name="BreakMinutes" value="@p.BreakMinutes" />
+            <span class="form-text">@L["att.break_hint"]</span>
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label" for="ap-grace">@L["att.grace_minutes"]</label>
+            <input class="form-control" type="number" min="0" max="600" id="ap-grace" name="GraceMinutes" value="@p.GraceMinutes" />
+            <span class="form-text">@L["att.grace_hint"]</span>
+        </div>
+        <div class="col-md-9">
+            <span class="form-label d-block">@L["att.weekly_off"]</span>
+            <div class="att-days" role="group" aria-label="@L["att.weekly_off"]">
+                @foreach (var (code, key) in dayKeys)
+                {
+                    <label class="att-day">
+                        <input type="checkbox" name="OffDays" value="@code" checked="@off.Contains(code)" />
+                        <span>@L[key]</span>
+                    </label>
+                }
+            </div>
+            <span class="form-text">@L["att.weekly_off_hint"]</span>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["att.deductions"]</legend>
+    <div class="st-switches">
+        @await Html.PartialAsync("~/Views/PayrollSettings/_Switch.cshtml", new SettingsSwitch("LateEnabled", L["att.late_enabled"], p.LateEnabled, L["att.late_enabled_hint"]))
+        @await Html.PartialAsync("~/Views/PayrollSettings/_Switch.cshtml", new SettingsSwitch("ShortEnabled", L["att.short_enabled"], p.ShortEnabled, L["att.short_enabled_hint"]))
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-8">
+            <span class="form-label d-block">@L["att.combine"]</span>
+            <div class="pr-choice st-choice" data-st-choice role="radiogroup" aria-label="@L["att.combine"]">
+                @foreach (var (value, key, hint) in new[] { ("HIGHER", "att.combine_higher", "att.combine_higher_hint"), ("BOTH", "att.combine_both", "att.combine_both_hint") })
+                {
+                    <label class="@(p.CombineRule == value ? "is-selected" : null)">
+                        <input type="radio" class="form-check-input" name="CombineRule" value="@value" checked="@(p.CombineRule == value)" />
+                        <span><strong>@L[key]</strong><span>@L[hint]</span></span>
+                    </label>
+                }
+            </div>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" for="ap-free">@L["att.free_lates"]</label>
+            <input class="form-control" type="number" min="0" max="31" id="ap-free" name="FreeLatesPerMonth" value="@p.FreeLatesPerMonth" />
+            <span class="form-text">@L["att.free_lates_hint"]</span>
+        </div>
+    </div>
+
+    <p class="st-subhead mt-3">@L["att.slabs"]</p>
+    <p class="form-text mt-0">@L["att.slabs_hint"]</p>
+    <div class="st-lines att-slabs" data-st-lines="Slabs">
+        <table>
+            <thead><tr><th>@L["att.slab_rule"]</th><th>@L["att.slab_from"]</th><th>@L["att.slab_to"]</th><th>@L["att.slab_deduct"]</th><th>@L["att.slab_value"]</th><th><span class="hrms-sr-only">@L["common.actions"]</span></th></tr></thead>
+            <tbody data-st-line-body>
+                @for (var i = 0; i < p.Slabs.Count; i++)
+                {
+                    await SlabRow(i, p.Slabs[i]);
+                }
+            </tbody>
+        </table>
+        <template data-st-line-template>
+            @{ await SlabRow(0, new AttendanceSlab { RuleKind = AttCodes.Late, DeductionType = AttCodes.DayPercent }); }
+        </template>
+        <button type="button" class="btn btn-sm btn-outline-primary mt-2" data-st-line-add>@Html.Icon("plus", 14)<span>@L["att.add_slab"]</span></button>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["att.absence_and_punches"]</legend>
+    <div class="st-switches">
+        @await Html.PartialAsync("~/Views/PayrollSettings/_Switch.cshtml", new SettingsSwitch("AbsentEnabled", L["att.absent_enabled"], p.AbsentEnabled, L["att.absent_enabled_hint"]))
+    </div>
+    <div class="row g-3 mt-1">
+        <div class="col-md-4">
+            <label class="form-label" for="ap-absval">@L["att.absent_value"]</label>
+            <div class="input-group">
+                <input class="form-control" type="number" min="0" max="10" step="0.25" id="ap-absval" name="AbsentDayValue" value="@N(p.AbsentDayValue)" dir="ltr" />
+                <span class="input-group-text">@L["att.days_pay"]</span>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="ap-missing">@L["att.missing_punch"]</label>
+            <select class="form-select" id="ap-missing" name="MissingPunch">
+                @foreach (var m in new[] { "FLAG", "IGNORE", "HALF_DAY", "ABSENT" })
+                {
+                    <option value="@m" selected="@(p.MissingPunch == m)">@L["att.missing_" + m.ToLowerInvariant()]</option>
+                }
+            </select>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["att.overtime"]</legend>
+    <div class="st-switches">
+        @await Html.PartialAsync("~/Views/PayrollSettings/_Switch.cshtml", new SettingsSwitch("OvertimeEnabled", L["att.overtime_enabled"], p.OvertimeEnabled, L["att.overtime_enabled_hint"]))
+    </div>
+    <div class="row g-3 mt-1" data-show-if="OvertimeEnabled=true">
+        <div class="col-md-6">
+            <label class="form-label" for="ap-otafter">@L["att.ot_after"]</label>
+            <div class="input-group">
+                <input class="form-control" type="number" min="0" max="1440" id="ap-otafter" name="OvertimeAfterMinutes" value="@p.OvertimeAfterMinutes" />
+                <span class="input-group-text">@L["att.minutes"]</span>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-otrate">@L["att.ot_rate"]</label>
+            <div class="input-group">
+                <span class="input-group-text">×</span>
+                <input class="form-control" type="number" min="0" max="5" step="0.05" id="ap-otrate" name="OvertimeRate" value="@N(p.OvertimeRate)" dir="ltr" />
+            </div>
+            <span class="form-text">@L["att.ot_rate_hint"]</span>
+        </div>
+    </div>
+</fieldset>
+
+<fieldset class="hrms-fieldset">
+    <legend>@L["att.pay_and_cap"]</legend>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <span class="form-label d-block">@L["att.salary_basis"]</span>
+            <div class="pr-choice st-choice" data-st-choice role="radiogroup" aria-label="@L["att.salary_basis"]">
+                @foreach (var (value, key) in new[] { ("BASIC", "att.basis_basic"), ("GROSS", "att.basis_gross") })
+                {
+                    <label class="@(p.SalaryBasis == value ? "is-selected" : null)">
+                        <input type="radio" class="form-check-input" name="SalaryBasis" value="@value" checked="@(p.SalaryBasis == value)" />
+                        <span><strong>@L[key]</strong></span>
+                    </label>
+                }
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-div">@L["att.day_divisor"]</label>
+            <input class="form-control" type="number" min="1" max="31" id="ap-div" name="DayDivisor" value="@p.DayDivisor" />
+            <span class="form-text">@L["att.day_divisor_hint"]</span>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="ap-maxtype">@L["att.max_deduction"]</label>
+            <select class="form-select" id="ap-maxtype" name="MaxDeductionType" data-st-field="MaxDeductionType">
+                <option value="NONE" selected="@(p.MaxDeductionType == "NONE")">@L["att.max_none"]</option>
+                <option value="AMOUNT" selected="@(p.MaxDeductionType == "AMOUNT")">@L["att.max_amount"]</option>
+                <option value="PERCENT" selected="@(p.MaxDeductionType == "PERCENT")">@L["att.max_percent"]</option>
+            </select>
+        </div>
+        <div class="col-md-6" data-show-if="MaxDeductionType=AMOUNT|PERCENT">
+            <label class="form-label" for="ap-maxval">@L["att.max_value"]</label>
+            <input class="form-control" type="number" min="0" step="0.001" id="ap-maxval" name="MaxDeductionValue" value="@N(p.MaxDeductionValue, "0.###")" dir="ltr" />
+            <span class="form-text">@L["att.max_value_hint"]</span>
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="ap-desc">@L["st.description"]</label>
+            <textarea class="form-control" id="ap-desc" name="Description" rows="2" maxlength="500">@p.Description</textarea>
+        </div>
+    </div>
+    <div class="st-switches mt-2">
+        @await Html.PartialAsync("~/Views/PayrollSettings/_Switch.cshtml", new SettingsSwitch("IsActive", L["org.active"], p.IsActive))
+    </div>
+</fieldset>

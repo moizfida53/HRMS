@@ -109,7 +109,7 @@
                 self.load();
                 return;
             }
-            var tr = ev.target.closest("tr[data-id]");
+            var tr = ev.target.closest("tr[data-id], [data-st-row][data-id]");   // a row, or a card (Attendance patterns)
             if (!tr || !self.slot.contains(tr)) { return; }
             var id = tr.getAttribute("data-id"), name = tr.getAttribute("data-name") || "";
             var btn = ev.target.closest("button");

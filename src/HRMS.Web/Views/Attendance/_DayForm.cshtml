@@ -1,0 +1,66 @@
+@model AttDayFormModel
+@{
+    var r = Model.Record;
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    string? T(DateTime? d) => d?.ToString("HH:mm", inv);
+}
+<input type="hidden" name="id" value="@(r?.RecordId ?? 0)" />
+@if (r is not null)
+{
+    <div class="att-dayhead">
+        <strong>@PayrollFormat.EmployeeName(L, r.EmployeeName, r.ArabicName)</strong>
+        <span class="hrms-muted">@r.EmployeeNo · @L.Date(r.WorkDate) · @L.Tr(r.WorkDate.DayOfWeek.ToString())@(r.PatternName is null ? "" : " · " + r.PatternName)</span>
+        @if (r.DeductionNote is not null)
+        {
+            <span class="att-dayhead__note">@Html.Icon("info", 13) @r.DeductionNote</span>
+        }
+    </div>
+}
+else
+{
+    <div class="mb-3">
+        <label class="form-label" for="att-emp">@L["att.col_employee"] <span class="req" aria-hidden="true">*</span></label>
+        <select class="form-select" id="att-emp" name="employeeId" data-searchable required>
+            <option value="">@L["att.select_employee"]</option>
+            @foreach (var e in Model.Employees)
+            {
+                <option value="@e.EmployeeId">@e.DisplayNo · @e.EmployeeName</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label" for="att-date">@L["att.col_date"] <span class="req" aria-hidden="true">*</span></label>
+        <input class="form-control" type="date" id="att-date" name="date" required max="@DateTime.Today.ToString("yyyy-MM-dd", inv)" />
+    </div>
+}
+<div class="row g-3">
+    <div class="col-6">
+        <label class="form-label" for="att-in">@L["att.col_in"]</label>
+        <input class="form-control" type="time" id="att-in" name="clockIn" value="@T(r?.ClockIn)" />
+        @if (r?.OriginalClockIn is { } oi)
+        {
+            <span class="form-text">@L["att.device_0", oi.ToString("HH:mm", inv)]</span>
+        }
+    </div>
+    <div class="col-6">
+        <label class="form-label" for="att-out">@L["att.col_out"]</label>
+        <input class="form-control" type="time" id="att-out" name="clockOut" value="@T(r?.ClockOut)" />
+        @if (r?.OriginalClockOut is { } oo)
+        {
+            <span class="form-text">@L["att.device_0", oo.ToString("HH:mm", inv)]</span>
+        }
+    </div>
+    <div class="col-12">
+        <span class="form-text mt-0">@L["att.times_hint"]</span>
+    </div>
+    <div class="col-12">
+        <label class="form-check att-excuse">
+            <input class="form-check-input" type="checkbox" name="excused" value="true" checked="@(r?.IsExcused == true)" />
+            <span class="form-check-label"><strong>@L["att.excused"]</strong> <span class="hrms-muted">@L["att.excused_hint"]</span></span>
+        </label>
+    </div>
+    <div class="col-12">
+        <label class="form-label" for="att-note">@L["pr.comment"]</label>
+        <textarea class="form-control" id="att-note" name="note" rows="2" maxlength="500" placeholder="@L["att.note_placeholder"]">@r?.Note</textarea>
+    </div>
+</div>

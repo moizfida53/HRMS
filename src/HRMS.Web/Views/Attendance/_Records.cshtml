@@ -1,0 +1,98 @@
+@using HRMS.Web.Models.Organization
+@model AttRecordsModel
+@{
+    var pg = Model.Page;
+    string T(DateTime? d, DateTime day) => d is { } v ? v.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture) + (v.Date > day.Date ? "⁺¹" : "") : "—";
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["att.1_day"] : L["att.0_days", PayrollFormat.Count(pg.TotalCount)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "clock", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["att.no_days_match"] : L["att.no_days_yet"])</p>
+        <p class="hrms-empty__text">@L["att.no_days_text"]</p>
+        @if (!Model.IsFiltered && Model.Rights.CanImport)
+        {
+            <a class="btn btn-primary btn-sm" asp-action="Import">@Html.Icon("upload", 14)<span>@L["att.import"]</span></a>
+        }
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table att-table">
+            <caption class="hrms-sr-only">@L["att.nav_attendance"]</caption>
+            <thead>
+                <tr>
+                    <th scope="col">@L["att.col_employee"]</th>
+                    <th scope="col">@L["att.col_date"]</th>
+                    <th scope="col" class="text-center">@L["att.col_in"]</th>
+                    <th scope="col" class="text-center">@L["att.col_out"]</th>
+                    <th scope="col" class="text-center col-p2">@L["att.col_worked"]</th>
+                    <th scope="col" class="text-center">@L["att.col_late"]</th>
+                    <th scope="col" class="text-center">@L["att.col_short"]</th>
+                    <th scope="col" class="text-center col-p3">@L["att.col_overtime"]</th>
+                    <th scope="col">@L["common.status"]</th>
+                    <th scope="col" class="pr-money">@L["att.col_deduction"]</th>
+                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in pg.Items)
+                {
+                    var name = PayrollFormat.EmployeeName(L, r.EmployeeName, r.ArabicName);
+                    <tr data-id="@r.RecordId" class="att-row--@r.Status.ToLowerInvariant()">
+                        <td data-label="@L["att.col_employee"]">
+                            <span class="hrms-table__primary">@name</span>
+                            <span class="pr-emp-sub">@r.EmployeeNo@(r.PatternName is null ? "" : " · " + r.PatternName)@(Model.ManyCompanies ? " · " + r.CompanyName : "")</span>
+                        </td>
+                        <td data-label="@L["att.col_date"]" class="hrms-nowrap">
+                            @L.Date(r.WorkDate)
+                            <span class="pr-emp-sub">@L.Tr(r.WorkDate.DayOfWeek.ToString())</span>
+                        </td>
+                        <td data-label="@L["att.col_in"]" class="text-center hrms-numeric @(r.LateMinutes > 0 ? "att-warn" : null)">
+                            @T(r.ClockIn, r.WorkDate)
+                            @if (r.OriginalClockIn is not null || r.EditedDate is not null) { <span class="att-edited" title="@L["att.edited_by_0", r.EditedByName ?? "—"]">@Html.Icon("edit", 11)</span> }
+                        </td>
+                        <td data-label="@L["att.col_out"]" class="text-center hrms-numeric">@T(r.ClockOut, r.WorkDate)</td>
+                        <td data-label="@L["att.col_worked"]" class="text-center hrms-numeric col-p2">@AttFormat.Hm(r.WorkedMinutes)</td>
+                        <td data-label="@L["att.col_late"]" class="text-center hrms-numeric @(r.LateMinutes > 0 ? "att-warn" : "hrms-muted")">@(r.LateMinutes > 0 ? r.LateMinutes + "′" : "—")</td>
+                        <td data-label="@L["att.col_short"]" class="text-center hrms-numeric @(r.ShortMinutes > 0 ? "att-warn" : "hrms-muted")">@AttFormat.Hm(r.ShortMinutes)</td>
+                        <td data-label="@L["att.col_overtime"]" class="text-center hrms-numeric col-p3 @(r.OvertimeMinutes > 0 ? "att-ok" : "hrms-muted")">@AttFormat.Hm(r.OvertimeMinutes)</td>
+                        <td data-label="@L["common.status"]">
+                            <span class="hrms-badge hrms-badge--@AttCodes.StatusBadge(r.Status)"><span class="hrms-badge__dot"></span>@L["att.st_" + r.Status.ToLowerInvariant()]</span>
+                            @if (r.Source == "GENERATED") { <span class="pr-emp-sub">@L["att.no_punch"]</span> }
+                        </td>
+                        <td data-label="@L["att.col_deduction"]" class="pr-money">
+                            @if (r.DeductionAmount > 0)
+                            {
+                                <span class="att-ded" tabindex="0" title="@r.DeductionNote">@PayrollFormat.Money(r.DeductionAmount)</span>
+                            }
+                            else
+                            {
+                                <span class="hrms-muted" title="@r.DeductionNote">—</span>
+                            }
+                            @if (r.OvertimeAmount > 0) { <span class="pr-emp-sub att-ok">+@PayrollFormat.Money(r.OvertimeAmount) @L["att.ot_short"]</span> }
+                        </td>
+                        <td class="hrms-table__actions">
+                            @if (Model.Rights.CanImport && !r.IsPosted)
+                            {
+                                <button type="button" class="btn-icon" data-att-edit="@r.RecordId" title="@L["att.edit_day"]" aria-label="@L["att.edit_day"] · @name · @L.Date(r.WorkDate)">@Html.Icon("edit", 15)</button>
+                            }
+                            else if (r.IsPosted)
+                            {
+                                <span class="btn-icon is-static" title="@L["att.posted_locked"]">@Html.Icon("lock", 14)</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

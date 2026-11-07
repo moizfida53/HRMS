@@ -1,0 +1,89 @@
+@using HRMS.Web.Models.Organization
+@model AttEmployeesModel
+@{
+    var pg = Model.Page;
+    var edit = Model.Rights.CanImport;
+    var today = DateTime.Today;
+}
+<div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["att.1_employee"] : L["att.0_employees", PayrollFormat.Count(pg.TotalCount)])">
+@if (pg.TotalCount == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "users", 26)</span>
+        <p class="hrms-empty__title">@L["att.no_employees"]</p>
+    </div>
+}
+else
+{
+    <div class="hrms-table-wrap">
+        <table class="hrms-table att-emps">
+            <caption class="hrms-sr-only">@L["att.nav_employees"]</caption>
+            <thead>
+                <tr>
+                    @if (edit)
+                    {
+                        <th scope="col" class="att-check"><input type="checkbox" class="form-check-input" data-att-check-all aria-label="@L["att.select_all"]" /></th>
+                    }
+                    <th scope="col">@L["att.col_employee"]</th>
+                    <th scope="col" class="col-p2">@L["common.department"]</th>
+                    <th scope="col">@L["att.col_device_id"]</th>
+                    <th scope="col">@L["att.col_pattern"]</th>
+                    <th scope="col" class="col-p3">@L["att.col_salary"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in pg.Items)
+                {
+                    var name = PayrollFormat.EmployeeName(L, e.EmployeeName, e.ArabicName);
+                    <tr data-id="@e.EmployeeId" data-company="@e.CompanyId">
+                        @if (edit)
+                        {
+                            <td class="att-check"><input type="checkbox" class="form-check-input" data-att-check value="@e.EmployeeId" aria-label="@name" /></td>
+                        }
+                        <td data-label="@L["att.col_employee"]">
+                            <span class="hrms-table__primary">@name</span>
+                            <span class="pr-emp-sub">@e.DisplayNo@(Model.ManyCompanies ? " · " + e.CompanyName : "")@(e.EmploymentStatus is "Terminated" or "Resigned" ? " · " + L.Tr(e.EmploymentStatus) : "")</span>
+                        </td>
+                        <td data-label="@L["common.department"]" class="col-p2 hrms-text-sm">@(e.DepartmentName ?? "—")</td>
+                        <td data-label="@L["att.col_device_id"]">
+                            @if (edit)
+                            {
+                                <input class="form-control form-control-sm att-device" data-att-device value="@e.DeviceUserId" maxlength="30" dir="ltr"
+                                       placeholder="@e.DisplayNo" aria-label="@L["att.col_device_id"] · @name" />
+                            }
+                            else
+                            {
+                                <span class="hrms-code-chip">@(e.DeviceUserId ?? e.DisplayNo)</span>
+                            }
+                        </td>
+                        <td data-label="@L["att.col_pattern"]">
+                            @if (e.PatternId is not null && e.EffectiveFrom <= today)
+                            {
+                                <span class="att-pattern">@e.PatternName</span>
+                                <span class="pr-emp-sub">@L["att.since_0", L.Date(e.EffectiveFrom)]</span>
+                            }
+                            else if (e.NextPatternId is null)
+                            {
+                                <span class="hrms-badge hrms-badge--warning"><span class="hrms-badge__dot"></span>@L["att.no_pattern"]</span>
+                            }
+                            @if (e.NextPatternId is not null && e.NextFrom is { } nf)
+                            {
+                                <span class="pr-emp-sub att-next">@L["att.from_0", L.Date(nf)]@(e.PatternId is null ? ": " + e.PatternName : "")</span>
+                            }
+                        </td>
+                        <td data-label="@L["att.col_salary"]" class="col-p3 hrms-text-sm hrms-numeric">
+                            @(e.BasicSalary is { } b ? PayrollFormat.Money(b) : "—")
+                            @if (e.Allowances is > 0) { <span class="pr-emp-sub">+@PayrollFormat.Money(e.Allowances)</span> }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @await Html.PartialAsync("~/Views/Organization/Partials/_Pagination.cshtml", new PaginationModel
+    {
+        PageNumber = pg.PageNumber, TotalPages = pg.TotalPages, TotalCount = pg.TotalCount,
+        FirstRow = pg.FirstRowOnPage, LastRow = pg.LastRowOnPage
+    })
+}
+</div>

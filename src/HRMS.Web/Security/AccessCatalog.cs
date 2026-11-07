@@ -127,6 +127,18 @@ public static class AccessCatalog
             new("LV.SETTINGS", "sec.pg_leave_settings", "sec.pg_leave_settings_hint",
                 C("LEAVE_SETUP_VIEW"), C("LEAVE_SETUP_EDIT"), No)
         ]),
+        // db/126: Time & Attendance - Read sees the days and the month, Write imports / corrects days and assigns
+        // patterns; posting to the payroll and the patterns (settings) have their own rights
+        new("ATT", "sec.mod_attendance", "clock",
+        [
+            new("ATT.ATTENDANCE", "sec.pg_attendance", "sec.pg_attendance_hint",
+                C("ATTENDANCE_VIEW"), C("ATTENDANCE_IMPORT"), No,
+            [
+                new("ATT.POST", "sec.fn_attendance_post", "sec.fn_attendance_post_hint", No, C("ATTENDANCE_POST"), No)
+            ]),
+            new("ATT.SETTINGS", "sec.pg_attendance_settings", "sec.pg_attendance_settings_hint",
+                C("ATTENDANCE_SETUP_VIEW"), C("ATTENDANCE_SETUP_EDIT"), No)
+        ]),
         new("ORG", "sec.mod_organization", "building",
         [
             new("ORG.SETUP", "sec.pg_organization", "sec.pg_organization_hint",
@@ -309,7 +321,9 @@ public static class AccessCatalog
         ["security:users"] = ["SECURITY_USER_VIEW"],
         ["leave"] = ["LEAVE_VIEW", "LEAVE_APPROVE_L1", "LEAVE_APPROVE_L2"],
         ["leave:balances"] = ["LEAVE_VIEW"],
-        ["leave:settings"] = ["LEAVE_SETUP_VIEW", "LEAVE_SETUP_EDIT"]
+        ["leave:settings"] = ["LEAVE_SETUP_VIEW", "LEAVE_SETUP_EDIT"],
+        ["attendance"] = ["ATTENDANCE_VIEW", "ATTENDANCE_IMPORT"],
+        ["attendance:settings"] = ["ATTENDANCE_SETUP_VIEW", "ATTENDANCE_SETUP_EDIT"]
     };
 
     /// <summary>The user may open a sidebar entry (unknown entries stay visible).</summary>

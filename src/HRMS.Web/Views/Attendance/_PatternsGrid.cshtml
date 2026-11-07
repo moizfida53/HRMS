@@ -1,0 +1,96 @@
+@model AttPatternsModel
+@{
+    var list = Model.Patterns;
+    string Slab(AttendanceSlab s) =>
+        $"{s.FromMinutes}{(s.ToMinutes is { } t ? "–" + t : "+")}′ → " + s.DeductionType switch
+        {
+            AttCodes.DayPercent => $"{s.Value:0.##}% {L["att.of_day"]}",
+            AttCodes.Prorata => L["att.pro_rata"] + (s.Value > 1 ? $" ×{s.Value:0.##}" : ""),
+            _ => $"{s.Value:0.000} {L["pr.kwd"]}"
+        };
+}
+<div data-total="@list.Count" data-count-text="@(list.Count == 1 ? L["att.1_pattern"] : L["att.0_patterns", list.Count])">
+@if (list.Count == 0)
+{
+    <div class="hrms-empty">
+        <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon(Model.IsFiltered ? "search" : "clock", 26)</span>
+        <p class="hrms-empty__title">@(Model.IsFiltered ? L["att.no_patterns_match"] : L["att.no_patterns_title"])</p>
+        <p class="hrms-empty__text">@L["att.no_patterns_text"]</p>
+    </div>
+}
+else
+{
+    <div class="att-patterns">
+        @foreach (var p in list)
+        {
+            var name = L.IsArabic && !string.IsNullOrWhiteSpace(p.ArabicName) ? p.ArabicName! : p.PatternName;
+            var late = p.Slabs.Where(s => s.RuleKind == AttCodes.Late).OrderBy(s => s.FromMinutes).ToList();
+            var shrt = p.Slabs.Where(s => s.RuleKind == AttCodes.Short).OrderBy(s => s.FromMinutes).ToList();
+            <article class="hrms-card att-pcard @(p.IsActive ? null : "is-ended")" data-st-row data-id="@p.PatternId" data-name="@name">
+                <header class="att-pcard__head">
+                    <div class="att-pcard__title">
+                        <span class="hrms-code-chip">@p.PatternCode</span>
+                        <strong>@name</strong>
+                        @if (Model.ManyCompanies) { <span class="pr-emp-sub">@p.CompanyName</span> }
+                    </div>
+                    <span class="hrms-badge hrms-badge--@(p.IsActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(p.IsActive ? L["org.active"] : L["org.inactive"])</span>
+                </header>
+                <div class="att-pcard__hours">
+                    <span class="att-pcard__big">@p.HoursText</span>
+                    <span class="hrms-muted hrms-text-sm">
+                        @(p.IsFixed ? L["att.type_fixed"] : L["att.type_flexible"]) · @L["att.required_0", AttFormat.HmOrZero(p.RequiredMinutes)]
+                        @(p.GraceMinutes > 0 ? " · " + L["att.grace_0", p.GraceMinutes] : "")
+                        @(string.IsNullOrWhiteSpace(p.WeeklyOffDays) ? "" : " · " + L["att.off_0", p.WeeklyOffDays.Replace(",", ", ")])
+                    </span>
+                </div>
+                <dl class="att-pcard__rules">
+                    <div>
+                        <dt>@L["att.rule_late"]</dt>
+                        <dd>@if (!p.LateEnabled || !p.IsFixed) { <span class="hrms-muted">@L["att.off"]</span> }
+                            else if (late.Count == 0) { @L["att.pro_rata_minutes"] }
+                            else { @string.Join(" · ", late.Select(Slab)) }
+                            @if (p.FreeLatesPerMonth > 0) { <span class="pr-emp-sub">@L["att.free_lates_0", p.FreeLatesPerMonth]</span> }</dd>
+                    </div>
+                    <div>
+                        <dt>@L["att.rule_short"]</dt>
+                        <dd>@if (!p.ShortEnabled) { <span class="hrms-muted">@L["att.off"]</span> }
+                            else if (shrt.Count == 0) { @L["att.pro_rata_minutes"] }
+                            else { @string.Join(" · ", shrt.Select(Slab)) }</dd>
+                    </div>
+                    <div>
+                        <dt>@L["att.rule_absent"]</dt>
+                        <dd>@(p.AbsentEnabled ? L["att.absent_0_days", p.AbsentDayValue.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)] : L["att.off"])
+                            <span class="pr-emp-sub">@L["att.missing_" + p.MissingPunch.ToLowerInvariant()]</span></dd>
+                    </div>
+                    <div>
+                        <dt>@L["att.rule_overtime"]</dt>
+                        <dd>@(p.OvertimeEnabled ? L["att.ot_0_1", p.OvertimeAfterMinutes, p.OvertimeRate.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)] : L["att.off"])</dd>
+                    </div>
+                    <div>
+                        <dt>@L["att.rule_pay"]</dt>
+                        <dd>@L["att.day_pay_0_1", p.SalaryBasis == "GROSS" ? L["att.basis_gross"] : L["att.basis_basic"], p.DayDivisor]
+                            @if (p.MaxDeductionType != "NONE" && p.MaxDeductionValue is { } mx)
+                            {
+                                <span class="pr-emp-sub">@L["att.cap_0", p.MaxDeductionType == "PERCENT" ? mx.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%" : PayrollFormat.Money(mx) + " " + L["pr.kwd"]]</span>
+                            }</dd>
+                    </div>
+                </dl>
+                <footer class="att-pcard__foot">
+                    <a class="hrms-text-sm" href="@Url.Action("Employees", "Attendance", new { pattern = p.PatternId })">@Html.Icon("users", 14) @L["att.0_employees", p.EmployeeCount]</a>
+                    @if (Model.Rights.CanSetupEdit)
+                    {
+                        <span class="ms-auto d-inline-flex gap-1">
+                            <button type="button" class="btn-icon" data-st-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
+                            <button type="button" class="btn-icon btn-icon--success" data-st-toggle title="@(p.IsActive ? L["common.deactivate"] : L["common.activate"])" aria-label="@(p.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
+                            @if (p.EmployeeCount == 0)
+                            {
+                                <button type="button" class="btn-icon btn-icon--danger" data-st-delete title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
+                            }
+                        </span>
+                    }
+                </footer>
+            </article>
+        }
+    </div>
+}
+</div>

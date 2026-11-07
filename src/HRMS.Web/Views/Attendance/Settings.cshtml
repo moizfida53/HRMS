@@ -1,0 +1,49 @@
+@model AttSettingsModel
+@{
+    // Time & Attendance > Settings (db/126): the attendance patterns - working hours / shifts and their
+    // deduction rules (late arrival and minimum hours slabs, absence, missing punches, overtime, the cap).
+    // The list and the form are driven by payroll-settings.js (the Payroll Settings screens' script).
+    ViewData["Title"] = "Attendance Settings";
+    ViewData["ActiveArea"] = "attendance";
+    ViewData["AttendancePage"] = "settings";
+    ViewData["Subtitle"] = L["att.settings_subtitle"];
+}
+<div class="pr-stack st-page att-page" data-st-page>
+    <div class="pr-banner pr-banner--info" role="note">
+        @Html.Icon("info", 18)
+        <div><strong>@L["att.settings_banner_title"]</strong> @L["att.settings_banner_text"]</div>
+    </div>
+
+    <section class="hrms-card" id="att-patterns" data-st-master
+             data-grid="@Url.Action("PatternsGrid", "Attendance")"
+             data-form="@Url.Action("PatternForm", "Attendance")"
+             data-save="@Url.Action("PatternSave", "Attendance")"
+             data-toggle="@Url.Action("PatternToggle", "Attendance")"
+             data-delete="@Url.Action("PatternDelete", "Attendance")"
+             data-title-new="@L["att.add_pattern"]"
+             data-title-edit="@L["att.edit_pattern"]"
+             data-delete-title="@L["common.delete"]"
+             data-delete-text="@L["att.delete_pattern_text"]">
+        @await Html.PartialAsync("~/Views/PayrollSettings/_Toolbar.cshtml", new SettingsToolbarModel
+        {
+            SearchPlaceholder = L["att.search_patterns"],
+            Filters =
+            [
+                new("status", L["common.status"], [("", L["common.all_statuses"]), ("active", L["common.active_only"]), ("inactive", L["common.inactive_only"])])
+            ]
+        })
+        <div data-st-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+@await Html.PartialAsync("~/Views/PayrollSettings/_Dialogs.cshtml")
+
+@section PageActions {
+    <a class="btn btn-outline-secondary" asp-action="Employees">@Html.Icon("users", 15)<span>@L["att.nav_employees"]</span></a>
+    @if (Model.Rights.CanSetupEdit)
+    {
+        <button type="button" class="btn btn-primary" data-st-add="att-patterns">@Html.Icon("plus", 15)<span>@L["att.add_pattern"]</span></button>
+    }
+}
+@section Scripts {
+    <script src="~/js/payroll-settings.js" asp-append-version="true"></script>
+}

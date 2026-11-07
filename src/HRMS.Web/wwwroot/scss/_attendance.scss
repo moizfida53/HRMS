@@ -1,0 +1,350 @@
+// ============================================================================
+// db/126: Time & Attendance
+// - the days list: status colours, edited times, the deduction with its reason
+// - the import: the drop zone, what was found (columns / sample / employees)
+// - the monthly summary bar, the employees' bulk assign bar
+// - the pattern cards and the pattern form (days off, slabs)
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ---------------------------------------------------------------- shared ----
+.att-warn { color: $amber-700; font-weight: $fw-semibold; }
+.att-bad  { color: $red-700; font-weight: $fw-semibold; }
+.att-ok   { color: $green-700; }
+.att-review { color: $purple-700; }
+
+.att-kpi--warn .hrms-kpi__value  { color: $amber-700; }
+.att-kpi--danger .hrms-kpi__value { color: $red-700; }
+.hrms-kpi__value small { font-size: $fs-md; color: $ink-400; font-weight: $fw-semibold; }
+
+.att-card-head {
+  padding: space("3") space("4") space("2");
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  @include down("sm") { padding: space("3"); }
+}
+
+// ------------------------------------------------------------ the days ----
+.att-table {
+  td { vertical-align: middle; }
+  .att-edited { display: inline-flex; margin-inline-start: 2px; color: $blue-600; vertical-align: super; }
+  .att-ded {
+    display: inline-block;
+    padding: 0 .35rem;
+    border-radius: $radius-sm;
+    background: $red-050;
+    color: $red-700;
+    font-weight: $fw-semibold;
+    cursor: help;
+    @include focus-ring;
+  }
+  tr.att-row--absent td:first-child { box-shadow: inset 3px 0 0 $red-600; }
+  tr.att-row--missing td:first-child, tr.att-row--no_pattern td:first-child { box-shadow: inset 3px 0 0 $purple-700; }
+  tr.att-row--late td:first-child, tr.att-row--short td:first-child, tr.att-row--late_short td:first-child { box-shadow: inset 3px 0 0 $amber-600; }
+  [dir="rtl"] & tr td:first-child { box-shadow: none; }
+}
+.btn-icon.is-static { cursor: default; color: $ink-300; }
+
+.att-dayhead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-block-end: space("3");
+  padding: space("2") space("3");
+  border-radius: $radius;
+  background: $surface-2;
+  border: 1px solid $line-100;
+
+  &__note { display: inline-flex; align-items: center; gap: .3rem; font-size: $fs-xs; color: $ink-600; margin-block-start: 2px; }
+}
+.att-excuse {
+  display: flex;
+  gap: .5rem;
+  padding: space("2") space("3");
+  border: 1px dashed $line-300;
+  border-radius: $radius;
+  .form-check-input { margin: .15rem 0 0; flex: 0 0 auto; }
+}
+
+// ------------------------------------------------------------ the import ----
+.att-upload__body {
+  display: grid;
+  gap: space("4");
+  padding: space("4");
+  grid-template-columns: minmax(0, 1fr);
+  @include cq-up("md") { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: center; }
+  @include down("sm") { padding: space("3"); }
+}
+
+.att-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 210px;
+  padding: space("5") space("4");
+  border: 2px dashed $blue-200;
+  border-radius: $radius-lg;
+  background: linear-gradient(180deg, $blue-050, $white);
+  text-align: center;
+  cursor: pointer;
+  @include motion(border-color, background-color, transform);
+
+  &:hover, &.is-over { border-color: $blue-600; background: $blue-050; }
+  &.is-over { transform: scale(1.01); }
+  &.is-busy { pointer-events: none; opacity: .6; }
+  &.is-busy::after {
+    content: "";
+    position: absolute;
+    inset-block-start: 14px;
+    inset-inline-end: 14px;
+    width: 18px;
+    height: 18px;
+    border: 2px solid $blue-200;
+    border-top-color: $blue-600;
+    border-radius: 50%;
+    animation: att-spin .8s linear infinite;
+  }
+  &:focus-within { box-shadow: 0 0 0 3px rgba($blue-600, .2); }
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: $white;
+    color: $blue-600;
+    box-shadow: $shadow-sm;
+  }
+  &__title { font-family: $font-display; font-size: $fs-lg; font-weight: $fw-semibold; color: $ink-900; }
+  &__text { font-size: $fs-sm; color: $ink-500; max-width: 38ch; }
+}
+@keyframes att-spin { to { transform: rotate(360deg); } }
+
+.att-how {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: space("2");
+  li { display: flex; gap: .5rem; font-size: $fs-sm; color: $ink-600; svg { flex: 0 0 auto; color: $green-600; margin-block-start: 1px; } }
+}
+
+.att-preview { display: flex; flex-direction: column; gap: space("3"); }
+.att-preview__grid {
+  display: grid;
+  gap: space("3");
+  grid-template-columns: minmax(0, 1fr);
+  @include cq-up("lg") { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
+}
+
+.att-found {
+  &__head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: space("3");
+    padding: space("3") space("4");
+    border-block-end: 1px solid $line-100;
+    @include down("sm") { padding: space("3"); .btn { width: 100%; } }
+  }
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: $radius;
+    background: $green-050;
+    color: $green-700;
+  }
+  &__title { display: flex; flex-direction: column; min-width: 0; strong { overflow-wrap: anywhere; } }
+  &__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+    gap: space("2") space("3");
+    margin: 0;
+    padding: space("3") space("4");
+    div { display: flex; flex-direction: column; }
+    dt { @include label-caps; font-size: .625rem; color: $ink-400; }
+    dd { margin: 0; font-family: $font-display; font-size: $fs-lg; font-weight: $fw-semibold; color: $ink-900; }
+  }
+}
+
+.att-cols {
+  tr.is-muted td { color: $ink-400; }
+  &__sample { max-width: 160px; @include truncate; font-family: $font-mono; font-size: $fs-xs; }
+  .form-select { min-width: 150px; }
+}
+.att-by {
+  display: inline-block;
+  margin-block-start: 3px;
+  font-size: .625rem;
+  font-weight: $fw-semibold;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  &--header { color: $green-700; }
+  &--data   { color: $blue-700; }
+  &--chosen { color: $purple-700; }
+  &--none   { color: $ink-400; }
+}
+.att-skips {
+  margin: 0 space("4") space("3");
+  font-size: $fs-xs;
+  color: $ink-500;
+  summary { cursor: pointer; font-weight: $fw-semibold; color: $amber-700; }
+  ul { margin: space("1") 0 0; padding-inline-start: 1.1rem; }
+}
+
+.att-people {
+  tr.is-unmatched td { background: $amber-050; }
+  .att-link { min-width: 220px; }
+}
+.att-m {
+  display: inline-block;
+  padding: .1rem .5rem;
+  border-radius: $radius-pill;
+  font-size: $fs-xs;
+  font-weight: $fw-semibold;
+  white-space: nowrap;
+  &--device, &--number { @include soft-badge($green-700, $green-050); }
+  &--name   { @include soft-badge($blue-700, $blue-100); }
+  &--chosen { @include soft-badge($purple-700, $purple-050); }
+  &--none, &--ambiguous { @include soft-badge($amber-700, $amber-050); }
+}
+
+.att-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: space("3");
+  padding: space("3") space("4");
+  border-block-start: 1px solid $line-100;
+  &__actions { display: flex; gap: space("2"); margin-inline-start: auto; }
+  @include down("sm") {
+    padding: space("3");
+    &__actions { width: 100%; .btn { flex: 1 1 0; } }
+  }
+}
+.att-file { overflow-wrap: anywhere; }
+
+// ----------------------------------------------------------- the summary ----
+.att-sumbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+  gap: 1px;
+  margin: space("3") space("3");
+  border: 1px solid $line-100;
+  border-radius: $radius-md;
+  background: $line-100;
+  overflow: hidden;
+
+  > div { display: flex; flex-direction: column; gap: 2px; padding: space("2") space("3"); background: $white; }
+  span { @include label-caps; font-size: .625rem; color: $ink-400; }
+  strong { font-family: $font-display; font-size: $fs-lg; color: $ink-900; }
+  .is-warn strong { color: $purple-700; }
+  .is-ded strong { color: $red-700; }
+  .is-ot strong { color: $green-700; }
+}
+.att-summary tfoot th, .att-summary tfoot td { font-weight: $fw-bold; border-block-start: 2px solid $line-200; background: $surface-2; }
+
+// ---------------------------------------------------------- the employees ----
+.att-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: space("2");
+  margin: 0 space("3") space("2");
+  padding: space("2") space("3");
+  border-radius: $radius;
+  background: $blue-050;
+  border: 1px solid $blue-200;
+
+  &__count { font-weight: $fw-semibold; color: $blue-700; margin-inline-end: auto; }
+  .form-select { width: auto; min-width: 200px; }
+  &__from { display: inline-flex; align-items: center; gap: .35rem; font-size: $fs-sm; color: $ink-600; margin: 0; .form-control { width: auto; } }
+  @include down("sm") {
+    &__count { width: 100%; }
+    .form-select, &__from, .btn { flex: 1 1 100%; }
+    &__from .form-control { flex: 1 1 auto; }
+  }
+}
+.att-check { width: 1%; }
+.att-device { max-width: 130px; font-family: $font-mono; }
+.att-pattern { font-weight: $fw-semibold; color: $ink-900; }
+.att-next { color: $blue-700; }
+
+// ------------------------------------------------------------ the patterns ----
+.att-patterns {
+  display: grid;
+  gap: space("3");
+  padding: space("3");
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+}
+.att-pcard {
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+  border: 1px solid $line-200;
+  @include motion(border-color, box-shadow);
+  &:hover { border-color: $blue-200; box-shadow: $shadow-sm; }
+  &.is-ended { opacity: .65; }
+
+  &__head { display: flex; align-items: flex-start; justify-content: space-between; gap: space("2"); padding: space("3") space("3") 0; }
+  &__title { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; min-width: 0; strong { color: $ink-900; } .pr-emp-sub { width: 100%; } }
+  &__hours { display: flex; flex-direction: column; padding: space("2") space("3"); }
+  &__big { font-family: $font-display; font-size: $fs-2xl; font-weight: $fw-bold; color: $blue-700; line-height: 1.2; }
+  &__rules {
+    margin: 0;
+    padding: 0 space("3") space("2");
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    flex: 1 1 auto;
+    div { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: space("2"); font-size: $fs-sm; }
+    dt { color: $ink-500; font-weight: $fw-medium; }
+    dd { margin: 0; color: $ink-800; overflow-wrap: anywhere; }
+  }
+  &__foot {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    padding: space("2") space("3");
+    border-block-start: 1px solid $line-100;
+    a { display: inline-flex; align-items: center; gap: .3rem; text-decoration: none; }
+  }
+}
+
+.att-days { display: flex; flex-wrap: wrap; gap: space("1"); }
+.att-day {
+  position: relative;
+  margin: 0;
+  input { position: absolute; opacity: 0; pointer-events: none; }
+  span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.25rem;
+    padding: .35rem .6rem;
+    border: 1px solid $line-200;
+    border-radius: $radius-pill;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $ink-600;
+    background: $white;
+    cursor: pointer;
+    @include motion(background-color, border-color, color);
+  }
+  input:checked + span { background: $blue-600; border-color: $blue-600; color: $white; }
+  input:focus-visible + span { box-shadow: 0 0 0 3px rgba($blue-600, .25); }
+}
+.att-slabs table .form-control, .att-slabs table .form-select { min-width: 90px; }

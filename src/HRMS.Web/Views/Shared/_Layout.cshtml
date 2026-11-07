@@ -122,9 +122,13 @@
                 .Where(s => s.Key != HRMS.Web.Models.Payroll.PayrollNav.SettingsKey && CurrentUser.CanOpen("payroll:" + s.Key))
                 .ToList();
 
-            // Time & Attendance is hidden for now (Attendance, Overtime).
-            // Set to true to bring the group back.
-            var showTimeAttendance = false;
+            // db/126: Time & Attendance - the days, the device import, the month (posted to the payroll),
+            // the employees' patterns and the settings
+            var canAttendance = CurrentUser.CanOpen("attendance");
+            var canAttSettings = CurrentUser.CanOpen("attendance:settings");
+            var showTimeAttendance = canAttendance || canAttSettings;
+            var openAttendance = activeArea == "attendance";
+            var attPage = ViewData["AttendancePage"] as string;
         }
 
         <nav class="hrms-sidebar__nav" aria-label="@L["layout.main_navigation"]">
@@ -227,17 +231,32 @@
             @if (showTimeAttendance)
             {
                 <div class="hrms-nav-group">
-                    <button type="button" class="hrms-nav-group__toggle collapsed" data-bs-toggle="collapse"
-                            data-bs-target="#nav-time" aria-expanded="false" aria-controls="nav-time">
+                    <button type="button" class="hrms-nav-group__toggle @(openAttendance ? null : "collapsed")" data-bs-toggle="collapse"
+                            data-bs-target="#nav-time" aria-expanded="@(openAttendance ? "true" : "false")" aria-controls="nav-time">
                         <span>@L["layout.time_attendance"]</span>@Html.Icon("chevron-down", 14)
                     </button>
-                    <div class="collapse hrms-nav-group__items" id="nav-time">
-                        <a class="hrms-nav-link is-disabled" aria-disabled="true">
-                            @Html.Icon("clock")<span>@L["layout.attendance"]</span><span class="hrms-nav-soon">@L["common.soon"]</span>
-                        </a>
-                        <a class="hrms-nav-link is-disabled" aria-disabled="true">
-                            @Html.Icon("bolt")<span>@L["layout.overtime"]</span><span class="hrms-nav-soon">@L["common.soon"]</span>
-                        </a>
+                    <div class="collapse hrms-nav-group__items @(openAttendance ? "show" : null)" id="nav-time">
+                        @if (canAttendance)
+                        {
+                            <a class="hrms-nav-link @(openAttendance && attPage == "register" ? "is-active" : null)" asp-controller="Attendance" asp-action="Index">
+                                @Html.Icon("clock")<span>@L["att.nav_attendance"]</span>
+                            </a>
+                            <a class="hrms-nav-link @(openAttendance && attPage == "import" ? "is-active" : null)" asp-controller="Attendance" asp-action="Import">
+                                @Html.Icon("upload")<span>@L["att.nav_import"]</span>
+                            </a>
+                            <a class="hrms-nav-link @(openAttendance && attPage == "summary" ? "is-active" : null)" asp-controller="Attendance" asp-action="Summary">
+                                @Html.Icon("calculator")<span>@L["att.nav_summary"]</span>
+                            </a>
+                            <a class="hrms-nav-link @(openAttendance && attPage == "employees" ? "is-active" : null)" asp-controller="Attendance" asp-action="Employees">
+                                @Html.Icon("users")<span>@L["att.nav_employees"]</span>
+                            </a>
+                        }
+                        @if (canAttSettings)
+                        {
+                            <a class="hrms-nav-link @(openAttendance && attPage == "settings" ? "is-active" : null)" asp-controller="Attendance" asp-action="Settings">
+                                @Html.Icon("sliders")<span>@L["att.nav_settings"]</span>
+                            </a>
+                        }
                     </div>
                 </div>
             }

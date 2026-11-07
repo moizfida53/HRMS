@@ -1,0 +1,85 @@
+@model AttEmployeesPageModel
+@{
+    // Time & Attendance > Employees (db/126): each employee's ID on the fingerprint device and the
+    // attendance pattern they work by (from a date) - assigned one by one or to many at once.
+    ViewData["Title"] = "Attendance Employees";
+    ViewData["ActiveArea"] = "attendance";
+    ViewData["AttendancePage"] = "employees";
+    ViewData["Subtitle"] = L["att.employees_subtitle"];
+    var many = Model.Companies.Count > 1;
+    var firstOfMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+}
+<div class="pr-stack att-page" data-att-page="employees"
+     data-url-grid="@Url.Action("EmployeesGrid", "Attendance")"
+     data-url-save="@Url.Action("SaveEmployees", "Attendance")">
+
+    @if (Model.Patterns.Count == 0)
+    {
+        <div class="pr-banner pr-banner--info">@Html.Icon("info", 18)<div><strong>@L["att.no_patterns_title"]</strong> @L["att.no_patterns_text"]
+            @if (Model.Rights.CanSetupView) { <a asp-action="Settings">@L["att.nav_settings"]</a> }</div></div>
+    }
+
+    <section class="hrms-card" data-att-list>
+        <form class="hrms-card__toolbar" data-att-filters onsubmit="return false">
+            <div class="hrms-card__filters">
+                @if (many)
+                {
+                    <select class="form-select pr-filter" name="company" data-att-filter aria-label="@L["common.company"]">
+                        <option value="">@L["att.all_companies"]</option>
+                        @foreach (var c in Model.Companies)
+                        {
+                            <option value="@c.Id" selected="@(c.Id == Model.CompanyId)">@c.Text</option>
+                        }
+                    </select>
+                }
+                <select class="form-select pr-filter" name="pattern" data-att-filter aria-label="@L["att.col_pattern"]">
+                    <option value="">@L["att.all_patterns"]</option>
+                    <option value="-1" selected="@(Model.PatternId == -1)">@L["att.no_pattern"]</option>
+                    @foreach (var p in Model.Patterns)
+                    {
+                        <option value="@p.PatternId" selected="@(p.PatternId == Model.PatternId)">@p.PatternName@(many ? " · " + p.CompanyName : "")</option>
+                    }
+                </select>
+                <label class="hrms-search pr-search">
+                    @Html.Icon("search", 16)
+                    <input type="search" name="q" value="@Model.Search" data-att-search autocomplete="off" placeholder="@L["att.search_employee"]" aria-label="@L["att.search_employee"]" />
+                </label>
+            </div>
+            <div class="hrms-card__count" data-att-count></div>
+        </form>
+
+        @if (Model.Rights.CanImport && Model.Patterns.Count > 0)
+        {
+            <div class="att-bulk" data-att-bulk hidden>
+                <span class="att-bulk__count" data-att-bulk-count data-one="@L["att.1_selected"]" data-many="@L["att.0_selected"]"></span>
+                <select class="form-select form-select-sm" data-att-bulk-pattern aria-label="@L["att.col_pattern"]">
+                    <option value="">@L["att.choose_pattern"]</option>
+                    @foreach (var p in Model.Patterns)
+                    {
+                        <option value="@p.PatternId" data-company="@p.CompanyId">@p.PatternName · @p.HoursText@(many ? " · " + p.CompanyName : "")</option>
+                    }
+                </select>
+                <label class="att-bulk__from">
+                    <span>@L["att.from"]</span>
+                    <input type="date" class="form-control form-control-sm" data-att-bulk-from value="@firstOfMonth" />
+                </label>
+                <button type="button" class="btn btn-sm btn-primary" data-att-bulk-apply>@Html.Icon("check", 14)<span>@L["att.assign"]</span></button>
+            </div>
+        }
+        <div data-att-slot aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+    <p class="hrms-muted hrms-text-sm mb-0">@Html.Icon("info", 13) @L["att.employees_hint"]</p>
+</div>
+<template data-att-labels data-saved="@L["att.device_saved"]" data-pick-pattern="@L["att.choose_pattern"]"
+          data-other-company="@L["att.pattern_other_company"]"></template>
+@Html.AntiForgeryToken()
+
+@section PageActions {
+    @if (Model.Rights.CanSetupView)
+    {
+        <a class="btn btn-outline-secondary" asp-action="Settings">@Html.Icon("sliders", 15)<span>@L["att.nav_settings"]</span></a>
+    }
+}
+@section Scripts {
+    <script src="~/js/attendance.js" asp-append-version="true"></script>
+}

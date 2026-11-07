@@ -1,0 +1,151 @@
+@model AttImportPageModel
+@{
+    // Time & Attendance > Import (db/126): the fingerprint device's report. The columns are found from
+    // their titles and values, the IDs matched to employees - both shown to be checked before importing.
+    ViewData["Title"] = "Import Attendance";
+    ViewData["ActiveArea"] = "attendance";
+    ViewData["AttendancePage"] = "import";
+    ViewData["Subtitle"] = L["att.import_subtitle"];
+    var roles = new (string Value, string Key)[]
+    {
+        ("None", "att.role_none"), ("EmployeeId", "att.role_employeeid"), ("Name", "att.role_name"), ("Date", "att.role_date"),
+        ("ClockIn", "att.role_clockin"), ("ClockOut", "att.role_clockout"), ("DateTime", "att.role_datetime"), ("Time", "att.role_time"),
+        ("State", "att.role_state"), ("Weekday", "att.role_weekday"), ("Department", "att.role_department"), ("Total", "att.role_total")
+    };
+}
+<div class="pr-stack att-page" data-att-page="import"
+     data-url-preview="@Url.Action("Preview", "Attendance")"
+     data-url-remap="@Url.Action("Remap", "Attendance")"
+     data-url-confirm="@Url.Action("Confirm", "Attendance")"
+     data-url-employees="@Url.Action("LinkEmployees", "Attendance")"
+     data-url-list="@Url.Action("Imports", "Attendance")"
+     data-url-delete="@Url.Action("DeleteImport", "Attendance")"
+     data-url-register="@Url.Action("Index", "Attendance")"
+     data-roles='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(roles.Select(r => new { value = r.Value, text = L[r.Key] })))'>
+
+    @if (Model.Rights.CanImport)
+    {
+        @* ---- 1. the file *@
+        <section class="hrms-card att-upload" data-att-upload>
+            <div class="att-upload__body">
+                <label class="att-drop" data-att-drop>
+                    <input type="file" accept=".xlsx,.xlsm,.csv,.txt,.xls" data-att-file class="hrms-sr-only" />
+                    <span class="att-drop__icon" aria-hidden="true">@Html.Icon("upload", 26)</span>
+                    <span class="att-drop__title">@L["att.drop_title"]</span>
+                    <span class="att-drop__text">@L["att.drop_text"]</span>
+                    <span class="btn btn-primary btn-sm mt-2">@Html.Icon("file", 14)<span>@L["att.choose_file"]</span></span>
+                </label>
+                <div class="att-upload__how">
+                    <h2 class="pr-card-title">@L["att.how_title"]</h2>
+                    <ul class="att-how">
+                        <li>@Html.Icon("step-check", 15)<span>@L["att.how_1"]</span></li>
+                        <li>@Html.Icon("step-check", 15)<span>@L["att.how_2"]</span></li>
+                        <li>@Html.Icon("step-check", 15)<span>@L["att.how_3"]</span></li>
+                        <li>@Html.Icon("step-check", 15)<span>@L["att.how_4"]</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        @* ---- 2. what was found (filled by attendance.js) *@
+        <section class="att-preview" data-att-preview hidden>
+            <div class="hrms-card att-found">
+                <div class="att-found__head">
+                    <span class="att-found__icon" aria-hidden="true">@Html.Icon("file", 20)</span>
+                    <div class="att-found__title">
+                        <strong data-att-p-file></strong>
+                        <span class="hrms-muted hrms-text-sm" data-att-p-format data-paired="@L["att.format_paired"]" data-punch="@L["att.format_punch"]"></span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" data-att-reset>@Html.Icon("x-circle", 14)<span>@L["att.other_file"]</span></button>
+                </div>
+                <dl class="att-found__facts">
+                    <div><dt>@L["att.p_rows"]</dt><dd data-att-p-rows></dd></div>
+                    <div><dt>@L["att.p_days"]</dt><dd data-att-p-days></dd></div>
+                    <div><dt>@L["att.p_period"]</dt><dd data-att-p-period></dd></div>
+                    <div><dt>@L["att.p_employees"]</dt><dd data-att-p-people></dd></div>
+                    <div><dt>@L["att.p_skipped"]</dt><dd data-att-p-skipped></dd></div>
+                </dl>
+                <div class="pr-banner pr-banner--err mx-3 mb-3" data-att-p-problem hidden>@Html.Icon("alert", 18)<div><strong>@L["att.p_problem"]</strong> <span data-att-p-problem-text></span> @L["att.p_problem_fix"]</div></div>
+                <div class="pr-banner pr-banner--info mx-3 mb-3" data-att-p-warn hidden>@Html.Icon("info", 18)<div data-att-p-warn-text></div></div>
+            </div>
+
+            <div class="att-preview__grid">
+                <section class="hrms-card">
+                    <header class="att-card-head">
+                        <h2 class="pr-card-title mb-0">@L["att.columns_title"]</h2>
+                        <p class="hrms-muted hrms-text-sm mb-0">@L["att.columns_text"]</p>
+                    </header>
+                    <div class="hrms-table-wrap">
+                        <table class="hrms-table att-cols">
+                            <thead><tr><th>@L["att.col_column"]</th><th>@L["att.col_sample"]</th><th>@L["att.col_read_as"]</th></tr></thead>
+                            <tbody data-att-p-columns></tbody>
+                        </table>
+                    </div>
+                    <details class="att-skips" data-att-p-skips hidden>
+                        <summary>@L["att.skipped_rows"]</summary>
+                        <ul data-att-p-skip-list></ul>
+                    </details>
+                </section>
+
+                <section class="hrms-card">
+                    <header class="att-card-head">
+                        <h2 class="pr-card-title mb-0">@L["att.sample_title"]</h2>
+                        <p class="hrms-muted hrms-text-sm mb-0">@L["att.sample_text"]</p>
+                    </header>
+                    <div class="hrms-table-wrap">
+                        <table class="hrms-table att-sample">
+                            <thead><tr><th>@L["att.col_id"]</th><th>@L["att.col_date"]</th><th class="text-center">@L["att.col_in"]</th><th class="text-center">@L["att.col_out"]</th></tr></thead>
+                            <tbody data-att-p-sample></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <section class="hrms-card">
+                <header class="att-card-head">
+                    <h2 class="pr-card-title mb-0">@L["att.people_title"] <span class="hrms-badge hrms-badge--warning ms-1" data-att-p-unmatched hidden></span></h2>
+                    <p class="hrms-muted hrms-text-sm mb-0">@L["att.people_text"]</p>
+                </header>
+                <div class="hrms-table-wrap">
+                    <table class="hrms-table att-people">
+                        <thead><tr><th>@L["att.col_id"]</th><th>@L["att.col_name_file"]</th><th class="text-center">@L["att.p_days"]</th><th>@L["att.col_employee"]</th><th>@L["att.col_matched_by"]</th></tr></thead>
+                        <tbody data-att-p-people-list></tbody>
+                    </table>
+                </div>
+                <div class="att-confirm">
+                    <label class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" data-att-remember checked />
+                        <span class="form-check-label">@L["att.remember_links"]</span>
+                    </label>
+                    <div class="att-confirm__actions">
+                        <button type="button" class="btn btn-outline-secondary" data-att-reset>@L["common.cancel"]</button>
+                        <button type="button" class="btn btn-primary" data-att-confirm data-label="@L["att.import_0_days"]">@Html.Icon("upload", 15)<span data-att-confirm-text></span></button>
+                    </div>
+                </div>
+            </section>
+        </section>
+    }
+
+    @* ---- the files imported *@
+    <section class="hrms-card">
+        <div class="hrms-card__toolbar">
+            <h2 class="pr-card-title mb-0">@L["att.imports_title"]</h2>
+            <div class="hrms-card__count" data-att-imports-count></div>
+        </div>
+        <div data-att-imports aria-live="polite"><div class="pr-loading"><div class="hrms-spinner"></div></div></div>
+    </section>
+</div>
+<template data-att-labels
+          data-by-header="@L["att.by_header"]" data-by-data="@L["att.by_data"]" data-by-chosen="@L["att.by_chosen"]" data-by-none="@L["att.by_none"]"
+          data-m-device="@L["att.m_device"]" data-m-number="@L["att.m_number"]" data-m-name="@L["att.m_name"]" data-m-none="@L["att.m_none"]"
+          data-m-ambiguous="@L["att.m_ambiguous"]" data-m-chosen="@L["att.m_chosen"]" data-leave-out="@L["att.leave_out"]"
+          data-pick="@L["att.link_employee"]" data-n-of-m="@L["att.n_of_m"]" data-unmatched="@L["att.n_unmatched"]"
+          data-delete-title="@L["att.delete_import"]" data-delete-text="@L["att.delete_import_text"]"></template>
+@Html.AntiForgeryToken()
+
+@section PageActions {
+    <a class="btn btn-outline-secondary" asp-action="Index">@Html.Icon("clock", 15)<span>@L["att.nav_attendance"]</span></a>
+}
+@section Scripts {
+    <script src="~/js/attendance.js" asp-append-version="true"></script>
+}

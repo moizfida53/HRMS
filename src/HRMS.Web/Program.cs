@@ -211,6 +211,7 @@ builder.Services.AddHostedService<PayslipEmailSender>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPayrollNavCounts, PayrollNavCounts>();
 builder.Services.AddScoped<IPayrollWorkspace, PayrollWorkspace>();   // db/123: the payroll workspace (Approved / Execution / Completed)
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();   // db/126: Time & Attendance
 builder.Services.AddScoped<IApprovalNotifications, ApprovalNotifications>();
 builder.Services.AddScoped<IComponentAccess, ComponentAccess>();   // db/111: Payroll Components rights
 builder.Services.AddScoped<IEmployeeNames, EmployeeNames>();
