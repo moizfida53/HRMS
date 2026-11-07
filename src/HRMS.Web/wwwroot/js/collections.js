@@ -37,7 +37,8 @@
 
     var companySel = $("[data-col-company]"), monthSel = $("[data-col-month]"), statusSel = $("[data-col-status]");
     var searchIn = $("[data-col-search]"), slot = $("[data-col-slot]");
-    var state = { month: null };
+    // db/123: on a payroll's workspace tab the month is the payroll's own
+    var state = { month: page.getAttribute("data-col-fixed-month") || null };
 
     /* ---- the payroll months of the company ---- */
     function loadMonths() {

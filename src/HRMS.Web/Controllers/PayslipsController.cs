@@ -19,6 +19,7 @@ namespace HRMS.Web.Controllers;
 /// The figures are always the payroll's own lines; a payslip is never edited.
 /// </summary>
 [Route("payroll/payslips")]
+[PayoutSync]
 public sealed class PayslipsController : Controller
 {
     private const string PermView = "PAYROLL_SLIP_VIEW";
@@ -117,6 +118,23 @@ public sealed class PayslipsController : Controller
             ManyCompanies = ManyCompanies || runs.Select(r => r.CompanyId).Distinct().Count() > 1,
             EmailConfigured = _email.CurrentValue.IsConfigured
         });
+    }
+
+    private IPayrollWorkspace Workspace => HttpContext.RequestServices.GetRequiredService<IPayrollWorkspace>();
+
+    /// <summary>
+    /// db/123: the Payslips tab of a payroll's workspace - generate, view and print its payslips
+    /// (?view=email: email them). Open once the payroll is approved.
+    /// </summary>
+    [HttpGet("~/payroll/run/{id:long}/payslips")]
+    public async Task<IActionResult> RunTab(long id, string? view, int? dept, string? status, string? q)
+    {
+        if (!Rights.CanView) return Forbid();
+        var nav = await Workspace.NavAsync(id, WorkspaceTab.Payslips, Ct);
+        if (nav is null) return RedirectToAction("Payrolls", "Payroll");
+        if (!nav.Run.IsClosed) return LocalRedirect(Url.Content(WorkspaceNav.Path(WorkspaceTab.Overview, id)));
+        ViewData["Workspace"] = nav;
+        return await Page(view == "email" ? "email" : "employees", _refs.Protect(RefPurpose.PayslipRun, id), dept, status, q, null, null);
     }
 
     [HttpGet("employees")]
@@ -273,6 +291,9 @@ public sealed class PayslipsController : Controller
     {
         if (!Can(PermGenerate)) return Denied();
         if (!TryTarget(runRef, slip, out var run, out var employees)) return Json(ActionResponse.Failed("Select a payroll.", "VALIDATION"));
+        // db/123: a completed payroll is read-only
+        if (await Workspace.IsLockedAsync(run, null, Ct))
+            return Json(ActionResponse.Failed("This payroll is completed - its payslips can no longer be generated again.", "LOCKED"));
         return Result(await _payslips.GenerateAsync(run, PayslipTemplate.Normalize(template), dept, employees, OwnCompany, CompanyCsv, UserId, Ct));
     }
 
@@ -342,9 +363,11 @@ public sealed class PayslipsController : Controller
 
         var summary = run is null ? null : await _payslips.SummaryAsync(run.PayrollRunId, OwnCompany, CompanyCsv, Ct);
         var companyId = run?.CompanyId ?? OwnCompany ?? _companyFilter.SingleCompanyId;
-        var departments = mode != "email" && companyId is { } cid
+        var workspace = ViewData["Workspace"] as WorkspaceNav;
+        var departments = (mode != "email" || workspace is not null) && companyId is { } cid
             ? await _lookups.GetAsync(LookupType.Department, cid, cancellationToken: Ct)
             : Array.Empty<LookupItem>();
+        var runRefOut = run is null ? null : _refs.Protect(RefPurpose.PayslipRun, run.PayrollRunId);
 
         return View("~/Views/Payslips/Index.cshtml", new PayslipPageModel
         {
@@ -352,7 +375,11 @@ public sealed class PayslipsController : Controller
             Rights = rights,
             Runs = runs,
             Run = run,
-            RunRef = run is null ? null : _refs.Protect(RefPurpose.PayslipRun, run.PayrollRunId),
+            RunRef = runRefOut,
+            Workspace = workspace,
+            Panel = workspace is not null && run is not null
+                ? new PayslipRunPanelModel { Run = run, Ref = runRefOut!, Summary = summary ?? new PayslipSummary(), Departments = departments, Rights = rights }
+                : null,
             Summary = summary,
             Departments = departments,
             DepartmentId = dept,

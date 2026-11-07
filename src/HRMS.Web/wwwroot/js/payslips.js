@@ -370,6 +370,20 @@
         });
     }
 
+    /* db/123: the Payslips tab of a payroll's workspace - the generate form on the page itself */
+    var inlinePanel = $("[data-ps-run-panel]", page);
+    if (inlinePanel) {
+        var genForm = $("[data-ps-generate-form]", inlinePanel);
+        var genButton = $("[data-ps-generate]", inlinePanel);
+        if (genForm) { wireGenerateForm(genForm); }
+        if (genForm && genButton) {
+            genButton.addEventListener("click", function () {
+                var fd = generateBody(genForm);
+                if (fd) { post(page.getAttribute("data-urls-generate"), fd, genButton); }
+            });
+        }
+    }
+
     /* "Send to all not yet sent" (top bar) */
     var sendAll = $("[data-ps-send-all]");
     if (sendAll) {

@@ -274,7 +274,8 @@ public sealed class RunPageModel
 
     public bool IsEditable => Run is { Stage: RunStage.Registered } && CanProcess;
 
-    public RunBarModel Bar => new() { Run = Run!, Runs = Runs, PageStage = PageStage, CanCancel = CanCancel };
+    /// <summary>db/123: the payroll's header and workspace tabs.</summary>
+    public WorkspaceNav? Nav { get; init; }
 }
 
 /// <summary>The Payrolls, Payroll Calendar and Period pages (one model, each page uses its part).</summary>

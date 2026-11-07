@@ -10,7 +10,9 @@
     ViewData["PayrollPage"] = "payrolls";
     ViewData["Subtitle"] = L["pr.payrolls_subtitle"];
     var selectedMonth = Model.SelectedMonth?.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
-    var stageOptions = new[] { RunStage.Registered, RunStage.Validation, RunStage.AwaitingApproval, RunStage.Closed, RunStage.Cancelled };
+    // db/123: after approval - Approved, Execution (paying out), Completed
+    var stageOptions = new[] { RunStage.Registered, RunStage.Validation, RunStage.AwaitingApproval,
+                               PayoutStatus.Approved, PayoutStatus.Execution, PayoutStatus.Completed, RunStage.Cancelled };
 }
 <div class="pr-stack" data-pr-page="payrolls">
     @* saved drafts first (Create Payroll > Save draft): continue where you left off *@
@@ -46,7 +48,7 @@
                     <option value="LIVE" selected="@(Model.SelectedStage == "LIVE")">@L["pr.open_payrolls"]</option>
                     @foreach (var s in stageOptions)
                     {
-                        <option value="@s" selected="@(Model.SelectedStage == s)">@L.Tr(RunStage.Label(s))</option>
+                        <option value="@s" selected="@(Model.SelectedStage == s)">@L.Tr(PayoutStatus.Matches(s) ? PayoutStatus.Label(s) : RunStage.Label(s))</option>
                     }
                     <option value="" selected="@(Model.SelectedStage == "")">@L["pr.all_stages"]</option>
                 </select>

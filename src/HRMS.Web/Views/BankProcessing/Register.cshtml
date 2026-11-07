@@ -14,8 +14,26 @@
     var statusUrl = Url.Action("PaymentStatus", "BankProcessing");
     var reissueUrl = Url.Action("Reissue", "BankProcessing");
     var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    // db/123: the Payment Register of one payroll, on the Bank transfer tab of its workspace
+    var ws = ViewData["Workspace"] as WorkspaceNav;
+    if (ws is not null)
+    {
+        ViewData["PayrollSection"] = "processing";
+        ViewData["PayrollPage"] = "payrolls";
+        ViewData["BackUrl"] = Url.Action("Payrolls", "Payroll");
+        ViewData["BackLabel"] = "Payrolls";
+    }
 }
 <div class="pr-stack fin-page" data-fin-page>
+    @if (ws is not null)
+    {
+        @await Html.PartialAsync("~/Views/Payroll/_RunBar.cshtml", ws)
+        @await Html.PartialAsync("~/Views/Payroll/_WsBankNav.cshtml", ws)
+        @if (ws.Run.IsCompleted)
+        {
+            <div class="pr-banner pr-banner--lock">@Html.Icon("lock", 18)<div><strong>@L["ws.completed_title"]</strong> @L["ws.locked_completed"]</div></div>
+        }
+    }
     <section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
         <div class="hrms-card hrms-kpi">
             <div class="hrms-kpi__head"><span class="hrms-kpi__label">@L["fin.kpi_paid"]</span><span class="hrms-kpi__icon" aria-hidden="true">@Html.Icon("check", 16)</span></div>

@@ -20,17 +20,39 @@
     var closed = run?.IsClosed == true;
     var pageUrl = Url.Action(mode switch { "employees" => "Employees", "email" => "Email", _ => "Generate" }, "Payslips");
     var withCompany = Model.ManyCompanies;
+    // db/123: the Payslips tab of a payroll's workspace - the payroll's header instead of the picker
+    var ws = Model.Workspace;
+    if (ws is not null)
+    {
+        ViewData["PayrollSection"] = "processing";
+        ViewData["PayrollPage"] = "payrolls";
+        ViewData["Subtitle"] = L["ws.payslips_subtitle"];
+        ViewData["BackUrl"] = Url.Action("Payrolls", "Payroll");
+        ViewData["BackLabel"] = "Payrolls";
+        pageUrl = Url.Content(WorkspaceNav.Path(WorkspaceTab.Payslips, ws.Run.PayrollRunId)) + (mode == "email" ? "?view=email" : "");
+    }
 }
 
 <div class="pr-stack ps-page" data-ps-page="@mode"
      data-urls-page="@pageUrl"
      data-urls-grid="@Url.Action("Grid", "Payslips")"
      data-urls-email="@Url.Action("QueueEmail", "Payslips")"
+     data-urls-generate="@Url.Action("GeneratePayslips", "Payslips")"
      data-ref="@Model.RunRef"
      data-year="@Model.Year"
      data-month="@Model.Month?.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)">
 
+    @if (ws is not null)
+    {
+        @await Html.PartialAsync("~/Views/Payroll/_RunBar.cshtml", ws)
+        <div class="ws-subnav" role="tablist" aria-label="@L["ws.tab_payslips"]">
+            <a class="ws-subnav__item @(mode != "email" ? "is-active" : null)" href="@Url.Content(WorkspaceNav.Path(WorkspaceTab.Payslips, ws.Run.PayrollRunId))" aria-current="@(mode != "email" ? "page" : null)">@Html.Icon("receipt", 14)<span>@L["ws.sub_generate_view"]</span></a>
+            <a class="ws-subnav__item @(mode == "email" ? "is-active" : null)" href="@(Url.Content(WorkspaceNav.Path(WorkspaceTab.Payslips, ws.Run.PayrollRunId)) + "?view=email")" aria-current="@(mode == "email" ? "page" : null)">@Html.Icon("mail", 14)<span>@L["ws.sub_email"]</span><span class="ws-opt">@L["ws.optional"]</span></a>
+        </div>
+    }
     @* ------------------------------------------------ payroll picker *@
+    @if (ws is null)
+    {
     <section class="hrms-card ps-picker" aria-label="@L["ps.payroll"]">
         <div class="ps-picker__body">
             <span class="ps-picker__icon" aria-hidden="true">@Html.Icon("receipt", 20)</span>
@@ -89,6 +111,7 @@
             }
         </div>
     </section>
+    }
 
     @if (Model.Runs.Count == 0)
     {
@@ -104,7 +127,7 @@
     else
     {
         @* ------------------------------------------------ key figures *@
-        @if (run is not null && mode != "employees")
+        @if (run is not null && (mode != "employees" || ws is not null))
         {
             <section class="pr-kpis pr-kpis--4" aria-label="@L["pr.key_figures"]">
                 @{
@@ -160,6 +183,12 @@
                     <div><strong>@L["ps.email_off_title"]</strong> @L["ps.email_off_text"]</div>
                 </div>
             }
+        }
+
+        @* db/123: the generate form of the payroll, on the workspace tab itself *@
+        @if (ws is not null && Model.Panel is not null && mode != "email")
+        {
+            @await Html.PartialAsync("_RunPanel", Model.Panel, new ViewDataDictionary(ViewData) { ["Inline"] = true, ["Locked"] = ws.Run.IsCompleted })
         }
 
         @* ------------------------------------------------ employees / email list *@

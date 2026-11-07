@@ -1,0 +1,52 @@
+@using HRMS.Web.Models.Payroll
+@using HRMS.Domain.Payroll
+@model WorkspaceAccountingModel
+@{
+    // db/123: the Accounting tab of a payroll's workspace - the payroll journal (or its preview):
+    // create it, export it to Excel, record that it is posted to the GL, reverse it.
+    var nav = Model.Nav;
+    var run = nav.Run;
+    var p = nav.Payout;
+    ViewData["Title"] = "Payroll Accounting";
+    ViewData["ActiveArea"] = "payroll";
+    ViewData["PayrollSection"] = "processing";
+    ViewData["PayrollPage"] = "payrolls";
+    ViewData["Subtitle"] = L["ws.accounting_subtitle"];
+    ViewData["BackUrl"] = Url.Action("Payrolls", "Payroll");
+    ViewData["BackLabel"] = "Payrolls";
+}
+<div class="pr-stack fin-page" data-fin-page>
+    @await Html.PartialAsync("~/Views/Payroll/_RunBar.cshtml", nav)
+
+    @if (p is not null && !p.GlPosted && !p.PaymentsDone)
+    {
+        <div class="pr-banner pr-banner--info">@Html.Icon("info", 18)<div><strong>@L["ws.gl_after_bank_title"]</strong> @L["ws.gl_after_bank_text"]</div></div>
+    }
+    @if (run.IsCompleted)
+    {
+        <div class="pr-banner pr-banner--ok">@Html.Icon("check", 18)<div><strong>@L["ws.completed_title"]</strong> @L["ws.reverse_reopens"]</div></div>
+    }
+
+    <section class="hrms-card">
+        <div class="pr-card-body ws-journal">
+            @if (Model.Journal is null)
+            {
+                <div class="hrms-empty">
+                    <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("book", 26)</span>
+                    <p class="hrms-empty__title">@L["fin.not_created"]</p>
+                </div>
+            }
+            else
+            {
+                <h2 class="pr-card-title">@(Model.Journal.Journal is null ? L["fin.journal_preview"] : L["fin.journal_0", Model.Journal.Journal.JournalNo])</h2>
+                @await Html.PartialAsync("~/Views/Accounting/_JournalDetails.cshtml", Model.Journal)
+            }
+        </div>
+    </section>
+</div>
+@await Html.PartialAsync("~/Views/PayrollFinance/_ViewModal.cshtml")
+@await Html.PartialAsync("~/Views/PayrollFinance/_Dialog.cshtml")
+
+@section Scripts {
+    <script src="~/js/payroll-finance.js" asp-append-version="true"></script>
+}

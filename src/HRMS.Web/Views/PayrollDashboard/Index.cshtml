@@ -76,6 +76,17 @@
                         <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["dash.not_started"]</span>
                     }
                 </div>
+                @if (Model.Payout is { } po && (po.OpenCount > 0 || po.CompletedCount > 0))
+                {
+                    @* db/123: approved payrolls still paying out (any month) *@
+                    <div class="dash-period-info__row">
+                        <span class="dash-period-info__label">@L["ws.dash_paying_out"]</span>
+                        <span class="dash-period-info__value">
+                            <a href="@Url.Action("Payrolls", "Payroll")">@PayrollFormat.Count(po.OpenCount)</a>
+                            <span class="hrms-muted hrms-text-xs">· @L["ws.dash_0_completed", PayrollFormat.Count(po.CompletedCount)]</span>
+                        </span>
+                    </div>
+                }
                 <div class="dash-period-info__row">
                     <span class="dash-period-info__label">@L["prv.employees_in_run"]</span>
                     <span class="dash-period-info__value">

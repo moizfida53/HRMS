@@ -514,7 +514,7 @@
             }
             post(dUrls.getAttribute("data-" + kind), { comment: text }, b).then(function (res) {
                 if (!res || !res.success) { return; }
-                if (kind === "return") { openRun(RUN); } else { HRMS.reload(); }
+                if (kind === "return" || kind === "approve") { openRun(RUN); } else { HRMS.reload(); }
             });
         });
     }

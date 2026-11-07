@@ -2,6 +2,7 @@ using HRMS.Data.Repositories;
 using HRMS.Domain.Payroll;
 using HRMS.Web.Models.Payroll;
 using HRMS.Web.Security;
+using HRMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HRMS.Web.Controllers;
@@ -71,6 +72,7 @@ public sealed class PayrollDashboardController : PayrollFinanceControllerBase
             Calendar = await _finance.DashboardCalendarAsync(m, OwnCompany, CompanyCsv, Ct),
             Attention = await _finance.DashboardAttentionAsync(m, OwnCompany, CompanyCsv, Ct) ?? new DashboardAttention(),
             Collections = await CollectionsAsync(m),
+            Payout = Can("PAYROLL_RUN_VIEW") && HttpContext.RequestServices.GetService<IPayrollWorkspace>() is { } ws ? await ws.CountsAsync(Ct) : null,
             ManyCompanies = ManyCompanies,
             CanRun = Can("PAYROLL_RUN_VIEW") || Can("PAYROLL_RUN_CREATE"),
             CanSlips = Can("PAYROLL_SLIP_GENERATE") || Can("PAYROLL_SLIP_VIEW"),

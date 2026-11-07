@@ -64,6 +64,10 @@ public abstract class PayrollFinanceControllerBase : Controller
         return Json(result.Success ? ActionResponse.Ok(result.Id, result.Message) : ActionResponse.Failed(result.Message, result.ErrorCode));
     }
 
+    /// <summary>db/123: the payroll, or the payroll of one of the payments, is completed (read-only).</summary>
+    protected Task<bool> IsCompletedAsync(long? runId, IEnumerable<long>? paymentIds) =>
+        HttpContext.RequestServices.GetService<IPayrollWorkspace>() is { } ws ? ws.IsLockedAsync(runId, paymentIds, Ct) : Task.FromResult(false);
+
     protected IActionResult Denied() => Json(ActionResponse.Failed("You do not have permission to do this.", "FORBIDDEN"));
 
     protected IActionResult Invalid(string message) => Json(ActionResponse.Failed(message, "VALIDATION"));

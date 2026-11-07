@@ -19,6 +19,7 @@ namespace HRMS.Web.Controllers;
 /// Rights: PAYROLL_COLL_VIEW to see, PAYROLL_COLL_EDIT to mark as received or set back.
 /// </summary>
 [Route("payroll/components/collection")]
+[HRMS.Web.Services.PayoutSync]
 public sealed class CollectionsController : Controller
 {
     public const string PermView = "PAYROLL_COLL_VIEW";
@@ -67,6 +68,24 @@ public sealed class CollectionsController : Controller
             Companies = companies,
             SelectedCompanyId = companies.Any(c => c.Id == preferred) ? preferred : companies.FirstOrDefault()?.Id,
             CanEdit = CanEdit
+        });
+    }
+
+    /// <summary>db/123: the Collections tab of a payroll's workspace - its company and month (regular payrolls, once approved).</summary>
+    [HttpGet("~/payroll/run/{id:long}/collections")]
+    public async Task<IActionResult> RunTab(long id)
+    {
+        if (!CanView) return Forbid();
+        var nav = await HttpContext.RequestServices.GetRequiredService<HRMS.Web.Services.IPayrollWorkspace>().NavAsync(id, WorkspaceTab.Collections, Ct);
+        if (nav is null || !await MayOpenAsync(nav.Run.CompanyId)) return RedirectToAction("Payrolls", "Payroll");
+        if (!nav.Run.IsClosed || !nav.HasCollections) return LocalRedirect(Url.Content(WorkspaceNav.Path(WorkspaceTab.Overview, id)));
+        var companies = (await CompaniesAsync()).Where(c => c.Id == nav.Run.CompanyId).ToList();
+        return View("Index", new CollectionPageModel
+        {
+            Companies = companies,
+            SelectedCompanyId = nav.Run.CompanyId,
+            CanEdit = CanEdit,
+            Workspace = nav
         });
     }
 

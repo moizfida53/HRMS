@@ -1,0 +1,20 @@
+@using HRMS.Web.Models.Payroll
+@using HRMS.Domain.Payroll
+@model WorkspaceNav
+@* db/123: the Bank transfer tab of a payroll's workspace - its bank file and its Payment Register *@
+@{
+    var id = Model.Run.PayrollRunId;
+    var onRegister = Model.Tab == WorkspaceTab.Payments;
+    var p = Model.Payout;
+}
+<div class="ws-subnav" role="tablist" aria-label="@L["ws.tab_bank"]">
+    <a class="ws-subnav__item @(!onRegister ? "is-active" : null)" href="@Url.Content(WorkspaceNav.Path(WorkspaceTab.Bank, id))" aria-current="@(!onRegister ? "page" : null)">
+        @Html.Icon("file", 14)<span>@L["ws.sub_bank_file"]</span>
+        @if (p is { BankFileCount: > 0 }) { <span class="ws-tab__badge ws-tab__badge--muted">@p.BankFileCount</span> }
+    </a>
+    <a class="ws-subnav__item @(onRegister ? "is-active" : null)" href="@Url.Content(WorkspaceNav.Path(WorkspaceTab.Payments, id))" aria-current="@(onRegister ? "page" : null)">
+        @Html.Icon("check", 14)<span>@L["ws.payment_register"]</span>
+        @if (p is { FailedCount: > 0 }) { <span class="ws-tab__badge ws-tab__badge--danger">@p.FailedCount</span> }
+        else if (p is { PaymentCount: > 0 }) { <span class="ws-tab__badge ws-tab__badge--muted">@p.PaidCount/@p.PaymentCount</span> }
+    </a>
+</div>

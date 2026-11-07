@@ -42,6 +42,10 @@ public sealed class PayslipPageModel
     public bool ManyCompanies { get; init; }
 
     public string Tab => Mode switch { "employees" => "slip-employee", "email" => "slip-email", _ => "slip-generate" };
+    /// <summary>db/123: shown as the Payslips tab of the payroll's workspace (the payroll's header, no picker).</summary>
+    public WorkspaceNav? Workspace { get; init; }
+    /// <summary>The workspace tab: the generate form of the payroll, on the page itself.</summary>
+    public PayslipRunPanelModel? Panel { get; init; }
 }
 
 public sealed class PayslipGridModel

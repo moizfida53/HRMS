@@ -9,6 +9,8 @@
 }
 <form class="hrms-card__toolbar fin-filters" method="get" action="@Model.Action" data-fin-filters role="search">
     <div class="hrms-card__filters">
+        @if (!Model.NoPeriod)
+        {
         <span class="fin-filters__icon" aria-hidden="true">@Html.Icon("calendar", 16)</span>
         <select class="form-select pr-filter fin-filters__year" name="year" data-fin-year data-searchable aria-label="@L["pr.year"]">
             @if (Model.AllYears)
@@ -30,6 +32,7 @@
                 <option value="@FinancePeriod.Key(m)" data-year="@m.Year" selected="@(Model.Month == m)">@L.MonthYear(m)</option>
             }
         </select>
+        }
         @foreach (var s in Model.Selects)
         {
             <select class="form-select pr-filter" name="@s.Name" data-fin-auto data-searchable aria-label="@s.Label" disabled="@(s.Options.Count == 0)">

@@ -19,6 +19,8 @@ public sealed record FinanceSelect(string Name, string Label, IReadOnlyList<(str
 public sealed class FinanceFilterBar
 {
     public required string Action { get; init; }
+    /// <summary>db/123: on a payroll's workspace tab the payroll is fixed - no Year / Month.</summary>
+    public bool NoPeriod { get; init; }
     public IReadOnlyList<int> Years { get; init; } = Array.Empty<int>();
     /// <summary>The months offered (first day of the month).</summary>
     public IReadOnlyList<DateTime> Months { get; init; } = Array.Empty<DateTime>();
@@ -274,6 +276,8 @@ public sealed class ReportPageModel
 
 public sealed class PayrollDashboardModel
 {
+    /// <summary>db/123: the approved payrolls in scope by pay-out status (null = not available).</summary>
+    public PayoutCounts? Payout { get; init; }
     public DateTime Month { get; init; }
     public IReadOnlyList<DateTime> Months { get; init; } = Array.Empty<DateTime>();
     public required DashboardSummary Summary { get; init; }

@@ -140,6 +140,8 @@ public static class StoredProcedure
     public const string PayrollFunding = "Payroll.usp_Payroll_Funding";
     /// <summary>db/122: the payroll funding saved when the payroll is approved.</summary>
     public const string PayrollFundingSnapshot = "Payroll.usp_Payroll_FundingSnapshot";
+    /// <summary>db/123: the pay-out of a closed payroll - Approved, Execution, Completed.</summary>
+    public const string PayrollRunPayout = "Payroll.usp_PayrollRun_Payout";
 
     /// <summary>Pay items from an Excel file - every row or none.</summary>
     public const string PayItemImport = "Payroll.usp_PayItem_Import";

@@ -17,6 +17,7 @@ namespace HRMS.Web.Controllers;
 /// cheque) and Payment History (the files: download, sent to the bank, paid).
 /// </summary>
 [Route("payroll/bank")]
+[PayoutSync]
 public sealed class BankProcessingController : PayrollFinanceControllerBase
 {
     private const string PermView = "PAYROLL_BANK_VIEW";
@@ -47,6 +48,36 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
     // =======================================================================
     // Bank File
     // =======================================================================
+
+    // =======================================================================
+    // db/123: the Bank transfer tab of a payroll's workspace - the bank file of that
+    // payroll and its Payment Register (open once the payroll is approved)
+    // =======================================================================
+
+    [HttpGet("~/payroll/run/{id:long}/bank")]
+    public async Task<IActionResult> RunTab(long id)
+    {
+        if (!Rights.CanView) return Forbid();
+        if (await WorkspaceAsync(id, WorkspaceTab.Bank) is not { } nav) return RedirectToAction("Payrolls", "Payroll");
+        if (!nav.Run.IsClosed) return LocalRedirect(Url.Content(WorkspaceNav.Path(WorkspaceTab.Overview, id)));
+        return await FilePage(nav.Run.RunMonth.Year, FinancePeriod.Key(nav.Run.RunMonth), id);
+    }
+
+    [HttpGet("~/payroll/run/{id:long}/payments")]
+    public async Task<IActionResult> RunPayments(long id, string? status, string? method, string? q, int page = 1)
+    {
+        if (!Rights.CanView) return Forbid();
+        if (await WorkspaceAsync(id, WorkspaceTab.Payments) is not { } nav) return RedirectToAction("Payrolls", "Payroll");
+        if (!nav.Run.IsClosed) return LocalRedirect(Url.Content(WorkspaceNav.Path(WorkspaceTab.Overview, id)));
+        return await Register(null, null, status, method, q, id, null, page);
+    }
+
+    private async Task<WorkspaceNav?> WorkspaceAsync(long id, string tab)
+    {
+        var nav = await HttpContext.RequestServices.GetRequiredService<IPayrollWorkspace>().NavAsync(id, tab, Ct);
+        ViewData["Workspace"] = nav;
+        return nav;
+    }
 
     [HttpGet("file")]
     public async Task<IActionResult> FilePage(int? year, string? month, long? run)
@@ -245,12 +276,14 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
         };
         var result = await _finance.PaymentsAsync(filter, Ct);
         await _names.LocalizeAsync(result.Items, p => p.EmployeeId, (p, name) => p.EmployeeName = name, Ct);
+        var ws = ViewData["Workspace"] as WorkspaceNav;
 
         return View("~/Views/BankProcessing/Register.cshtml", new PaymentRegisterModel
         {
             Filters = new FinanceFilterBar
             {
-                Action = Url.Action(nameof(Register))!,
+                Action = ws is null ? Url.Action(nameof(Register))! : Url.Content(WorkspaceNav.Path(WorkspaceTab.Payments, ws.Run.PayrollRunId)),
+                NoPeriod = ws is not null,
                 Years = YearsOf(months), Months = months, Year = y, Month = m, AllYears = true,
                 Selects =
                 [
@@ -260,7 +293,7 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
                     new FinanceSelect("method", _l["fin.method"],
                         [("", _l["fin.all_methods"]), ("BANK", _l["fin.method_bank"]), ("CASH", _l["fin.method_cash"])], method)
                 ],
-                Hidden = new Dictionary<string, string?>
+                Hidden = ws is not null ? new Dictionary<string, string?>() : new Dictionary<string, string?>
                 {
                     ["run"] = run?.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     ["file"] = file?.ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -273,7 +306,7 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
             Page = result,
             Summary = await _finance.PaymentSummaryAsync(filter, Ct),
             ManyCompanies = ManyCompanies,
-            IsFiltered = status is not null || method is not null || !string.IsNullOrWhiteSpace(q) || run is not null || file is not null
+            IsFiltered = status is not null || method is not null || !string.IsNullOrWhiteSpace(q) || (ws is null && run is not null) || file is not null
         });
     }
 
@@ -283,6 +316,7 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
         if (!Can(PermProcess)) return Denied();
         var list = Ids(ids);
         if (list.Count == 0) return Invalid("Select the payments.");
+        if (await IsCompletedAsync(null, list)) return Invalid("These payments belong to a completed payroll - it is read-only.");
         return Result(await _finance.SetPaymentStatusAsync(list, status == "FAILED" ? "FAILED" : "PAID", reference, reason, paidDate,
                                                            OwnCompany, CompanyCsv, UserId, Ct));
     }
@@ -293,6 +327,7 @@ public sealed class BankProcessingController : PayrollFinanceControllerBase
         if (!Can(PermProcess)) return Denied();
         var list = Ids(ids);
         if (list.Count == 0) return Invalid("Select the payments.");
+        if (await IsCompletedAsync(null, list)) return Invalid("These payments belong to a completed payroll - it is read-only.");
         return Result(await _finance.ReissuePaymentsAsync(list, method == "CASH" ? "CASH" : "BANK", OwnCompany, CompanyCsv, UserId, Ct));
     }
 

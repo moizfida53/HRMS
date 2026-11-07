@@ -41,3 +41,4 @@
 @use "approvals";            // db/110: pending approvals - sidebar badges, bell, side alert
 @use "collections";          // db/115: Payroll Components > Collection
 @use "bank-steps";           // db/116: Bank File - Ministry Payroll, then Company Payroll
+@use "workspace";            // db/123: the payroll workspace (tabs by stage, Approved / Execution / Completed)

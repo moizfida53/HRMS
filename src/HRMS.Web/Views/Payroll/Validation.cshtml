@@ -16,7 +16,7 @@
 }
 
 <div class="pr-stack" data-pr-page="validation">
-    @await Html.PartialAsync("_RunBar", Model.Bar)
+    @await Html.PartialAsync("_RunBar", Model.Nav)
     @if (!inValidation)
     {
         <div class="pr-banner pr-banner--lock">@Html.Icon("lock", 18)<div><strong>@L["pr.validation_is_complete"]</strong> @L["pr.the_payroll_has_moved_on_this_screen_is_read_only"]</div></div>

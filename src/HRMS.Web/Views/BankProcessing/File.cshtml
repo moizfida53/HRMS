@@ -23,6 +23,16 @@
     // db/118: posted to the GL = the bank files can no longer be generated again
     var gl = st?.IsGlPosted == true;
     var canGl = Model.CanPostGl;
+    // db/123: the Bank transfer tab of a payroll's workspace - the payroll's header instead of the filters
+    var ws = ViewData["Workspace"] as WorkspaceNav;
+    if (ws is not null)
+    {
+        ViewData["PayrollSection"] = "processing";
+        ViewData["PayrollPage"] = "payrolls";
+        ViewData["BackUrl"] = Url.Action("Payrolls", "Payroll");
+        ViewData["BackLabel"] = "Payrolls";
+    }
+
     string AuditKey(string a) => a switch { "REGENERATED" => "fin.audit_regenerated", "SENT" => "fin.audit_sent", "PAID" => "fin.audit_paid", "GL_POSTED" => "fin.audit_gl_posted", _ => "fin.audit_generated" };
     string KindKey(string? k) => k switch { "MINISTRY" => "fin.kind_ministry", "COMPANY" => "fin.kind_company", "RETRY" => "fin.kind_retry", _ => "fin.kind_full" };
 
@@ -72,8 +82,16 @@
     }
 }
 <div class="pr-stack fin-page" data-fin-page data-fin-download="@downloadUrl">
+    @if (ws is not null)
+    {
+        @await Html.PartialAsync("~/Views/Payroll/_RunBar.cshtml", ws)
+        @await Html.PartialAsync("~/Views/Payroll/_WsBankNav.cshtml", ws)
+    }
     <section class="hrms-card">
-        @await Html.PartialAsync("~/Views/PayrollFinance/_Filters.cshtml", Model.Filters)
+        @if (ws is null)
+        {
+            @await Html.PartialAsync("~/Views/PayrollFinance/_Filters.cshtml", Model.Filters)
+        }
         @if (run is null)
         {
             <div class="hrms-empty">

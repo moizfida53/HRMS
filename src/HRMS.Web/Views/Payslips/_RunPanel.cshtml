@@ -6,11 +6,17 @@
     var sum = Model.Summary;
     var closed = run.IsClosed;
     var toGenerate = sum.NotGeneratedCount + sum.OutdatedCount;
+    // db/123: on the Payslips tab of the workspace the form is on the page (the button under it);
+    // a completed payroll's payslips are not generated again
+    var inline = ViewData["Inline"] is true;
+    var locked = ViewData["Locked"] is true;
 }
 <div class="ps-panel" data-ps-run-panel>
     <span hidden data-ps-panel-title>@run.RunCode · @PayslipFormat.Period(L, run)</span>
 
     @* moved into the popup header (right) by payslips.js *@
+    @if (!inline)
+    {
     <div hidden data-ps-header-actions>
         @if (Model.Rights.CanGenerate)
         {
@@ -19,11 +25,14 @@
             </button>
         }
     </div>
+    }
     @if (!Model.Rights.CanGenerate)
     {
         <p class="hrms-muted hrms-text-sm mb-0">@L["ps.no_generate_right"]</p>
     }
 
+    @if (!inline)
+    {
     <dl class="fin-facts fin-facts--popup">
         @if (!string.IsNullOrWhiteSpace(run.CompanyName))
         {
@@ -36,6 +45,7 @@
             <dd><span class="hrms-badge hrms-badge--@(closed ? "success" : "warning")"><span class="hrms-badge__dot"></span>@L[PayslipFormat.StageKey(run.Stage)]</span></dd>
         </div>
     </dl>
+    }
 
     @if (!closed)
     {
@@ -116,6 +126,21 @@
                     <span class="pr-check__meta">@(sum.NoEmailCount > 0 ? L["ps.n_without_email", PayrollFormat.Count(sum.NoEmailCount)] : L["ps.all_have_email"])</span>
                 </li>
             </ul>
+            @if (inline && Model.Rights.CanGenerate)
+            {
+                <div class="ws-formbar">
+                    @if (locked)
+                    {
+                        <span class="hrms-muted hrms-text-sm">@Html.Icon("lock", 14) @L["ws.locked_completed"]</span>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-primary" data-ps-generate @(closed ? null : "disabled")>
+                            @Html.Icon("receipt", 15)<span>@(sum.GeneratedCount > 0 ? L["ps.generate_again"] : L["ps.generate_payslips"])</span>
+                        </button>
+                    }
+                </div>
+            }
         </form>
     </section>
 </div>

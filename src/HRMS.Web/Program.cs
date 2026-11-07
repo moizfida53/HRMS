@@ -210,6 +210,7 @@ builder.Services.AddHostedService<PayslipEmailSender>();
 // Figures next to Payroll Processing's sub-sections in the sidebar (cached a few seconds).
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPayrollNavCounts, PayrollNavCounts>();
+builder.Services.AddScoped<IPayrollWorkspace, PayrollWorkspace>();   // db/123: the payroll workspace (Approved / Execution / Completed)
 builder.Services.AddScoped<IApprovalNotifications, ApprovalNotifications>();
 builder.Services.AddScoped<IComponentAccess, ComponentAccess>();   // db/111: Payroll Components rights
 builder.Services.AddScoped<IEmployeeNames, EmployeeNames>();

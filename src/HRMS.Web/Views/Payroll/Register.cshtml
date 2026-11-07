@@ -21,7 +21,7 @@
 else
 {
     <div class="pr-stack" data-pr-page="register">
-        @await Html.PartialAsync("_RunBar", Model.Bar)
+        @await Html.PartialAsync("_RunBar", Model.Nav)
         @if (run.Stage != RunStage.Registered)
         {
             <div class="pr-banner pr-banner--lock">@Html.Icon("lock", 18)<div>

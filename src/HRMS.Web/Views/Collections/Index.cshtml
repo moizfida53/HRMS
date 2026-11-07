@@ -8,6 +8,16 @@
     ViewData["PayrollPage"] = "pc-collection";
     ViewData["Subtitle"] = L["col.subtitle"];
     var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    // db/123: the Collections tab of a payroll's workspace - its company and month are fixed
+    var ws = Model.Workspace;
+    if (ws is not null)
+    {
+        ViewData["PayrollSection"] = "processing";
+        ViewData["PayrollPage"] = "payrolls";
+        ViewData["Subtitle"] = L["ws.collections_subtitle"];
+        ViewData["BackUrl"] = Url.Action("Payrolls", "Payroll");
+        ViewData["BackLabel"] = "Payrolls";
+    }
 }
 
 <div class="pr-stack" data-col-page
@@ -15,17 +25,29 @@
      data-url-grid="@Url.Action("Grid", "Collections")"
      data-url-history="@Url.Action("History", "Collections")"
      data-url-collect="@Url.Action("Collect", "Collections")"
-     data-url-reopen="@Url.Action("Reopen", "Collections")">
+     data-url-reopen="@Url.Action("Reopen", "Collections")"
+     data-col-fixed-month="@ws?.Run.RunMonth.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture)">
 
+    @if (ws is not null)
+    {
+        @await Html.PartialAsync("~/Views/Payroll/_RunBar.cshtml", ws)
+        <div class="pr-banner pr-banner--info">
+            @Html.Icon("info", 18)
+            <div><strong>@L["ws.collections_note_title"]</strong> @L["ws.collections_note_text"]</div>
+        </div>
+    }
+    else
+    {
     <div class="pr-banner pr-banner--info">
         @Html.Icon("wallet", 18)
         <div><strong>@L["col.intro_title"]</strong> @L["col.intro_text"]</div>
     </div>
+    }
 
     @* the company and the payroll month first - the summary and the list follow them *@
     <section class="hrms-card col-pick" aria-label="@L["col.pick_label"]">
         <div class="row g-3 align-items-end p-3">
-            <div class="col-12 col-md-6 col-xl-4">
+            <div class="col-12 col-md-6 col-xl-4" hidden="@(ws is not null)">
                 <label class="form-label" for="col-company">@L["common.company"]</label>
                 <select class="form-select" id="col-company" data-col-company disabled="@(Model.Companies.Count <= 1 ? "disabled" : null)">
                     @foreach (var c in Model.Companies)
@@ -34,7 +56,7 @@
                     }
                 </select>
             </div>
-            <div class="col-12 col-sm-6 col-md-3 col-xl-3">
+            <div class="col-12 col-sm-6 col-md-3 col-xl-3" hidden="@(ws is not null)">
                 <label class="form-label" for="col-month">@L["col.payroll_month"]</label>
                 <select class="form-select" id="col-month" data-col-month disabled>
                     <option value="">@L["col.loading_months"]</option>

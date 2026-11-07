@@ -1,0 +1,393 @@
+// ============================================================================
+// db/123: the payroll workspace
+// - the header (Views/Payroll/_RunBar.cshtml): six stages, Approved / Execution /
+//   Completed shown after approval
+// - the tab rail: Preparation · Pay-out · Record, locked tabs, badges, done ticks;
+//   it scrolls sideways (snap) on a phone
+// - sub-tabs inside a tab (Bank file / Payment register, Generate / Email)
+// - the Overview: the checklist with the next action, the progress score
+// - the Payrolls list: pay-out chips (PS BK CO GL) and the next-action link
+// ============================================================================
+
+@use "tokens" as *;
+@use "mixins" as *;
+
+// ------------------------------------------------------------- header ----
+.ws-head {
+  // the pay-out stages (Approved, Execution, Completed) in green once reached
+  .ws-stage--payout.is-done .pr-stage__dot { background: $green-600; border-color: $green-600; }
+  .ws-stage--payout.is-done { color: $green-700; }
+  .ws-stage--payout.is-done + .pr-stage::before { background: $green-600; }
+
+  &.is-completed { border-inline-start: 3px solid $green-600; }
+}
+
+// the stages wrap under the payroll on a narrow content column
+@include cq-down("lg") {
+  .ws-stages { order: 3; flex: 1 1 100%; overflow-x: auto; @include thin-scrollbar; padding-block-end: 2px; }
+}
+
+// ------------------------------------------------------------- tab rail ----
+.ws-tabs {
+  position: relative;
+  margin-block-start: calc(-1 * #{space("2")});   // sits close under the header
+
+  &__rail {
+    display: flex;
+    align-items: stretch;
+    gap: space("3");
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    padding: space("1") space("1") 0;
+    border-block-end: 1px solid $line-200;
+    @include thin-scrollbar;
+  }
+
+  &__group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 0 0 auto;
+
+    & + & { padding-inline-start: space("3"); border-inline-start: 1px solid $line-200; }
+  }
+
+  &__caption {
+    @include label-caps;
+    font-size: .625rem;
+    color: $ink-400;
+    padding-inline: space("2");
+  }
+
+  &__items { display: flex; gap: 2px; }
+
+  // the group captions are left out on a phone (the rail is a single scroll line)
+  @include down("md") {
+    &__caption { display: none; }
+    &__group + &__group { padding-inline-start: space("2"); }
+  }
+}
+
+.ws-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .55rem .75rem .65rem;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  color: $ink-600;
+  text-decoration: none;
+  white-space: nowrap;
+  border-radius: $radius $radius 0 0;
+  scroll-snap-align: start;
+  @include motion(color, background-color);
+  @include focus-ring;
+
+  svg { flex: 0 0 auto; opacity: .8; }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline: .5rem;
+    inset-block-end: -1px;
+    height: 2px;
+    border-radius: 2px;
+    background: transparent;
+    @include motion(background-color);
+  }
+
+  &:hover { color: $ink-900; background: $blue-050; }
+
+  &.is-active {
+    color: $blue-700;
+    &::after { background: $blue-600; }
+    svg { opacity: 1; }
+  }
+
+  &.is-locked {
+    color: $ink-300;
+    cursor: not-allowed;
+    &:hover { background: transparent; color: $ink-300; }
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.15rem;
+    padding: 0 .35rem;
+    border-radius: $radius-pill;
+    font-size: .65rem;
+    font-weight: $fw-bold;
+    line-height: 1;
+
+    &--warning { @include soft-badge($amber-700, $amber-050); }
+    &--danger  { @include soft-badge($red-700, $red-050); }
+    &--muted   { @include soft-badge($ink-600, $line-100); }
+  }
+
+  &__done {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: $green-050;
+    color: $green-700;
+    svg { opacity: 1; }
+  }
+}
+
+// ------------------------------------------------------------ sub-tabs ----
+.ws-subnav {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: space("1");
+  padding: 3px;
+  background: $line-100;
+  border-radius: $radius-pill;
+  align-self: flex-start;
+
+  &__item {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .85rem;
+    border-radius: $radius-pill;
+    font-size: $fs-sm;
+    font-weight: $fw-semibold;
+    color: $ink-600;
+    text-decoration: none;
+    @include motion(color, background-color, box-shadow);
+    @include focus-ring;
+
+    &:hover { color: $ink-900; }
+    &.is-active { background: $white; color: $blue-700; box-shadow: $shadow-xs; }
+  }
+
+  @include down("sm") {
+    display: flex;
+    &__item { flex: 1 1 0; justify-content: center; }
+  }
+}
+
+.ws-opt, .ws-req {
+  display: inline-block;
+  margin-inline-start: .35rem;
+  padding: .05rem .4rem;
+  border-radius: $radius-pill;
+  font-size: .625rem;
+  font-weight: $fw-semibold;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  vertical-align: middle;
+}
+.ws-opt { @include soft-badge($ink-500, $line-100); }
+.ws-req { @include soft-badge($blue-700, $blue-100); }
+
+.ws-formbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: space("2");
+  margin-block-start: space("3");
+  padding-block-start: space("3");
+  border-block-start: 1px solid $line-100;
+
+  @include down("sm") { .btn { width: 100%; } }
+}
+
+// ------------------------------------------------------------- overview ----
+.ws-overview {
+  display: grid;
+  gap: space("3");
+  grid-template-columns: minmax(0, 1fr);
+
+  @include cq-up("lg") { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; }
+}
+
+.ws-check {
+  padding: space("3") space("4");
+
+  @include down("sm") { padding: space("3"); }
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: space("3");
+    margin-block-end: space("3");
+  }
+
+  &__score { display: flex; flex-direction: column; align-items: flex-end; gap: .35rem; flex: 0 0 auto; }
+
+  &__num {
+    font-family: $font-display;
+    font-size: $fs-2xl;
+    font-weight: $fw-bold;
+    line-height: 1;
+    color: $ink-900;
+    small { font-size: $fs-sm; color: $ink-400; font-weight: $fw-semibold; }
+  }
+
+  &__rule {
+    display: flex;
+    gap: .5rem;
+    margin: space("3") 0 0;
+    padding-block-start: space("3");
+    border-block-start: 1px dashed $line-200;
+    font-size: $fs-xs;
+    color: $ink-500;
+    svg { flex: 0 0 auto; margin-block-start: 1px; }
+  }
+}
+
+.ws-progress {
+  display: block;
+  width: 96px;
+  height: 6px;
+  border-radius: $radius-pill;
+  background: $line-100;
+  overflow: hidden;
+
+  i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, $blue-600, $green-600); @include motion(width); }
+}
+
+.ws-next {
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  margin-block-end: space("3");
+  padding: space("2") space("3");
+  border: 1px solid $blue-200;
+  border-radius: $radius-md;
+  background: linear-gradient(90deg, $blue-050, $white);
+
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: $blue-600;
+    color: $white;
+  }
+
+  &__text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; strong { color: $ink-900; overflow-wrap: anywhere; } }
+  &__label { @include label-caps; font-size: .625rem; color: $blue-700; }
+  &__btn { flex: 0 0 auto; }
+
+  @include down("sm") {
+    flex-wrap: wrap;
+    &__btn { width: 100%; }
+  }
+}
+
+.ws-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  padding: space("2") 0;
+
+  & + & { border-block-start: 1px solid $line-100; }
+
+  &__dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 2px solid $line-300;
+    background: $white;
+    color: $ink-500;
+  }
+
+  &__body { flex: 1 1 auto; min-width: 0; }
+  &__title { font-weight: $fw-semibold; color: $ink-900; font-size: $fs-base; }
+  &__meta { font-size: $fs-xs; color: $ink-500; overflow-wrap: anywhere; }
+
+  &__go {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    color: $ink-500;
+    @include motion(background-color, color);
+    @include focus-ring;
+    &:hover { background: $blue-050; color: $blue-700; }
+  }
+
+  &.is-done &__dot { background: $green-600; border-color: $green-600; color: $white; }
+  &.is-current &__dot { border-color: $blue-600; color: $blue-700; box-shadow: 0 0 0 3px rgba($blue-600, .15); }
+  &.is-alert &__dot { border-color: $red-600; color: $red-700; }
+  &.is-locked { opacity: .55; }
+  &--optional &__title { font-weight: $fw-medium; }
+}
+
+// -------------------------------------------------------- Payrolls list ----
+.ws-chips { display: inline-flex; gap: 3px; }
+
+.ws-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.25rem;
+  padding: 0 .3rem;
+  border-radius: $radius-sm;
+  font-family: $font-mono;
+  font-size: .625rem;
+  font-weight: $fw-bold;
+  letter-spacing: .02em;
+  cursor: default;
+
+  &.is-done  { @include soft-badge($green-700, $green-050); }
+  &.is-todo  { @include soft-badge($amber-700, $amber-050); }
+  &.is-alert { @include soft-badge($red-700, $red-050); }
+  &.is-na    { @include soft-badge($ink-300, $line-100); }
+}
+
+.ws-next-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+  color: $blue-700;
+  text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+
+// six dots instead of four once the pay-out stages are shown
+.ws-mini-stages i:nth-child(n + 4).is-done { background: $green-600; }
+
+// ------------------------------------------------------------------ RTL ----
+[dir="rtl"] {
+  .ws-next { background: linear-gradient(270deg, $blue-050, $white); }
+  .ws-next-link svg, .ws-step__go svg { transform: scaleX(-1); }
+}
+
+// --------------------------------------------------------------- print ----
+@media print {
+  .ws-tabs, .ws-subnav, .ws-next__btn, .ws-step__go { display: none !important; }
+}

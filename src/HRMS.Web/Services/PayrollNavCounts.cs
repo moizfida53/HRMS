@@ -59,11 +59,13 @@ public sealed class PayrollNavCounts : IPayrollNavCounts
     private readonly ICompanyFilter _companyFilter;
     private readonly IMemoryCache _cache;
     private readonly ILogger<PayrollNavCounts> _logger;
+    private readonly IPayoutRepository _payout;
 
     public PayrollNavCounts(IPayrollRunRepository runs, IPayrollCalendarRepository calendars, IPayslipRepository payslips,
                             IPayrollFinanceRepository finance, ICurrentUser user,
-                            ICompanyFilter companyFilter, IMemoryCache cache, ILogger<PayrollNavCounts> logger)
+                            ICompanyFilter companyFilter, IMemoryCache cache, ILogger<PayrollNavCounts> logger, IPayoutRepository payout)
     {
+        _payout = payout;
         _runs = runs;
         _calendars = calendars;
         _payslips = payslips;
@@ -105,6 +107,15 @@ public sealed class PayrollNavCounts : IPayrollNavCounts
                     CompanyId = companyId, CompanyIds = companyCsv, Stage = "LIVE", PageSize = 1
                 }, cancellationToken).ConfigureAwait(false);
                 openPayrolls = live.TotalCount;
+                // db/123: approved payrolls still paying out are open too (until Completed)
+                try
+                {
+                    openPayrolls += (await _payout.CountsAsync(companyId, companyCsv, cancellationToken).ConfigureAwait(false)).OpenCount;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogDebug(ex, "Pay-out counts not available (run db/123).");
+                }
             }
 
             int? calendarCount = null, openPeriods = null;

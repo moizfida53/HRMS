@@ -110,6 +110,10 @@ public sealed class PayrollRun
     public string? CancelledByName { get; init; }
     public DateTime? LastActionDate { get; init; }
     public long? Level1ApprovedBy { get; init; }
+    /// <summary>db/123: Approved / Execution / Completed once closed (merged from Payroll.usp_PayrollRun_Payout).</summary>
+    public string? PayoutStatus { get; set; }
+    /// <summary>db/123: where the pay-out stands (set where it is shown).</summary>
+    public RunPayout? Payout { get; set; }
 
     public bool IsCancelled => Stage == RunStage.Cancelled;
     public bool IsClosed => Stage == RunStage.Closed;
@@ -117,6 +121,11 @@ public sealed class PayrollRun
     /// <summary>Employees can be excluded / included again until the payroll is submitted (db/35).</summary>
     public bool CanExclude => Stage is RunStage.Draft or RunStage.Registered or RunStage.Validation;
     public int StageIndex => RunStage.Index(Stage);
+    /// <summary>0-5: Registered … Awaiting Approval, Approved, Execution, Completed (-1 cancelled).</summary>
+    public int FlowIndex => IsCancelled ? -1 : Payroll.PayoutStatus.Index(Stage, PayoutStatus);
+    public bool IsCompleted => IsClosed && PayoutStatus == Payroll.PayoutStatus.Completed;
+    public string StageLabel => Payroll.PayoutStatus.StageLabel(Stage, PayoutStatus);
+    public string StageBadge => Payroll.PayoutStatus.StageBadge(Stage, PayoutStatus);
 }
 
 /// <summary>NEXT_CODE: the name the next payroll of a company and month will get.</summary>

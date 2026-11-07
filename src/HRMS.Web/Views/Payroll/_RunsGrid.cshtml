@@ -6,6 +6,15 @@
 @{
     var history = Model.Mode == "history";
     var pg = Model.Page;
+    // db/123: the pay-out of the approved payrolls (payslips, bank, collections, GL) and the next action
+    var showPayout = !history && pg.Items.Any(r => r.IsClosed);
+    string Chip(string code, string title, bool? done, bool alert = false) =>
+        $"<span class=\"ws-chip {(done is null ? "is-na" : done.Value ? "is-done" : alert ? "is-alert" : "is-todo")}\" title=\"{System.Net.WebUtility.HtmlEncode(title)}\">{code}</span>";
+    string NextLabel(string tab) => tab switch
+    {
+        WorkspaceTab.Payslips => L["ws.tab_payslips"], WorkspaceTab.Accounting => L["ws.tab_accounting"],
+        WorkspaceTab.Payments => L["ws.payment_register"], _ => L["ws.tab_bank"]
+    };
 }
 <div data-total="@pg.TotalCount" data-count-text="@(pg.TotalCount == 1 ? L["pr.1_payroll"] : L["pr.0_payrolls", PayrollFormat.Count(pg.TotalCount)])">
 @if (pg.TotalCount == 0)
@@ -51,6 +60,11 @@ else
                     <th scope="col" class="text-center col-p3">@L["common.employees"]</th>
                     <th scope="col" class="pr-money col-p2">@L["pr.net_kwd"]</th>
                     <th scope="col">@L["pr.stage"]</th>
+                    @if (showPayout)
+                    {
+                        <th scope="col" class="col-p2">@L["ws.col_payout"]</th>
+                        <th scope="col" class="col-p2">@L["ws.next_action"]</th>
+                    }
                     @if (Model.PayslipPending)
                     {
                         <th scope="col">@L["ps.payslips"]</th>
@@ -65,7 +79,8 @@ else
             <tbody>
                 @foreach (var r in pg.Items)
                 {
-                    var idx = r.IsCancelled ? -1 : r.StageIndex;
+                    var idx = r.FlowIndex;
+                    var po = r.Payout;
                     <tr class="@(r.IsCancelled ? "pr-row-cancelled" : null)" data-run-id="@r.PayrollRunId">
                         <td data-label="@L["layout.payroll"]" class="hrms-nowrap">
                             <a class="pr-run-link" href="@Url.Action("Open", "Payroll", new { id = r.PayrollRunId })"><span class="hrms-code-chip">@r.RunCode</span></a>
@@ -92,15 +107,49 @@ else
                         <td data-label="@L["pr.stage"]" class="hrms-nowrap">
                             @if (!r.IsCancelled)
                             {
-                                <span class="pr-mini-stages" aria-hidden="true">
-                                    @for (var i = 0; i < 4; i++)
+                                <span class="pr-mini-stages ws-mini-stages" aria-hidden="true">
+                                    @for (var i = 0; i < 6; i++)
                                     {
-                                        <i class="@(i < idx || (r.IsClosed && i <= idx) ? "is-done" : (i == idx ? "is-current" : null))"></i>
+                                        <i class="@(i < idx || (idx == 5 && i == 5) ? "is-done" : (i == idx ? "is-current" : null))"></i>
                                     }
                                 </span>
                             }
-                            <span class="hrms-badge hrms-badge--@RunStage.Badge(r.Stage)"><span class="hrms-badge__dot"></span>@L.Tr(RunStage.Label(r.Stage))@(r.Stage == RunStage.AwaitingApproval ? " " + L["pr.level_0_of_2", r.ApprovalLevel + 1] : "")</span>
+                            <span class="hrms-badge hrms-badge--@r.StageBadge"><span class="hrms-badge__dot"></span>@L.Tr(r.StageLabel)@(r.Stage == RunStage.AwaitingApproval ? " " + L["pr.level_0_of_2", r.ApprovalLevel + 1] : "")</span>
                         </td>
+                        @if (showPayout)
+                        {
+                            <td data-label="@L["ws.col_payout"]" class="col-p2 hrms-nowrap">
+                                @if (r.IsClosed && po is not null)
+                                {
+                                    <span class="ws-chips">
+                                        @Html.Raw(Chip("PS", L["ws.tab_payslips"] + ": " + po.PayslipCount + "/" + po.EmployeeCount, po.PayslipsDone))
+                                        @Html.Raw(Chip("BK", L["ws.tab_bank"] + ": " + (po.PayeeCount - po.UnpaidPayeeCount) + "/" + po.PayeeCount, po.PaymentsDone, po.FailedCount > 0))
+                                        @Html.Raw(Chip("CO", L["ws.tab_collections"] + ": " + L["ws.0_pending_1", po.CollectionPendingCount, PayrollFormat.Money(po.CollectionPendingAmount)],
+                                                       r.RunType == RunType.Regular ? po.CollectionsDone : null))
+                                        @Html.Raw(Chip("GL", L["ws.tab_accounting"] + ": " + (po.JournalNo ?? L["fin.not_created"]), po.GlPosted))
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-muted">—</span>
+                                }
+                            </td>
+                            <td data-label="@L["ws.next_action"]" class="col-p2">
+                                @if (r.IsClosed && po?.NextAction is { } na)
+                                {
+                                    <a class="ws-next-link" href="@Url.Content(WorkspaceNav.Path(na.Tab, r.PayrollRunId))">@L[na.Key]@Html.Icon("chevron-right", 13)</a>
+                                    <span class="hrms-sr-only">· @NextLabel(na.Tab)</span>
+                                }
+                                else if (r.IsCompleted)
+                                {
+                                    <span class="hrms-muted hrms-text-sm">@L["ws.nothing_left"]</span>
+                                }
+                                else
+                                {
+                                    <span class="hrms-muted">—</span>
+                                }
+                            </td>
+                        }
                         @if (Model.PayslipPending)
                         {
                             <td data-label="@L["ps.payslips"]">

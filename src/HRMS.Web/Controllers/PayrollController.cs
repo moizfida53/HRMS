@@ -603,8 +603,77 @@ public sealed class PayrollController : Controller
         var run = await _runs.GetAsync(id, Ct);
         if (run is null || !CanSee(run)) return NotFound();
         if (run.Stage == RunStage.Draft) return RedirectToAction(nameof(Create), new { draft = id });
+        // db/123: an approved payroll opens on its workspace overview (payslips, bank transfer, collections, accounting)
+        if (run.IsClosed) return RedirectToAction(nameof(Overview), new { id });
         return RedirectToAction(StagePage(run.Stage), new { run = id });
     }
+
+    private IPayrollWorkspace Workspace => HttpContext.RequestServices.GetRequiredService<IPayrollWorkspace>();
+
+    /// <summary>
+    /// db/123: the Overview tab of a payroll's workspace - its stage, what is still to do (the next
+    /// action first), the key figures and the payroll funding.
+    /// </summary>
+    [HttpGet("run/{id:long}/overview")]
+    public async Task<IActionResult> Overview(long id)
+    {
+        if (!Can(PermView)) return Forbid();
+        if (await _runs.GetAsync(id, Ct) is { } found && CanSee(found) && found.IsClosed) await Workspace.SyncAsync(id, Ct);
+        var nav = await Workspace.NavAsync(id, WorkspaceTab.Overview, Ct);
+        if (nav is null || !CanSee(nav.Run)) return RedirectToAction(nameof(Payrolls));
+        RememberRun(id);
+
+        PayrollFunding? funding = null;
+        if (!nav.Run.IsCancelled && nav.Run.RunType == RunType.Regular)
+        {
+            try
+            {
+                if (HttpContext.RequestServices.GetService<ICollectionRepository>() is { } collections)
+                    funding = await collections.FundingAsync(id, Ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                HttpContext.RequestServices.GetService<ILogger<PayrollController>>()?
+                    .LogWarning(ex, "The payroll funding could not be read for payroll {Run} (run db/121).", id);
+            }
+        }
+
+        ViewData["ActiveRun"] = nav.Run;
+        return View("Overview", new WorkspaceOverviewModel
+        {
+            Nav = nav,
+            Summary = await _runs.SummaryAsync(id, Ct),
+            Funding = funding,
+            History = await _runs.HistoryAsync(id, Ct)
+        });
+    }
+
+    /// <summary>db/123: the History tab of a payroll - every action from creation to completion, and the bank file process.</summary>
+    [HttpGet("run/{id:long}/history")]
+    public async Task<IActionResult> RunHistory(long id)
+    {
+        if (!Can(PermView)) return Forbid();
+        var nav = await Workspace.NavAsync(id, WorkspaceTab.History, Ct);
+        if (nav is null || !CanSee(nav.Run)) return RedirectToAction(nameof(Payrolls));
+        RememberRun(id);
+
+        IReadOnlyList<BankFileAuditEntry> audit = [];
+        if (nav.Run.IsClosed && nav.CanBank && HttpContext.RequestServices.GetService<IPayrollFinanceRepository>() is { } finance)
+        {
+            try { audit = await finance.BankAuditAsync(id, OwnCompany, CompanyCsv, Ct); }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                HttpContext.RequestServices.GetService<ILogger<PayrollController>>()?.LogWarning(ex, "The bank file audit could not be read (run db/116).");
+            }
+        }
+
+        ViewData["ActiveRun"] = nav.Run;
+        return View("RunHistory", new WorkspaceHistoryModel { Nav = nav, History = await _runs.HistoryAsync(id, Ct), BankAudit = audit });
+    }
+
+    private void RememberRun(long id) =>
+        Response.Cookies.Append(RunCookie, id.ToString(CultureInfo.InvariantCulture),
+            new CookieOptions { HttpOnly = true, SameSite = SameSiteMode.Lax, IsEssential = true, Secure = Request.IsHttps });
 
     [HttpGet("register")]
     public Task<IActionResult> Register(long? run) => RunPage(run, 0);
@@ -727,9 +796,9 @@ public sealed class PayrollController : Controller
             // A payroll is shown only on the page of its own stage (Register, Validation or
             // Approval - a closed payroll on Approval, a cancelled one on Register).
             var reached = run.IsCancelled ? 0 : Math.Min(run.StageIndex, 2);
-            // the Register is the payroll's full list of employees: a payroll asked for by number
-            // opens there read-only at any stage ("Open full register (read-only)" on Approval)
-            var readOnlyRegister = pageStage == 0 && runId is > 0;
+            // a payroll asked for by number opens read-only on a stage it has passed (the workspace
+            // tabs Register and Validation stay open once the payroll has moved on)
+            var readOnlyRegister = runId is > 0 && pageStage < reached;
             if (pageStage != reached && !readOnlyRegister)
             {
                 return RedirectToAction(PageName(reached), new { run = run.PayrollRunId });
@@ -745,8 +814,18 @@ public sealed class PayrollController : Controller
             runs.Insert(0, run);
         }
 
+        WorkspaceNav? nav = null;
+        if (run is not null)
+        {
+            var canCancel = Can(PermCancel) && run is { Stage: RunStage.Registered or RunStage.Validation or RunStage.AwaitingApproval };
+            nav = await Workspace.NavAsync(run, runs.Where(r => !r.IsCancelled || r.PayrollRunId == run.PayrollRunId).ToList(),
+                                           pageStage switch { 1 => WorkspaceTab.Validation, 2 => WorkspaceTab.Approval, _ => WorkspaceTab.Register },
+                                           canCancel, Ct);
+        }
+
         var model = new RunPageModel
         {
+            Nav = nav,
             Run = run,
             Runs = runs,
             PageStage = pageStage,
@@ -792,7 +871,32 @@ public sealed class PayrollController : Controller
             PageNumber = page,
             PageSize = history ? 25 : 50
         };
-        var result = await _runs.ListAsync(filter, Ct);
+        // db/123: "Open payrolls" also lists the approved payrolls still paying out; Approved / Execution /
+        // Completed are worked out per payroll, so those lists are filtered and paged here
+        var payoutFilter = !history && !pending && (stage == "LIVE" || PayoutStatus.Matches(stage));
+        PagedResult<PayrollRun> result;
+        if (payoutFilter)
+        {
+            filter.Stage = stage == "LIVE" ? null : RunStage.Closed;
+            filter.PageNumber = 1;
+            filter.PageSize = 500;
+            var all = (await _runs.ListAsync(filter, Ct)).Items.ToList();
+            await Workspace.MergeAsync(all, Ct);
+            var kept = all.Where(r => stage == "LIVE"
+                                      ? !r.IsCancelled && !r.IsCompleted
+                                      : r.IsClosed && (r.PayoutStatus ?? PayoutStatus.Approved) == stage).ToList();
+            var size = 50;
+            var number = Math.Max(1, Math.Min(page, Math.Max(1, (int)Math.Ceiling(kept.Count / (double)size))));
+            result = new PagedResult<PayrollRun>
+            {
+                Items = kept.Skip((number - 1) * size).Take(size).ToList(), TotalCount = kept.Count, PageNumber = number, PageSize = size
+            };
+        }
+        else
+        {
+            result = await _runs.ListAsync(filter, Ct);
+            await Workspace.MergeAsync(result.Items, Ct);
+        }
         return PartialView("_RunsGrid", new RunsGridModel
         {
             Page = result,
@@ -1257,6 +1361,8 @@ public sealed class PayrollController : Controller
         // db/119: Work Permit Collections are recorded once the payroll is approved (closed), not before
         if (approved.Success && await _runs.GetAsync(run, Ct) is { Stage: RunStage.Closed })
         {
+            // db/123: the payroll starts its pay-out as Approved
+            await Workspace.SyncAsync(run, Ct);
             try
             {
                 if (HttpContext.RequestServices.GetService<ICollectionRepository>() is { } collections)

@@ -1,4 +1,4 @@
-@model RunPageModel
+﻿@model RunPageModel
 @{
     ViewData["Title"] = "Payroll Approval";
     ViewData["ActiveArea"] = "payroll";
@@ -12,6 +12,8 @@
         "CREATED" => L["pr.created"], "RECALCULATED" => L["pr.recalculated"], "REGISTRATION_DONE" => L["pr.registration_completed"],
         "BACK_TO_REGISTER" => L["pr.back_to_register"], "SUBMITTED" => L["pr.submitted_for_approval"], "RETURNED" => L["pr.returned_for_correction"],
         "APPROVED" => L["pr.approved"], "REJECTED" => L["pr.rejected"], "CANCELLED" => L["emp.cancelled"], "REOPENED" => L["pr.reopened"],
+        "PAYOUT_STARTED" => L["ws.h_payout_started"], "PAYOUT_COMPLETED" => L["ws.h_payout_completed"],
+        "PAYOUT_REOPENED" => L["ws.h_payout_reopened"], "PAYOUT_RESET" => L["ws.h_payout_reset"],
         _ => code
     };
     var lastSubmit = Model.History.LastOrDefault(h => h.ActionCode == "SUBMITTED");
@@ -28,10 +30,11 @@
 }
 
 <div class="pr-stack" data-pr-page="approval">
-    @await Html.PartialAsync("_RunBar", Model.Bar)
+    @await Html.PartialAsync("_RunBar", Model.Nav)
     @if (run.IsClosed)
     {
-        <div class="pr-banner pr-banner--ok">@Html.Icon("check", 18)<div><strong>@L["pr.this_payroll_is_closed"]</strong> @L["pr.closed_by_0_on_1_payslips_the_bank_file_and_the_journal", run.ClosedByName ?? "—", L.Date(run.ClosedDate)]</div></div>
+        <div class="pr-banner pr-banner--ok">@Html.Icon("check", 18)<div class="flex-grow-1"><strong>@L["ws.approved_banner_title"]</strong> @L["ws.approved_banner_0_1", run.ClosedByName ?? "—", L.Date(run.ClosedDate)]</div>
+            <a class="btn btn-sm btn-primary ms-auto" href="@Url.Action("Overview", "Payroll", new { id = run.PayrollRunId })">@Html.Icon("chevron-right", 14)<span>@L["ws.go_to_payout"]</span></a></div>
     }
     <div class="pr-row pr-row--wide-left">
         <div class="hrms-card">
@@ -111,7 +114,7 @@
                         </li>
                         <li class="@(run.IsClosed ? "is-done" : "is-todo")">
                             <span class="pr-timeline__dot"></span>
-                            <div class="pr-timeline__title">@L["pr.closed"]</div>
+                            <div class="pr-timeline__title">@L["ws.stage_approved"]</div>
                             <div class="pr-timeline__meta">@L["pr.payslips_bank_file_and_journal_can_be_generated"]</div>
                         </li>
                     </ol>
@@ -171,7 +174,8 @@
 @if (run is { Stage: RunStage.Closed })
 {
     <div class="pr-actionbar">
-        <div class="pr-actionbar__status"><span class="hrms-badge hrms-badge--success"><span class="hrms-badge__dot"></span>@L["pr.closed"]</span></div>
+        <div class="pr-actionbar__status"><span class="hrms-badge hrms-badge--@run.StageBadge"><span class="hrms-badge__dot"></span>@L.Tr(run.StageLabel)</span></div>
+        <span class="pr-actionbar__spacer"></span><a class="btn btn-primary" href="@Url.Action("Overview", "Payroll", new { id = run.PayrollRunId })">@Html.Icon("chevron-right", 15)<span>@L["ws.go_to_payout"]</span></a>
     </div>
 }
 

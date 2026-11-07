@@ -1,25 +1,35 @@
 @using HRMS.Web.Models.Payroll
 @using HRMS.Domain.Payroll
-@model RunBarModel
+@model WorkspaceNav
 @{
+    // db/123: the header of every page of a payroll (its workspace): the payroll, its stage
+    // Registered … Awaiting Approval, Approved, Execution, Completed - and the tabs open at that stage.
     var run = Model.Run;
-    var idx = run.IsCancelled ? -1 : run.StageIndex;
-    string[] stages = [L["pr.registered"], L["pr.validation"], L["pr.awaiting_approval"], L["pr.closed"]];
+    var flow = run.FlowIndex;
+    string[] stages = [L["pr.registered"], L["pr.validation"], L["pr.awaiting_approval"], L["ws.stage_approved"], L["ws.stage_execution"], L["ws.stage_completed"]];
+    var tabs = Model.Tabs;
+    string GroupLabel(string g) => g switch
+    {
+        WorkspaceNav.GroupPayout => L["ws.group_payout"],
+        WorkspaceNav.GroupRecord => L["ws.group_record"],
+        _ => L["ws.group_prepare"]
+    };
 }
-<section class="hrms-card pr-runbar @(run.IsCancelled ? "is-cancelled" : null)" data-runbar data-run="@run.PayrollRunId" data-stage="@run.Stage">
+<section class="hrms-card pr-runbar ws-head @(run.IsCancelled ? "is-cancelled" : null) @(run.IsCompleted ? "is-completed" : null)"
+         data-runbar data-ws data-run="@run.PayrollRunId" data-stage="@run.Stage" data-payout="@run.PayoutStatus">
     <div class="pr-runbar__pick">
-        <label class="form-label mb-1" for="run-select">@L["layout.payroll"]</label>
-        <select class="form-select" id="run-select" data-run-select>
+        <label class="form-label mb-1" for="ws-run-select">@L["layout.payroll"]</label>
+        <select class="form-select" id="ws-run-select" data-ws-run>
             @foreach (var r in Model.Runs)
             {
-                <option value="@r.PayrollRunId" selected="@(r.PayrollRunId == run.PayrollRunId)">@r.RunCode · @L.Tr(RunStage.Label(r.Stage))</option>
+                <option value="@Url.Content(Model.SwitchPath(r))" selected="@(r.PayrollRunId == run.PayrollRunId)">@r.RunCode · @L.Tr(r.StageLabel)</option>
             }
         </select>
     </div>
     <div class="pr-runbar__meta">
         <div class="pr-runbar__desc">@(string.IsNullOrWhiteSpace(run.Description) ? L["pr.regular_payroll"] : run.Description)</div>
         <div class="pr-runbar__sub">
-            @PayrollFormat.Calendar(L, run.CalendarName, run.CalendarArabicName) · @PayrollFormat.Period(L, run) ·
+            @run.CompanyName · @PayrollFormat.Calendar(L, run.CalendarName, run.CalendarArabicName) · @PayrollFormat.Period(L, run) ·
             @L.Tr(RunType.Label(run.RunType)) · @L["emp.n_employees", PayrollFormat.Count(run.EmployeeCount)]
             @if (run.IsCancelled && !string.IsNullOrWhiteSpace(run.CancelReason))
             {
@@ -27,29 +37,33 @@
             }
         </div>
     </div>
-    <ol class="pr-stages" aria-label="@L["pr.stage"]">
+    <ol class="pr-stages ws-stages" aria-label="@L["pr.stage"]">
         @for (var i = 0; i < stages.Length; i++)
         {
-            var done = i < idx || (run.IsClosed && i <= idx);
-            var current = i == idx && !run.IsClosed;
-            <li class="pr-stage @(done ? "is-done" : null) @(current ? "is-current" : null) @(run.IsClosed && i == stages.Length - 1 ? "is-label" : null)" aria-current="@(current ? "step" : null)">
+            var done = i < flow || (flow == stages.Length - 1 && i == flow);
+            var current = i == flow && !done;
+            <li class="pr-stage @(done ? "is-done" : null) @(current ? "is-current" : null) @(i >= 3 ? "ws-stage--payout" : null)" aria-current="@(current ? "step" : null)">
                 <span class="pr-stage__dot">@if (done) { @Html.Icon("check", 12) } else { @(i + 1) }</span>
                 <span class="pr-stage__label">@stages[i]</span>
             </li>
         }
     </ol>
     <div class="pr-runbar__actions">
-        @* db/121-122: how the net pay reaches the employees - for the approver, and kept for Payroll History *@
+        @* db/121-122: how the net pay reaches the employees - for the approver, and kept once approved *@
         @if (!run.IsCancelled && run.RunType == RunType.Regular)
         {
-            <button type="button" class="btn btn-sm btn-outline-primary" data-funding-open="@Url.Action("Funding", "Payroll", new { run = run.PayrollRunId })"
-                    data-funding-title="@L["fund.popup_title_0", run.RunCode ?? ""]" title="@L["fund.button_hint"]">
+            <button type="button" class="btn btn-sm btn-outline-primary" data-ws-funding="@Url.Action("Funding", "Payroll", new { run = run.PayrollRunId })"
+                    data-ws-funding-title="@L["fund.popup_title_0", run.RunCode ?? ""]" title="@L["fund.button_hint"]">
                 @Html.Icon("bank", 14)<span>@L["fund.button"]</span>
             </button>
         }
         @if (run.IsCancelled)
         {
             <span class="hrms-badge hrms-badge--muted"><span class="hrms-badge__dot"></span>@L["emp.cancelled"]</span>
+        }
+        else if (run.IsClosed)
+        {
+            <span class="hrms-badge hrms-badge--@run.StageBadge"><span class="hrms-badge__dot"></span>@L.Tr(run.StageLabel)</span>
         }
         @if (Model.CanCancel)
         {
@@ -68,18 +82,58 @@
     </div>
 </section>
 
+@* ---- the tabs of the payroll: preparation, pay-out (once approved), record *@
+<nav class="ws-tabs" aria-label="@L["ws.tabs_label"]" data-ws-tabs>
+    <div class="ws-tabs__rail">
+        @foreach (var group in tabs.GroupBy(t => t.Group))
+        {
+            <div class="ws-tabs__group ws-tabs__group--@group.Key" role="group" aria-label="@GroupLabel(group.Key)">
+                <span class="ws-tabs__caption" aria-hidden="true">@GroupLabel(group.Key)</span>
+                <div class="ws-tabs__items">
+                    @foreach (var t in group)
+                    {
+                        var active = t.Slug == Model.ActiveTab;
+                        if (t.Locked)
+                        {
+                            <span class="ws-tab is-locked" aria-disabled="true" title="@L[t.LockKey!]" tabindex="0">
+                                @Html.Icon(t.Icon, 15)<span class="ws-tab__label">@L[t.LabelKey]</span>@Html.Icon("lock", 12)
+                                <span class="hrms-sr-only">@L[t.LockKey!]</span>
+                            </span>
+                        }
+                        else
+                        {
+                            <a class="ws-tab @(active ? "is-active" : null) @(t.Done ? "is-done" : null)" href="@Url.Content(t.Href)" aria-current="@(active ? "page" : null)">
+                                @Html.Icon(t.Icon, 15)<span class="ws-tab__label">@L[t.LabelKey]</span>
+                                @if (t.Badge is not null)
+                                {
+                                    <span class="ws-tab__badge ws-tab__badge--@t.BadgeTone">@t.Badge</span>
+                                }
+                                else if (t.Done)
+                                {
+                                    <span class="ws-tab__done" aria-label="@L["ws.done"]">@Html.Icon("check", 11)</span>
+                                }
+                            </a>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</nav>
+
 @* the payroll funding popup (loaded on request) *@
-<div class="modal fade" id="funding-modal" tabindex="-1" aria-hidden="true" aria-labelledby="funding-modal-title">
+<div class="modal fade" id="ws-funding-modal" tabindex="-1" aria-hidden="true" aria-labelledby="ws-funding-modal-title">
     <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 class="modal-title h5" id="funding-modal-title" data-funding-title></h2>
+                <h2 class="modal-title h5" id="ws-funding-modal-title" data-ws-funding-heading></h2>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
             </div>
-            <div class="modal-body" data-funding-body></div>
+            <div class="modal-body" data-ws-funding-body></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
             </div>
         </div>
     </div>
 </div>
+<script src="~/js/payroll-workspace.js" asp-append-version="true" defer></script>

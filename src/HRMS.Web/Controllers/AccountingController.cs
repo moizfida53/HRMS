@@ -19,6 +19,7 @@ namespace HRMS.Web.Controllers;
 /// Cost Center Allocation (an employee's cost split across cost centers).
 /// </summary>
 [Route("payroll/accounting")]
+[PayoutSync]
 public sealed class AccountingController : PayrollFinanceControllerBase
 {
     private const string PermView = "PAYROLL_GL_VIEW";
@@ -96,17 +97,41 @@ public sealed class AccountingController : PayrollFinanceControllerBase
     [HttpGet("journal/view")]
     public async Task<IActionResult> JournalView(long? id, long? run, string? mode)
     {
-        var rights = Rights;
-        if (!rights.CanView) return Forbid();
+        if (!Rights.CanView) return Forbid();
+        var model = await JournalDetailsAsync(id, run, mode);
+        return model is null ? NotFound() : PartialView("~/Views/Accounting/_JournalDetails.cshtml", model);
+    }
 
+    /// <summary>
+    /// db/123: the Accounting tab of a payroll's workspace - its journal (or the preview of the one it
+    /// would get): create it, export it, record that it is posted to the GL, reverse it.
+    /// </summary>
+    [HttpGet("~/payroll/run/{id:long}/accounting")]
+    public async Task<IActionResult> RunTab(long id, string? mode)
+    {
+        if (!Rights.CanView) return Forbid();
+        var nav = await HttpContext.RequestServices.GetRequiredService<IPayrollWorkspace>().NavAsync(id, WorkspaceTab.Accounting, Ct);
+        if (nav is null) return RedirectToAction("Payrolls", "Payroll");
+        if (!nav.Run.IsClosed) return LocalRedirect(Url.Content(WorkspaceNav.Path(WorkspaceTab.Overview, id)));
+        return View("~/Views/Accounting/RunTab.cshtml", new WorkspaceAccountingModel
+        {
+            Nav = nav,
+            Journal = await JournalDetailsAsync(null, id, mode),
+            CanPost = Can(PermPost)
+        });
+    }
+
+    private async Task<JournalDetailsModel?> JournalDetailsAsync(long? id, long? run, string? mode)
+    {
+        var rights = Rights;
         PayrollJournal? journal = null;
         if (id is > 0)
         {
             journal = await _finance.JournalAsync(id.Value, OwnCompany, CompanyCsv, Ct);
-            if (journal is null) return NotFound();
+            if (journal is null) return null;
             run = journal.PayrollRunId;
         }
-        if (run is not > 0) return NotFound();
+        if (run is not > 0) return null;
 
         var runs = await _finance.JournalRunsAsync(OwnCompany, CompanyCsv, null, null, Ct);
         var payroll = runs.FirstOrDefault(r => r.PayrollRunId == run);
@@ -114,7 +139,7 @@ public sealed class AccountingController : PayrollFinanceControllerBase
         {
             journal = await _finance.JournalAsync(live, OwnCompany, CompanyCsv, Ct);
         }
-        if (journal is null && payroll is null) return NotFound();
+        if (journal is null && payroll is null) return null;
 
         // a saved journal keeps the mode it was made in; a preview shows the one chosen (default: company)
         var entryMode = journal is not null ? journal.EntryMode
@@ -124,7 +149,7 @@ public sealed class AccountingController : PayrollFinanceControllerBase
             : await _finance.JournalPreviewAsync(run.Value, entryMode, OwnCompany, CompanyCsv, Ct);
         var companyId = journal?.CompanyId ?? payroll!.CompanyId;
 
-        return PartialView("~/Views/Accounting/_JournalDetails.cshtml", new JournalDetailsModel
+        return new JournalDetailsModel
         {
             Rights = rights,
             Run = payroll,
@@ -132,7 +157,7 @@ public sealed class AccountingController : PayrollFinanceControllerBase
             Lines = lines,
             Mode = entryMode,
             Defaults = await _finance.DefaultsAsync(companyId, OwnCompany, CompanyCsv, Ct)
-        });
+        };
     }
 
     [HttpPost("journal/create")]

@@ -9,6 +9,8 @@ public sealed class CollectionPageModel
     public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
     public int? SelectedCompanyId { get; init; }
     public bool CanEdit { get; init; }
+    /// <summary>db/123: the Collections tab of a payroll's workspace (its company and month, fixed).</summary>
+    public WorkspaceNav? Workspace { get; init; }
 }
 
 /// <summary>The key figures and the list of one company's payroll month.</summary>
