@@ -609,10 +609,12 @@ button.att-cell {
   min-width: 13rem;
   margin: 0;
   padding: space("1") 0;
+  background: $white;
   border: 1px solid $line-200;
   border-radius: $radius-md;
   box-shadow: $shadow-lg;
   font-size: $fs-sm;
+  color: $ink-900;
 
   &[hidden] { display: none; }
   &__head {
@@ -651,10 +653,56 @@ button.att-cell {
 }
 [data-att-mk-discard][hidden] { display: none; }
 
+// ---- selecting days (db/133): a click, Shift+click, a row, a column, all - then mark them
+.att-sheet td.is-selected {
+  background: rgba($blue-600, .14) !important;
+  box-shadow: inset 0 0 0 1px rgba($blue-600, .55);
+}
+.att-sheet td.is-selected .att-cell { box-shadow: 0 0 0 2px $blue-600; }
+.att-sheet thead th[data-att-col][tabindex] {
+  cursor: pointer;
+  @include focus-ring;
+  &:hover { background: $blue-050; color: $blue-700; }
+  &.is-selected { background: $blue-100; color: $blue-700; }
+}
+.att-sheet thead th.is-today[data-att-col].is-selected { background: $blue-700; color: $white; }
+.att-sel-box {
+  float: inline-start;
+  display: inline-flex;
+  margin: 2px space("2") 0 0;
+  [dir="rtl"] & { margin: 2px 0 0 space("2"); }
+  cursor: pointer;
+  .form-check-input { margin: 0; cursor: pointer; }
+}
+thead .att-sheet__emp .att-sel-box { margin-block-start: 0; vertical-align: middle; }
+
+.att-selbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: space("2") space("3");
+  padding: space("2") space("4");
+  background: $blue-050;
+  border-block-end: 1px solid $blue-200;
+  animation: att-pending-in .2s $ease-out;
+  @include down("sm") { padding: space("2") space("3"); }
+
+  &[hidden] { display: none; }
+  &__count { display: inline-flex; align-items: center; gap: .3rem; font-weight: $fw-bold; color: $blue-700; svg { width: 14px; height: 14px; } }
+  &__label { margin: 0; font-size: $fs-sm; color: $ink-600; }
+  &__select { width: auto; min-width: 9rem; }
+  .btn { display: inline-flex; align-items: center; gap: .3rem; }
+  &__clear { padding-inline: space("1"); }
+  &__more { margin-inline-start: auto; font-size: $fs-xs; color: $ink-500; @include down("md") { flex-basis: 100%; margin-inline-start: 0; } }
+}
+
 // ---- print: the whole sheet on landscape pages
 @media print {
   @page { size: A4 landscape; margin: 8mm; }
-  .att-sheet-filters .row, .att-legend__hint, .hrms-page-actions, .att-ctx { display: none !important; }
+  .att-sheet-filters .row, .att-legend__hint, .hrms-page-actions, .att-ctx, .att-selbar, .att-sel-box { display: none !important; }
   .att-sheet-wrap { overflow: visible; max-height: none; }
   .att-sheet { font-size: 8pt; width: 100%; min-width: 0; }
   .att-sheet th, .att-sheet td { position: static !important; box-shadow: none !important; }

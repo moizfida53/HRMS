@@ -265,18 +265,22 @@
             catch (e) { return td.getAttribute("data-date"); }
         }
 
-        function closeCtx() { if (ctx) { ctx.hidden = true; ctx.classList.remove("show"); ctxTd = null; } }
+        var ctxTargets = [];
+        function closeCtx() { if (ctx) { ctx.hidden = true; ctxTd = null; } }
         function openCtx(td, x, y) {
             ctxTd = td;
             var locked = td.classList.contains("is-locked");
-            var mark = KIND_MARK[td.getAttribute("data-kind")];
-            $("[data-att-ctx-head]", ctx).textContent = nameOf(td) + " · " + dateText(td);
+            // a right click on a selected day acts on every day selected
+            ctxTargets = !locked && td.classList.contains("is-selected") && selected.length > 1 ? selected.slice() : [td];
+            var many = ctxTargets.length > 1;
+            var mark = many ? null : KIND_MARK[td.getAttribute("data-kind")];
+            $("[data-att-ctx-head]", ctx).textContent = many ? selCountText(ctxTargets.length) : nameOf(td) + " · " + dateText(td);
             $all("[data-mark]", ctx).forEach(function (b) { b.hidden = locked || b.getAttribute("data-mark") === mark; });
-            $("[data-mark-undo]", ctx).hidden = locked || !pending[keyOf(td)];
-            $("[data-mark-open]", ctx).hidden = locked || !$("[data-att-cell]", td);
+            $("[data-mark-undo]", ctx).hidden = locked || !ctxTargets.some(function (t) { return pending[keyOf(t)]; });
+            $("[data-mark-open]", ctx).hidden = locked || many || !$("[data-att-cell]", td);
             $(".dropdown-divider", ctx).hidden = locked;
             $("[data-att-ctx-locked]", ctx).hidden = !locked;
-            ctx.hidden = false; ctx.classList.add("show");
+            ctx.hidden = false;
             var w = ctx.offsetWidth, h = ctx.offsetHeight;
             ctx.style.left = Math.max(8, Math.min(x, window.innerWidth - w - 8)) + "px";
             ctx.style.top = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + "px";
@@ -289,12 +293,15 @@
             ev.preventDefault();
             var x = ev.clientX, y = ev.clientY;
             if (!x && !y) { var rc = td.getBoundingClientRect(); x = rc.left + rc.width / 2; y = rc.bottom; }   // keyboard (menu key / Shift+F10)
+            // a day not selected: it becomes the selection
+            if (!td.classList.contains("is-locked") && !td.classList.contains("is-selected")) { clearSel(); selectCells([td], true); anchor = td; }
             openCtx(td, x, y);
         });
         document.addEventListener("mousedown", function (ev) { if (ctx && !ctx.hidden && !ctx.contains(ev.target)) { closeCtx(); } });
         window.addEventListener("scroll", closeCtx, true);
         window.addEventListener("resize", closeCtx);
         ctx.addEventListener("keydown", function (ev) {
+            ev.stopPropagation();       // the menu's own keys: Escape here does not also clear the selection
             var items = $all("button:not([hidden])", ctx), i = items.indexOf(document.activeElement);
             if (ev.key === "Escape") { var back = ctxTd; closeCtx(); if (back) { var b0 = $("[data-att-cell]", back); if (b0) { b0.focus(); } } ev.preventDefault(); }
             else if (ev.key === "ArrowDown") { items[(i + 1) % items.length].focus(); ev.preventDefault(); }
@@ -304,23 +311,27 @@
         ctx.addEventListener("click", function (ev) {
             var td = ctxTd; if (!td) { return; }
             var b = ev.target.closest("button"); if (!b) { return; }
+            var targets = ctxTargets.slice();
             closeCtx();
-            if (b.hasAttribute("data-mark-undo")) { undo(td); return; }
-            if (b.hasAttribute("data-mark-open")) { var cell = $("[data-att-cell]", td); if (cell) { cell.click(); } return; }
+            if (b.hasAttribute("data-mark-undo")) { targets.forEach(undo); clearSel(); return; }
+            if (b.hasAttribute("data-mark-open")) { openDay(td); return; }
             var mark = b.getAttribute("data-mark");
-            if (mark === "LATE" || mark === "SHORT" || mark === "EXCUSED") { askDetails(td, mark); }
-            else { setMark(td, mark, null, null); }
+            if (mark === "LATE" || mark === "SHORT" || mark === "EXCUSED") { askDetails(targets, mark); }
+            else { targets.forEach(function (t) { setMark(t, mark, null, null); }); clearSel(); }
         });
 
         // late / short: the minutes (and a comment); excused: the comment
-        var mkModal = $("#att-mk-modal"), mkForm = $("[data-att-mk-form]", mkModal), mkTd = null, mkMark = null;
+        var mkModal = $("#att-mk-modal"), mkForm = $("[data-att-mk-form]", mkModal), mkTargets = [], mkMark = null;
         var mkMin = $("[data-att-mk-minutes]", mkModal), mkNote = $("[data-att-mk-note]", mkModal);
-        function askDetails(td, mark) {
-            mkTd = td; mkMark = mark;
+        function askDetails(targets, mark) {
+            mkTargets = targets; mkMark = mark;
+            var td = targets[0];
             var p = pending[keyOf(td)];
             var titles = { LATE: HRMS.t("js.att_mk_late", "Late"), SHORT: HRMS.t("js.att_mk_short", "Short hours"), EXCUSED: HRMS.t("js.att_mk_excused", "Excused") };
             $("[data-att-mk-title]", mkModal).textContent = titles[mark];
-            $("[data-att-mk-who]", mkModal).textContent = nameOf(td) + " · " + dateText(td);
+            $("[data-att-mk-who]", mkModal).textContent = targets.length > 1
+                ? selCountText(targets.length) + " · " + HRMS.t("js.att_mk_all_get", "each gets the same")
+                : nameOf(td) + " · " + dateText(td);
             var needsMinutes = mark !== "EXCUSED";
             $("[data-att-mk-minutes-wrap]", mkModal).hidden = !needsMinutes;
             mkMin.required = needsMinutes;
@@ -343,7 +354,8 @@
             }
             var note = mkNote.value.trim();
             if (mkMark === "EXCUSED" && !note) { mkNote.classList.add("is-invalid"); mkNote.focus(); return; }
-            setMark(mkTd, mkMark, minutes, note || null);
+            mkTargets.forEach(function (t) { setMark(t, mkMark, minutes, note || null); });
+            clearSel();
             modal(mkModal).hide();
         });
 
@@ -444,10 +456,94 @@
         }
         syncSave();
 
-        /* ---------------- a click on a day: its form (times, excused, note) ---------------- */
-        var sBody = $("[data-att-day-body]", sModal), sForm = $("[data-att-day-form]", sModal);
+        /* ---------------- selecting days: a click, Shift+click (a range), a row, a column, all ---------------- */
+        var selected = [], anchor = null;
+        var selbar = $("[data-att-selbar]"), selCount = $("[data-att-sel-count]"), selAll = $("[data-att-sel-all]");
+        var allRows = $all("tr[data-att-row]", page);
+        function selectable(td) { return !!td && td.getAttribute("data-can") === "1"; }
+        function selCountText(n) {
+            return n === 1 ? (selCount ? selCount.getAttribute("data-one") : "1 day")
+                           : (selCount ? selCount.getAttribute("data-many") : "{0} days").replace("{0}", n);
+        }
+        function setSel(td, on) {
+            td.classList.toggle("is-selected", on);
+            var b = $("[data-att-cell]", td);
+            if (b) { b.setAttribute("aria-pressed", on ? "true" : "false"); }
+        }
+        function syncSel() {
+            selected = $all("td[data-att-day].is-selected", page);
+            if (selbar) { selbar.hidden = selected.length === 0; }
+            if (selCount) { selCount.textContent = selCountText(selected.length); }
+            var any = 0, all = 0;
+            allRows.forEach(function (tr) {
+                var can = $all("td[data-att-day]", tr).filter(selectable);
+                var on = can.filter(function (t) { return t.classList.contains("is-selected"); });
+                var box = $("[data-att-sel-row]", tr);
+                if (box) { box.checked = can.length > 0 && on.length === can.length; box.indeterminate = on.length > 0 && on.length < can.length; }
+                any += can.length; all += on.length;
+            });
+            if (selAll) { selAll.checked = any > 0 && all === any; selAll.indeterminate = all > 0 && all < any; }
+            $all("th[data-att-col]", page).forEach(function (th) {
+                var col = $all('td[data-att-day="' + th.getAttribute("data-att-col") + '"]', page).filter(selectable);
+                th.classList.toggle("is-selected", col.length > 0 && col.every(function (t) { return t.classList.contains("is-selected"); }));
+            });
+        }
+        function selectCells(list, on) { list.filter(selectable).forEach(function (t) { setSel(t, on); }); syncSel(); }
+        function clearSel() { $all("td[data-att-day].is-selected", page).forEach(function (t) { setSel(t, false); }); syncSel(); }
+        function cellsBetween(a, b) {
+            var r1 = allRows.indexOf(a.closest("tr")), r2 = allRows.indexOf(b.closest("tr"));
+            var c1 = parseInt(a.getAttribute("data-att-day"), 10), c2 = parseInt(b.getAttribute("data-att-day"), 10);
+            var out = [];
+            for (var r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+                for (var c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
+                    var t = $('td[data-att-day="' + c + '"]', allRows[r]);
+                    if (t) { out.push(t); }
+                }
+            }
+            return out;
+        }
+        function toggleColumn(th) {
+            var col = $all('td[data-att-day="' + th.getAttribute("data-att-col") + '"]', page).filter(selectable);
+            var allOn = col.length > 0 && col.every(function (t) { return t.classList.contains("is-selected"); });
+            selectCells(col, !allOn);
+        }
         page.addEventListener("click", function (ev) {
             var c = ev.target.closest("[data-att-cell]");
+            if (c) {
+                var td = c.closest("td");
+                if (ev.shiftKey && anchor && anchor !== td) { selectCells(cellsBetween(anchor, td), true); }
+                else { selectCells([td], !td.classList.contains("is-selected")); }
+                anchor = td;
+                return;
+            }
+            var th = ev.target.closest("th[data-att-col]");
+            if (th && !th.classList.contains("is-locked")) { toggleColumn(th); }
+        });
+        page.addEventListener("keydown", function (ev) {
+            var th = ev.target.closest && ev.target.closest("th[data-att-col]");
+            if (th && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); if (!th.classList.contains("is-locked")) { toggleColumn(th); } }
+        });
+        document.addEventListener("keydown", function (ev) {
+            if (ev.key === "Escape" && !ev.defaultPrevented && selected.length && (!ctx || ctx.hidden) && !document.querySelector(".modal.show")) { clearSel(); }
+        });
+        page.addEventListener("change", function (ev) {
+            if (ev.target.matches("[data-att-sel-row]")) { selectCells($all("td[data-att-day]", ev.target.closest("tr")), ev.target.checked); }
+            else if (ev.target.matches("[data-att-sel-all]")) { selectCells($all("td[data-att-day]", page), ev.target.checked); }
+        });
+        if (selbar) {
+            $("[data-att-sel-apply]", selbar).addEventListener("click", function () {
+                var mark = $("[data-att-sel-mark]", selbar).value;
+                selected.slice().forEach(function (t) { setMark(t, mark, null, null); });
+                clearSel();
+            });
+            $("[data-att-sel-clear]", selbar).addEventListener("click", clearSel);
+        }
+        syncSel();
+
+        /* ---------------- the day's form (times, excused, note): "Open the day…" in the menu, or a double click ---------------- */
+        var sBody = $("[data-att-day-body]", sModal), sForm = $("[data-att-day-form]", sModal);
+        function openDay(td) {
+            var c = $("[data-att-cell]", td);
             if (!c) { return; }
             var rec = c.getAttribute("data-rec");
             var isNew = !rec || rec === "0";
@@ -461,6 +557,10 @@
                 sBody.innerHTML = html;
                 $all("select[data-searchable]", sBody).forEach(HRMS.searchable);
             }, function () { sBody.innerHTML = ""; HRMS.toast(failed(), "error"); });
+        }
+        page.addEventListener("dblclick", function (ev) {
+            var c = ev.target.closest("[data-att-cell]");
+            if (c) { ev.preventDefault(); clearSel(); openDay(c.closest("td")); }
         });
         sForm.addEventListener("submit", function (ev) {
             ev.preventDefault();

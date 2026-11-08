@@ -107,9 +107,26 @@
             }
             @if (canEdit && Model.Rows.Count > 0)
             {
-                <span class="att-legend__hint">@Html.Icon("info", 13) @L["att.cell_hint"] @L["att.mk_hint"]</span>
+                <span class="att-legend__hint">@Html.Icon("info", 13) @L["att.sel_hint"]</span>
             }
         </div>
+
+        @if (canEdit && Model.Rows.Count > 0)
+        {
+            @* the days selected: mark them all at once (or right-click for Late, Short, Holiday, Excused) *@
+            <div class="att-selbar" data-att-selbar hidden role="region" aria-label="@L["att.sel_region"]">
+                <span class="att-selbar__count" aria-live="polite">@Html.Icon("check", 14)<span data-att-sel-count data-one="@L["att.sel_1_day"]" data-many="@L["att.sel_0_days", "{0}"]"></span></span>
+                <label class="att-selbar__label" for="att-sel-mark">@L["att.sel_mark_as"]</label>
+                <select class="form-select form-select-sm att-selbar__select" id="att-sel-mark" data-att-sel-mark>
+                    <option value="PRESENT">✓ @L["att.mk_present"]</option>
+                    <option value="ABSENT">✗ @L["att.mk_absent"]</option>
+                    <option value="LEAVE">LV @L["att.mk_leave"]</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-primary" data-att-sel-apply>@Html.Icon("check", 14)<span>@L["att.sel_apply"]</span></button>
+                <button type="button" class="btn btn-sm btn-link att-selbar__clear" data-att-sel-clear>@L["att.sel_clear"]</button>
+                <span class="att-selbar__more">@L["att.sel_more"]</span>
+            </div>
+        }
 
         @if (Model.Rows.Count == 0)
         {
@@ -126,14 +143,23 @@
                     <caption class="hrms-sr-only">@L["att.nav_sheet"]</caption>
                     <thead>
                         <tr>
-                            <th scope="col" class="att-sheet__emp">@L["att.col_employee"]</th>
+                            <th scope="col" class="att-sheet__emp">
+                                @if (canEdit)
+                                {
+                                    <label class="att-sel-box" title="@L["att.sel_all"]">
+                                        <input type="checkbox" class="form-check-input" data-att-sel-all aria-label="@L["att.sel_all"]" />
+                                    </label>
+                                }
+                                <span>@L["att.col_employee"]</span>
+                            </th>
                             @for (var di = 0; di < Model.Days.Count; di++)
                             {
                                 var d = Model.Days[di];
                                 var wk = d.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
                                 var dayLocked = Model.LockedDays.Count > di && Model.LockedDays[di];
                                 <th scope="col" class="att-sheet__day @(d == today ? "is-today" : null) @(wk ? "is-wkend" : null) @(d.Day == 1 ? "is-first" : null) @(dayLocked ? "is-locked" : null)"
-                                    title="@L.Date(d) · @d.ToString("dddd", cul)">
+                                    title="@L.Date(d) · @d.ToString("dddd", cul)@(canEdit && !dayLocked ? " · " + L["att.sel_col"] : "")"
+                                    data-att-col="@di" tabindex="@(canEdit && !dayLocked ? "0" : null)" aria-label="@(canEdit && !dayLocked ? L["att.sel_col"] + " · " + L.Date(d) : null)">
                                     <span class="att-sheet__dnum">@d.Day</span>
                                     <span class="att-sheet__dname">@d.ToString("ddd", cul)</span>
                                 </th>
@@ -152,6 +178,12 @@
                             var name = PayrollFormat.EmployeeName(L, e.EmployeeName, e.ArabicName);
                             <tr data-att-row data-emp="@e.EmployeeId" data-name="@name">
                                 <th scope="row" class="att-sheet__emp">
+                                    @if (canEdit)
+                                    {
+                                        <label class="att-sel-box" title="@L["att.sel_row"]">
+                                            <input type="checkbox" class="form-check-input" data-att-sel-row aria-label="@L["att.sel_row"] · @name" />
+                                        </label>
+                                    }
                                     <a class="att-sheet__name" href="@Url.Action("Index", "Attendance", new { company = Model.CompanyId, month = monthKey, employee = e.EmployeeId })" title="@name">@name</a>
                                     <span class="att-sheet__sub">@e.EmployeeNo@(string.IsNullOrWhiteSpace(e.DepartmentName) ? "" : " · " + e.DepartmentName)</span>
                                 </th>
@@ -227,7 +259,7 @@
         </div>
     </div>
     @* right click on a day: what to mark it *@
-    <div class="att-ctx dropdown-menu" role="menu" data-att-ctx hidden>
+    <div class="att-ctx" role="menu" data-att-ctx hidden>
         <div class="att-ctx__head" data-att-ctx-head></div>
         <button type="button" class="dropdown-item" role="menuitem" data-mark="PRESENT"><span class="att-cell att-cell--ok">✓</span>@L["att.mk_present"]</button>
         <button type="button" class="dropdown-item" role="menuitem" data-mark="ABSENT"><span class="att-cell att-cell--absent">✗</span>@L["att.mk_absent"]</button>
