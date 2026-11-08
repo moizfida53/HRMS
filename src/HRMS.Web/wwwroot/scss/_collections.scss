@@ -173,3 +173,13 @@
   > svg { flex: 0 0 auto; margin-block-start: 1px; }
   &.is-approved { background: $green-050; color: $green-700; font-weight: $fw-semibold; }
 }
+
+// funding popup: the employees button (db/132) - its chevron turns when the list is open
+.fund__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  scroll-margin-block-start: .75rem;
+  > svg:last-child { @include motion(transform); }
+  &.is-open > svg:last-child { transform: rotate(180deg); }
+}

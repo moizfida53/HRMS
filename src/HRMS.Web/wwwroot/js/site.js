@@ -340,6 +340,30 @@
         return confirmBox;
     }
 
+    /* A collapse button with data-collapse-scroll: opening scrolls the shown part into view (in a dialog or the
+       page), and data-label-show / data-label-hide swap the button's text ("Show the 6 employees" / "Hide ..."). */
+    (function collapseHelpers() {
+        function triggerOf(panel) {
+            if (!panel.id) { return null; }
+            return document.querySelector('[data-collapse-scroll][data-bs-target="#' + panel.id + '"]');
+        }
+        function label(btn, open) {
+            var text = btn.getAttribute(open ? "data-label-hide" : "data-label-show");
+            var span = btn.querySelector("[data-collapse-label]");
+            if (text && span) { span.textContent = text; }
+            btn.classList.toggle("is-open", open);
+        }
+        document.addEventListener("show.bs.collapse", function (ev) { var b = triggerOf(ev.target); if (b) { label(b, true); } });
+        document.addEventListener("hide.bs.collapse", function (ev) { var b = triggerOf(ev.target); if (b) { label(b, false); } });
+        document.addEventListener("shown.bs.collapse", function (ev) {
+            var b = triggerOf(ev.target);
+            if (!b) { return; }
+            var smooth = !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+            // the button at the top, the list under it
+            b.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+        });
+    })();
+
     HRMS.confirm = function (options) {
         options = typeof options === "string" ? { text: options } : (options || {});
         if (!window.bootstrap) { return Promise.resolve(window.confirm(options.text || options.title || "")); }

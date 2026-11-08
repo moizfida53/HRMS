@@ -20439,6 +20439,27 @@ html.nav-mini:not(.nav-peek) .hrms-sidebar .hrms-nav-link .hrms-nav-approval {
   font-weight: 600;
 }
 
+.fund__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  scroll-margin-block-start: 0.75rem;
+}
+.fund__toggle > svg:last-child {
+  transition-property: transform;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fund__toggle > svg:last-child {
+    transition-duration: 0.01ms;
+    animation-duration: 0.01ms;
+  }
+}
+.fund__toggle.is-open > svg:last-child {
+  transform: rotate(180deg);
+}
+
 .bf-mode {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
