@@ -159,6 +159,10 @@ public sealed class AttSheetModel
     public IReadOnlyList<int> PresentPerDay { get; init; } = [];
     /// <summary>Per day: the payroll is generated (or the month posted) - it cannot be marked.</summary>
     public IReadOnlyList<bool> LockedDays { get; init; } = [];
+    /// <summary>The payroll month's own days: a day of the range outside them is greyed (another payroll).</summary>
+    public DateTime PayrollFrom { get; init; }
+    public DateTime PayrollTo { get; init; }
+    public bool Outside(DateTime d) => d < PayrollFrom || d > PayrollTo;
     /// <summary>A payroll is created for (part of) the range: it cannot be worked out again.</summary>
     public bool PayrollCreated { get; init; }
 

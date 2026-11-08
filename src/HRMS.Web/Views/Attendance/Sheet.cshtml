@@ -101,6 +101,10 @@
                 <span class="att-legend__item"><span class="att-cell att-cell--@g.Kind" aria-hidden="true">@g.Text</span>@g.Label</span>
             }
             <span class="att-legend__item"><span class="att-cell att-cell--ok is-manual" aria-hidden="true">✓</span>@L["att.lg_manual"]</span>
+            @if (Model.Days.Any(Model.Outside))
+            {
+                <span class="att-legend__item"><span class="att-legend__outside" aria-hidden="true"></span>@L["att.lg_outside"]</span>
+            }
             @if (Model.LockedDays.Any(x => x))
             {
                 <span class="att-legend__item"><span class="att-legend__lock" aria-hidden="true">@Html.Icon("lock", 11)</span>@L["att.lg_locked"]</span>
@@ -157,8 +161,8 @@
                                 var d = Model.Days[di];
                                 var wk = d.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
                                 var dayLocked = Model.LockedDays.Count > di && Model.LockedDays[di];
-                                <th scope="col" class="att-sheet__day @(d == today ? "is-today" : null) @(wk ? "is-wkend" : null) @(d.Day == 1 ? "is-first" : null) @(dayLocked ? "is-locked" : null)"
-                                    title="@L.Date(d) · @d.ToString("dddd", cul)@(canEdit && !dayLocked ? " · " + L["att.sel_col"] : "")"
+                                <th scope="col" class="att-sheet__day @(d == today ? "is-today" : null) @(wk ? "is-wkend" : null) @(d.Day == 1 ? "is-first" : null) @(dayLocked ? "is-locked" : null) @(Model.Outside(d) ? "is-outside" : null)"
+                                    title="@L.Date(d) · @d.ToString("dddd", cul)@(Model.Outside(d) ? " · " + L["att.outside_0_1_2", L.MonthYear(Model.Month), L.Date(Model.PayrollFrom), L.Date(Model.PayrollTo)] : "")@(canEdit && !dayLocked ? " · " + L["att.sel_col"] : "")"
                                     data-att-col="@di" tabindex="@(canEdit && !dayLocked ? "0" : null)" aria-label="@(canEdit && !dayLocked ? L["att.sel_col"] + " · " + L.Date(d) : null)">
                                     <span class="att-sheet__dnum">@d.Day</span>
                                     <span class="att-sheet__dname">@d.ToString("ddd", cul)</span>
@@ -196,7 +200,7 @@
                                     var tip = $"{L.Date(d)}{(c.Title is null ? "" : " · " + c.Title)}";
                                     var locked = Model.LockedDays.Count > i && Model.LockedDays[i];
                                     var clickable = canEdit && !locked && c.Kind is not ("out" or "future") && (c.RecordId > 0 || d <= today);
-                                    <td class="att-sheet__c @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null) @(locked ? "is-locked" : null)"
+                                    <td class="att-sheet__c @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null) @(locked ? "is-locked" : null) @(Model.Outside(d) ? "is-outside" : null)"
                                         data-att-day="@i" data-date="@d.ToString("yyyy-MM-dd", inv)" data-rec="@c.RecordId" data-kind="@c.Kind" data-min="@c.Minutes" data-also-short="@(c.AlsoShort ? "1" : null)" data-late-min="@c.LateMin" data-short-min="@c.ShortMin"
                                         data-can="@(clickable ? "1" : "0")">
                                         @if (clickable)
@@ -227,7 +231,7 @@
                             @for (var i = 0; i < Model.Days.Count; i++)
                             {
                                 var d = Model.Days[i];
-                                <td class="att-sheet__c att-sheet__foot @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null)" data-foot="@i">@(Model.PresentPerDay[i] > 0 ? Model.PresentPerDay[i] : d > today ? "" : "0")</td>
+                                <td class="att-sheet__c att-sheet__foot @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null) @(Model.Outside(d) ? "is-outside" : null)" data-foot="@i">@(Model.PresentPerDay[i] > 0 ? Model.PresentPerDay[i] : d > today ? "" : "0")</td>
                             }
                             <td class="att-sheet__tot att-sheet__tot--first is-p">@Model.Rows.Sum(x => x.Present)</td>
                             <td class="att-sheet__tot att-sheet__tot--hm is-l" data-foot-tot="l">@AttFormat.HmOrZero(Model.Rows.Sum(x => x.LateMinutes))</td>

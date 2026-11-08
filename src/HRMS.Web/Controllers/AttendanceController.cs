@@ -386,11 +386,14 @@ public sealed class AttendanceController : Controller
         var f = ParseDate(from);
         var t = ParseDate(to);
         var isPeriod = f is null || t is null;
+        // the payroll month's own days (a From / To of its own may reach outside them: those days are greyed)
+        var period = co is { } pc ? await _repo.SheetPeriodAsync(Scope, pc, m, Ct) : null;
+        var payFrom = period?.StartDate.Date ?? m;
+        var payTo = period?.EndDate.Date ?? m.AddMonths(1).AddDays(-1);
         if (isPeriod)
         {
-            var period = co is { } pc ? await _repo.SheetPeriodAsync(Scope, pc, m, Ct) : null;
-            f = period?.StartDate.Date ?? m;
-            t = period?.EndDate.Date ?? m.AddMonths(1).AddDays(-1);
+            f = payFrom;
+            t = payTo;
         }
         if (t < f) (f, t) = (t, f);
         var clipped = (t!.Value - f!.Value).TotalDays + 1 > AttSheetModel.MaxDays;
@@ -419,7 +422,7 @@ public sealed class AttendanceController : Controller
         {
             Rights = Rights, Companies = companies, CompanyId = co, Months = months, Month = m,
             From = f.Value, To = t.Value, IsPeriod = isPeriod, Clipped = clipped, Search = q,
-            Days = days, Rows = rows, PresentPerDay = perDay, LockedDays = lockedDays,
+            Days = days, Rows = rows, PresentPerDay = perDay, LockedDays = lockedDays, PayrollFrom = payFrom, PayrollTo = payTo,
             PayrollCreated = locks.Any(l => l.Reason == "PAYROLL")
         };
     }

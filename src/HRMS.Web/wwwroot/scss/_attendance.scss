@@ -700,6 +700,17 @@ thead .att-sheet__emp .att-sel-box { margin-block-start: 0; vertical-align: midd
   &__more { margin-inline-start: auto; font-size: $fs-xs; color: $ink-500; @include down("md") { flex-basis: 100%; margin-inline-start: 0; } }
 }
 
+// ---- days of the range outside the payroll month (db/141): greyed - they belong to another payroll
+.att-sheet thead th.is-outside { background: $line-200; color: $ink-400; }
+.att-sheet thead th.is-outside .att-sheet__dnum { text-decoration: line-through; text-decoration-color: rgba($ink-400, .6); }
+.att-sheet td.is-outside { background: repeating-linear-gradient(135deg, $surface-2 0 6px, $line-100 6px 7px); }
+.att-sheet td.is-outside .att-cell { filter: grayscale(1); opacity: .55; }
+.att-sheet tfoot td.is-outside { color: $ink-300; }
+.att-legend__outside {
+  display: inline-block; width: 22px; height: 22px; border-radius: $radius-sm;
+  background: repeating-linear-gradient(135deg, $surface-2 0 4px, $line-200 4px 5px);
+}
+
 // ---- print: the whole sheet on landscape pages
 @media print {
   @page { size: A4 landscape; margin: 8mm; }

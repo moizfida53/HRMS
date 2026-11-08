@@ -2730,18 +2730,26 @@ input.form-control[type=date]::-webkit-calendar-picker-indicator {
 .hrms-combo__menu {
   position: fixed;
   z-index: 1060;
+  display: flex;
+  flex-direction: column;
   padding: 0.5rem;
   background: #ffffff;
   border: 1px solid #dce1e0;
   border-radius: 8px;
   box-shadow: 0 12px 32px rgba(33, 35, 34, 0.12), 0 4px 8px rgba(33, 35, 34, 0.05);
 }
+.hrms-combo__menu[hidden] {
+  display: none;
+}
 .hrms-combo__search {
   margin-block-end: 0.5rem;
+  flex: none;
 }
 .hrms-combo__list {
   position: relative;
   max-height: 260px;
+  min-height: 0;
+  flex: 0 1 auto;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -22957,6 +22965,37 @@ thead .att-sheet__emp .att-sel-box {
     flex-basis: 100%;
     margin-inline-start: 0;
   }
+}
+
+.att-sheet thead th.is-outside {
+  background: #dce1e0;
+  color: #8e9896;
+}
+
+.att-sheet thead th.is-outside .att-sheet__dnum {
+  text-decoration: line-through;
+  text-decoration-color: rgba(142, 152, 150, 0.6);
+}
+
+.att-sheet td.is-outside {
+  background: repeating-linear-gradient(135deg, #fafbfb 0 6px, #e9edec 6px 7px);
+}
+
+.att-sheet td.is-outside .att-cell {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.att-sheet tfoot td.is-outside {
+  color: #b3bbb9;
+}
+
+.att-legend__outside {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: repeating-linear-gradient(135deg, #fafbfb 0 4px, #dce1e0 4px 5px);
 }
 
 @media print {

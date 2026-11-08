@@ -1079,6 +1079,7 @@
             empty.hidden = shown > 0;
             setActive(items().findIndex(function (li) { return li.getAttribute("aria-selected") === "true"; }));
             if (active < 0) { setActive(0); }
+            place();
         }
 
         function setActive(i) {
@@ -1108,9 +1109,21 @@
             left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
             menu.style.width = width + "px";
             menu.style.left = left + "px";
+            // the side is chosen when it opens and kept while typing: opened upwards, the menu is held by its
+            // bottom edge at the button, so a shorter list (filtering) stays attached instead of floating away
             var below = window.innerHeight - r.bottom, h = menu.offsetHeight;
-            menu.style.top = (below < h + 8 && r.top > below ? Math.max(8, r.top - h - 4) : r.bottom + 4) + "px";
+            if (upward === null) { upward = below < h + 8 && r.top > below; }
+            if (upward) {
+                menu.style.top = "auto";
+                menu.style.bottom = (window.innerHeight - r.top + 4) + "px";
+                menu.style.maxHeight = Math.max(120, r.top - 12) + "px";
+            } else {
+                menu.style.bottom = "auto";
+                menu.style.top = (r.bottom + 4) + "px";
+                menu.style.maxHeight = "";
+            }
         }
+        var upward = null;
         window.addEventListener("resize", place);
         window.addEventListener("scroll", place, true);
 
@@ -1118,6 +1131,7 @@
             if (select.disabled || !menu.hidden) { return; }
             render();
             menu.hidden = false;
+            upward = null;
             place();
             wrap.classList.add("is-open");
             button.setAttribute("aria-expanded", "true");
