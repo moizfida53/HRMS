@@ -57,6 +57,7 @@
   background: $white;
 
   &__head { display: flex; align-items: flex-start; gap: space("3"); margin-block-end: space("2"); }
+  &.is-done:has(> .bf-step__box:not([open])) { background: $surface-2; }
 
   &__no {
     flex: 0 0 auto;
@@ -108,7 +109,65 @@
   @include cq-down(xs) {
     &__figs { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   }
+
+  // collapsible: the step to do now is open, a done (or waiting) step folds to its summary
+  &__box > summary {
+    list-style: none;
+    cursor: pointer;
+    border-radius: $radius-sm;
+    @include focus-ring;
+    &::-webkit-details-marker { display: none; }
+  }
+  &__headtext { flex: 1 1 auto; min-width: 0; }
+  &__box:not([open]) > summary { margin-block-end: 0; }
+  &__box[open] > summary { margin-block-end: space("3"); }
+  &__chev {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-inline-start: auto;
+    border-radius: $radius-pill;
+    color: $ink-500;
+    @include motion(transform, background-color);
+    svg { width: 16px; height: 16px; }
+  }
+  &__box > summary:hover &__chev { background: $line-100; color: $ink-800; }
+  &__box[open] &__chev { transform: rotate(180deg); }
+
+  // the summary shown folded: status, employees, amount, file
+  &__sum {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: space("1") space("3");
+    margin: space("2") 0 0;
+    font-size: $fs-sm;
+    color: $ink-600;
+
+    > span { display: inline-flex; align-items: center; gap: .3rem; min-width: 0; }
+    svg { width: 13px; height: 13px; color: $ink-400; flex: none; }
+    .pr-money { font-weight: $fw-bold; color: $ink-900; }
+  }
+  &__box:not([open]) &__sum { display: flex; }
+  &__box:not([open]) &__text { display: none; }
+  &__sumfile { font-family: $font-mono; font-size: $fs-xs; overflow-wrap: anywhere; }
+  &__chip {
+    padding: 0 space("2");
+    border-radius: $radius-pill;
+    font-size: $fs-xs;
+    font-weight: $fw-bold;
+    line-height: 1.6;
+    &.is-done { @include soft-badge($green-700, $green-050); }
+    &.is-todo { @include soft-badge($blue-700, $blue-050); }
+    &.is-locked { @include soft-badge($ink-500, $line-100); }
+  }
+  &__body { animation: bf-step-open .2s $ease-out; }
+  @media (prefers-reduced-motion: reduce) { &__body { animation: none; } }
 }
+@keyframes bf-step-open { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
 // ------------------------------------------------------------- the kind ----
 .bf-kind {

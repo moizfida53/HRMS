@@ -320,85 +320,109 @@
                                     <ol class="bf-steps">
                                         @* ---- step 1: Ministry Payroll - the work permit salary *@
                                         <li class="bf-step @(st.MinistryDone ? "is-done" : "is-current")">
-                                            <div class="bf-step__head">
+                                            <details class="bf-step__box" open="@(!st.MinistryDone)">
+                                            <summary class="bf-step__head">
                                                 <span class="bf-step__no" aria-hidden="true">@(st.MinistryDone ? "✓" : "1")</span>
-                                                <div>
+                                                <div class="bf-step__headtext">
                                                     <h3 class="bf-step__title">@L["fin.step1_title"]</h3>
                                                     <p class="bf-step__text">@L["fin.step1_text"]</p>
+                                                    @* collapsed: the step at a glance *@
+                                                    <p class="bf-step__sum">
+                                                        <span class="bf-step__chip @(st.MinistryDone ? "is-done" : "is-todo")">@(st.MinistryDone ? L["fin.step_done"] : L["fin.step_todo"])</span>
+                                                        <span>@Html.Icon("users", 13) @PayrollFormat.Count(st.MinistryCount)</span>
+                                                        <span class="pr-money">KWD @PayrollFormat.Money(st.MinistryDone ? st.MinistryFileAmount ?? st.MinistryAmount : st.MinistryAmount)</span>
+                                                        <span class="bf-step__sumfile">@Html.Icon("file", 13) @(st.MinistryFileNos ?? (string)L["fin.not_generated"])</span>
+                                                    </p>
                                                 </div>
+                                                <span class="bf-step__chev" aria-hidden="true">@Html.Icon("chevron-down", 16)</span>
+                                            </summary>
+                                            <div class="bf-step__body">
+                                                <dl class="bf-step__figs">
+                                                    <div><dt>@L["common.employees"]</dt><dd>@PayrollFormat.Count(st.MinistryCount)</dd></div>
+                                                    <div><dt>@L["pr.amount_kwd"]</dt><dd class="pr-money">@PayrollFormat.Money(st.MinistryDone ? st.MinistryFileAmount ?? st.MinistryAmount : st.MinistryAmount)</dd></div>
+                                                    <div><dt>@L["fin.bank_file"]</dt><dd>@(st.MinistryFileNos ?? (string)L["fin.not_generated"])</dd></div>
+                                                </dl>
+                                                @if (st.MissingWpsCount > 0)
+                                                {
+                                                    <div class="pr-banner pr-banner--err mb-3" role="alert">
+                                                        @Html.Icon("alert", 18)
+                                                        <div><strong>@L["fin.wps_missing_0", st.MissingWpsCount]</strong> @st.MissingWpsNames@(st.MissingWpsCount > 5 ? " …" : "")
+                                                            <a href="@Url.Content("~/employees")">@L["fin.open_employees"]</a></div>
+                                                    </div>
+                                                }
+                                                <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
+                                                    <input type="hidden" name="run" value="@run.PayrollRunId" />
+                                                    <input type="hidden" name="kind" value="MINISTRY" />
+                                                    @{ await GenerateFields("m1", ministryLive, gl); }
+                                                    <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                                                        <button type="submit" class="btn @(st.MinistryDone ? "btn-outline-primary" : "btn-primary")" disabled="@(gl || st.MissingWpsCount > 0)">
+                                                            @Html.Icon("download", 15)<span>@(ministryLive ? L["fin.step1_regenerate"] : L["fin.step1_generate"])</span>
+                                                        </button>
+                                                        @if (gl)
+                                                        {
+                                                            <span class="form-text m-0">@L["fin.gl_locked"]</span>
+                                                        }
+                                                        else if (st.CompanyDone)
+                                                        {
+                                                            <span class="form-text m-0">@L["fin.step1_regen_note"]</span>
+                                                        }
+                                                    </div>
+                                                </form>
                                             </div>
-                                            <dl class="bf-step__figs">
-                                                <div><dt>@L["common.employees"]</dt><dd>@PayrollFormat.Count(st.MinistryCount)</dd></div>
-                                                <div><dt>@L["pr.amount_kwd"]</dt><dd class="pr-money">@PayrollFormat.Money(st.MinistryDone ? st.MinistryFileAmount ?? st.MinistryAmount : st.MinistryAmount)</dd></div>
-                                                <div><dt>@L["fin.bank_file"]</dt><dd>@(st.MinistryFileNos ?? (string)L["fin.not_generated"])</dd></div>
-                                            </dl>
-                                            @if (st.MissingWpsCount > 0)
-                                            {
-                                                <div class="pr-banner pr-banner--err mb-3" role="alert">
-                                                    @Html.Icon("alert", 18)
-                                                    <div><strong>@L["fin.wps_missing_0", st.MissingWpsCount]</strong> @st.MissingWpsNames@(st.MissingWpsCount > 5 ? " …" : "")
-                                                        <a href="@Url.Content("~/employees")">@L["fin.open_employees"]</a></div>
-                                                </div>
-                                            }
-                                            <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
-                                                <input type="hidden" name="run" value="@run.PayrollRunId" />
-                                                <input type="hidden" name="kind" value="MINISTRY" />
-                                                @{ await GenerateFields("m1", ministryLive, gl); }
-                                                <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                                                    <button type="submit" class="btn @(st.MinistryDone ? "btn-outline-primary" : "btn-primary")" disabled="@(gl || st.MissingWpsCount > 0)">
-                                                        @Html.Icon("download", 15)<span>@(ministryLive ? L["fin.step1_regenerate"] : L["fin.step1_generate"])</span>
-                                                    </button>
-                                                    @if (gl)
-                                                    {
-                                                        <span class="form-text m-0">@L["fin.gl_locked"]</span>
-                                                    }
-                                                    else if (st.CompanyDone)
-                                                    {
-                                                        <span class="form-text m-0">@L["fin.step1_regen_note"]</span>
-                                                    }
-                                                </div>
-                                            </form>
+                                            </details>
                                         </li>
 
                                         @* ---- step 2: Company Payroll - the net pay less what step 1 transferred *@
                                         <li class="bf-step @(st.CompanyDone ? "is-done" : st.MinistryDone ? "is-current" : "is-locked")">
-                                            <div class="bf-step__head">
+                                            <details class="bf-step__box" open="@(st.MinistryDone)">
+                                            <summary class="bf-step__head">
                                                 <span class="bf-step__no" aria-hidden="true">@(st.CompanyDone ? "✓" : "2")</span>
-                                                <div>
+                                                <div class="bf-step__headtext">
                                                     <h3 class="bf-step__title">@L["fin.step2_title"]</h3>
                                                     <p class="bf-step__text">@L["fin.step2_text"]</p>
+                                                    @* collapsed: the step at a glance *@
+                                                    <p class="bf-step__sum">
+                                                        <span class="bf-step__chip @(st.CompanyDone ? "is-done" : st.MinistryDone ? "is-todo" : "is-locked")">@(st.CompanyDone ? L["fin.step_done"] : st.MinistryDone ? L["fin.step_todo"] : L["fin.step_waiting"])</span>
+                                                        <span>@Html.Icon("users", 13) @PayrollFormat.Count(st.CompanyCount)</span>
+                                                        <span class="pr-money">KWD @PayrollFormat.Money(st.CompanyDone ? st.CompanyFileAmount ?? st.CompanyAmount : st.CompanyAmount)</span>
+                                                        <span class="bf-step__sumfile">@Html.Icon("file", 13) @(st.CompanyFileNos ?? (string)L["fin.not_generated"])</span>
+                                                    </p>
                                                 </div>
+                                                <span class="bf-step__chev" aria-hidden="true">@Html.Icon("chevron-down", 16)</span>
+                                            </summary>
+                                            <div class="bf-step__body">
+                                                <dl class="bf-step__figs">
+                                                    <div><dt>@L["common.employees"]</dt><dd>@PayrollFormat.Count(st.CompanyCount)</dd></div>
+                                                    <div><dt>@L["pr.amount_kwd"]</dt><dd class="pr-money">@PayrollFormat.Money(st.CompanyDone ? st.CompanyFileAmount ?? st.CompanyAmount : st.CompanyAmount)</dd></div>
+                                                    <div><dt>@L["fin.bank_file"]</dt><dd>@(st.CompanyFileNos ?? (string)L["fin.not_generated"])</dd></div>
+                                                </dl>
+                                                @if (st.OverCount > 0)
+                                                {
+                                                    <p class="bf-step__note">@Html.Icon("info", 14)<span>@L["fin.step2_over_0_1", st.OverCount, PayrollFormat.Money(st.OverAmount)]</span></p>
+                                                }
+                                                @if (st.CashCount > 0)
+                                                {
+                                                    <p class="bf-step__note">@Html.Icon("wallet", 14)<span>@L["fin.step2_cash_0_1", st.CashCount, PayrollFormat.Money(st.CashAmount)]</span></p>
+                                                }
+                                                @if (!st.MinistryDone)
+                                                {
+                                                    <p class="hrms-muted hrms-text-sm mb-0">@Html.Icon("lock", 14) @L["fin.step2_locked"]</p>
+                                                }
+                                                else
+                                                {
+                                                    <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
+                                                        <input type="hidden" name="run" value="@run.PayrollRunId" />
+                                                        <input type="hidden" name="kind" value="COMPANY" />
+                                                        @{ await GenerateFields("c2", companyLive, gl); }
+                                                        <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                                                            <button type="submit" class="btn btn-primary" disabled="@(gl || (st.CompanyCount == 0 && st.CashCount == 0))">
+                                                                @Html.Icon("download", 15)<span>@(companyLive ? L["fin.step2_regenerate"] : L["fin.step2_generate"])</span>
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                }
                                             </div>
-                                            <dl class="bf-step__figs">
-                                                <div><dt>@L["common.employees"]</dt><dd>@PayrollFormat.Count(st.CompanyCount)</dd></div>
-                                                <div><dt>@L["pr.amount_kwd"]</dt><dd class="pr-money">@PayrollFormat.Money(st.CompanyDone ? st.CompanyFileAmount ?? st.CompanyAmount : st.CompanyAmount)</dd></div>
-                                                <div><dt>@L["fin.bank_file"]</dt><dd>@(st.CompanyFileNos ?? (string)L["fin.not_generated"])</dd></div>
-                                            </dl>
-                                            @if (st.OverCount > 0)
-                                            {
-                                                <p class="bf-step__note">@Html.Icon("info", 14)<span>@L["fin.step2_over_0_1", st.OverCount, PayrollFormat.Money(st.OverAmount)]</span></p>
-                                            }
-                                            @if (st.CashCount > 0)
-                                            {
-                                                <p class="bf-step__note">@Html.Icon("wallet", 14)<span>@L["fin.step2_cash_0_1", st.CashCount, PayrollFormat.Money(st.CashAmount)]</span></p>
-                                            }
-                                            @if (!st.MinistryDone)
-                                            {
-                                                <p class="hrms-muted hrms-text-sm mb-0">@Html.Icon("lock", 14) @L["fin.step2_locked"]</p>
-                                            }
-                                            else
-                                            {
-                                                <form class="row g-3" data-fin-generate action="@Url.Action("Generate", "BankProcessing")" novalidate>
-                                                    <input type="hidden" name="run" value="@run.PayrollRunId" />
-                                                    <input type="hidden" name="kind" value="COMPANY" />
-                                                    @{ await GenerateFields("c2", companyLive, gl); }
-                                                    <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                                                        <button type="submit" class="btn btn-primary" disabled="@(gl || (st.CompanyCount == 0 && st.CashCount == 0))">
-                                                            @Html.Icon("download", 15)<span>@(companyLive ? L["fin.step2_regenerate"] : L["fin.step2_generate"])</span>
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            }
+                                            </details>
                                         </li>
                                     </ol>
                                 </div>
