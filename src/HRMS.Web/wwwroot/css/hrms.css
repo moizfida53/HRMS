@@ -10468,6 +10468,9 @@ tr.pr-row-cancelled .hrms-code-chip {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.ps-doc__tables--one {
+  grid-template-columns: minmax(0, 1fr);
+}
 
 .ps-doc__table {
   width: 100%;
@@ -10667,6 +10670,9 @@ tr.pr-row-cancelled .hrms-code-chip {
   }
   .ps-doc__tables {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ps-doc__tables.ps-doc__tables--one {
+    grid-template-columns: minmax(0, 1fr);
   }
   .ps-doc__table, .ps-doc__net {
     break-inside: avoid;

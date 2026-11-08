@@ -467,6 +467,9 @@ $ps-stack: "sm";
   align-items: start;
 
   @container payslip (max-width: 639.98px) { grid-template-columns: minmax(0, 1fr); }
+
+  // government: the work permit salary alone, across the page
+  &--one { grid-template-columns: minmax(0, 1fr); }
 }
 
 .ps-doc__table {
@@ -641,6 +644,7 @@ $ps-stack: "sm";
 
   .ps-doc__info { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ps-doc__tables { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ps-doc__tables.ps-doc__tables--one { grid-template-columns: minmax(0, 1fr); }
   .ps-doc__table, .ps-doc__net { break-inside: avoid; }
 }
 

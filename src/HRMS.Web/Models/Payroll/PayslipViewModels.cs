@@ -192,6 +192,17 @@ public sealed class PayslipDocumentModel
 
     public decimal TotalEarnings => Earnings.Sum(l => l.Amount);
     public decimal TotalDeductions => -Deductions.Sum(l => l.Amount);
+
+    /// <summary>
+    /// Government only: the payslip shows the work permit salary alone - no payroll lines - and it is the
+    /// amount payable (for the days paid when the period was not worked in full).
+    /// </summary>
+    public bool GovernmentOnly => Basis == PayslipBasis.Government;
+    public bool GovernmentProrated => GovernmentOnly && Slip.PeriodDays > 0 && Slip.PaidDays < Slip.PeriodDays;
+    public decimal? GovernmentPayable => WorkPermitSalary is not { } wp ? null
+        : GovernmentProrated ? Math.Round(wp * Slip.PaidDays / Slip.PeriodDays, 3, MidpointRounding.AwayFromZero) : wp;
+    /// <summary>The net shown: the work permit salary payable (government), else the payroll's net pay.</summary>
+    public decimal? NetShown => GovernmentOnly ? GovernmentPayable : Slip.NetPay;
 }
 
 /// <summary>Labels, badges, masking and the amount in words for the payslip screens.</summary>

@@ -167,6 +167,36 @@
         </section>
 
         @* ---------------------------------------------------------- figures *@
+        @if (Model.GovernmentOnly)
+        {
+            @* government: the work permit salary only - it is what is payable *@
+            <div class="ps-doc__tables ps-doc__tables--one">
+                <table class="ps-doc__table">
+                    <caption class="hrms-sr-only">@L["pr.earnings"]</caption>
+                    <thead>
+                        <tr><th scope="col">@T("ps.doc_earnings")</th><th scope="col" class="ps-doc__amt">KWD</th></tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.GovernmentPayable is { } gp)
+                        {
+                            <tr>
+                                <td>@T("ps.doc_wp_salary_line")@if (Model.GovernmentProrated) {<span class="ps-doc__note">@T("ps.doc_wp_prorated_0_1_2", M(Model.WorkPermitSalary ?? 0), s.PaidDays.ToString(inv), s.PeriodDays.ToString(inv))</span>}</td>
+                                <td class="ps-doc__amt">@M(gp)</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr><td colspan="2" class="ps-doc__muted">@T("ps.doc_wp_missing")</td></tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr><td>@T("ps.doc_total_earnings")</td><td class="ps-doc__amt">@(Model.GovernmentPayable is { } t ? M(t) : "—")</td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+        else
+        {
         <div class="ps-doc__tables">
             <table class="ps-doc__table">
                 <caption class="hrms-sr-only">@L["pr.earnings"]</caption>
@@ -215,13 +245,18 @@
             </table>
         </div>
 
+        }
+
         <div class="ps-doc__net">
             <span class="ps-doc__net-label">@T("ps.doc_net_salary")</span>
-            <strong class="ps-doc__net-value"><small>KWD</small> @M(s.NetPay)</strong>
+            <strong class="ps-doc__net-value"><small>KWD</small> @(Model.NetShown is { } ns ? M(ns) : "—")</strong>
         </div>
         @if (en)
         {
-            <p class="ps-doc__words">@PayslipFormat.AmountInWords(s.NetPay)@(s.NetPay < 0 ? " (-)" : "")</p>
+            @if (Model.NetShown is { } nw)
+            {
+                <p class="ps-doc__words">@PayslipFormat.AmountInWords(nw)@(nw < 0 ? " (-)" : "")</p>
+            }
         }
 
         <footer class="ps-doc__foot">
