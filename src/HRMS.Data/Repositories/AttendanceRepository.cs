@@ -79,6 +79,11 @@ public interface IAttendanceRepository
     Task<IReadOnlyList<AttendanceRecord>> SheetDaysAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default);
     Task<IReadOnlyList<AttHolidayInput>> SheetHolidaysAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default);
     Task<IReadOnlyList<AttLeaveInput>> SheetLeaveAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default);
+
+    // marking days by hand (db/129)
+    Task<IReadOnlyList<AttLock>> SheetLocksAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default);
+    Task<(SaveResult Result, IReadOnlyList<DateTime> Months)> SaveMarksAsync(AttScope scope, int company, IReadOnlyList<AttMark> marks, long? userId, CancellationToken ct = default);
+    Task ClearMarkAsync(AttScope scope, long recordId, CancellationToken ct = default);
 }
 
 public sealed class AttendanceRepository : IAttendanceRepository
@@ -88,6 +93,7 @@ public sealed class AttendanceRepository : IAttendanceRepository
     private const string ImportProc = "Attendance.usp_AttImport_Manage";
     private const string RecordProc = "Attendance.usp_AttRecord_Manage";
     private const string SummaryProc = "Attendance.usp_AttSummary_Manage";
+    private const string MarkProc = "Attendance.usp_AttMark_Manage";
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     private readonly ISqlExecutor _sql;
@@ -276,8 +282,72 @@ public sealed class AttendanceRepository : IAttendanceRepository
         return p;
     }
 
-    public Task<IReadOnlyList<AttDayInput>> MonthDaysAsync(AttScope scope, int company, DateTime month, long? employeeId, CancellationToken ct = default) =>
-        _sql.QueryAsync<AttDayInput>(RecordProc, Ctx("CTX_RECORDS", scope, company, month, employeeId), ct);
+    public async Task<IReadOnlyList<AttDayInput>> MonthDaysAsync(AttScope scope, int company, DateTime month, long? employeeId, CancellationToken ct = default)
+    {
+        var days = await _sql.QueryAsync<AttDayInput>(RecordProc, Ctx("CTX_RECORDS", scope, company, month, employeeId), ct).ConfigureAwait(false);
+        // the days marked by hand on the Attendance Sheet (db/129) carry their mark
+        IReadOnlyList<MarkRow> marks;
+        try
+        {
+            var p = P("MARKS", scope);
+            p.Add("@FilterCompany", company, DbType.Int32);
+            p.Add("@Month", MonthOf(month), DbType.Date);
+            marks = await _sql.QueryAsync<MarkRow>(MarkProc, p, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return days;     // db/129 not run yet: no marks
+        }
+        if (marks.Count == 0) return days;
+        var byId = marks.ToDictionary(m => m.RecordId);
+        return days.Select(d => byId.TryGetValue(d.RecordId, out var m)
+            ? new AttDayInput
+            {
+                RecordId = d.RecordId, EmployeeId = d.EmployeeId, WorkDate = d.WorkDate, ClockIn = d.ClockIn, ClockOut = d.ClockOut,
+                PunchCount = d.PunchCount, Source = d.Source, IsExcused = d.IsExcused, Note = d.Note,
+                ManualStatus = m.ManualStatus, ManualMinutes = m.ManualMinutes
+            }
+            : d).ToList();
+    }
+
+    private sealed class MarkRow
+    {
+        public long RecordId { get; set; }
+        public string? ManualStatus { get; set; }
+        public int? ManualMinutes { get; set; }
+    }
+
+    public async Task<IReadOnlyList<AttLock>> SheetLocksAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        try
+        {
+            return await _sql.QueryAsync<AttLock>(MarkProc, Sheet("LOCKS", scope, company, from, to), ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return [];       // db/129 not run yet
+        }
+    }
+
+    public async Task<(SaveResult Result, IReadOnlyList<DateTime> Months)> SaveMarksAsync(AttScope scope, int company, IReadOnlyList<AttMark> marks,
+                                                                                       long? userId, CancellationToken ct = default)
+    {
+        var p = Sheet("SAVE", scope, company, null, null);
+        p.Add("@Json", JsonSerializer.Serialize(marks.Select(m => new
+        {
+            m.EmployeeId, m.Date, Status = m.Status?.Trim().ToUpperInvariant(), m.Minutes, Note = T(m.Note, 500)
+        }), Json), DbType.String, size: -1);
+        p.Add("@UserId", userId, DbType.Int64);
+        var months = await _sql.QueryAsync<DateTime>(MarkProc, p, ct).ConfigureAwait(false);
+        return (PayrollRunRepository.ReadResult(p, 0), months);
+    }
+
+    public Task ClearMarkAsync(AttScope scope, long recordId, CancellationToken ct = default)
+    {
+        var p = P("CLEAR", scope);
+        p.Add("@Id", recordId, DbType.Int64);
+        return _sql.ExecuteAsync(MarkProc, p, ct);
+    }
 
     public Task<IReadOnlyList<AttEmployeeInput>> MonthEmployeesAsync(AttScope scope, int company, DateTime month, long? employeeId, CancellationToken ct = default) =>
         _sql.QueryAsync<AttEmployeeInput>(RecordProc, Ctx("CTX_EMP", scope, company, month, employeeId), ct);

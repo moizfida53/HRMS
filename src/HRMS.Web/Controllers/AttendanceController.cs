@@ -176,6 +176,8 @@ public sealed class AttendanceController : Controller
             : employeeId is > 0
                 ? await _repo.AddRecordAsync(Scope, employeeId.Value, workDate.Value, cin, cout, excused, note, _user.UserId, Ct)
                 : (SaveResult.Fail("Select the employee.", "VALIDATION"), null);
+        // the times corrected in the day form take over from a mark made on the Attendance Sheet
+        if (result.Success && id > 0) await _repo.ClearMarkAsync(Scope, id, Ct);
         if (result.Success && month is not null) await _service.RecalculateAsync([month], null, Ct);
         return Result(result);
     }
@@ -388,6 +390,8 @@ public sealed class AttendanceController : Controller
         if (clipped) t = f.Value.AddDays(AttSheetModel.MaxDays - 1);
         var days = Enumerable.Range(0, (int)(t.Value - f.Value).TotalDays + 1).Select(i => f.Value.AddDays(i)).ToList();
 
+        var locks = co is { } lc ? await _repo.SheetLocksAsync(Scope, lc, f.Value, t.Value, Ct) : [];
+        var lockedDays = days.Select(d => locks.Any(l => l.StartDate.Date <= d && d <= l.EndDate.Date)).ToList();
         IReadOnlyList<AttSheetRow> rows = [];
         IReadOnlyList<int> perDay = days.Select(_ => 0).ToList();
         if (co is { } c)
@@ -408,7 +412,7 @@ public sealed class AttendanceController : Controller
         {
             Rights = Rights, Companies = companies, CompanyId = co, Months = months, Month = m,
             From = f.Value, To = t.Value, IsPeriod = isPeriod, Clipped = clipped, Search = q,
-            Days = days, Rows = rows, PresentPerDay = perDay
+            Days = days, Rows = rows, PresentPerDay = perDay, LockedDays = lockedDays
         };
     }
 
@@ -417,6 +421,26 @@ public sealed class AttendanceController : Controller
     {
         if (!Rights.CanView) return Forbid();
         return View(await SheetAsync(company, month, from, to, q));
+    }
+
+    public sealed class SheetMarksInput
+    {
+        public int Company { get; set; }
+        public List<AttMark>? Marks { get; set; }
+    }
+
+    /// <summary>The days marked on the Attendance Sheet (right click): saved, then their months worked out again.</summary>
+    [HttpPost("sheet/save")]
+    public async Task<IActionResult> SheetSave([FromBody] SheetMarksInput? input)
+    {
+        if (!Can(PermImport)) return Denied();
+        if (input?.Marks is not { Count: > 0 } marks) return Json(ActionResponse.Failed(_l.Tr("Nothing to save."), "VALIDATION"));
+        if (await CompanyAsync(input.Company) != input.Company) return Denied();
+        if (marks.Count > 5000) return Json(ActionResponse.Failed(_l.Tr("Too many changes at once - save in smaller parts."), "VALIDATION"));
+        var (result, months) = await _repo.SaveMarksAsync(Scope, input.Company, marks, _user.UserId, Ct);
+        if (result.Success && months.Count > 0)
+            await _service.RecalculateAsync(months.Select(m => new AttMonth(input.Company, m)).ToList(), null, Ct);
+        return Result(result);
     }
 
     [HttpGet("sheet/export")]

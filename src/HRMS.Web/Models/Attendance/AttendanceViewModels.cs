@@ -111,7 +111,7 @@ public sealed class AttPatternFormModel
 }
 
 /// <summary>A day of the Attendance Sheet: what is shown (✓, ✗, L 12 ...) and what a click does.</summary>
-public sealed record AttSheetCell(string Text, string Kind, string? Title, long RecordId, string? Sub = null);
+public sealed record AttSheetCell(string Text, string Kind, string? Title, long RecordId, string? Sub = null, bool Manual = false, int Minutes = 0);
 
 public sealed class AttSheetRow
 {
@@ -146,6 +146,8 @@ public sealed class AttSheetModel
     public IReadOnlyList<DateTime> Days { get; init; } = [];
     public IReadOnlyList<AttSheetRow> Rows { get; init; } = [];
     public IReadOnlyList<int> PresentPerDay { get; init; } = [];
+    /// <summary>Per day: the payroll is generated (or the month posted) - it cannot be marked.</summary>
+    public IReadOnlyList<bool> LockedDays { get; init; } = [];
 
     private static readonly HashSet<string> PresentCodes = ["PRESENT", "LATE", "SHORT", "LATE_SHORT", "EXCUSED", "NO_PATTERN"];
 
@@ -180,17 +182,21 @@ public sealed class AttSheetModel
                 {
                     var times = $"{T(r.ClockIn)} – {T(r.ClockOut)}";
                     var title = r.DeductionAmount > 0 ? $"{times} · {r.DeductionNote}" : r.DeductionNote is null ? times : $"{times} · {r.DeductionNote}";
+                    var manual = !string.IsNullOrEmpty(r.ManualStatus);
                     AttSheetCell cell = r.Status switch
                     {
                         "PRESENT" => new("✓", "ok", title, r.RecordId),
-                        "LATE" or "LATE_SHORT" => new("L", "late", title, r.RecordId, r.LateMinutes > 0 ? r.LateMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture) : null),
-                        "SHORT" => new("S", "short", title, r.RecordId),
+                        "LATE" or "LATE_SHORT" => new("L", "late", title, r.RecordId, r.LateMinutes > 0 ? r.LateMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture) : null, Minutes: r.LateMinutes),
+                        "SHORT" => new("S", "short", title, r.RecordId, Minutes: r.ShortMinutes),
                         "ABSENT" => new("✗", "absent", title, r.RecordId),
                         "MISSING" => new("?", "missing", title, r.RecordId),
                         "LEAVE" => new("LV", "leave", title, r.RecordId),
                         "EXCUSED" => new("E", "excused", title, r.RecordId),
+                        "HOLIDAY" => new("H", "holiday", title, r.RecordId),
+                        "OFF" => new("·", "off", title, r.RecordId),
                         _ => new("✓", "nopattern", title, r.RecordId)
                     };
+                    if (manual) cell = cell with { Manual = true };
                     cells.Add(cell);
                     if (PresentCodes.Contains(r.Status)) { present++; perDay[i]++; }
                     if (r.Status is "LATE" or "LATE_SHORT") late++;

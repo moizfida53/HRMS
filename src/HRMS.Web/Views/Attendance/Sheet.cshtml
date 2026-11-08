@@ -23,8 +23,9 @@
         ("holiday", "H", L["att.lg_holiday"]), ("off", "·", L["att.lg_off"]), ("excused", "E", L["att.lg_excused"]), ("none", "–", L["att.lg_none"])
     };
 }
-<div class="pr-stack att-page" data-att-page="sheet"
-     data-url-day="@Url.Action("Day", "Attendance")" data-url-save="@Url.Action("SaveDay", "Attendance")">
+<div class="pr-stack att-page" data-att-page="sheet" data-company="@Model.CompanyId"
+     data-url-day="@Url.Action("Day", "Attendance")" data-url-save="@Url.Action("SaveDay", "Attendance")"
+     data-url-marks="@Url.Action("SheetSave", "Attendance")">
 
     <section class="hrms-card att-sheet-card">
         @* ---- the filters: company, payroll month, From / To, search ---- *@
@@ -99,9 +100,14 @@
             {
                 <span class="att-legend__item"><span class="att-cell att-cell--@g.Kind" aria-hidden="true">@g.Text</span>@g.Label</span>
             }
+            <span class="att-legend__item"><span class="att-cell att-cell--ok is-manual" aria-hidden="true">✓</span>@L["att.lg_manual"]</span>
+            @if (Model.LockedDays.Any(x => x))
+            {
+                <span class="att-legend__item"><span class="att-legend__lock" aria-hidden="true">@Html.Icon("lock", 11)</span>@L["att.lg_locked"]</span>
+            }
             @if (canEdit && Model.Rows.Count > 0)
             {
-                <span class="att-legend__hint">@Html.Icon("info", 13) @L["att.cell_hint"]</span>
+                <span class="att-legend__hint">@Html.Icon("info", 13) @L["att.cell_hint"] @L["att.mk_hint"]</span>
             }
         </div>
 
@@ -121,10 +127,12 @@
                     <thead>
                         <tr>
                             <th scope="col" class="att-sheet__emp">@L["att.col_employee"]</th>
-                            @foreach (var d in Model.Days)
+                            @for (var di = 0; di < Model.Days.Count; di++)
                             {
+                                var d = Model.Days[di];
                                 var wk = d.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
-                                <th scope="col" class="att-sheet__day @(d == today ? "is-today" : null) @(wk ? "is-wkend" : null) @(d.Day == 1 ? "is-first" : null)"
+                                var dayLocked = Model.LockedDays.Count > di && Model.LockedDays[di];
+                                <th scope="col" class="att-sheet__day @(d == today ? "is-today" : null) @(wk ? "is-wkend" : null) @(d.Day == 1 ? "is-first" : null) @(dayLocked ? "is-locked" : null)"
                                     title="@L.Date(d) · @d.ToString("dddd", cul)">
                                     <span class="att-sheet__dnum">@d.Day</span>
                                     <span class="att-sheet__dname">@d.ToString("ddd", cul)</span>
@@ -142,7 +150,7 @@
                         {
                             var e = r.Employee;
                             var name = PayrollFormat.EmployeeName(L, e.EmployeeName, e.ArabicName);
-                            <tr>
+                            <tr data-att-row data-emp="@e.EmployeeId" data-name="@name">
                                 <th scope="row" class="att-sheet__emp">
                                     <a class="att-sheet__name" href="@Url.Action("Index", "Attendance", new { company = Model.CompanyId, month = monthKey, employee = e.EmployeeId })" title="@name">@name</a>
                                     <span class="att-sheet__sub">@e.EmployeeNo@(string.IsNullOrWhiteSpace(e.DepartmentName) ? "" : " · " + e.DepartmentName)</span>
@@ -151,10 +159,13 @@
                                 {
                                     var c = r.Cells[i];
                                     var d = Model.Days[i];
-                                    var cls = $"att-cell att-cell--{c.Kind}";
+                                    var cls = $"att-cell att-cell--{c.Kind}{(c.Manual ? " is-manual" : "")}";
                                     var tip = $"{L.Date(d)}{(c.Title is null ? "" : " · " + c.Title)}";
-                                    var clickable = canEdit && c.Kind is not ("out" or "future") && (c.RecordId > 0 || d <= today);
-                                    <td class="att-sheet__c @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null)">
+                                    var locked = Model.LockedDays.Count > i && Model.LockedDays[i];
+                                    var clickable = canEdit && !locked && c.Kind is not ("out" or "future") && (c.RecordId > 0 || d <= today);
+                                    <td class="att-sheet__c @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null) @(locked ? "is-locked" : null)"
+                                        data-att-day="@i" data-date="@d.ToString("yyyy-MM-dd", inv)" data-rec="@c.RecordId" data-kind="@c.Kind" data-min="@c.Minutes"
+                                        data-can="@(clickable ? "1" : "0")">
                                         @if (clickable)
                                         {
                                             <button type="button" class="@cls" title="@tip" data-att-cell
@@ -164,15 +175,15 @@
                                         }
                                         else
                                         {
-                                            <span class="@cls" title="@(c.Kind == "out" ? null : tip)">@c.Text@if (c.Sub is not null) { <small>@c.Sub</small> }</span>
+                                            <span class="@cls" title="@(c.Kind == "out" ? null : locked ? tip + " · " + L["att.mk_locked"] : tip)">@c.Text@if (c.Sub is not null) { <small>@c.Sub</small> }</span>
                                         }
                                     </td>
                                 }
-                                <td class="att-sheet__tot att-sheet__tot--first is-p">@r.Present</td>
-                                <td class="att-sheet__tot @(r.Late > 0 ? "is-l" : "is-zero")">@r.Late</td>
-                                <td class="att-sheet__tot @(r.Absent > 0 ? "is-a" : "is-zero")">@r.Absent</td>
-                                <td class="att-sheet__tot @(r.Leave > 0 ? "is-lv" : "is-zero")">@r.Leave</td>
-                                <td class="att-sheet__tot att-sheet__tot--ded @(r.Deduction > 0 ? "is-ded" : "is-zero")">@(r.Deduction > 0 ? PayrollFormat.Money(r.Deduction) : "—")</td>
+                                <td class="att-sheet__tot att-sheet__tot--first is-p" data-tot="p">@r.Present</td>
+                                <td class="att-sheet__tot @(r.Late > 0 ? "is-l" : "is-zero")" data-tot="l">@r.Late</td>
+                                <td class="att-sheet__tot @(r.Absent > 0 ? "is-a" : "is-zero")" data-tot="a">@r.Absent</td>
+                                <td class="att-sheet__tot @(r.Leave > 0 ? "is-lv" : "is-zero")" data-tot="lv">@r.Leave</td>
+                                <td class="att-sheet__tot att-sheet__tot--ded @(r.Deduction > 0 ? "is-ded" : "is-zero")" data-tot="ded">@(r.Deduction > 0 ? PayrollFormat.Money(r.Deduction) : "—")</td>
                             </tr>
                         }
                     </tbody>
@@ -182,7 +193,7 @@
                             @for (var i = 0; i < Model.Days.Count; i++)
                             {
                                 var d = Model.Days[i];
-                                <td class="att-sheet__c att-sheet__foot @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null)">@(Model.PresentPerDay[i] > 0 ? Model.PresentPerDay[i] : d > today ? "" : "0")</td>
+                                <td class="att-sheet__c att-sheet__foot @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null)" data-foot="@i">@(Model.PresentPerDay[i] > 0 ? Model.PresentPerDay[i] : d > today ? "" : "0")</td>
                             }
                             <td class="att-sheet__tot att-sheet__tot--first is-p">@Model.Rows.Sum(x => x.Present)</td>
                             <td class="att-sheet__tot is-l">@Model.Rows.Sum(x => x.Late)</td>
@@ -215,14 +226,78 @@
             </form>
         </div>
     </div>
+    @* right click on a day: what to mark it *@
+    <div class="att-ctx dropdown-menu" role="menu" data-att-ctx hidden>
+        <div class="att-ctx__head" data-att-ctx-head></div>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark="PRESENT"><span class="att-cell att-cell--ok">✓</span>@L["att.mk_present"]</button>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark="ABSENT"><span class="att-cell att-cell--absent">✗</span>@L["att.mk_absent"]</button>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark="LATE"><span class="att-cell att-cell--late">L</span>@L["att.mk_late"]</button>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark="SHORT"><span class="att-cell att-cell--short">S</span>@L["att.mk_short"]</button>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark="LEAVE"><span class="att-cell att-cell--leave">LV</span>@L["att.mk_leave"]</button>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark="HOLIDAY"><span class="att-cell att-cell--holiday">H</span>@L["att.mk_holiday"]</button>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark="EXCUSED"><span class="att-cell att-cell--excused">E</span>@L["att.mk_excused"]</button>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark-undo hidden>@Html.Icon("refresh", 14)@L["att.mk_undo"]</button>
+        <button type="button" class="dropdown-item" role="menuitem" data-mark-open>@Html.Icon("edit", 14)@L["att.mk_open"]</button>
+        <div class="att-ctx__locked" data-att-ctx-locked hidden>@Html.Icon("lock", 14)@L["att.mk_locked"]</div>
+    </div>
+
+    @* late / short: the minutes (and a comment); excused: the comment *@
+    <div class="modal fade" id="att-mk-modal" tabindex="-1" aria-hidden="true" aria-labelledby="att-mk-title">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <form class="modal-content" data-att-mk-form novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="att-mk-title" data-att-mk-title></h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="hrms-muted hrms-text-sm mb-3" data-att-mk-who></p>
+                    <div class="mb-3" data-att-mk-minutes-wrap>
+                        <label class="form-label" for="att-mk-min" data-att-mk-minutes-label></label>
+                        <input class="form-control" type="number" id="att-mk-min" min="1" max="1440" step="1" inputmode="numeric" data-att-mk-minutes required />
+                    </div>
+                    <div>
+                        <label class="form-label" for="att-mk-note">@L["att.mk_comment"] <span class="req" aria-hidden="true" data-att-mk-note-req hidden>*</span></label>
+                        <textarea class="form-control" id="att-mk-note" rows="2" maxlength="500" data-att-mk-note></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["att.mk_cancel"]</button>
+                    <button type="submit" class="btn btn-primary">@Html.Icon("check", 15)<span>@L["att.mk_apply"]</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* leaving with changes not saved: save them, leave without them, or stay *@
+    <div class="modal fade" id="att-leave-modal" tabindex="-1" aria-hidden="true" aria-labelledby="att-leave-title">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="att-leave-title">@L["att.mk_unsaved_title"]</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body"><p class="mb-0">@L["att.mk_unsaved_text"]</p></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-att-leave-no>@L["att.mk_no_leave"]</button>
+                    <button type="button" class="btn btn-primary" data-att-leave-yes>@Html.Icon("check", 15)<span>@L["att.mk_yes_save"]</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
     @Html.AntiForgeryToken()
 }
 
 @section PageActions {
+    @if (canEdit)
+    {
+        <button type="button" class="btn btn-outline-secondary" data-att-mk-discard hidden>@Html.Icon("close", 15)<span>@L["att.mk_discard"]</span></button>
+        <button type="button" class="btn btn-success att-mk-save" data-att-mk-save hidden data-text="@L["att.mk_save_0", "{0}"]">@Html.Icon("save", 15)<span data-att-mk-save-text></span></button>
+    }
     <button type="button" class="btn btn-outline-secondary" data-att-print>@Html.Icon("printer", 15)<span>@L["att.print"]</span></button>
     @if (Model.Rows.Count > 0)
     {
-        <a class="btn btn-outline-secondary" href="@Url.Action("SheetExport", "Attendance", exportArgs)">@Html.Icon("download", 15)<span>@L["common.export"]</span></a>
+        <a class="btn btn-outline-secondary" href="@Url.Action("SheetExport", "Attendance", exportArgs)" download>@Html.Icon("download", 15)<span>@L["common.export"]</span></a>
     }
     @if (canEdit)
     {

@@ -12,6 +12,10 @@ public sealed class AttDayInput
     public string Source { get; init; } = "IMPORT";
     public bool IsExcused { get; init; }
     public string? Note { get; init; }
+    /// <summary>Marked by hand on the Attendance Sheet (db/129): wins over the clock times.</summary>
+    public string? ManualStatus { get; init; }
+    /// <summary>The minutes of a day marked late / short by hand.</summary>
+    public int? ManualMinutes { get; init; }
 }
 
 /// <summary>An employee's salary and employment dates (the day's pay is worked out from them).</summary>
@@ -171,6 +175,12 @@ public static class AttendanceCalculator
         }
         r.WorkedMinutes = worked;
 
+        if (day.ManualStatus is { Length: > 0 } manual)
+        {
+            Manual(r, manual, day.ManualMinutes ?? 0, day.Note, p, e);
+            return;
+        }
+
         if (p is null)
         {
             r.Status = "NO_PATTERN";
@@ -264,6 +274,44 @@ public static class AttendanceCalculator
                 r.OvertimeMinutes = extra;
                 r.OvertimeAmount = Round(extra * minuteRate * p.OvertimeRate);
             }
+        }
+    }
+
+    /// <summary>A day marked by hand: its status, and the deduction the pattern gives it (none without a pattern).</summary>
+    private static void Manual(AttDayResult r, string status, int minutes, string? note, AttendancePattern? p, AttEmployeeInput e)
+    {
+        var rate = p is null ? 0 : DayRate(p, e);
+        var minuteRate = p is not null && p.RequiredMinutes > 0 ? rate / p.RequiredMinutes : 0;
+        var by = string.IsNullOrWhiteSpace(note) ? "Marked by hand" : "Marked by hand - " + note;
+        r.Status = status;
+        r.DeductionNote = by;
+        switch (status)
+        {
+            case "ABSENT":
+                if (p is { AbsentEnabled: true })
+                {
+                    r.DeductionAmount = Round(rate * p.AbsentDayValue);
+                    r.DeductionNote = (p.AbsentDayValue == 1 ? "Absent - a day's pay" : $"Absent - {p.AbsentDayValue:0.##} days' pay") + " · " + by;
+                }
+                break;
+            case "LATE":
+                r.LateMinutes = Math.Max(0, minutes);
+                if (p is not null)
+                {
+                    r.LateDeduction = p.LateEnabled && r.LateMinutes > 0 ? Price(p, AttCodes.Late, r.LateMinutes, rate, minuteRate) : 0;
+                    Combine(r, p);
+                    r.DeductionNote = r.DeductionNote is null ? by : r.DeductionNote + " · " + by;
+                }
+                break;
+            case "SHORT":
+                r.ShortMinutes = Math.Max(0, minutes);
+                if (p is not null)
+                {
+                    r.ShortDeduction = p.ShortEnabled && r.ShortMinutes > 0 ? Price(p, AttCodes.Short, r.ShortMinutes, rate, minuteRate) : 0;
+                    Combine(r, p);
+                    r.DeductionNote = r.DeductionNote is null ? by : r.DeductionNote + " · " + by;
+                }
+                break;
         }
     }
 

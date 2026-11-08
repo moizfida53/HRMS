@@ -572,10 +572,89 @@ button.att-cell {
   thead .att-sheet__tot { @include label-caps; cursor: help; }
 }
 
+// ---- marking days by hand (db/129): right-click menu, changes not saved, locked days
+.att-cell.is-manual::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: $purple-700;
+  box-shadow: 0 0 0 1px $white;
+}
+.att-cell.is-pending {
+  outline: 2px dashed $blue-600;
+  outline-offset: 1px;
+  animation: att-pending-in .25s $ease-out;
+}
+@keyframes att-pending-in { from { transform: scale(.7); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .att-cell.is-pending { animation: none; } }
+
+.att-sheet td.is-locked { background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba($ink-400, .08) 6px 7px); }
+.att-sheet td.is-locked .att-cell { opacity: .75; cursor: not-allowed; }
+.att-sheet thead th.is-locked .att-sheet__dname::after { content: " 🔒"; font-size: 8px; }
+.att-sheet__tot.is-stale { opacity: .45; text-decoration: line-through dotted; }
+.att-legend__lock {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: $radius-sm;
+  background: repeating-linear-gradient(135deg, $surface-2 0 4px, $line-200 4px 5px); color: $ink-500;
+}
+
+.att-ctx {
+  position: fixed;
+  z-index: 1080;
+  display: block;
+  min-width: 13rem;
+  margin: 0;
+  padding: space("1") 0;
+  border: 1px solid $line-200;
+  border-radius: $radius-md;
+  box-shadow: $shadow-lg;
+  font-size: $fs-sm;
+
+  &[hidden] { display: none; }
+  &__head {
+    padding: space("1") space("3") space("2");
+    margin-block-end: space("1");
+    border-block-end: 1px solid $line-100;
+    color: $ink-500;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    max-width: 18rem;
+    @include truncate;
+  }
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    padding: .35rem space("3");
+    &:focus-visible { outline: 2px solid $blue-600; outline-offset: -2px; }
+    &[hidden] { display: none; }
+    > svg { width: 14px; height: 14px; color: $ink-400; margin-inline: 4px; }
+  }
+  .att-cell { width: 22px; height: 22px; font-size: 11px; cursor: inherit; }
+  .dropdown-divider[hidden] { display: none; }
+  &__locked {
+    display: flex; align-items: center; gap: space("2");
+    padding: space("2") space("3");
+    color: $ink-500;
+    svg { width: 14px; height: 14px; }
+  }
+}
+
+.att-mk-save {
+  display: inline-flex; align-items: center; gap: space("2");
+  animation: att-pending-in .25s $ease-out;
+  &[hidden] { display: none; }
+}
+[data-att-mk-discard][hidden] { display: none; }
+
 // ---- print: the whole sheet on landscape pages
 @media print {
   @page { size: A4 landscape; margin: 8mm; }
-  .att-sheet-filters .row, .att-legend__hint, .hrms-page-actions { display: none !important; }
+  .att-sheet-filters .row, .att-legend__hint, .hrms-page-actions, .att-ctx { display: none !important; }
   .att-sheet-wrap { overflow: visible; max-height: none; }
   .att-sheet { font-size: 8pt; width: 100%; min-width: 0; }
   .att-sheet th, .att-sheet td { position: static !important; box-shadow: none !important; }

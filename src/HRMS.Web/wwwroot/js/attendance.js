@@ -153,18 +153,69 @@
     if (mode === "sheet") {
         var sf = $("[data-att-sheet-filters]");
         var fromEl = $("[name=from]", sf), toEl = $("[name=to]", sf);
-        var dirty = false;          // a From / To typed: a custom range, else the payroll period of the month
-        $all("[data-att-sheet-date]", sf).forEach(function (el) { el.addEventListener("change", function () { dirty = true; }); });
+        var rangeTyped = false;     // a From / To typed: a custom range, else the payroll period of the month
+        $all("[data-att-sheet-date]", sf).forEach(function (el) { el.addEventListener("change", function () { rangeTyped = true; }); });
         var custom = !!$(".att-range-chip.is-custom", sf);
-        function submitPeriod() { fromEl.disabled = true; toEl.disabled = true; sf.submit(); }
-        $("[data-att-sheet-month]", sf).addEventListener("change", submitPeriod);
+
+        /* ---------------- changes not saved: asked before leaving the page ---------------- */
+        var pending = {};           // "employee|date" -> the day marked (and how it looked before)
+        var leaving = false;
+        function pendingKeys() { return Object.keys(pending); }
+        function isDirty() { return !leaving && pendingKeys().length > 0; }
+        var leaveModal = $("#att-leave-modal");
+        var leaveNext = null;
+        /** Runs go() now, or - with changes not saved - after asking: save them, leave without them, or stay. */
+        function guarded(go, onStay) {
+            if (!isDirty() || !leaveModal) { go(); return; }
+            leaveNext = { go: go, stay: onStay, chosen: false };
+            modal(leaveModal).show();
+        }
+        if (leaveModal) {
+            $("[data-att-leave-yes]", leaveModal).addEventListener("click", function (ev) {
+                var next = leaveNext; if (!next) { return; }
+                saveMarks(ev.currentTarget).then(function (ok) {
+                    if (!ok) { return; }
+                    next.chosen = true; modal(leaveModal).hide(); leaving = true; next.go();
+                });
+            });
+            $("[data-att-leave-no]", leaveModal).addEventListener("click", function () {
+                var next = leaveNext; if (!next) { return; }
+                next.chosen = true; modal(leaveModal).hide(); leaving = true; next.go();
+            });
+            leaveModal.addEventListener("hidden.bs.modal", function () {
+                if (leaveNext && !leaveNext.chosen && leaveNext.stay) { leaveNext.stay(); }
+                leaveNext = null;
+            });
+        }
+        // closing the tab / reloading: the browser's own question (it cannot save)
+        window.addEventListener("beforeunload", function (ev) {
+            if (isDirty()) { ev.preventDefault(); ev.returnValue = ""; return ""; }
+        });
+        // a link of the app (sidebar, top bar, the employee's days ...)
+        document.addEventListener("click", function (ev) {
+            if (!isDirty() || ev.defaultPrevented || ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) { return; }
+            var a = ev.target.closest("a[href]");
+            if (!a || a.hasAttribute("download") || (a.target && a.target !== "_self")) { return; }
+            var href = a.getAttribute("href");
+            if (!href || href.charAt(0) === "#" || href.indexOf("javascript:") === 0) { return; }
+            ev.preventDefault();
+            guarded(function () { window.location.href = a.href; });
+        }, true);
+
+        // the filters: a new company / month / range is a new page
+        function submitFilters(period) {
+            guarded(function () {
+                if (period) { fromEl.disabled = true; toEl.disabled = true; }
+                else if (fromEl.value && toEl.value && fromEl.value > toEl.value) { var t = fromEl.value; fromEl.value = toEl.value; toEl.value = t; }
+                leaving = true;
+                sf.submit();
+            }, function () { sf.reset(); rangeTyped = false; });
+        }
+        $("[data-att-sheet-month]", sf).addEventListener("change", function () { submitFilters(true); });
         $all("[data-att-sheet-auto]", sf).forEach(function (el) {
-            el.addEventListener("change", function () { if (custom || dirty) { sf.submit(); } else { submitPeriod(); } });
+            el.addEventListener("change", function () { submitFilters(!(custom || rangeTyped)); });
         });
-        sf.addEventListener("submit", function () {
-            if (!custom && !dirty) { fromEl.disabled = true; toEl.disabled = true; }
-            else if (fromEl.value && toEl.value && fromEl.value > toEl.value) { var t = fromEl.value; fromEl.value = toEl.value; toEl.value = t; }
-        });
+        sf.addEventListener("submit", function (ev) { ev.preventDefault(); submitFilters(!custom && !rangeTyped); });
 
         var pr = $("[data-att-print]");
         if (pr) { pr.addEventListener("click", function () { window.print(); }); }
@@ -179,17 +230,221 @@
             } catch (e) { /* private */ }
             // the first visit: today in view
             if (!scroller.scrollLeft) {
-                var td = $("thead .is-today", scroller), emp = $("thead .att-sheet__emp", scroller);
-                if (td && emp) {
+                var td0 = $("thead .is-today", scroller), emp0 = $("thead .att-sheet__emp", scroller);
+                if (td0 && emp0) {
                     var rtl = document.dir === "rtl";
-                    var x = td.offsetLeft - emp.offsetWidth - 3 * td.offsetWidth;
-                    if (x > 0) { scroller.scrollLeft = rtl ? -x : x; }
+                    var x0 = td0.offsetLeft - emp0.offsetWidth - 3 * td0.offsetWidth;
+                    if (x0 > 0) { scroller.scrollLeft = rtl ? -x0 : x0; }
                 }
             }
+        }
+        function keepScroll() {
+            try { sessionStorage.setItem(SCROLL, JSON.stringify({ href: location.href, x: scroller ? scroller.scrollLeft : 0, y: window.scrollY })); } catch (e) { /* private */ }
         }
 
         var sModal = $("#att-day-modal");
         if (!sModal) { return; }
+
+        /* ---------------- marking days: right click -> Present, Absent, Late ... ---------------- */
+        var MARKS = {
+            PRESENT: { kind: "ok", text: "✓" }, ABSENT: { kind: "absent", text: "✗" }, LATE: { kind: "late", text: "L" },
+            SHORT: { kind: "short", text: "S" }, LEAVE: { kind: "leave", text: "LV" }, HOLIDAY: { kind: "holiday", text: "H" },
+            EXCUSED: { kind: "excused", text: "E" }
+        };
+        var KIND_MARK = { ok: "PRESENT", absent: "ABSENT", leave: "LEAVE", holiday: "HOLIDAY" };
+        var PRESENT_KINDS = { ok: 1, nopattern: 1, late: 1, short: 1, excused: 1 };
+        var ctx = $("[data-att-ctx]"), ctxTd = null;
+        var saveBtn = $("[data-att-mk-save]"), discardBtn = $("[data-att-mk-discard]");
+        var company = page.getAttribute("data-company");
+
+        function keyOf(td) { return td.closest("tr").getAttribute("data-emp") + "|" + td.getAttribute("data-date"); }
+        function nameOf(td) { return td.closest("tr").getAttribute("data-name") || ""; }
+        function dateText(td) {
+            var d = new Date(td.getAttribute("data-date") + "T00:00:00");
+            try { return d.toLocaleDateString(document.documentElement.lang || undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" }); }
+            catch (e) { return td.getAttribute("data-date"); }
+        }
+
+        function closeCtx() { if (ctx) { ctx.hidden = true; ctx.classList.remove("show"); ctxTd = null; } }
+        function openCtx(td, x, y) {
+            ctxTd = td;
+            var locked = td.classList.contains("is-locked");
+            var mark = KIND_MARK[td.getAttribute("data-kind")];
+            $("[data-att-ctx-head]", ctx).textContent = nameOf(td) + " · " + dateText(td);
+            $all("[data-mark]", ctx).forEach(function (b) { b.hidden = locked || b.getAttribute("data-mark") === mark; });
+            $("[data-mark-undo]", ctx).hidden = locked || !pending[keyOf(td)];
+            $("[data-mark-open]", ctx).hidden = locked || !$("[data-att-cell]", td);
+            $(".dropdown-divider", ctx).hidden = locked;
+            $("[data-att-ctx-locked]", ctx).hidden = !locked;
+            ctx.hidden = false; ctx.classList.add("show");
+            var w = ctx.offsetWidth, h = ctx.offsetHeight;
+            ctx.style.left = Math.max(8, Math.min(x, window.innerWidth - w - 8)) + "px";
+            ctx.style.top = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + "px";
+            var first = $all("button:not([hidden])", ctx)[0];
+            if (first) { first.focus({ preventScroll: true }); }
+        }
+        page.addEventListener("contextmenu", function (ev) {
+            var td = ev.target.closest("td[data-att-day]");
+            if (!td || (td.getAttribute("data-can") !== "1" && !td.classList.contains("is-locked"))) { return; }
+            ev.preventDefault();
+            var x = ev.clientX, y = ev.clientY;
+            if (!x && !y) { var rc = td.getBoundingClientRect(); x = rc.left + rc.width / 2; y = rc.bottom; }   // keyboard (menu key / Shift+F10)
+            openCtx(td, x, y);
+        });
+        document.addEventListener("mousedown", function (ev) { if (ctx && !ctx.hidden && !ctx.contains(ev.target)) { closeCtx(); } });
+        window.addEventListener("scroll", closeCtx, true);
+        window.addEventListener("resize", closeCtx);
+        ctx.addEventListener("keydown", function (ev) {
+            var items = $all("button:not([hidden])", ctx), i = items.indexOf(document.activeElement);
+            if (ev.key === "Escape") { var back = ctxTd; closeCtx(); if (back) { var b0 = $("[data-att-cell]", back); if (b0) { b0.focus(); } } ev.preventDefault(); }
+            else if (ev.key === "ArrowDown") { items[(i + 1) % items.length].focus(); ev.preventDefault(); }
+            else if (ev.key === "ArrowUp") { items[(i - 1 + items.length) % items.length].focus(); ev.preventDefault(); }
+            else if (ev.key === "Tab") { closeCtx(); }
+        });
+        ctx.addEventListener("click", function (ev) {
+            var td = ctxTd; if (!td) { return; }
+            var b = ev.target.closest("button"); if (!b) { return; }
+            closeCtx();
+            if (b.hasAttribute("data-mark-undo")) { undo(td); return; }
+            if (b.hasAttribute("data-mark-open")) { var cell = $("[data-att-cell]", td); if (cell) { cell.click(); } return; }
+            var mark = b.getAttribute("data-mark");
+            if (mark === "LATE" || mark === "SHORT" || mark === "EXCUSED") { askDetails(td, mark); }
+            else { setMark(td, mark, null, null); }
+        });
+
+        // late / short: the minutes (and a comment); excused: the comment
+        var mkModal = $("#att-mk-modal"), mkForm = $("[data-att-mk-form]", mkModal), mkTd = null, mkMark = null;
+        var mkMin = $("[data-att-mk-minutes]", mkModal), mkNote = $("[data-att-mk-note]", mkModal);
+        function askDetails(td, mark) {
+            mkTd = td; mkMark = mark;
+            var p = pending[keyOf(td)];
+            var titles = { LATE: HRMS.t("js.att_mk_late", "Late"), SHORT: HRMS.t("js.att_mk_short", "Short hours"), EXCUSED: HRMS.t("js.att_mk_excused", "Excused") };
+            $("[data-att-mk-title]", mkModal).textContent = titles[mark];
+            $("[data-att-mk-who]", mkModal).textContent = nameOf(td) + " · " + dateText(td);
+            var needsMinutes = mark !== "EXCUSED";
+            $("[data-att-mk-minutes-wrap]", mkModal).hidden = !needsMinutes;
+            mkMin.required = needsMinutes;
+            $("[data-att-mk-minutes-label]", mkModal).textContent = mark === "LATE" ? HRMS.t("js.att_mk_late_minutes", "Minutes late") : HRMS.t("js.att_mk_short_minutes", "Minutes short");
+            var kindNow = td.getAttribute("data-kind"), minNow = parseInt(td.getAttribute("data-min"), 10) || 0;
+            mkMin.value = p && p.status === mark && p.minutes ? p.minutes : (MARKS[mark].kind === kindNow && minNow > 0 ? minNow : "");
+            mkNote.value = p && p.note ? p.note : "";
+            $("[data-att-mk-note-req]", mkModal).hidden = mark !== "EXCUSED";
+            mkNote.required = mark === "EXCUSED";
+            mkMin.classList.remove("is-invalid"); mkNote.classList.remove("is-invalid");
+            modal(mkModal).show();
+        }
+        mkModal.addEventListener("shown.bs.modal", function () { (mkMark === "EXCUSED" ? mkNote : mkMin).focus(); });
+        mkForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var minutes = null;
+            if (mkMark !== "EXCUSED") {
+                minutes = parseInt(mkMin.value, 10);
+                if (!(minutes > 0 && minutes <= 1440)) { mkMin.classList.add("is-invalid"); mkMin.focus(); return; }
+            }
+            var note = mkNote.value.trim();
+            if (mkMark === "EXCUSED" && !note) { mkNote.classList.add("is-invalid"); mkNote.focus(); return; }
+            setMark(mkTd, mkMark, minutes, note || null);
+            modal(mkModal).hide();
+        });
+
+        function draw(td, kind, text, sub, manual, pendingNow) {
+            var el = $(".att-cell", td);
+            if (!el) { return; }
+            el.className = "att-cell att-cell--" + kind + (manual ? " is-manual" : "") + (pendingNow ? " is-pending" : "");
+            el.innerHTML = esc(text) + (sub ? "<small>" + esc(sub) + "</small>" : "");
+            td.setAttribute("data-kind", kind);
+        }
+        function setMark(td, mark, minutes, note) {
+            var key = keyOf(td), el = $(".att-cell", td);
+            if (!pending[key]) {
+                pending[key] = { before: { html: el.innerHTML, cls: el.className, kind: td.getAttribute("data-kind"), title: el.getAttribute("title") } };
+            }
+            var p = pending[key];
+            p.employeeId = parseInt(td.closest("tr").getAttribute("data-emp"), 10);
+            p.date = td.getAttribute("data-date");
+            p.status = mark; p.minutes = minutes; p.note = note;
+            var m = MARKS[mark];
+            draw(td, m.kind, m.text, minutes && mark === "LATE" ? String(minutes) : null, true, true);
+            el.setAttribute("title", dateText(td) + " · " + HRMS.t("js.att_mk_not_saved", "Changed - not saved yet") + (note ? " · " + note : ""));
+            recount(td);
+            syncSave();
+        }
+        function undo(td) {
+            var key = keyOf(td), p = pending[key];
+            if (!p) { return; }
+            var el = $(".att-cell", td);
+            el.className = p.before.cls; el.innerHTML = p.before.html;
+            if (p.before.title) { el.setAttribute("title", p.before.title); }
+            td.setAttribute("data-kind", p.before.kind);
+            delete pending[key];
+            recount(td);
+            syncSave();
+        }
+        // the row's totals and the day's count follow the marks (the deduction is worked out on save)
+        function recount(td) {
+            var tr = td.closest("tr"), cells = $all("td[data-att-day]", tr);
+            var c = { p: 0, l: 0, a: 0, lv: 0 };
+            cells.forEach(function (x) {
+                var k = x.getAttribute("data-kind");
+                if (PRESENT_KINDS[k]) { c.p++; }
+                if (k === "late") { c.l++; }
+                if (k === "absent") { c.a++; }
+                if (k === "leave") { c.lv++; }
+            });
+            [["p", "is-p"], ["l", "is-l"], ["a", "is-a"], ["lv", "is-lv"]].forEach(function (t) {
+                var cell = $('[data-tot="' + t[0] + '"]', tr);
+                if (!cell) { return; }
+                cell.textContent = c[t[0]];
+                if (t[0] !== "p") { cell.classList.toggle(t[1], c[t[0]] > 0); cell.classList.toggle("is-zero", c[t[0]] === 0); }
+            });
+            var ded = $('[data-tot="ded"]', tr);
+            if (ded) { ded.classList.toggle("is-stale", $all(".att-cell.is-pending", tr).length > 0); }
+            var i = td.getAttribute("data-att-day"), foot = $('[data-foot="' + i + '"]', page);
+            if (foot) {
+                var n = $all('td[data-att-day="' + i + '"]', page).filter(function (x) { return PRESENT_KINDS[x.getAttribute("data-kind")]; }).length;
+                foot.textContent = n;
+            }
+        }
+        function syncSave() {
+            var n = pendingKeys().length;
+            if (saveBtn) {
+                saveBtn.hidden = n === 0;
+                $("[data-att-mk-save-text]", saveBtn).textContent = (saveBtn.getAttribute("data-text") || "Save changes ({0})").replace("{0}", n);
+            }
+            if (discardBtn) { discardBtn.hidden = n === 0; }
+        }
+        /** Saves the marks; resolves true when saved. */
+        function saveMarks(button) {
+            var keys = pendingKeys();
+            if (keys.length === 0) { return Promise.resolve(true); }
+            var marks = keys.map(function (k) {
+                var p = pending[k];
+                return { employeeId: p.employeeId, date: p.date, status: p.status, minutes: p.minutes, note: p.note };
+            });
+            return postJson(url("marks"), { company: parseInt(company, 10), marks: marks }, button).then(function (res) {
+                if (!res || !res.success) { return false; }
+                pending = {};
+                try { sessionStorage.setItem(FLASH, res.message || ""); } catch (e) { /* private */ }
+                return true;
+            });
+        }
+        if (saveBtn) {
+            saveBtn.addEventListener("click", function () {
+                saveMarks(saveBtn).then(function (ok) { if (ok) { keepScroll(); leaving = true; HRMS.reload(); } });
+            });
+        }
+        if (discardBtn) {
+            discardBtn.addEventListener("click", function () {
+                pendingKeys().forEach(function (k) {
+                    var parts = k.split("|");
+                    var td = $('tr[data-emp="' + parts[0] + '"] td[data-date="' + parts[1] + '"]', page);
+                    if (td) { undo(td); }
+                });
+            });
+        }
+        syncSave();
+
+        /* ---------------- a click on a day: its form (times, excused, note) ---------------- */
         var sBody = $("[data-att-day-body]", sModal), sForm = $("[data-att-day-form]", sModal);
         page.addEventListener("click", function (ev) {
             var c = ev.target.closest("[data-att-cell]");
@@ -211,12 +466,18 @@
             ev.preventDefault();
             var fd = new FormData(sForm);
             if (!fd.get("excused")) { fd.set("excused", "false"); }
-            post(url("save"), fd, $("[data-att-day-save]", sModal)).then(function (res) {
-                if (res && res.success) {
-                    try { sessionStorage.setItem(SCROLL, JSON.stringify({ href: location.href, x: scroller ? scroller.scrollLeft : 0, y: window.scrollY })); } catch (e) { /* private */ }
-                    modal(sModal).hide();
-                    reloadWith(res.message);
-                }
+            var dayBtn = $("[data-att-day-save]", sModal);
+            // the marks not saved yet go first (the page is shown again after the day is saved)
+            saveMarks(dayBtn).then(function (ok) {
+                if (!ok) { return; }
+                post(url("save"), fd, dayBtn).then(function (res) {
+                    if (res && res.success) {
+                        keepScroll();
+                        modal(sModal).hide();
+                        leaving = true;
+                        reloadWith(res.message);
+                    }
+                });
             });
         });
         return;

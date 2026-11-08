@@ -22467,12 +22467,154 @@ button.att-cell.att-cell--none:hover::after {
   cursor: help;
 }
 
+.att-cell.is-manual::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-end: 2px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6941c6;
+  box-shadow: 0 0 0 1px #ffffff;
+}
+
+.att-cell.is-pending {
+  outline: 2px dashed #0d827a;
+  outline-offset: 1px;
+  animation: att-pending-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes att-pending-in {
+  from {
+    transform: scale(0.7);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .att-cell.is-pending {
+    animation: none;
+  }
+}
+.att-sheet td.is-locked {
+  background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(142, 152, 150, 0.08) 6px 7px);
+}
+
+.att-sheet td.is-locked .att-cell {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.att-sheet thead th.is-locked .att-sheet__dname::after {
+  content: " 🔒";
+  font-size: 8px;
+}
+
+.att-sheet__tot.is-stale {
+  opacity: 0.45;
+  text-decoration: line-through dotted;
+}
+
+.att-legend__lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: repeating-linear-gradient(135deg, #fafbfb 0 4px, #dce1e0 4px 5px);
+  color: #626d6b;
+}
+
+.att-ctx {
+  position: fixed;
+  z-index: 1080;
+  display: block;
+  min-width: 13rem;
+  margin: 0;
+  padding: 0.25rem 0;
+  border: 1px solid #dce1e0;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(33, 35, 34, 0.12), 0 4px 8px rgba(33, 35, 34, 0.05);
+  font-size: 0.8rem;
+}
+.att-ctx[hidden] {
+  display: none;
+}
+.att-ctx__head {
+  padding: 0.25rem 0.75rem 0.5rem;
+  margin-block-end: 0.25rem;
+  border-block-end: 1px solid #e9edec;
+  color: #626d6b;
+  font-size: 0.725rem;
+  font-weight: 600;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.att-ctx .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+}
+.att-ctx .dropdown-item:focus-visible {
+  outline: 2px solid #0d827a;
+  outline-offset: -2px;
+}
+.att-ctx .dropdown-item[hidden] {
+  display: none;
+}
+.att-ctx .dropdown-item > svg {
+  width: 14px;
+  height: 14px;
+  color: #8e9896;
+  margin-inline: 4px;
+}
+.att-ctx .att-cell {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  cursor: inherit;
+}
+.att-ctx .dropdown-divider[hidden] {
+  display: none;
+}
+.att-ctx__locked {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: #626d6b;
+}
+.att-ctx__locked svg {
+  width: 14px;
+  height: 14px;
+}
+
+.att-mk-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: att-pending-in 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.att-mk-save[hidden] {
+  display: none;
+}
+
+[data-att-mk-discard][hidden] {
+  display: none;
+}
+
 @media print {
   @page {
     size: A4 landscape;
     margin: 8mm;
   }
-  .att-sheet-filters .row, .att-legend__hint, .hrms-page-actions {
+  .att-sheet-filters .row, .att-legend__hint, .hrms-page-actions, .att-ctx {
     display: none !important;
   }
   .att-sheet-wrap {

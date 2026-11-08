@@ -170,6 +170,9 @@ public sealed class AttendanceRecord
     public DateTime? EditedDate { get; set; }
     public string? EditedByName { get; set; }
     public bool IsPosted { get; set; }
+    /// <summary>Marked by hand on the Attendance Sheet (db/129).</summary>
+    public string? ManualStatus { get; set; }
+    public int? ManualMinutes { get; set; }
     public int Total { get; set; }
 }
 
@@ -259,6 +262,24 @@ public sealed class AttPeriod
 {
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+}
+
+/// <summary>Dates of the Attendance Sheet that cannot be marked: a payroll generated, or a month posted.</summary>
+public sealed class AttLock
+{
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+    public string Reason { get; set; } = "PAYROLL";
+}
+
+/// <summary>A day marked on the Attendance Sheet.</summary>
+public sealed class AttMark
+{
+    public long EmployeeId { get; set; }
+    public string? Date { get; set; }
+    public string? Status { get; set; }
+    public int? Minutes { get; set; }
+    public string? Note { get; set; }
 }
 
 /// <summary>Minutes as "h:mm".</summary>
