@@ -323,10 +323,11 @@ public static class AttendanceCalculator
         var both = p.CombineRule == "BOTH";
         r.DeductionAmount = Round(both ? r.LateDeduction + r.ShortDeduction : Math.Max(r.LateDeduction, r.ShortDeduction));
         var parts = new List<string>();
-        if (r.LateDeduction > 0) parts.Add($"Late {r.LateMinutes} min: {r.LateDeduction:0.000}");
-        if (r.ShortDeduction > 0) parts.Add($"Short {r.ShortMinutes} min: {r.ShortDeduction:0.000}");
+        // the minutes are always shown - also when they stay under the first slab (deduction 0.000)
+        if (r.LateMinutes > 0) parts.Add($"Late {r.LateMinutes} min: {r.LateDeduction:0.000}");
+        if (r.ShortMinutes > 0) parts.Add($"Short {r.ShortMinutes} min: {r.ShortDeduction:0.000}");
         r.DeductionNote = parts.Count == 0 ? null
-            : parts.Count == 2 && !both ? string.Join(" · ", parts) + " (the higher)" : string.Join(" · ", parts);
+            : parts.Count == 2 && !both && r.LateDeduction > 0 && r.ShortDeduction > 0 ? string.Join(" · ", parts) + " (the higher)" : string.Join(" · ", parts);
     }
 
     /// <summary>The deduction of the minutes by the slabs (none defined: the minutes pro rata).</summary>
