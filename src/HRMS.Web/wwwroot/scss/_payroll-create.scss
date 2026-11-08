@@ -386,3 +386,17 @@
     font-size: $fs-base; font-weight: $fw-semibold; color: $ink-900; white-space: nowrap;
   }
 }
+
+// Payroll Calendar list (db/128): one line per calendar code with its companies
+.pr-cal-differ {
+  display: inline-flex; vertical-align: middle; margin-inline-start: .25rem;
+  color: $amber-600; cursor: help;
+  @include focus-ring;
+}
+.pr-cal-periods { cursor: help; border-block-end: 1px dotted $line-300; @include focus-ring; }
+.pr-cal-default {
+  display: inline-flex; align-items: center; gap: .2rem; cursor: help; color: $green-700;
+  @include focus-ring;
+  small { font-size: $fs-xs; font-weight: $fw-semibold; color: $ink-500; }
+  &.is-some { color: $ink-500; }
+}

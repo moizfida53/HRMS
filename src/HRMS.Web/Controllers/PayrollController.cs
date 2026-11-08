@@ -1419,24 +1419,65 @@ public sealed class PayrollController : Controller
     // Payroll calendars and periods (Phase 1 procedures)
     // =======================================================================
 
+    /// <summary>
+    /// Every calendar in the user's scope, grouped by code: one line per payroll calendar with the companies
+    /// it is set up for (each company keeps its own row, periods and employees).
+    /// </summary>
+    private async Task<List<CalendarGroup>> CalendarGroupsAsync()
+    {
+        var rows = new List<PayrollCalendar>();
+        for (var page = 1; ; page++)
+        {
+            var batch = await _calendars.ListAsync(new GridRequest { CompanyId = OwnCompany, CompanyIds = CompanyCsv, PageNumber = page, PageSize = 200 }, Ct);
+            rows.AddRange(batch.Items);
+            if (batch.Items.Count < 200 || rows.Count >= batch.TotalCount || page >= 50) break;
+        }
+        var scope = (await VisibleCompaniesAsync()).Select(c => c.Id).ToHashSet();
+        var preferred = OwnCompany ?? _companyFilter.SingleCompanyId;
+        return rows
+            .GroupBy(r => r.CalendarCode.Trim().ToUpperInvariant())
+            .Select(g =>
+            {
+                var list = g.OrderBy(r => r.CompanyName, StringComparer.CurrentCultureIgnoreCase).ToList();
+                var shown = list.FirstOrDefault(r => r.CompanyId == preferred) ?? list.FirstOrDefault(r => r.IsActive) ?? list[0];
+                return new CalendarGroup
+                {
+                    Calendar = shown,
+                    Rows = list,
+                    AllCompanies = scope.Count > 1 && scope.All(id => list.Any(r => r.CompanyId == id))
+                };
+            })
+            .OrderBy(g => g.Calendar.CalendarCode, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    /// <summary>The group of the calendar a row id names (null when it is out of the user's scope).</summary>
+    private async Task<CalendarGroup?> CalendarGroupAsync(int id) =>
+        id <= 0 ? null : (await CalendarGroupsAsync()).FirstOrDefault(g => g.Rows.Any(r => r.PayrollCalendarId == id));
+
     [HttpGet("calendars-grid")]
     public async Task<IActionResult> CalendarsGrid(string? search, string? status, int page = 1)
     {
         if (!Can(PermSetupView)) return Forbid();   // Payroll Calendar & Pay Periods (Security: "PR.CALENDAR")
-        var request = new GridRequest
-        {
-            CompanyId = OwnCompany,
-            CompanyIds = CompanyCsv,
-            Search = search,
-            IsActive = status switch { "active" => true, "inactive" => false, _ => null },
-            PageNumber = page,
-            PageSize = 25
-        };
+        var q = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+        var groups = (await CalendarGroupsAsync())
+            .Where(g => status switch { "active" => g.AnyActive, "inactive" => !g.AnyActive, _ => true })
+            .Where(g => q is null
+                        || g.Calendar.CalendarCode.Contains(q, StringComparison.OrdinalIgnoreCase)
+                        || g.Rows.Any(r => r.CalendarName.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                           || (r.ArabicName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                                           || (r.CompanyName?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)))
+            .ToList();
+        const int size = 25;
+        var number = Math.Max(1, Math.Min(page, Math.Max(1, (int)Math.Ceiling(groups.Count / (double)size))));
         return PartialView("_CalendarsGrid", new CalendarsGridModel
         {
-            Page = await _calendars.ListAsync(request, Ct),
+            Page = new PagedResult<CalendarGroup>
+            {
+                Items = groups.Skip((number - 1) * size).Take(size).ToList(), TotalCount = groups.Count, PageNumber = number, PageSize = size
+            },
             CanSetup = Can(PermSetupEdit),
-            IsFiltered = !string.IsNullOrWhiteSpace(search) || !string.IsNullOrEmpty(status)
+            IsFiltered = q is not null || !string.IsNullOrEmpty(status)
         });
     }
 
@@ -1467,24 +1508,40 @@ public sealed class PayrollController : Controller
     public async Task<IActionResult> CalendarForm(int id = 0)
     {
         if (!Can(id > 0 ? PermSetupEdit : PermSetupCreate)) return Forbid();
+        // An existing calendar is edited for every company it is set up for (its group); a new one starts
+        // ticked for every company the user works in - it is created once per company ticked.
         var isNew = id <= 0;
-        var calendar = isNew
-            ? new PayrollCalendar { CompanyId = OwnCompany ?? _companyFilter.SingleCompanyId ?? 0, FirstPeriodStartDate = new DateTime(DateTime.Today.Year, 1, 1), CutOffDay = 25, PaymentDay = 28 }
-            : await _calendars.GetByIdAsync(id, Ct);
-        // another company's calendar answers "not found", like a missing one
-        if (calendar is null || (OwnCompany is { } mine && !isNew && calendar.CompanyId != mine)) return NotFound();
+        var group = isNew ? null : await CalendarGroupAsync(id);
+        if (!isNew && group is null) return NotFound();
+        var calendar = group?.Rows.FirstOrDefault(r => r.PayrollCalendarId == id) ?? group?.Calendar
+            ?? new PayrollCalendar { CompanyId = OwnCompany ?? _companyFilter.SingleCompanyId ?? 0, FirstPeriodStartDate = new DateTime(DateTime.Today.Year, 1, 1), CutOffDay = 25, PaymentDay = 28 };
 
-        var companies = await _lookups.GetAsync(LookupType.Company, includeInactive: !isNew, cancellationToken: Ct);
-        if (OwnCompany is { } own) companies = companies.Where(c => c.Id == own).ToList();
-
-        var locked = !isNew && (await _calendars.PeriodsAsync(id, null, false, Ct)).Any(p => p.Status != "OPEN");
+        var companies = (await VisibleCompaniesAsync()).ToList();
+        foreach (var r in group?.Rows ?? [])
+        {
+            if (companies.All(c => c.Id != r.CompanyId))
+                companies.Add(new LookupItem { Id = r.CompanyId, Text = r.CompanyName ?? r.CompanyId.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+        }
+        // a company whose calendar has processed periods keeps it, and its schedule (frequency, start) is fixed
+        var locked = new List<int>();
+        foreach (var r in group?.Rows ?? [])
+        {
+            if ((await _calendars.PeriodsAsync(r.PayrollCalendarId, null, false, Ct)).Any(p => p.Status != "OPEN")) locked.Add(r.CompanyId);
+        }
+        var selected = group is not null ? group.Rows.Select(r => r.CompanyId).ToList()
+                     : calendar.CompanyId > 0 && companies.Any(c => c.Id == calendar.CompanyId) && companies.Count == 1 ? [calendar.CompanyId]
+                     : companies.Select(c => c.Id).ToList();
         return PartialView("_CalendarForm", new CalendarFormModel
         {
             Calendar = calendar,
             IsNew = isNew,
-            Companies = companies,
+            Companies = companies.OrderBy(c => c.Text, StringComparer.CurrentCultureIgnoreCase).ToList(),
             Currencies = await _lookups.GetAsync(LookupType.Currency, cancellationToken: Ct),
-            ScheduleLocked = locked
+            ScheduleLocked = locked.Count > 0,
+            SelectedCompanyIds = selected,
+            LockedCompanyIds = locked,
+            DefaultMixed = group is not null && group.DefaultCount > 0 && group.DefaultCount < group.CompanyCount,
+            DefaultNames = group?.DefaultNames
         });
     }
 
@@ -1492,26 +1549,109 @@ public sealed class PayrollController : Controller
     public async Task<IActionResult> CalendarSave()
     {
         var model = new PayrollCalendar();
-        if (!await TryUpdateModelAsync(model)) return Json(ActionResponse.Invalid(CollectErrors()));
-        if (!Can(model.PayrollCalendarId > 0 ? PermSetupEdit : PermSetupCreate)) return Denied();
-        if (OwnCompany is { } own && model.CompanyId != own) return Denied();
-        return Result(await _calendars.SaveAsync(model, UserId, Ct));
+        // the companies come as CompanyIds (one per ticked company); CompanyId is not posted any more
+        await TryUpdateModelAsync(model);
+        ModelState.Remove(nameof(PayrollCalendar.CompanyId));
+        if (!ModelState.IsValid) return Json(ActionResponse.Invalid(CollectErrors()));
+        var editing = model.PayrollCalendarId > 0;
+        if (!Can(editing ? PermSetupEdit : PermSetupCreate)) return Denied();
+
+        var picked = Request.Form["CompanyIds"]
+            .SelectMany(v => (v ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Select(v => int.TryParse(v, out var n) ? n : 0).Where(n => n > 0).Distinct().ToList();
+        if (picked.Count == 0)
+            return Json(ActionResponse.Invalid(new Dictionary<string, string[]> { ["CompanyIds"] = [_text.Tr("Select the companies it is set up for.")] }));
+
+        var group = editing ? await CalendarGroupAsync(model.PayrollCalendarId) : null;
+        if (editing && group is null) return Denied();
+        var existing = group?.Rows ?? [];
+        var visible = (await VisibleCompaniesAsync()).ToDictionary(c => c.Id, c => c.Text);
+        // a company it already has stays editable; a new company must be one the user works in (and may create for)
+        if (picked.Any(c => existing.All(r => r.CompanyId != c) && !visible.ContainsKey(c))) return Denied();
+        if (editing && !Can(PermSetupCreate) && picked.Any(c => existing.All(r => r.CompanyId != c))) return Denied();
+
+        string Name(int companyId) => existing.FirstOrDefault(r => r.CompanyId == companyId)?.CompanyName
+                                      ?? (visible.TryGetValue(companyId, out var n) ? n : companyId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        // "default" left unticked on a calendar that is the default of some companies only keeps each company's own
+        var keepDefaults = Request.Form["DefaultMixed"] == "true" && !model.IsDefault;
+        var failures = new List<string>();
+        var done = 0;
+        long lastId = model.PayrollCalendarId;
+
+        foreach (var companyId in picked)
+        {
+            var row = existing.FirstOrDefault(r => r.CompanyId == companyId);
+            var copy = CopyCalendar(model);
+            copy.CompanyId = companyId;
+            copy.PayrollCalendarId = row?.PayrollCalendarId ?? 0;
+            if (row is not null && (await _calendars.PeriodsAsync(row.PayrollCalendarId, null, false, Ct)).Any(p => p.Status != "OPEN"))
+            {
+                // payroll processed on it: its frequency and start date stay as they are
+                copy.PayFrequency = row.PayFrequency;
+                copy.FirstPeriodStartDate = row.FirstPeriodStartDate;
+            }
+            if (keepDefaults) copy.IsDefault = row?.IsDefault ?? false;
+            var saved = await _calendars.SaveAsync(copy, UserId, Ct);
+            if (saved.Success) { done++; lastId = saved.Id; }
+            else failures.Add(Name(companyId) + ": " + _text.Tr(saved.Message));
+        }
+
+        // a company that was unticked loses it (refused while its periods / employees / payrolls use it - deactivate it instead)
+        foreach (var row in existing.Where(r => !picked.Contains(r.CompanyId)))
+        {
+            if (!Can(PermSetupDelete)) { failures.Add(Name(row.CompanyId) + ": " + _text.Tr("You do not have permission to do this.")); continue; }
+            var removed = await _calendars.DeleteAsync(row.PayrollCalendarId, UserId, Ct);
+            if (!removed.Success) failures.Add(Name(row.CompanyId) + ": " + _text.Tr(removed.Message));
+        }
+
+        HttpContext.RequestServices.GetService<IPayrollNavCounts>()?.Invalidate();
+        if (failures.Count > 0)
+        {
+            var message = (done > 0 ? _text.Tr($"Saved for {done} of {picked.Count} companies.") + " " : string.Empty) + string.Join(" ", failures);
+            return Json(ActionResponse.Failed(message, done > 0 ? "PARTIAL" : "VALIDATION"));
+        }
+        return Result(SaveResult.Ok(lastId, picked.Count == 1 ? "Payroll calendar saved." : $"Payroll calendar saved for {picked.Count} companies."));
     }
 
+    private static PayrollCalendar CopyCalendar(PayrollCalendar m) => new()
+    {
+        CalendarCode = m.CalendarCode.Trim(), CalendarName = m.CalendarName, ArabicName = m.ArabicName, PayFrequency = m.PayFrequency,
+        FirstPeriodStartDate = m.FirstPeriodStartDate, CutOffDay = m.CutOffDay, PaymentDay = m.PaymentDay, PaymentNextMonth = m.PaymentNextMonth,
+        CutOffOffsetDays = m.CutOffOffsetDays, PaymentOffsetDays = m.PaymentOffsetDays, WorkingDaysBasis = m.WorkingDaysBasis,
+        FixedDaysPerMonth = m.FixedDaysPerMonth, CurrencyId = m.CurrencyId, Description = m.Description, IsDefault = m.IsDefault, IsActive = m.IsActive
+    };
+
+    /// <summary>Deletes the calendar in every company it is set up for (refused where it is used).</summary>
     [HttpPost("calendar-delete")]
     public async Task<IActionResult> CalendarDelete(int id)
     {
-        if (!Can(PermSetupDelete)) return Denied();
-        if (!await OwnsCalendar(id)) return Denied();
-        return Result(await _calendars.DeleteAsync(id, UserId, Ct));
+        if (!Can(PermSetupDelete) || await CalendarGroupAsync(id) is not { } group) return Denied();
+        return Result(await CalendarManyAsync(group.Rows, r => _calendars.DeleteAsync(r.PayrollCalendarId, UserId, Ct), "Payroll calendar deleted."));
     }
 
+    /// <summary>Activates / deactivates the calendar in every company it is set up for.</summary>
     [HttpPost("calendar-toggle")]
     public async Task<IActionResult> CalendarToggle(int id)
     {
-        if (!Can(PermSetupEdit)) return Denied();
-        if (!await OwnsCalendar(id)) return Denied();
-        return Result(await _calendars.ToggleActiveAsync(id, UserId, Ct));
+        if (!Can(PermSetupEdit) || await CalendarGroupAsync(id) is not { } group) return Denied();
+        var activate = !group.AnyActive;
+        return Result(await CalendarManyAsync(group.Rows.Where(r => r.IsActive != activate).ToList(),
+                                              r => _calendars.ToggleActiveAsync(r.PayrollCalendarId, UserId, Ct),
+                                              activate ? "Payroll calendar activated." : "Payroll calendar deactivated."));
+    }
+
+    /// <summary>One action on several companies' calendars: one answer naming the companies where it failed.</summary>
+    private async Task<SaveResult> CalendarManyAsync(IReadOnlyList<PayrollCalendar> rows, Func<PayrollCalendar, Task<SaveResult>> action, string ok)
+    {
+        var failures = new List<string>();
+        foreach (var r in rows)
+        {
+            var res = await action(r);
+            if (!res.Success) failures.Add((r.CompanyName ?? "") + ": " + _text.Tr(res.Message));
+        }
+        HttpContext.RequestServices.GetService<IPayrollNavCounts>()?.Invalidate();
+        return failures.Count == 0 ? SaveResult.Ok(rows.FirstOrDefault()?.PayrollCalendarId ?? 0, ok)
+                                   : SaveResult.Fail(string.Join(" ", failures), "VALIDATION");
     }
 
     [HttpPost("periods-generate")]

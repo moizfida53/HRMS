@@ -719,7 +719,12 @@
         if (calCard && calSlot) {
             var cState = { search: "", status: "", page: 1 };
             loadCalendars = function () {
-                return loadInto(calSlot, withQs(calCard.getAttribute("data-url"), cState)).then(function () { setCount(calSlot, $("[data-cal-count]")); });
+                // the companies' tooltips of the list being replaced are closed first
+                $all('[data-bs-toggle="tooltip"]', calSlot).forEach(function (el) { var t = bootstrap.Tooltip.getInstance(el); if (t) { t.dispose(); } });
+                return loadInto(calSlot, withQs(calCard.getAttribute("data-url"), cState)).then(function () {
+                    setCount(calSlot, $("[data-cal-count]"));
+                    $all('[data-bs-toggle="tooltip"]', calSlot).forEach(function (el) { bootstrap.Tooltip.getOrCreateInstance(el); });
+                });
             };
             $("[data-cal-search]").addEventListener("input", debounce(function (ev) { cState.search = ev.target.value.trim(); cState.page = 1; loadCalendars(); }, 300));
             $("[data-cal-status]").addEventListener("change", function (ev) { cState.status = ev.target.value; cState.page = 1; loadCalendars(); });
@@ -772,7 +777,27 @@
             body.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
             recSave = saveUrl;
             modal(recModal).show();
-            loadInto(body, url).then(syncCalendarForm);
+            loadInto(body, url).then(function () { syncCalendarForm(); wireCalendarCompanies(body); });
+        };
+        // the companies a calendar is set up for: a checklist with "All companies" and a count
+        var wireCalendarCompanies = function (root) {
+            var box = $("[data-st-companies]", root);
+            if (!box) { return; }
+            var all = $("[data-st-companies-all]", box), count = $("[data-st-companies-count]", box);
+            var boxes = function () { return $all("[data-st-company]", box); };
+            var sync = function () {
+                var list = boxes(), ticked = list.filter(function (b) { return b.checked; });
+                list.forEach(function (b) { b.closest(".st-company").classList.toggle("is-selected", b.checked); });
+                if (all) { all.checked = ticked.length === list.length; all.indeterminate = ticked.length > 0 && ticked.length < list.length; }
+                if (count) {
+                    count.textContent = list.length > 1 && ticked.length === list.length ? count.getAttribute("data-all")
+                        : ticked.length === 1 ? count.getAttribute("data-one")
+                        : count.getAttribute("data-many").replace("{0}", ticked.length);
+                }
+            };
+            if (all) { all.addEventListener("change", function () { boxes().forEach(function (b) { if (!b.disabled) { b.checked = all.checked; } }); sync(); }); }
+            box.addEventListener("change", function (ev) { if (ev.target.matches("[data-st-company]")) { sync(); } });
+            sync();
         };
         var syncCalendarForm = function () {
             var freq = $("[data-cal-frequency]", recModal), basis = $("[data-cal-basis]", recModal);

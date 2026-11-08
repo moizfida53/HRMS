@@ -5,27 +5,54 @@
     var inv = System.Globalization.CultureInfo.InvariantCulture;
     var monthly = c.PayFrequency == "MONTHLY";
     var lockedAttr = Model.ScheduleLocked ? "disabled" : null;
+    var picked = Model.SelectedCompanyIds;
+    var allPicked = Model.Companies.Count > 0 && Model.Companies.All(co => picked.Contains(co.Id));
 }
 <input type="hidden" name="PayrollCalendarId" value="@c.PayrollCalendarId" />
 @if (Model.ScheduleLocked)
 {
     <div class="pr-banner pr-banner--lock mb-3">@Html.Icon("lock", 18)<div>@L["pr.periods_of_this_calendar_have_been_processed_so_its_comp"]</div></div>
-    <input type="hidden" name="CompanyId" value="@c.CompanyId" />
     <input type="hidden" name="PayFrequency" value="@c.PayFrequency" />
     <input type="hidden" name="FirstPeriodStartDate" value="@c.FirstPeriodStartDate?.ToString("yyyy-MM-dd", inv)" />
 }
 <fieldset class="hrms-fieldset">
     <legend>@L["pr.calendar"]</legend>
     <div class="row g-3">
-        <div class="col-md-6">
-            <label class="form-label" for="cal-company">@L["common.company"] <span class="req" aria-hidden="true">*</span></label>
-            <select class="form-select" id="cal-company" name="@(Model.ScheduleLocked ? null : "CompanyId")" disabled="@lockedAttr">
-                @foreach (var co in Model.Companies)
+        @* The companies it is set up for - one calendar per company (its own periods and employees), kept the same in each *@
+        <div class="col-12">
+            <div class="st-companies" data-st-companies role="group" aria-labelledby="cal-companies-label">
+                <div class="st-companies__head">
+                    <span class="form-label mb-0" id="cal-companies-label">@L["pr.cal_set_up_for"] <span class="req" aria-hidden="true">*</span></span>
+                    <span class="st-companies__count" data-st-companies-count aria-live="polite"
+                          data-one="@L["st.1_company"]" data-many="@L["st.0_companies", "{0}"]" data-all="@L["st.all_companies"]">
+                        @(allPicked && Model.Companies.Count > 1 ? L["st.all_companies"] : picked.Count == 1 ? L["st.1_company"] : L["st.0_companies", picked.Count])
+                    </span>
+                </div>
+                @if (Model.Companies.Count > 1)
                 {
-                    <option value="@co.Id" selected="@(co.Id == c.CompanyId)">@co.Text</option>
+                    <label class="st-companies__all form-check">
+                        <input type="checkbox" class="form-check-input" data-st-companies-all checked="@allPicked" />
+                        <span class="form-check-label">@L["st.all_companies"]</span>
+                    </label>
                 }
-            </select>
-            <span class="field-validation-error" data-valmsg-for="CompanyId"></span>
+                <div class="st-companies__list">
+                    @foreach (var co in Model.Companies)
+                    {
+                        var on = picked.Contains(co.Id);
+                        var isFixed = on && Model.LockedCompanyIds.Contains(co.Id);
+                        <label class="st-company @(on ? "is-selected" : null) @(isFixed ? "is-fixed" : null)" title="@(isFixed ? L["pr.cal_company_locked"] : null)">
+                            <input type="checkbox" class="form-check-input" name="@(isFixed ? null : "CompanyIds")" value="@co.Id" checked="@on" disabled="@isFixed" data-st-company />
+                            <span class="st-company__name">@co.Text</span>
+                        </label>
+                        @if (isFixed)
+                        {
+                            <input type="hidden" name="CompanyIds" value="@co.Id" />
+                        }
+                    }
+                </div>
+                <span class="field-validation-error" data-valmsg-for="CompanyIds"></span>
+                <p class="form-text mb-0">@L["pr.cal_set_up_for_hint"]</p>
+            </div>
         </div>
         <div class="col-md-6">
             <label class="form-label" for="cal-code">@L["common.code"] <span class="req" aria-hidden="true">*</span></label>
@@ -115,9 +142,14 @@
         </div>
         <div class="col-md-6">
             <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" role="switch" id="cal-default" name="IsDefault" value="true" checked="@c.IsDefault" />
+                <input class="form-check-input" type="checkbox" role="switch" id="cal-default" name="IsDefault" value="true" checked="@(c.IsDefault && !Model.DefaultMixed)" />
                 <label class="form-check-label" for="cal-default">@L["pr.default_calendar_of_the_company"]</label>
             </div>
+            @if (Model.DefaultMixed)
+            {
+                <input type="hidden" name="DefaultMixed" value="true" />
+                <span class="form-text">@L["pr.cal_default_mixed_0", Model.DefaultNames ?? ""]</span>
+            }
         </div>
         <div class="col-md-6">
             <div class="form-check form-switch">

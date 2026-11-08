@@ -410,9 +410,42 @@ public sealed class RunIssuesGridModel
     public bool IsFiltered { get; init; }
 }
 
+/// <summary>
+/// One payroll calendar as listed: the same code in every company it is set up for (a calendar is stored
+/// once per company - Payroll.PayrollCalendars, with its own periods and employees - and shown once).
+/// </summary>
+public sealed class CalendarGroup
+{
+    /// <summary>The row shown (and edited): the user's own company's, else the first active one.</summary>
+    public required PayrollCalendar Calendar { get; init; }
+    /// <summary>Every company's calendar of this code (in the user's scope).</summary>
+    public required IReadOnlyList<PayrollCalendar> Rows { get; init; }
+    /// <summary>Set up for every company the user works in.</summary>
+    public bool AllCompanies { get; init; }
+
+    public int CompanyCount => Rows.Count;
+    public int ActiveCount => Rows.Count(r => r.IsActive);
+    public bool AnyActive => ActiveCount > 0;
+    public int DefaultCount => Rows.Count(r => r.IsDefault);
+    public string CompanyNames => Names(Rows);
+    public string DefaultNames => Names(Rows.Where(r => r.IsDefault));
+    /// <summary>The companies' calendars do not all have the same schedule (saving the form makes them the same).</summary>
+    public bool SettingsDiffer => Rows.Select(Signature).Distinct().Count() > 1;
+    /// <summary>"Company: October 2026" per company, when their first open periods differ.</summary>
+    public string? PeriodsText => Rows.Select(r => r.CurrentPeriodName).Distinct().Count() > 1
+        ? string.Join(" · ", Rows.Select(r => $"{r.CompanyName}: {r.CurrentPeriodName ?? "—"}"))
+        : null;
+
+    private static string Names(IEnumerable<PayrollCalendar> rows) =>
+        string.Join(", ", rows.Select(r => r.CompanyName).Where(n => !string.IsNullOrWhiteSpace(n)).Order(StringComparer.CurrentCultureIgnoreCase));
+
+    private static string Signature(PayrollCalendar c) =>
+        $"{c.PayFrequency}|{c.CutOffDay}|{c.PaymentDay}|{c.PaymentNextMonth}|{c.CutOffOffsetDays}|{c.PaymentOffsetDays}|{c.WorkingDaysBasis}|{(c.WorkingDaysBasis == "FIXED" ? c.FixedDaysPerMonth : null)}";
+}
+
 public sealed class CalendarsGridModel
 {
-    public required PagedResult<PayrollCalendar> Page { get; init; }
+    public required PagedResult<CalendarGroup> Page { get; init; }
     public bool CanSetup { get; init; }
     public bool IsFiltered { get; init; }
 }
@@ -433,6 +466,13 @@ public sealed class CalendarFormModel
     public IReadOnlyList<LookupItem> Companies { get; init; } = Array.Empty<LookupItem>();
     public IReadOnlyList<LookupItem> Currencies { get; init; } = Array.Empty<LookupItem>();
     public bool ScheduleLocked { get; init; }
+    /// <summary>The companies it is set up for (ticked in the form).</summary>
+    public IReadOnlyCollection<int> SelectedCompanyIds { get; init; } = Array.Empty<int>();
+    /// <summary>Companies whose calendar has processed periods: kept (they cannot be unticked) and their schedule stays.</summary>
+    public IReadOnlyCollection<int> LockedCompanyIds { get; init; } = Array.Empty<int>();
+    /// <summary>It is the default calendar of some of its companies only.</summary>
+    public bool DefaultMixed { get; init; }
+    public string? DefaultNames { get; init; }
 }
 
 public sealed class PeriodFormModel

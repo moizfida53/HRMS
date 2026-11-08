@@ -17115,6 +17115,59 @@ html.hrms-embed .hrms-content {
   white-space: nowrap;
 }
 
+.pr-cal-differ {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-inline-start: 0.25rem;
+  color: #d97706;
+  cursor: help;
+}
+.pr-cal-differ:focus {
+  outline: none;
+}
+.pr-cal-differ:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 130, 122, 0.28);
+  border-color: #0d827a;
+}
+
+.pr-cal-periods {
+  cursor: help;
+  border-block-end: 1px dotted #cdd4d2;
+}
+.pr-cal-periods:focus {
+  outline: none;
+}
+.pr-cal-periods:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 130, 122, 0.28);
+  border-color: #0d827a;
+}
+
+.pr-cal-default {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  cursor: help;
+  color: #0e6b3e;
+}
+.pr-cal-default:focus {
+  outline: none;
+}
+.pr-cal-default:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 130, 122, 0.28);
+  border-color: #0d827a;
+}
+.pr-cal-default small {
+  font-size: 0.725rem;
+  font-weight: 600;
+  color: #626d6b;
+}
+.pr-cal-default.is-some {
+  color: #626d6b;
+}
+
 .hrms-auth-body {
   margin: 0;
   background: #ffffff;

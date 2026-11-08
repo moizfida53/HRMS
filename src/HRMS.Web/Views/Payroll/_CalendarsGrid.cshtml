@@ -32,7 +32,7 @@ else
                 <tr>
                     <th scope="col">@L["common.code"]</th>
                     <th scope="col">@L["pr.calendar"]</th>
-                    <th scope="col">@L["common.company"]</th>
+                    <th scope="col">@L["st.companies"]</th>
                     <th scope="col">@L["pr.frequency"]</th>
                     <th scope="col" class="col-p2">@L["pr.cut_off_pay_day"]</th>
                     <th scope="col" class="col-p3">@L["pr.days_basis"]</th>
@@ -43,27 +43,73 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var c in pg.Items)
+                @foreach (var g in pg.Items)
                 {
+                    var c = g.Calendar;
                     var name = PayrollFormat.Calendar(L, c.CalendarName, c.ArabicName);
                     <tr data-id="@c.PayrollCalendarId" data-name="@name">
                         <td data-label="@L["common.code"]"><span class="hrms-code-chip">@c.CalendarCode</span></td>
                         <td data-label="@L["pr.calendar"]"><span class="hrms-table__primary">@name</span></td>
-                        <td data-label="@L["common.company"]" class="hrms-muted">@c.CompanyName</td>
+                        @* the companies it is set up for: All, the one company, or how many (their names on hover) *@
+                        <td data-label="@L["st.companies"]" class="hrms-nowrap">
+                            @if (g.AllCompanies)
+                            {
+                                <span class="st-co st-co--all" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="@g.CompanyNames"
+                                      aria-label="@L["st.all_companies"]: @g.CompanyNames">@Html.Icon("building", 13)<span>@L["st.all"]</span></span>
+                            }
+                            else if (g.CompanyCount == 1)
+                            {
+                                <span class="st-co st-co--one" title="@g.CompanyNames">@Html.Icon("building", 13)<span class="st-co__name">@g.CompanyNames</span></span>
+                            }
+                            else
+                            {
+                                <span class="st-co" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="@g.CompanyNames"
+                                      aria-label="@L["st.0_companies", g.CompanyCount]: @g.CompanyNames">@Html.Icon("building", 13)<span>@L["st.0_companies", g.CompanyCount]</span></span>
+                            }
+                        </td>
                         <td data-label="@L["pr.frequency"]">@Freq(c.PayFrequency)</td>
-                        <td data-label="@L["pr.cut_off_pay_day"]" class="col-p2 hrms-text-sm">@Schedule(c)</td>
+                        <td data-label="@L["pr.cut_off_pay_day"]" class="col-p2 hrms-text-sm">
+                            @Schedule(c)
+                            @if (g.SettingsDiffer)
+                            {
+                                <span class="pr-cal-differ" tabindex="0" data-bs-toggle="tooltip" data-bs-title="@L["pr.cal_settings_differ"]" aria-label="@L["pr.cal_settings_differ"]">@Html.Icon("alert", 13)</span>
+                            }
+                        </td>
                         <td data-label="@L["pr.days_basis"]" class="col-p3">@Basis(c)</td>
-                        <td data-label="@L["pr.first_open_period"]" class="col-p2">@(c.CurrentPeriodName ?? "—")</td>
-                        <td data-label="@L["pr.default"]" class="text-center col-p3">@if (c.IsDefault) { @Html.Icon("check", 15) }</td>
+                        <td data-label="@L["pr.first_open_period"]" class="col-p2">
+                            @if (g.PeriodsText is { } per)
+                            {
+                                <span class="pr-cal-periods" tabindex="0" data-bs-toggle="tooltip" data-bs-title="@per">@(c.CurrentPeriodName ?? "—") <span class="hrms-muted">…</span></span>
+                            }
+                            else
+                            {
+                                @(c.CurrentPeriodName ?? "—")
+                            }
+                        </td>
+                        <td data-label="@L["pr.default"]" class="text-center col-p3">
+                            @if (g.DefaultCount > 0)
+                            {
+                                <span class="pr-cal-default @(g.DefaultCount < g.CompanyCount ? "is-some" : null)" tabindex="0" data-bs-toggle="tooltip" data-bs-title="@L["pr.cal_default_of_0", g.DefaultNames]">
+                                    @Html.Icon("check", 15)@if (g.CompanyCount > 1 && g.DefaultCount < g.CompanyCount) { <small>@g.DefaultCount/@g.CompanyCount</small> }
+                                </span>
+                            }
+                        </td>
                         <td data-label="@L["common.status"]">
-                            <span class="hrms-badge hrms-badge--@(c.IsActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(c.IsActive ? L["org.active"] : L["org.inactive"])</span>
+                            @if (g.ActiveCount > 0 && g.ActiveCount < g.CompanyCount)
+                            {
+                                <span class="hrms-badge hrms-badge--warning" title="@string.Join(", ", g.Rows.Where(r => r.IsActive).Select(r => r.CompanyName))"><span class="hrms-badge__dot"></span>@L["st.active_0_of_1", g.ActiveCount, g.CompanyCount]</span>
+                            }
+                            else
+                            {
+                                <span class="hrms-badge hrms-badge--@(g.AnyActive ? "success" : "muted")"><span class="hrms-badge__dot"></span>@(g.AnyActive ? L["org.active"] : L["org.inactive"])</span>
+                            }
                         </td>
                         <td class="hrms-table__actions">
                             <a class="btn-icon" href="@Url.Action("PayPeriods", "Payroll", new { calendar = c.PayrollCalendarId })" title="@L["pr.periods"]" aria-label="@L["pr.periods_of_0", name]">@Html.Icon("calendar", 15)</a>
                             @if (Model.CanSetup)
                             {
                                 <button type="button" class="btn-icon" data-cal-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</button>
-                                <button type="button" class="btn-icon btn-icon--success" data-cal-toggle title="@(c.IsActive ? L["common.deactivate"] : L["common.activate"])" aria-label="@(c.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
+                                <button type="button" class="btn-icon btn-icon--success" data-cal-toggle title="@(g.AnyActive ? L["common.deactivate"] : L["common.activate"])" aria-label="@(g.AnyActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
                                 <button type="button" class="btn-icon btn-icon--danger" data-cal-delete title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
                             }
                         </td>
