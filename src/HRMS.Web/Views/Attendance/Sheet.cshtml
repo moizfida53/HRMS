@@ -30,7 +30,7 @@
         @* ---- the filters: company, payroll month, From / To, search ---- *@
         <form class="att-sheet-filters" method="get" action="@Url.Action("Sheet", "Attendance")" data-att-sheet-filters>
             <div class="row g-2 align-items-end">
-                <div class="col-12 col-sm-6 col-xl-3">
+                <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
                     <label class="form-label" for="sh-company">@L["common.company"]</label>
                     <select class="form-select" id="sh-company" name="company" data-att-sheet-auto disabled="@(Model.Companies.Count <= 1)">
                         @foreach (var c in Model.Companies)
@@ -43,7 +43,7 @@
                         <input type="hidden" name="company" value="@only" />
                     }
                 </div>
-                <div class="col-12 col-sm-6 col-xl-2">
+                <div class="col-12 col-sm-6 col-lg-3 col-xl-2">
                     <label class="form-label" for="sh-month">@L["att.payroll_month"]</label>
                     <select class="form-select" id="sh-month" name="month" data-att-sheet-month>
                         @foreach (var m in Model.Months)
@@ -52,22 +52,22 @@
                         }
                     </select>
                 </div>
-                <div class="col-6 col-sm-3 col-xl-2">
+                <div class="col-6 col-sm-3 col-lg-auto att-sheet-filters__date">
                     <label class="form-label" for="sh-from">@L["att.date_from"]</label>
                     <input class="form-control" type="date" id="sh-from" name="from" value="@fromKey" data-att-sheet-date />
                 </div>
-                <div class="col-6 col-sm-3 col-xl-2">
+                <div class="col-6 col-sm-3 col-lg-auto att-sheet-filters__date">
                     <label class="form-label" for="sh-to">@L["att.date_to"]</label>
                     <input class="form-control" type="date" id="sh-to" name="to" value="@toKey" data-att-sheet-date />
                 </div>
-                <div class="col-12 col-sm-6 col-xl">
+                <div class="col-12 col-sm-6 col-lg att-sheet-filters__search">
                     <label class="form-label" for="sh-q">@L["att.search_employee"]</label>
                     <div class="hrms-search att-sheet-search">
                         @Html.Icon("search", 16)
                         <input type="search" id="sh-q" autocomplete="off" name="q" value="@Model.Search" placeholder="@L["att.search_employee"]" />
                     </div>
                 </div>
-                <div class="col-12 col-xl-auto d-grid">
+                <div class="col-12 col-lg-auto d-grid">
                     <button type="submit" class="btn btn-primary">@Html.Icon("calendar", 15)<span>@L["att.show"]</span></button>
                 </div>
             </div>

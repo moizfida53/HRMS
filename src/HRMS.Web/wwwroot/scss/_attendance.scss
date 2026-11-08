@@ -360,7 +360,13 @@ $sheet-cell: 34px;
   border-block-end: 1px solid $line-100;
   @include down("sm") { padding: space("3"); }
 
-  .form-label { @include label-caps; margin-block-end: space("1"); }
+  .form-label { @include label-caps; @include truncate; display: block; margin-block-end: space("1"); }
+  // wide screens: compact dates, so company, month, From / To, search and Show sit on one row
+  &__search { min-width: min(100%, 14rem); }
+  @include up("lg") {
+    &__date { width: 9.75rem; }
+    &__date .form-control { padding-inline: .6rem; }
+  }
   .att-sheet-search { padding-block: .375rem; }
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: space("2"); }
 }

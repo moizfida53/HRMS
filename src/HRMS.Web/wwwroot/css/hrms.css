@@ -21894,7 +21894,22 @@ html.nav-mini:not(.nav-peek) .hrms-sidebar .hrms-nav-link .hrms-nav-approval {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #8e9896;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
   margin-block-end: 0.25rem;
+}
+.att-sheet-filters__search {
+  min-width: min(100%, 14rem);
+}
+@media (min-width: 992px) {
+  .att-sheet-filters__date {
+    width: 9.75rem;
+  }
+  .att-sheet-filters__date .form-control {
+    padding-inline: 0.6rem;
+  }
 }
 .att-sheet-filters .att-sheet-search {
   padding-block: 0.375rem;
