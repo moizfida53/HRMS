@@ -192,10 +192,10 @@ public sealed class PayrollController : Controller
     private async Task<IReadOnlyList<DraftGroup>> DraftGroupsAsync()
     {
         var list = await _runs.DraftsAsync(OwnCompany, CompanyCsv, UserId, Ct);
-        var runs = new List<(PayrollDraft Draft, DateTime Month)>();
+        var runs = new List<(PayrollDraft Draft, DateTime Month, string Company, string Code)>();
         foreach (var d in list.Take(30))
         {
-            if (await _runs.GetAsync(d.PayrollRunId, Ct) is { } r) runs.Add((d, r.RunMonth));
+            if (await _runs.GetAsync(d.PayrollRunId, Ct) is { } r) runs.Add((d, r.RunMonth, r.CompanyName, r.CompanyCode));
         }
         return runs
             .GroupBy(x => (x.Draft.CompanyId, x.Month, x.Draft.RunType))
@@ -203,7 +203,8 @@ public sealed class PayrollController : Controller
                 g.Select(x => x.Draft.PayrollRunId).ToList(),
                 g.Key.CompanyId, g.Key.Month, g.Key.RunType,
                 g.Max(x => x.Draft.LastSaved),
-                g.Select(x => x.Draft.CalendarName).Distinct().ToList()))
+                g.Select(x => x.Draft.CalendarName).Distinct().ToList(),
+                g.First().Company, g.First().Code))
             .OrderByDescending(g => g.LastSaved)
             .ToList();
     }

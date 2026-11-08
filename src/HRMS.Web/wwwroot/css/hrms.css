@@ -17038,6 +17038,82 @@ html.hrms-embed .hrms-content {
     justify-content: center;
   }
 }
+.pr-drafts--line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0.75rem;
+}
+.pr-drafts--line .pr-drafts__icon {
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border-radius: 8px;
+}
+.pr-drafts--line .pr-drafts__list {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  gap: 0.25rem;
+}
+.pr-drafts--line .pr-drafts__item {
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  flex-wrap: nowrap;
+}
+.pr-drafts--line .pr-drafts__main {
+  flex-wrap: nowrap;
+  min-inline-size: 0;
+  overflow: hidden;
+}
+.pr-drafts--line .pr-drafts__company {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-inline-size: 0;
+  max-inline-size: 22rem;
+}
+.pr-drafts--line .pr-drafts__month, .pr-drafts--line .hrms-badge {
+  flex: none;
+  white-space: nowrap;
+}
+.pr-drafts--line .pr-drafts__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-inline-size: 0;
+}
+.pr-drafts--line .pr-drafts__sep {
+  color: #b3bbb9;
+}
+.pr-drafts--line .btn {
+  flex: none;
+}
+@media (max-width: 767.98px) {
+  .pr-drafts--line {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pr-drafts--line .pr-drafts__item {
+    flex-wrap: wrap;
+    padding: 0.5rem;
+  }
+  .pr-drafts--line .pr-drafts__main {
+    flex-wrap: wrap;
+  }
+  .pr-drafts--line .pr-drafts__company {
+    max-inline-size: 100%;
+  }
+}
+.pr-drafts__title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+  margin: 0;
+  padding-block: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #212322;
+  white-space: nowrap;
+}
 
 .hrms-auth-body {
   margin: 0;

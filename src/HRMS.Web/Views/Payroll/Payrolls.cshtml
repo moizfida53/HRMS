@@ -18,20 +18,19 @@
     @* saved drafts first (Create Payroll > Save draft): continue where you left off *@
     @if (Model.DraftGroups.Count > 0)
     {
-        <section class="hrms-card pr-drafts" aria-labelledby="pr-drafts-title">
-            <div class="pr-drafts__head">
-                <span class="pr-drafts__icon" aria-hidden="true">@Html.Icon("save", 18)</span>
-                <div>
-                    <h2 class="pr-card-title mb-0" id="pr-drafts-title">@L["pr.cr_saved_drafts"]</h2>
-                    <p class="hrms-muted hrms-text-sm mb-0">@L["pr.cr_saved_drafts_text"]</p>
-                </div>
-            </div>
+        <section class="hrms-card pr-drafts pr-drafts--line" aria-labelledby="pr-drafts-title">
+            <h2 class="pr-drafts__title" id="pr-drafts-title" title="@L["pr.cr_saved_drafts_text"]">
+                <span class="pr-drafts__icon" aria-hidden="true">@Html.Icon("save", 15)</span>
+                <span>@L["pr.cr_saved_drafts"]</span>
+            </h2>
             <ul class="pr-drafts__list list-unstyled mb-0">
                 @foreach (var g in Model.DraftGroups)
                 {
                     <li class="pr-drafts__item">
                         <div class="pr-drafts__main">
-                            <strong>@L.MonthYear(g.RunMonth)</strong>
+                            <strong class="pr-drafts__company" title="@g.CompanyName">@(string.IsNullOrWhiteSpace(g.CompanyName) ? g.CompanyCode : g.CompanyName)</strong>
+                            <span class="pr-drafts__sep" aria-hidden="true">·</span>
+                            <strong class="pr-drafts__month">@L.MonthYear(g.RunMonth)</strong>
                             <span class="hrms-badge hrms-badge--@(g.RunType == RunType.Regular ? "info" : "purple")"><span class="hrms-badge__dot"></span>@L.Tr(RunType.Label(g.RunType))</span>
                             <span class="pr-drafts__meta">@string.Join(", ", g.Calendars) · @L["pr.saved_0", L.Date(g.LastSaved)]</span>
                         </div>

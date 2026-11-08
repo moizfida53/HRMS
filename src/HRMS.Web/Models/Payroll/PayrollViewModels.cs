@@ -330,7 +330,7 @@ public sealed class CreatePageModel
 
 /// <summary>Draft payrolls made together by Create Payroll (one per calendar).</summary>
 public sealed record DraftGroup(IReadOnlyList<long> Ids, int CompanyId, DateTime RunMonth, string RunType,
-                                DateTime LastSaved, IReadOnlyList<string> Calendars);
+                                DateTime LastSaved, IReadOnlyList<string> Calendars, string? CompanyName = null, string? CompanyCode = null);
 
 public sealed class HistoryPageModel
 {
