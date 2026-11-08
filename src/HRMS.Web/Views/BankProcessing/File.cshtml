@@ -374,7 +374,7 @@
 
                                         @* ---- step 2: Company Payroll - the net pay less what step 1 transferred *@
                                         <li class="bf-step @(st.CompanyDone ? "is-done" : st.MinistryDone ? "is-current" : "is-locked")">
-                                            <details class="bf-step__box" open="@(st.MinistryDone)">
+                                            <details class="bf-step__box" open="@(st.MinistryDone && !st.CompanyDone)">
                                             <summary class="bf-step__head">
                                                 <span class="bf-step__no" aria-hidden="true">@(st.CompanyDone ? "✓" : "2")</span>
                                                 <div class="bf-step__headtext">
