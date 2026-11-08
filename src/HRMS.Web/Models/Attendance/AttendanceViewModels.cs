@@ -37,6 +37,9 @@ public sealed class AttRecordsModel
 public sealed class AttDayFormModel
 {
     public AttendanceRecord? Record { get; init; }
+    /// <summary>A day to add from the Attendance Sheet: the employee and the date clicked.</summary>
+    public long? EmployeeId { get; init; }
+    public DateTime? Date { get; init; }
     public IReadOnlyList<AttendanceEmployee> Employees { get; init; } = [];
 }
 
@@ -105,4 +108,112 @@ public sealed class AttPatternFormModel
 {
     public required AttendancePattern Pattern { get; init; }
     public IReadOnlyList<LookupItem> Companies { get; init; } = [];
+}
+
+/// <summary>A day of the Attendance Sheet: what is shown (✓, ✗, L 12 ...) and what a click does.</summary>
+public sealed record AttSheetCell(string Text, string Kind, string? Title, long RecordId, string? Sub = null);
+
+public sealed class AttSheetRow
+{
+    public required AttSheetEmployee Employee { get; init; }
+    public required IReadOnlyList<AttSheetCell> Cells { get; init; }
+    public int Present { get; init; }
+    public int Late { get; init; }
+    public int Absent { get; init; }
+    public int Leave { get; init; }
+    public decimal Deduction { get; init; }
+}
+
+/// <summary>
+/// Time &amp; Attendance > Attendance Sheet: employees down the left, the days of the range across.
+/// The range is the payroll period of the payroll month, or a From / To chosen (62 days at most).
+/// </summary>
+public sealed class AttSheetModel
+{
+    public const int MaxDays = 62;
+
+    public required AttRights Rights { get; init; }
+    public IReadOnlyList<LookupItem> Companies { get; init; } = [];
+    public int? CompanyId { get; init; }
+    public IReadOnlyList<DateTime> Months { get; init; } = [];
+    public DateTime Month { get; init; }
+    public DateTime From { get; init; }
+    public DateTime To { get; init; }
+    /// <summary>The range is the payroll period of the month (not a From / To of its own).</summary>
+    public bool IsPeriod { get; init; }
+    public bool Clipped { get; init; }
+    public string? Search { get; init; }
+    public IReadOnlyList<DateTime> Days { get; init; } = [];
+    public IReadOnlyList<AttSheetRow> Rows { get; init; } = [];
+    public IReadOnlyList<int> PresentPerDay { get; init; } = [];
+
+    private static readonly HashSet<string> PresentCodes = ["PRESENT", "LATE", "SHORT", "LATE_SHORT", "EXCUSED", "NO_PATTERN"];
+
+    /// <summary>Builds the rows: each employee's day from their record, else leave, holiday, day off or nothing.</summary>
+    public static (IReadOnlyList<AttSheetRow> Rows, IReadOnlyList<int> PerDay) Build(
+        IReadOnlyList<DateTime> days, IReadOnlyList<AttSheetEmployee> employees, IReadOnlyList<AttendanceRecord> records,
+        IReadOnlyList<AttHolidayInput> holidays, IReadOnlyList<AttLeaveInput> leave,
+        IReadOnlyList<AttendanceAssignment> assignments, IReadOnlyDictionary<int, AttendancePattern> patterns)
+    {
+        var byKey = records.GroupBy(r => (r.EmployeeId, r.WorkDate.Date)).ToDictionary(g => g.Key, g => g.First());
+        var today = DateTime.Today;
+        var perDay = new int[days.Count];
+        string T(DateTime? d) => d?.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture) ?? "—";
+        bool Holiday(DateTime d, out string? name)
+        {
+            var h = holidays.FirstOrDefault(x => x.FromDate.Date <= d && d <= x.ToDate.Date);
+            name = h?.HolidayName;
+            return h is not null;
+        }
+
+        var rows = new List<AttSheetRow>();
+        foreach (var e in employees)
+        {
+            var cells = new List<AttSheetCell>();
+            int present = 0, late = 0, absent = 0, onLeave = 0;
+            decimal ded = 0;
+            var empAssign = assignments.Where(a => a.EmployeeId == e.EmployeeId).OrderBy(a => a.EffectiveFrom).ToList();
+            for (var i = 0; i < days.Count; i++)
+            {
+                var d = days[i];
+                if (byKey.TryGetValue((e.EmployeeId, d), out var r))
+                {
+                    var times = $"{T(r.ClockIn)} – {T(r.ClockOut)}";
+                    var title = r.DeductionAmount > 0 ? $"{times} · {r.DeductionNote}" : r.DeductionNote is null ? times : $"{times} · {r.DeductionNote}";
+                    AttSheetCell cell = r.Status switch
+                    {
+                        "PRESENT" => new("✓", "ok", title, r.RecordId),
+                        "LATE" or "LATE_SHORT" => new("L", "late", title, r.RecordId, r.LateMinutes > 0 ? r.LateMinutes.ToString(System.Globalization.CultureInfo.InvariantCulture) : null),
+                        "SHORT" => new("S", "short", title, r.RecordId),
+                        "ABSENT" => new("✗", "absent", title, r.RecordId),
+                        "MISSING" => new("?", "missing", title, r.RecordId),
+                        "LEAVE" => new("LV", "leave", title, r.RecordId),
+                        "EXCUSED" => new("E", "excused", title, r.RecordId),
+                        _ => new("✓", "nopattern", title, r.RecordId)
+                    };
+                    cells.Add(cell);
+                    if (PresentCodes.Contains(r.Status)) { present++; perDay[i]++; }
+                    if (r.Status is "LATE" or "LATE_SHORT") late++;
+                    if (r.Status == "ABSENT") absent++;
+                    if (r.Status == "LEAVE") onLeave++;
+                    ded += r.DeductionAmount;
+                    continue;
+                }
+                if ((e.HireDate is { } h && d < h.Date) || (e.TerminationDate is { } t && d > t.Date)) { cells.Add(new("", "out", null, 0)); continue; }
+                if (leave.Any(l => l.EmployeeId == e.EmployeeId && l.StartDate.Date <= d && d <= l.EndDate.Date))
+                {
+                    cells.Add(new("LV", "leave", null, 0)); onLeave++; continue;
+                }
+                if (Holiday(d, out var hn)) { cells.Add(new("H", "holiday", hn, 0)); continue; }
+                var a = empAssign.LastOrDefault(x => x.EffectiveFrom.Date <= d);
+                if (a is not null && patterns.TryGetValue(a.PatternId, out var p) && p.IsOff(DateOnly.FromDateTime(d)))
+                {
+                    cells.Add(new("·", "off", null, 0)); continue;
+                }
+                cells.Add(new(d > today ? "" : "–", d > today ? "future" : "none", null, 0));
+            }
+            rows.Add(new AttSheetRow { Employee = e, Cells = cells, Present = present, Late = late, Absent = absent, Leave = onLeave, Deduction = ded });
+        }
+        return (rows, perDay);
+    }
 }

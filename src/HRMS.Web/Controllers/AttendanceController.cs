@@ -6,6 +6,7 @@ using HRMS.Web.Helpers;
 using HRMS.Web.Localization;
 using HRMS.Web.Models.Attendance;
 using HRMS.Web.Models.Organization;
+using HRMS.Web.Models.Payroll;
 using HRMS.Web.Security;
 using HRMS.Web.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -133,7 +134,7 @@ public sealed class AttendanceController : Controller
 
     /// <summary>The form of a day (id) or of a day to add (employee + date).</summary>
     [HttpGet("day")]
-    public async Task<IActionResult> Day(long id = 0)
+    public async Task<IActionResult> Day(long id = 0, long? employee = null, string? date = null)
     {
         if (!Can(PermImport)) return Forbid();
         AttendanceRecord? record = null;
@@ -143,8 +144,16 @@ public sealed class AttendanceController : Controller
             if (record is null) return NotFound();
         }
         var employees = id > 0 ? [] : (await _repo.MatchListAsync(Scope, Ct)).OrderBy(e => e.EmployeeName).ToList();
-        return PartialView("_DayForm", new AttDayFormModel { Record = record, Employees = employees });
+        return PartialView("_DayForm", new AttDayFormModel
+        {
+            Record = record, Employees = employees,
+            EmployeeId = employee is { } e && employees.Any(x => x.EmployeeId == e) ? e : null,
+            Date = ParseDate(date)
+        });
     }
+
+    private static DateTime? ParseDate(string? v) =>
+        DateTime.TryParseExact(v, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) ? d : null;
 
     [HttpPost("day/save")]
     public async Task<IActionResult> SaveDay(long id, long? employeeId, string? date, string? clockIn, string? clockOut, bool excused, string? note)
@@ -353,6 +362,82 @@ public sealed class AttendanceController : Controller
             }), rightToLeft: _l.IsArabic);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     $"attendance-{m:yyyy-MM}.xlsx");
+    }
+
+    // =======================================================================
+    // Attendance Sheet - employees down the left, the days across
+    // =======================================================================
+
+    /// <summary>The range: a From / To of its own, else the payroll period of the month, else the calendar month (62 days at most).</summary>
+    private async Task<AttSheetModel> SheetAsync(int? company, string? month, string? from, string? to, string? q)
+    {
+        var companies = await CompaniesAsync();
+        var co = await CompanyAsync(company);
+        var (months, m) = await MonthAsync(co, month);
+        var f = ParseDate(from);
+        var t = ParseDate(to);
+        var isPeriod = f is null || t is null;
+        if (isPeriod)
+        {
+            var period = co is { } pc ? await _repo.SheetPeriodAsync(Scope, pc, m, Ct) : null;
+            f = period?.StartDate.Date ?? m;
+            t = period?.EndDate.Date ?? m.AddMonths(1).AddDays(-1);
+        }
+        if (t < f) (f, t) = (t, f);
+        var clipped = (t!.Value - f!.Value).TotalDays + 1 > AttSheetModel.MaxDays;
+        if (clipped) t = f.Value.AddDays(AttSheetModel.MaxDays - 1);
+        var days = Enumerable.Range(0, (int)(t.Value - f.Value).TotalDays + 1).Select(i => f.Value.AddDays(i)).ToList();
+
+        IReadOnlyList<AttSheetRow> rows = [];
+        IReadOnlyList<int> perDay = days.Select(_ => 0).ToList();
+        if (co is { } c)
+        {
+            var employees = await _repo.SheetEmployeesAsync(Scope, c, f.Value, t.Value, q, Ct);
+            if (employees.Count > 0)
+            {
+                var records = await _repo.SheetDaysAsync(Scope, c, f.Value, t.Value, Ct);
+                var holidays = await _repo.SheetHolidaysAsync(Scope, c, f.Value, t.Value, Ct);
+                var leave = await _repo.SheetLeaveAsync(Scope, c, f.Value, t.Value, Ct);
+                var patterns = (await _repo.PatternsAsync(Scope, ct: Ct)).Where(p => p.CompanyId == c).ToDictionary(p => p.PatternId);
+                var ids = employees.Select(e => e.EmployeeId).ToHashSet();
+                var assigns = (await _repo.AssignmentsAsync(Scope, ct: Ct)).Where(a => ids.Contains(a.EmployeeId)).ToList();
+                (rows, perDay) = AttSheetModel.Build(days, employees, records, holidays, leave, assigns, patterns);
+            }
+        }
+        return new AttSheetModel
+        {
+            Rights = Rights, Companies = companies, CompanyId = co, Months = months, Month = m,
+            From = f.Value, To = t.Value, IsPeriod = isPeriod, Clipped = clipped, Search = q,
+            Days = days, Rows = rows, PresentPerDay = perDay
+        };
+    }
+
+    [HttpGet("sheet")]
+    public async Task<IActionResult> Sheet(int? company, string? month, string? from, string? to, string? q)
+    {
+        if (!Rights.CanView) return Forbid();
+        return View(await SheetAsync(company, month, from, to, q));
+    }
+
+    [HttpGet("sheet/export")]
+    public async Task<IActionResult> SheetExport(int? company, string? month, string? from, string? to, string? q)
+    {
+        if (!Rights.CanView) return Forbid();
+        var model = await SheetAsync(company, month, from, to, q);
+        var inv = CultureInfo.InvariantCulture;
+        var headers = new List<string> { _l["emp.employee_no"], _l["att.col_employee"], _l["common.department"] };
+        headers.AddRange(model.Days.Select(d => d.ToString("dd ddd", _l.IsArabic ? CultureInfo.GetCultureInfo("ar-KW") : inv)));
+        headers.AddRange([_l["att.t_present"], _l["att.t_late"], _l["att.t_absent"], _l["att.t_leave"], _l["att.t_ded"]]);
+        var bytes = XlsxFile.Write(_l["att.nav_sheet"], headers,
+            model.Rows.Select(r =>
+            {
+                var cells = new List<object?> { r.Employee.EmployeeNo, PayrollFormat.EmployeeName(_l, r.Employee.EmployeeName, r.Employee.ArabicName), r.Employee.DepartmentName };
+                cells.AddRange(r.Cells.Select(c => (object?)(c.Sub is null ? c.Text : $"{c.Text} {c.Sub}")));
+                cells.AddRange([r.Present, r.Late, r.Absent, r.Leave, r.Deduction]);
+                return (IReadOnlyList<object?>)cells;
+            }), rightToLeft: _l.IsArabic);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"attendance-sheet-{model.From:yyyy-MM-dd}-{model.To:yyyy-MM-dd}.xlsx");
     }
 
     // =======================================================================

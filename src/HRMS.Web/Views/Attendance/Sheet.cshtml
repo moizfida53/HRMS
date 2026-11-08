@@ -1,0 +1,234 @@
+@model AttSheetModel
+@{
+    // Time & Attendance > Attendance Sheet (db/127): the employees down the left, the days of the range across -
+    // a tick for present, a cross for absent, L with the minutes late, LV leave, H holiday ... and each employee's totals.
+    ViewData["Title"] = "Attendance Sheet";
+    ViewData["ActiveArea"] = "attendance";
+    ViewData["AttendancePage"] = "sheet";
+    ViewData["Subtitle"] = L["att.sheet_subtitle"];
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var cul = System.Globalization.CultureInfo.CurrentCulture;
+    var monthKey = Model.Month.ToString("yyyy-MM", inv);
+    var fromKey = Model.From.ToString("yyyy-MM-dd", inv);
+    var toKey = Model.To.ToString("yyyy-MM-dd", inv);
+    var today = DateTime.Today;
+    var canEdit = Model.Rights.CanImport;
+    var exportArgs = Model.IsPeriod
+        ? new { company = Model.CompanyId, month = monthKey, from = (string?)null, to = (string?)null, q = Model.Search }
+        : new { company = Model.CompanyId, month = monthKey, from = (string?)fromKey, to = (string?)toKey, q = Model.Search };
+    var legend = new (string Kind, string Text, string Label)[]
+    {
+        ("ok", "✓", L["att.lg_present"]), ("absent", "✗", L["att.lg_absent"]), ("late", "L", L["att.lg_late"]),
+        ("short", "S", L["att.lg_short"]), ("missing", "?", L["att.lg_missing"]), ("leave", "LV", L["att.lg_leave"]),
+        ("holiday", "H", L["att.lg_holiday"]), ("off", "·", L["att.lg_off"]), ("excused", "E", L["att.lg_excused"]), ("none", "–", L["att.lg_none"])
+    };
+}
+<div class="pr-stack att-page" data-att-page="sheet"
+     data-url-day="@Url.Action("Day", "Attendance")" data-url-save="@Url.Action("SaveDay", "Attendance")">
+
+    <section class="hrms-card att-sheet-card">
+        @* ---- the filters: company, payroll month, From / To, search ---- *@
+        <form class="att-sheet-filters" method="get" action="@Url.Action("Sheet", "Attendance")" data-att-sheet-filters>
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <label class="form-label" for="sh-company">@L["common.company"]</label>
+                    <select class="form-select" id="sh-company" name="company" data-att-sheet-auto disabled="@(Model.Companies.Count <= 1)">
+                        @foreach (var c in Model.Companies)
+                        {
+                            <option value="@c.Id" selected="@(c.Id == Model.CompanyId)">@c.Text</option>
+                        }
+                    </select>
+                    @if (Model.Companies.Count <= 1 && Model.CompanyId is { } only)
+                    {
+                        <input type="hidden" name="company" value="@only" />
+                    }
+                </div>
+                <div class="col-12 col-sm-6 col-xl-2">
+                    <label class="form-label" for="sh-month">@L["att.payroll_month"]</label>
+                    <select class="form-select" id="sh-month" name="month" data-att-sheet-month>
+                        @foreach (var m in Model.Months)
+                        {
+                            <option value="@m.ToString("yyyy-MM", inv)" selected="@(m == Model.Month)">@L.MonthYear(m)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-6 col-sm-3 col-xl-2">
+                    <label class="form-label" for="sh-from">@L["att.date_from"]</label>
+                    <input class="form-control" type="date" id="sh-from" name="from" value="@fromKey" data-att-sheet-date />
+                </div>
+                <div class="col-6 col-sm-3 col-xl-2">
+                    <label class="form-label" for="sh-to">@L["att.date_to"]</label>
+                    <input class="form-control" type="date" id="sh-to" name="to" value="@toKey" data-att-sheet-date />
+                </div>
+                <div class="col-12 col-sm-6 col-xl">
+                    <label class="form-label" for="sh-q">@L["att.search_employee"]</label>
+                    <div class="hrms-search att-sheet-search">
+                        @Html.Icon("search", 16)
+                        <input type="search" id="sh-q" autocomplete="off" name="q" value="@Model.Search" placeholder="@L["att.search_employee"]" />
+                    </div>
+                </div>
+                <div class="col-12 col-xl-auto d-grid">
+                    <button type="submit" class="btn btn-primary">@Html.Icon("calendar", 15)<span>@L["att.show"]</span></button>
+                </div>
+            </div>
+
+            <div class="att-sheet-info">
+                <span class="att-range-chip @(Model.IsPeriod ? "is-period" : "is-custom")">
+                    @Html.Icon("calendar", 14)
+                    @if (Model.IsPeriod)
+                    {
+                        <span>@L["att.range_period_0_1", L.Date(Model.From), L.Date(Model.To)]</span>
+                    }
+                    else
+                    {
+                        <span>@L["att.range_custom"] · @L.Date(Model.From) – @L.Date(Model.To)</span>
+                    }
+                    <b>@Model.Days.Count</b>
+                </span>
+                <span class="att-sheet-count">@(Model.Rows.Count == 1 ? L["att.1_employee"] : L["att.0_employees", PayrollFormat.Count(Model.Rows.Count)])</span>
+                @if (Model.Clipped)
+                {
+                    <span class="att-sheet-warn">@Html.Icon("alert", 14) @L["att.range_too_long"]</span>
+                }
+            </div>
+        </form>
+
+        @* ---- the legend ---- *@
+        <div class="att-legend" aria-label="@L["att.legend"]">
+            @foreach (var g in legend)
+            {
+                <span class="att-legend__item"><span class="att-cell att-cell--@g.Kind" aria-hidden="true">@g.Text</span>@g.Label</span>
+            }
+            @if (canEdit && Model.Rows.Count > 0)
+            {
+                <span class="att-legend__hint">@Html.Icon("info", 13) @L["att.cell_hint"]</span>
+            }
+        </div>
+
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="hrms-empty">
+                <span class="hrms-empty__icon" aria-hidden="true">@Html.Icon("calendar", 26)</span>
+                <p class="hrms-empty__title">@L["att.sheet_empty"]</p>
+                <p class="hrms-empty__text">@L["att.sheet_empty_text"]</p>
+            </div>
+        }
+        else
+        {
+            <div class="att-sheet-wrap" data-att-sheet-scroll>
+                <table class="att-sheet" style="--att-days: @Model.Days.Count">
+                    <caption class="hrms-sr-only">@L["att.nav_sheet"]</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col" class="att-sheet__emp">@L["att.col_employee"]</th>
+                            @foreach (var d in Model.Days)
+                            {
+                                var wk = d.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
+                                <th scope="col" class="att-sheet__day @(d == today ? "is-today" : null) @(wk ? "is-wkend" : null) @(d.Day == 1 ? "is-first" : null)"
+                                    title="@L.Date(d) · @d.ToString("dddd", cul)">
+                                    <span class="att-sheet__dnum">@d.Day</span>
+                                    <span class="att-sheet__dname">@d.ToString("ddd", cul)</span>
+                                </th>
+                            }
+                            <th scope="col" class="att-sheet__tot att-sheet__tot--first" title="@L["att.t_present_hint"]">@L["att.t_present"]</th>
+                            <th scope="col" class="att-sheet__tot" title="@L["att.t_late_hint"]">@L["att.t_late"]</th>
+                            <th scope="col" class="att-sheet__tot" title="@L["att.t_absent_hint"]">@L["att.t_absent"]</th>
+                            <th scope="col" class="att-sheet__tot" title="@L["att.t_leave_hint"]">@L["att.t_leave"]</th>
+                            <th scope="col" class="att-sheet__tot att-sheet__tot--ded">@L["att.t_ded"]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.Rows)
+                        {
+                            var e = r.Employee;
+                            var name = PayrollFormat.EmployeeName(L, e.EmployeeName, e.ArabicName);
+                            <tr>
+                                <th scope="row" class="att-sheet__emp">
+                                    <a class="att-sheet__name" href="@Url.Action("Index", "Attendance", new { company = Model.CompanyId, month = monthKey, employee = e.EmployeeId })" title="@name">@name</a>
+                                    <span class="att-sheet__sub">@e.EmployeeNo@(string.IsNullOrWhiteSpace(e.DepartmentName) ? "" : " · " + e.DepartmentName)</span>
+                                </th>
+                                @for (var i = 0; i < r.Cells.Count; i++)
+                                {
+                                    var c = r.Cells[i];
+                                    var d = Model.Days[i];
+                                    var cls = $"att-cell att-cell--{c.Kind}";
+                                    var tip = $"{L.Date(d)}{(c.Title is null ? "" : " · " + c.Title)}";
+                                    var clickable = canEdit && c.Kind is not ("out" or "future") && (c.RecordId > 0 || d <= today);
+                                    <td class="att-sheet__c @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null)">
+                                        @if (clickable)
+                                        {
+                                            <button type="button" class="@cls" title="@tip" data-att-cell
+                                                    data-rec="@c.RecordId" data-emp="@e.EmployeeId" data-date="@d.ToString("yyyy-MM-dd", inv)" data-name="@name">
+                                                @c.Text@if (c.Sub is not null) { <small>@c.Sub</small> }
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="@cls" title="@(c.Kind == "out" ? null : tip)">@c.Text@if (c.Sub is not null) { <small>@c.Sub</small> }</span>
+                                        }
+                                    </td>
+                                }
+                                <td class="att-sheet__tot att-sheet__tot--first is-p">@r.Present</td>
+                                <td class="att-sheet__tot @(r.Late > 0 ? "is-l" : "is-zero")">@r.Late</td>
+                                <td class="att-sheet__tot @(r.Absent > 0 ? "is-a" : "is-zero")">@r.Absent</td>
+                                <td class="att-sheet__tot @(r.Leave > 0 ? "is-lv" : "is-zero")">@r.Leave</td>
+                                <td class="att-sheet__tot att-sheet__tot--ded @(r.Deduction > 0 ? "is-ded" : "is-zero")">@(r.Deduction > 0 ? PayrollFormat.Money(r.Deduction) : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th scope="row" class="att-sheet__emp">@L["att.day_totals"]</th>
+                            @for (var i = 0; i < Model.Days.Count; i++)
+                            {
+                                var d = Model.Days[i];
+                                <td class="att-sheet__c att-sheet__foot @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null)">@(Model.PresentPerDay[i] > 0 ? Model.PresentPerDay[i] : d > today ? "" : "0")</td>
+                            }
+                            <td class="att-sheet__tot att-sheet__tot--first is-p">@Model.Rows.Sum(x => x.Present)</td>
+                            <td class="att-sheet__tot is-l">@Model.Rows.Sum(x => x.Late)</td>
+                            <td class="att-sheet__tot is-a">@Model.Rows.Sum(x => x.Absent)</td>
+                            <td class="att-sheet__tot is-lv">@Model.Rows.Sum(x => x.Leave)</td>
+                            <td class="att-sheet__tot att-sheet__tot--ded is-ded">@PayrollFormat.Money(Model.Rows.Sum(x => x.Deduction))</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </section>
+</div>
+
+@if (canEdit)
+{
+    @* a day: correct the times, excuse it, or add it *@
+    <div class="modal fade" id="att-day-modal" tabindex="-1" aria-hidden="true" aria-labelledby="att-day-title">
+        <div class="modal-dialog modal-dialog-centered">
+            <form class="modal-content" data-att-day-form novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="att-day-title" data-att-day-title>@L["att.edit_day"]</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L["common.close"]"></button>
+                </div>
+                <div class="modal-body" data-att-day-body></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@L["common.close"]</button>
+                    <button type="submit" class="btn btn-primary" data-att-day-save>@Html.Icon("check", 15)<span>@L["emp.save"]</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @Html.AntiForgeryToken()
+}
+
+@section PageActions {
+    <button type="button" class="btn btn-outline-secondary" data-att-print>@Html.Icon("printer", 15)<span>@L["att.print"]</span></button>
+    @if (Model.Rows.Count > 0)
+    {
+        <a class="btn btn-outline-secondary" href="@Url.Action("SheetExport", "Attendance", exportArgs)">@Html.Icon("download", 15)<span>@L["common.export"]</span></a>
+    }
+    @if (canEdit)
+    {
+        <a class="btn btn-primary" asp-action="Import">@Html.Icon("upload", 15)<span>@L["att.import"]</span></a>
+    }
+}
+@section Scripts {
+    <script src="~/js/attendance.js" asp-append-version="true"></script>
+}

@@ -242,6 +242,25 @@ public sealed class AttendanceSummaryRow
     public bool ChangedSincePosted => IsPosted && (PostedDeduction != DeductionAmount || PostedOvertime != OvertimeAmount);
 }
 
+/// <summary>An employee row of the Attendance Sheet.</summary>
+public sealed class AttSheetEmployee
+{
+    public long EmployeeId { get; set; }
+    public string? EmployeeNo { get; set; }
+    public string? EmployeeName { get; set; }
+    public string? ArabicName { get; set; }
+    public string? DepartmentName { get; set; }
+    public DateTime? HireDate { get; set; }
+    public DateTime? TerminationDate { get; set; }
+}
+
+/// <summary>A payroll period (the Attendance Sheet's range for a payroll month).</summary>
+public sealed class AttPeriod
+{
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+}
+
 /// <summary>Minutes as "h:mm".</summary>
 public static class AttFormat
 {

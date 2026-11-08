@@ -149,6 +149,79 @@
         return;
     }
 
+    /* ====================================================== Attendance Sheet */
+    if (mode === "sheet") {
+        var sf = $("[data-att-sheet-filters]");
+        var fromEl = $("[name=from]", sf), toEl = $("[name=to]", sf);
+        var dirty = false;          // a From / To typed: a custom range, else the payroll period of the month
+        $all("[data-att-sheet-date]", sf).forEach(function (el) { el.addEventListener("change", function () { dirty = true; }); });
+        var custom = !!$(".att-range-chip.is-custom", sf);
+        function submitPeriod() { fromEl.disabled = true; toEl.disabled = true; sf.submit(); }
+        $("[data-att-sheet-month]", sf).addEventListener("change", submitPeriod);
+        $all("[data-att-sheet-auto]", sf).forEach(function (el) {
+            el.addEventListener("change", function () { if (custom || dirty) { sf.submit(); } else { submitPeriod(); } });
+        });
+        sf.addEventListener("submit", function () {
+            if (!custom && !dirty) { fromEl.disabled = true; toEl.disabled = true; }
+            else if (fromEl.value && toEl.value && fromEl.value > toEl.value) { var t = fromEl.value; fromEl.value = toEl.value; toEl.value = t; }
+        });
+
+        var pr = $("[data-att-print]");
+        if (pr) { pr.addEventListener("click", function () { window.print(); }); }
+
+        // keep the sheet's scroll across a reload (after a day is saved)
+        var scroller = $("[data-att-sheet-scroll]"), SCROLL = "hrms:att-sheet-scroll";
+        if (scroller) {
+            try {
+                var sv = JSON.parse(sessionStorage.getItem(SCROLL) || "null");
+                if (sv && sv.href === location.href) { scroller.scrollLeft = sv.x; window.scrollTo(0, sv.y); }
+                sessionStorage.removeItem(SCROLL);
+            } catch (e) { /* private */ }
+            // the first visit: today in view
+            if (!scroller.scrollLeft) {
+                var td = $("thead .is-today", scroller), emp = $("thead .att-sheet__emp", scroller);
+                if (td && emp) {
+                    var rtl = document.dir === "rtl";
+                    var x = td.offsetLeft - emp.offsetWidth - 3 * td.offsetWidth;
+                    if (x > 0) { scroller.scrollLeft = rtl ? -x : x; }
+                }
+            }
+        }
+
+        var sModal = $("#att-day-modal");
+        if (!sModal) { return; }
+        var sBody = $("[data-att-day-body]", sModal), sForm = $("[data-att-day-form]", sModal);
+        page.addEventListener("click", function (ev) {
+            var c = ev.target.closest("[data-att-cell]");
+            if (!c) { return; }
+            var rec = c.getAttribute("data-rec");
+            var isNew = !rec || rec === "0";
+            $("[data-att-day-title]", sModal).textContent = isNew
+                ? HRMS.t("js.att_add_day", "Add a day") + " · " + c.getAttribute("data-name")
+                : HRMS.t("js.att_edit_day", "Change the day");
+            sBody.innerHTML = '<div class="pr-loading"><div class="hrms-spinner"></div></div>';
+            modal(sModal).show();
+            var args = isNew ? { employee: c.getAttribute("data-emp"), date: c.getAttribute("data-date") } : { id: rec };
+            HRMS.getHtml(qs(url("day"), args)).then(function (html) {
+                sBody.innerHTML = html;
+                $all("select[data-searchable]", sBody).forEach(HRMS.searchable);
+            }, function () { sBody.innerHTML = ""; HRMS.toast(failed(), "error"); });
+        });
+        sForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var fd = new FormData(sForm);
+            if (!fd.get("excused")) { fd.set("excused", "false"); }
+            post(url("save"), fd, $("[data-att-day-save]", sModal)).then(function (res) {
+                if (res && res.success) {
+                    try { sessionStorage.setItem(SCROLL, JSON.stringify({ href: location.href, x: scroller ? scroller.scrollLeft : 0, y: window.scrollY })); } catch (e) { /* private */ }
+                    modal(sModal).hide();
+                    reloadWith(res.message);
+                }
+            });
+        });
+        return;
+    }
+
     /* ====================================================== Monthly Summary */
     if (mode === "summary") {
         var sform = $("[data-att-filters]", page);

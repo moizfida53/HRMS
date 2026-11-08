@@ -24,13 +24,13 @@ else
             <option value="">@L["att.select_employee"]</option>
             @foreach (var e in Model.Employees)
             {
-                <option value="@e.EmployeeId">@e.DisplayNo · @e.EmployeeName</option>
+                <option value="@e.EmployeeId" selected="@(e.EmployeeId == Model.EmployeeId)">@e.DisplayNo · @e.EmployeeName</option>
             }
         </select>
     </div>
     <div class="mb-3">
         <label class="form-label" for="att-date">@L["att.col_date"] <span class="req" aria-hidden="true">*</span></label>
-        <input class="form-control" type="date" id="att-date" name="date" required max="@DateTime.Today.ToString("yyyy-MM-dd", inv)" />
+        <input class="form-control" type="date" id="att-date" name="date" required value="@Model.Date?.ToString("yyyy-MM-dd", inv)" max="@DateTime.Today.ToString("yyyy-MM-dd", inv)" />
     </div>
 }
 <div class="row g-3">

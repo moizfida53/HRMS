@@ -241,6 +241,9 @@
                             <a class="hrms-nav-link @(openAttendance && attPage == "register" ? "is-active" : null)" asp-controller="Attendance" asp-action="Index">
                                 @Html.Icon("clock")<span>@L["att.nav_attendance"]</span>
                             </a>
+                            <a class="hrms-nav-link @(openAttendance && attPage == "sheet" ? "is-active" : null)" asp-controller="Attendance" asp-action="Sheet">
+                                @Html.Icon("calendar")<span>@L["att.nav_sheet"]</span>
+                            </a>
                             <a class="hrms-nav-link @(openAttendance && attPage == "import" ? "is-active" : null)" asp-controller="Attendance" asp-action="Import">
                                 @Html.Icon("upload")<span>@L["att.nav_import"]</span>
                             </a>

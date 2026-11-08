@@ -72,6 +72,13 @@ public interface IAttendanceRepository
     Task<IReadOnlyList<AttendanceSummaryRow>> SummaryAsync(AttScope scope, int company, DateTime month, CancellationToken ct = default);
     Task<SaveResult> PostAsync(AttScope scope, int company, DateTime month, IEnumerable<object> rows, long? userId, CancellationToken ct = default);
     Task<SaveResult> UnpostAsync(AttScope scope, int company, DateTime month, long? userId, CancellationToken ct = default);
+
+    // the Attendance Sheet (db/127)
+    Task<AttPeriod?> SheetPeriodAsync(AttScope scope, int company, DateTime month, CancellationToken ct = default);
+    Task<IReadOnlyList<AttSheetEmployee>> SheetEmployeesAsync(AttScope scope, int company, DateTime from, DateTime to, string? search, CancellationToken ct = default);
+    Task<IReadOnlyList<AttendanceRecord>> SheetDaysAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default);
+    Task<IReadOnlyList<AttHolidayInput>> SheetHolidaysAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default);
+    Task<IReadOnlyList<AttLeaveInput>> SheetLeaveAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default);
 }
 
 public sealed class AttendanceRepository : IAttendanceRepository
@@ -387,6 +394,42 @@ public sealed class AttendanceRepository : IAttendanceRepository
         await _sql.ExecuteAsync(SummaryProc, p, ct).ConfigureAwait(false);
         return PayrollRunRepository.ReadResult(p, 0);
     }
+
+    // ------------------------------------------------------------ the Attendance Sheet
+
+    private const string SheetProc = "Attendance.usp_AttSheet";
+
+    private static DynamicParameters Sheet(string action, AttScope scope, int company, DateTime? from, DateTime? to)
+    {
+        var p = P(action, scope);
+        p.Add("@FilterCompany", company, DbType.Int32);
+        p.Add("@FromDate", from?.Date, DbType.Date);
+        p.Add("@ToDate", to?.Date, DbType.Date);
+        return p;
+    }
+
+    public async Task<AttPeriod?> SheetPeriodAsync(AttScope scope, int company, DateTime month, CancellationToken ct = default)
+    {
+        var p = Sheet("PERIOD", scope, company, null, null);
+        p.Add("@Month", MonthOf(month), DbType.Date);
+        return (await _sql.QueryAsync<AttPeriod>(SheetProc, p, ct).ConfigureAwait(false)).FirstOrDefault();
+    }
+
+    public Task<IReadOnlyList<AttSheetEmployee>> SheetEmployeesAsync(AttScope scope, int company, DateTime from, DateTime to, string? search, CancellationToken ct = default)
+    {
+        var p = Sheet("EMPLOYEES", scope, company, from, to);
+        p.Add("@Search", T(search, 200), DbType.String, size: 200);
+        return _sql.QueryAsync<AttSheetEmployee>(SheetProc, p, ct);
+    }
+
+    public Task<IReadOnlyList<AttendanceRecord>> SheetDaysAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default) =>
+        _sql.QueryAsync<AttendanceRecord>(SheetProc, Sheet("DAYS", scope, company, from, to), ct);
+
+    public Task<IReadOnlyList<AttHolidayInput>> SheetHolidaysAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default) =>
+        _sql.QueryAsync<AttHolidayInput>(SheetProc, Sheet("HOLIDAYS", scope, company, from, to), ct);
+
+    public Task<IReadOnlyList<AttLeaveInput>> SheetLeaveAsync(AttScope scope, int company, DateTime from, DateTime to, CancellationToken ct = default) =>
+        _sql.QueryAsync<AttLeaveInput>(SheetProc, Sheet("LEAVE", scope, company, from, to), ct);
 
     public async Task<SaveResult> UnpostAsync(AttScope scope, int company, DateTime month, long? userId, CancellationToken ct = default)
     {
