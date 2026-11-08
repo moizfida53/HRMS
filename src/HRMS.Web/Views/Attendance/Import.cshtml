@@ -19,6 +19,7 @@
      data-url-confirm="@Url.Action("Confirm", "Attendance")"
      data-url-employees="@Url.Action("LinkEmployees", "Attendance")"
      data-url-list="@Url.Action("Imports", "Attendance")"
+     data-url-delete-check="@Url.Action("DeleteImportCheck", "Attendance")"
      data-url-delete="@Url.Action("DeleteImport", "Attendance")"
      data-url-register="@Url.Action("Index", "Attendance")"
      data-roles='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(roles.Select(r => new { value = r.Value, text = L[r.Key] })))'>
@@ -140,7 +141,8 @@
           data-m-device="@L["att.m_device"]" data-m-number="@L["att.m_number"]" data-m-name="@L["att.m_name"]" data-m-none="@L["att.m_none"]"
           data-m-ambiguous="@L["att.m_ambiguous"]" data-m-chosen="@L["att.m_chosen"]" data-leave-out="@L["att.leave_out"]"
           data-pick="@L["att.link_employee"]" data-n-of-m="@L["att.n_of_m"]" data-unmatched="@L["att.n_unmatched"]"
-          data-delete-title="@L["att.delete_import"]" data-delete-text="@L["att.delete_import_text"]"></template>
+          data-delete-title="@L["att.del_title"]" data-delete-text="@L["att.del_text"]"
+          data-blocked-title="@L["att.del_blocked_title"]" data-ok="@L["att.del_ok"]"></template>
 @Html.AntiForgeryToken()
 
 @section PageActions {

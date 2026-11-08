@@ -50,6 +50,8 @@ public interface IAttendanceRepository
                                                                           int skipped, IEnumerable<object> days, long? userId, CancellationToken ct = default);
     Task<PagedResult<AttendanceImport>> ImportsAsync(AttScope scope, int page, CancellationToken ct = default);
     Task<(SaveResult Result, IReadOnlyList<AttMonth> Months)> DeleteImportAsync(AttScope scope, long id, long? userId, CancellationToken ct = default);
+    /// <summary>Whether the file can be removed (db/142 CHECK): a payroll created for its days, posted days ... say why not.</summary>
+    Task<SaveResult> CheckDeleteImportAsync(AttScope scope, long id, CancellationToken ct = default);
 
     // the calculation
     Task<IReadOnlyList<AttDayInput>> MonthDaysAsync(AttScope scope, int company, DateTime month, long? employeeId, CancellationToken ct = default);
@@ -260,6 +262,16 @@ public sealed class AttendanceRepository : IAttendanceRepository
         p.Add("@PageSize", 15, DbType.Int32);
         var rows = await _sql.QueryAsync<AttendanceImport>(ImportProc, p, ct).ConfigureAwait(false);
         return new PagedResult<AttendanceImport> { Items = rows, TotalCount = rows.Count == 0 ? 0 : rows[0].Total, PageNumber = Math.Max(1, page), PageSize = 15 };
+    }
+
+    public async Task<SaveResult> CheckDeleteImportAsync(AttScope scope, long id, CancellationToken ct = default)
+    {
+        var p = P("CHECK", scope);
+        p.Add("@Id", id, DbType.Int64);
+        await _sql.QueryAsync<AttMonth>(ImportProc, p, ct).ConfigureAwait(false);
+        var r = PayrollRunRepository.ReadResult(p, id);
+        // before db/142 the procedure does not know CHECK: the delete itself still checks
+        return r.ErrorCode == "INVALID_ACTION" ? SaveResult.Ok(id, string.Empty) : r;
     }
 
     public async Task<(SaveResult Result, IReadOnlyList<AttMonth> Months)> DeleteImportAsync(AttScope scope, long id, long? userId, CancellationToken ct = default)

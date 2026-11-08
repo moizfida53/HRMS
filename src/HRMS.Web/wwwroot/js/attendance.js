@@ -718,9 +718,19 @@
         if (p && !p.disabled) { importsPage = parseInt(p.getAttribute("data-page"), 10) || 1; loadImports(); return; }
         var d = ev.target.closest("[data-att-delete-import]");
         if (d) {
-            HRMS.confirm({ title: lab("delete-title"), name: d.getAttribute("data-name"), text: lab("delete-text"), ok: lab("delete-title") }).then(function (ok) {
-                if (ok) { post(url("delete"), { id: d.getAttribute("data-att-delete-import") }, d).then(function (res) { if (res && res.success) { HRMS.toast(res.message, "success"); loadImports(); } }); }
-            });
+            var importId = d.getAttribute("data-att-delete-import");
+            // asked first: a payroll created for its days (a draft too) keeps the file - say which, nothing to confirm
+            busy(d, true);
+            HRMS.getJson(qs(url("delete-check"), { id: importId })).then(function (chk) {
+                busy(d, false);
+                if (chk && chk.blocked) {
+                    HRMS.confirm({ alert: true, tone: "primary", title: lab("blocked-title"), name: d.getAttribute("data-name"), text: chk.message, note: "", ok: lab("ok") });
+                    return;
+                }
+                HRMS.confirm({ title: lab("delete-title"), name: d.getAttribute("data-name"), text: lab("delete-text"), note: "", ok: lab("delete-title") }).then(function (ok) {
+                    if (ok) { post(url("delete"), { id: importId }, d).then(function (res) { if (res && res.success) { HRMS.toast(res.message, "success"); loadImports(); } }); }
+                });
+            }, function () { busy(d, false); HRMS.toast(failed(), "error"); });
         }
     });
     loadImports();

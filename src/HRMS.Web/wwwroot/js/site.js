@@ -383,8 +383,10 @@
         q("[data-c-note]").textContent = note;
         q("[data-c-note]").hidden = !note;
         q("[data-c-cancel]").textContent = options.cancel || HRMS.t("js.cancel", "Cancel");
+        // alert: a notice with one button (OK) - nothing to choose
+        q("[data-c-cancel]").hidden = !!options.alert;
         var ok = q("[data-c-ok]");
-        ok.innerHTML = tone === "danger" && options.icon !== false ? CONFIRM_ICON.danger.replace(/22/g, "15") : "";
+        ok.innerHTML = tone === "danger" && options.icon !== false && !options.alert ? CONFIRM_ICON.danger.replace(/22/g, "15") : "";
         var okText = document.createElement("span");
         okText.textContent = options.ok || HRMS.t("js.delete", "Delete");
         ok.appendChild(okText);

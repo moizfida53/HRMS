@@ -284,6 +284,15 @@ public sealed class AttendanceController : Controller
         return Result(await _service.ConfirmAsync(input.Token ?? string.Empty, Roles(input.Roles), input.Links ?? [], input.Remember, Ct));
     }
 
+    /// <summary>Asked before the delete: can the file be removed (no payroll for its days, not even a draft)?</summary>
+    [HttpGet("import/delete-check")]
+    public async Task<IActionResult> DeleteImportCheck(long id)
+    {
+        if (!Can(PermImport)) return Denied();
+        var r = await _repo.CheckDeleteImportAsync(Scope, id, Ct);
+        return Json(new { success = true, blocked = !r.Success, code = r.ErrorCode, message = r.Success ? null : _l.Tr(r.Message) });
+    }
+
     [HttpPost("import/delete")]
     public async Task<IActionResult> DeleteImport(long id)
     {
