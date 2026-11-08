@@ -148,7 +148,7 @@
         </div>
         <div class="col-md-6">
             <label class="form-label" for="cal-basis">@L["pr.days_basis"]</label>
-            <select class="form-select" id="cal-basis" name="WorkingDaysBasis" data-cal-basis>
+            <select class="form-select" id="cal-basis" name="WorkingDaysBasis" data-cal-basis aria-describedby="cal-basis-help">
                 <option value="FIXED" selected="@(c.WorkingDaysBasis == "FIXED")">@L["pr.fixed_days_per_month"]</option>
                 <option value="CALENDAR" selected="@(c.WorkingDaysBasis == "CALENDAR")">@L["pr.calendar_days"]</option>
                 <option value="WORKING" selected="@(c.WorkingDaysBasis == "WORKING")">@L["pr.working_days"]</option>
@@ -158,6 +158,18 @@
             <label class="form-label" for="cal-days">@L["pr.days_per_month"]</label>
             <input class="form-control" type="number" min="1" max="31" id="cal-days" name="FixedDaysPerMonth" value="@c.FixedDaysPerMonth" />
             <span class="field-validation-error" data-valmsg-for="FixedDaysPerMonth"></span>
+        </div>
+        @* what one day of salary is worth with each basis (example: KWD 520, October = 31 days) *@
+        <div class="col-12">
+            <div class="pr-basis-help" id="cal-basis-help">
+                <p class="pr-basis-help__q">@Html.Icon("info", 14)<span>@L["pr.basis_help_q"]</span></p>
+                <ul>
+                    <li data-basis="FIXED" class="@(c.WorkingDaysBasis == "FIXED" ? "is-current" : null)"><strong>@L["pr.fixed_days_per_month"]</strong> @L["pr.basis_help_fixed"]</li>
+                    <li data-basis="CALENDAR" class="@(c.WorkingDaysBasis == "CALENDAR" ? "is-current" : null)"><strong>@L["pr.calendar_days"]</strong> @L["pr.basis_help_calendar"]</li>
+                    <li data-basis="WORKING" class="@(c.WorkingDaysBasis == "WORKING" ? "is-current" : null)"><strong>@L["pr.working_days"]</strong> @L["pr.basis_help_working"]</li>
+                </ul>
+                <p class="pr-basis-help__now">@L["pr.basis_help_now"]</p>
+            </div>
         </div>
         <div class="col-md-6">
             <label class="form-label" for="cal-cur">@L["pr.currency"]</label>

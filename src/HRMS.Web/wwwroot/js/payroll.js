@@ -806,7 +806,10 @@
                 $all("[data-freq-monthly]", recModal).forEach(function (el) { el.hidden = !monthly; });
                 $all("[data-freq-weekly]", recModal).forEach(function (el) { el.hidden = monthly; });
             }
-            if (basis) { $all("[data-basis-fixed]", recModal).forEach(function (el) { el.hidden = basis.value !== "FIXED"; }); }
+            if (basis) {
+                $all("[data-basis-fixed]", recModal).forEach(function (el) { el.hidden = basis.value !== "FIXED"; });
+                $all(".pr-basis-help [data-basis]", recModal).forEach(function (li) { li.classList.toggle("is-current", li.getAttribute("data-basis") === basis.value); });
+            }
             syncCalendarSpan();
         };
         // monthly: the start day and the first payroll month -> "runs from day 25 to day 24 of the next month",

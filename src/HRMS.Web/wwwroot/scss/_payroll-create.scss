@@ -415,3 +415,21 @@
   &:empty { display: none; }
   &__main { font-weight: $fw-semibold; color: $blue-700; }
 }
+
+// Payroll Calendar form (db/135): what each deduction calculation basis means
+.pr-basis-help {
+  padding: space("2") space("3");
+  border-radius: $radius;
+  background: $surface-2;
+  border: 1px solid $line-100;
+  font-size: $fs-sm;
+  color: $ink-600;
+
+  &__q { display: flex; align-items: center; gap: space("1"); margin: 0 0 space("1"); font-weight: $fw-semibold; color: $ink-800;
+         svg { width: 14px; height: 14px; color: $blue-600; flex: none; } }
+  ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+  li { padding: space("1") space("2"); border-radius: $radius-sm; border-inline-start: 3px solid transparent; }
+  li strong { color: $ink-900; }
+  li.is-current { background: $blue-050; border-inline-start-color: $blue-600; }
+  &__now { margin: space("2") 0 0; font-size: $fs-xs; color: $ink-500; }
+}

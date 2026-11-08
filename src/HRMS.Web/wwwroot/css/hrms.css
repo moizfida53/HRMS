@@ -17193,6 +17193,53 @@ html.hrms-embed .hrms-content {
   color: #0a6b63;
 }
 
+.pr-basis-help {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #fafbfb;
+  border: 1px solid #e9edec;
+  font-size: 0.8rem;
+  color: #4a5250;
+}
+.pr-basis-help__q {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+  color: #2c302f;
+}
+.pr-basis-help__q svg {
+  width: 14px;
+  height: 14px;
+  color: #0d827a;
+  flex: none;
+}
+.pr-basis-help ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+.pr-basis-help li {
+  padding: 0.25rem 0.5rem;
+  border-radius: 5px;
+  border-inline-start: 3px solid transparent;
+}
+.pr-basis-help li strong {
+  color: #212322;
+}
+.pr-basis-help li.is-current {
+  background: #f3f9f8;
+  border-inline-start-color: #0d827a;
+}
+.pr-basis-help__now {
+  margin: 0.5rem 0 0;
+  font-size: 0.725rem;
+  color: #626d6b;
+}
+
 .hrms-auth-body {
   margin: 0;
   background: #ffffff;
