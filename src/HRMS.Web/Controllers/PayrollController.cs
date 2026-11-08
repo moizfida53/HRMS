@@ -541,6 +541,14 @@ public sealed class PayrollController : Controller
             });
         }
 
+        // db/140: the month's attendance is worked out with the attendance settings now, then the payroll's
+        // calculation brings it in (late, short hours, absence, overtime) - a month whose payroll is created stays
+        if (runType == RunType.Regular && HttpContext.RequestServices.GetService<IAttendanceService>() is { } attendance)
+        {
+            try { await attendance.RecalculateAsync([new HRMS.Data.Repositories.AttMonth(input.CompanyId, month)], null, Ct); }
+            catch (Exception ex) when (ex is not OperationCanceledException) { /* Time & Attendance not set up (db/126+): the payroll goes on without it */ }
+        }
+
         var plan = await BuildMonthPlanAsync(input.CompanyId, month, runType, generate: true,
                                              input.Frequency == FreqWeekly ? FreqWeekly : FreqMonthly);
         var targets = plan.Groups.Where(g => g.State == "ready" && g.Period is not null).ToList();
