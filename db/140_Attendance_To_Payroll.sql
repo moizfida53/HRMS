@@ -74,12 +74,14 @@ BEGIN
       AND (@EmployeeIds IS NULL OR i.EmployeeId IN (SELECT EmployeeId FROM @Only));
 
     /* an item a payroll has already used (closed) stays as it is */
-    DELETE a FROM @A AS a
+    DELETE a
+    FROM   @A AS a
     WHERE EXISTS (SELECT 1 FROM [Payroll].[EmployeePayItems] AS i
                   WHERE i.Deleted = 0 AND i.SourceRef = @Ref AND i.EmployeeId = a.EmployeeId AND i.PayrollRunId IS NOT NULL);
 
     /* unchanged: left alone */
-    DELETE a FROM @A AS a
+    DELETE a
+    FROM   @A AS a
     CROSS APPLY (SELECT ISNULL(SUM(CASE WHEN c.ComponentCode = N'ATT_DEDUCTION' THEN i.Amount END), 0) AS Ded,
                         ISNULL(SUM(CASE WHEN c.ComponentCode = N'ATT_OVERTIME'  THEN i.Amount END), 0) AS Ot
                  FROM   [Payroll].[EmployeePayItems] AS i

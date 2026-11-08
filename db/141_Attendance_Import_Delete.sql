@@ -144,7 +144,7 @@ BEGIN
                 SET @ResultMessage = N'The file was removed.';
                 RETURN;
             END;
-            SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'The days left in this file belong to companies you do not work with - choose All companies (or those companies) to delete them.';
+            SELECT @ResultCode = 'VALIDATION', @ResultMessage = N'The days left in this file belong to companies you do not work with - choose All companies (or those companies) to remove them too.';
             RETURN;
         END;
 
@@ -158,7 +158,7 @@ BEGIN
         IF @Runs IS NOT NULL
         BEGIN
             SELECT @ResultCode = 'PAYROLL', @ResultMessage = CONCAT(N'A payroll is created for these days: ', @Runs,
-                N'. Discard the draft (Create Payroll) or cancel the payroll first, then delete the file.');
+                N'. Discard the draft (Create Payroll) or cancel the payroll first, then remove the file.');
             RETURN;
         END;
 
