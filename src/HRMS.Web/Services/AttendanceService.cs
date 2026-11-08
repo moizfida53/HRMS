@@ -249,6 +249,10 @@ public sealed class AttendanceService : IAttendanceService
         foreach (var m in months.Distinct())
         {
             var month = new DateTime(m.RunMonth.Year, m.RunMonth.Month, 1);
+            // the days of the payroll month (db/137: the payroll calendar's start day)
+            var range = await _repo.SheetPeriodAsync(scope, m.CompanyId, month, ct);
+            DateOnly? monthFrom = range is null ? null : DateOnly.FromDateTime(range.StartDate);
+            DateOnly? monthTo = range is null ? null : DateOnly.FromDateTime(range.EndDate);
             var days = (await _repo.MonthDaysAsync(scope, m.CompanyId, month, employeeId, ct)).Where(d => d.Source != "GENERATED").ToList();
             var employees = await _repo.MonthEmployeesAsync(scope, m.CompanyId, month, employeeId, ct);
             var leave = await _repo.MonthLeaveAsync(m.CompanyId, month, ct);
@@ -261,7 +265,7 @@ public sealed class AttendanceService : IAttendanceService
             var results = new List<AttDayResult>();
             foreach (var e in employees)
             {
-                results.AddRange(AttendanceCalculator.Month(DateOnly.FromDateTime(month), e, assignments, patterns, days, leave, holidays, coverFrom, coverTo));
+                results.AddRange(AttendanceCalculator.Month(DateOnly.FromDateTime(month), e, assignments, patterns, days, leave, holidays, coverFrom, coverTo, monthFrom, monthTo));
             }
             await _repo.SaveMonthAsync(scope, m.CompanyId, month, employeeId, results, _user.UserId, ct);
         }

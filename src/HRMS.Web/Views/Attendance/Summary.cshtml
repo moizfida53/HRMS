@@ -31,6 +31,10 @@
                     }
                 </select>
             </div>
+            @if (Model.From is { } sf && Model.To is { } st)
+            {
+                <span class="att-range-chip is-period">@Html.Icon("calendar", 14)<span>@L["att.range_period_0_1", L.Date(sf), L.Date(st)]</span></span>
+            }
             <div class="hrms-card__count">@(Model.Rows.Count == 1 ? L["att.1_employee"] : L["att.0_employees", PayrollFormat.Count(Model.Rows.Count)])</div>
         </form>
 

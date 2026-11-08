@@ -64,6 +64,9 @@ public sealed class AttSummaryModel
     public DateTime Month { get; init; }
     public IReadOnlyList<AttendanceSummaryRow> Rows { get; init; } = [];
     public AttendanceKpis Kpis { get; init; } = new();
+    /// <summary>The days of the payroll month (db/137: the payroll calendar's start day).</summary>
+    public DateTime? From { get; init; }
+    public DateTime? To { get; init; }
 
     public bool AnyPosted => Rows.Any(r => r.IsPosted);
     public bool AnyChanged => Rows.Any(r => r.ChangedSincePosted) || (AnyPosted && Rows.Any(r => !r.IsPosted && (r.DeductionAmount > 0 || r.OvertimeAmount > 0)));

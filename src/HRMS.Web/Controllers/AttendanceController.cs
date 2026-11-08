@@ -314,9 +314,11 @@ public sealed class AttendanceController : Controller
         var companies = await CompaniesAsync();
         var co = await CompanyAsync(company);
         var (months, m) = await MonthAsync(co, month);
+        var range = co is { } rc ? await _repo.SheetPeriodAsync(Scope, rc, m, Ct) : null;
         return View(new AttSummaryModel
         {
             Rights = rights, Companies = companies, CompanyId = co, Months = months, Month = m,
+            From = range?.StartDate, To = range?.EndDate,
             Rows = co is { } c ? await _repo.SummaryAsync(Scope, c, m, Ct) : [],
             Kpis = co is { } c2 ? await _repo.KpisAsync(Scope, c2, m, null, Ct) : new AttendanceKpis()
         });

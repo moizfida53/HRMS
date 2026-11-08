@@ -93,10 +93,13 @@ public static class AttendanceCalculator
         IReadOnlyList<AttLeaveInput> leave,
         IReadOnlyList<AttHolidayInput> holidays,
         DateOnly? coverFrom,
-        DateOnly? coverTo)
+        DateOnly? coverTo,
+        DateOnly? monthFrom = null,
+        DateOnly? monthTo = null)
     {
-        var first = new DateOnly(month.Year, month.Month, 1);
-        var last = first.AddMonths(1).AddDays(-1);
+        // the payroll month: its days follow the payroll calendar's start day (25 -> 25 Sep - 24 Oct), else the calendar month
+        var first = monthFrom ?? new DateOnly(month.Year, month.Month, 1);
+        var last = monthTo ?? new DateOnly(month.Year, month.Month, 1).AddMonths(1).AddDays(-1);
         var results = new List<AttDayResult>();
 
         AttendancePattern? PatternOn(DateOnly d)
