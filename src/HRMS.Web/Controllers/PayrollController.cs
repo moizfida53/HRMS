@@ -1552,6 +1552,18 @@ public sealed class PayrollController : Controller
         // the companies come as CompanyIds (one per ticked company); CompanyId is not posted any more
         await TryUpdateModelAsync(model);
         ModelState.Remove(nameof(PayrollCalendar.CompanyId));
+        // monthly: the start day (1 - 28) and the first payroll month give the first period's start
+        // (start 25, January 2026 -> 25 Dec 2025: each period runs 25th - 24th of the next month)
+        if (model.PayFrequency == "MONTHLY" && Request.Form.ContainsKey("StartDay"))
+        {
+            var dayOk = int.TryParse(Request.Form["StartDay"], out var startDay) && startDay is >= 1 and <= 28;
+            var monthOk = DateTime.TryParseExact(Request.Form["FirstMonth"], "yyyy-MM", System.Globalization.CultureInfo.InvariantCulture,
+                                                 System.Globalization.DateTimeStyles.None, out var firstMonth);
+            ModelState.Remove(nameof(PayrollCalendar.FirstPeriodStartDate));
+            if (!dayOk || !monthOk)
+                return Json(ActionResponse.Invalid(new Dictionary<string, string[]> { ["FirstMonth"] = [_text.Tr("Select the start day and the first payroll month.")] }));
+            model.FirstPeriodStartDate = startDay == 1 ? firstMonth : new DateTime(firstMonth.Year, firstMonth.Month, startDay).AddMonths(-1);
+        }
         if (!ModelState.IsValid) return Json(ActionResponse.Invalid(CollectErrors()));
         var editing = model.PayrollCalendarId > 0;
         if (!Can(editing ? PermSetupEdit : PermSetupCreate)) return Denied();
@@ -1584,15 +1596,25 @@ public sealed class PayrollController : Controller
             var copy = CopyCalendar(model);
             copy.CompanyId = companyId;
             copy.PayrollCalendarId = row?.PayrollCalendarId ?? 0;
-            if (row is not null && (await _calendars.PeriodsAsync(row.PayrollCalendarId, null, false, Ct)).Any(p => p.Status != "OPEN"))
+            var periods = row is null ? [] : await _calendars.PeriodsAsync(row.PayrollCalendarId, null, false, Ct);
+            if (periods.Any(p => p.Status != "OPEN"))
             {
                 // payroll processed on it: its frequency and start date stay as they are
-                copy.PayFrequency = row.PayFrequency;
+                copy.PayFrequency = row!.PayFrequency;
                 copy.FirstPeriodStartDate = row.FirstPeriodStartDate;
             }
             if (keepDefaults) copy.IsDefault = row?.IsDefault ?? false;
             var saved = await _calendars.SaveAsync(copy, UserId, Ct);
-            if (saved.Success) { done++; lastId = saved.Id; }
+            if (saved.Success)
+            {
+                done++; lastId = saved.Id;
+                // new dates: its open periods no payroll uses are taken away - Create Payroll makes them again from the new dates
+                if (row is not null && (row.FirstPeriodStartDate?.Date != copy.FirstPeriodStartDate?.Date || row.PayFrequency != copy.PayFrequency))
+                {
+                    foreach (var p in periods.Where(p => p.Status == "OPEN" && p.RunCount == 0))
+                        await _calendars.DeletePeriodAsync(p.PayrollPeriodId, UserId, Ct);
+                }
+            }
             else failures.Add(Name(companyId) + ": " + _text.Tr(saved.Message));
         }
 

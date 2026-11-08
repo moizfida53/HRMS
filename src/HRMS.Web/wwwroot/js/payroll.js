@@ -807,9 +807,37 @@
                 $all("[data-freq-weekly]", recModal).forEach(function (el) { el.hidden = monthly; });
             }
             if (basis) { $all("[data-basis-fixed]", recModal).forEach(function (el) { el.hidden = basis.value !== "FIXED"; }); }
+            syncCalendarSpan();
         };
+        // monthly: the start day and the first payroll month -> "runs from day 25 to day 24 of the next month",
+        // and the first period's dates
+        var syncCalendarSpan = function (dayChanged) {
+            var daySel = $("[data-cal-start-day]", recModal), monthIn = $("[data-cal-first-month]", recModal), span = $("[data-cal-span]", recModal);
+            if (!daySel || !span) { return; }
+            var d = parseInt(daySel.value, 10) || 1;
+            var lines = [];
+            lines.push(d === 1 ? span.getAttribute("data-one") : span.getAttribute("data-many").replace("{0}", d).replace("{1}", d - 1));
+            var m = /^(\d{4})-(\d{2})$/.exec(monthIn ? monthIn.value : "");
+            if (m) {
+                var y = parseInt(m[1], 10), mo = parseInt(m[2], 10) - 1;
+                var start = d === 1 ? new Date(y, mo, 1) : new Date(y, mo - 1, d);
+                var end = d === 1 ? new Date(y, mo + 1, 0) : new Date(y, mo, d - 1);
+                var lang = span.getAttribute("data-lang") || undefined;
+                var f = function (dt, opts) { try { return dt.toLocaleDateString(lang, opts); } catch (e) { return dt.toDateString(); } };
+                var full = { day: "numeric", month: "short", year: "numeric" };
+                lines.push(span.getAttribute("data-first").replace("{0}", f(new Date(y, mo, 1), { month: "long", year: "numeric" }))
+                                                          .replace("{1}", f(start, full)).replace("{2}", f(end, full)));
+            }
+            span.innerHTML = lines.map(function (t, i) { return "<span" + (i === 0 ? " class=\"pr-cal-span__main\"" : "") + ">" + HRMS.escape(t) + "</span>"; }).join("");
+            // the cut-off follows the period's last day until it is changed by hand
+            var cut = $("[name=CutOffDay]", recModal);
+            if (dayChanged && cut && !cut.hasAttribute("data-touched")) { cut.value = d === 1 ? 31 : d - 1; }
+        };
+        recModal.addEventListener("input", function (ev) { if (ev.target.matches("[name=CutOffDay]")) { ev.target.setAttribute("data-touched", "1"); } });
         recModal.addEventListener("change", function (ev) {
             if (ev.target.matches("[data-cal-frequency], [data-cal-basis]")) { syncCalendarForm(); }
+            if (ev.target.matches("[data-cal-start-day]")) { syncCalendarSpan(true); }
+            if (ev.target.matches("[data-cal-first-month]")) { syncCalendarSpan(false); }
         });
         recForm.addEventListener("submit", function (ev) {
             ev.preventDefault();

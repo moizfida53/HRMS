@@ -35,7 +35,6 @@ else
                     <th scope="col">@L["pr.pay_date"]</th>
                     <th scope="col">@L["pr.payrolls"]</th>
                     <th scope="col">@L["common.status"]</th>
-                    <th scope="col"><span class="hrms-sr-only">@L["common.actions"]</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -60,16 +59,6 @@ else
                             }
                         </td>
                         <td data-label="@L["common.status"]"><span class="hrms-badge hrms-badge--@Badge(p.Status)"><span class="hrms-badge__dot"></span>@L.Tr(PayrollController.PeriodStatusLabel(p.Status))</span></td>
-                        <td class="hrms-table__actions">
-                            @if (Model.CanSetup && p.Status == "OPEN")
-                            {
-                                <button type="button" class="btn-icon" data-period-edit title="@L["common.edit"]" aria-label="@L["common.edit_named", PayrollFormat.Period(L, p)]">@Html.Icon("edit", 15)</button>
-                                @if (p.RunCount == 0)
-                                {
-                                    <button type="button" class="btn-icon btn-icon--danger" data-period-delete title="@L["common.delete"]" aria-label="@L["common.delete_named", PayrollFormat.Period(L, p)]">@Html.Icon("trash", 15)</button>
-                                }
-                            }
-                        </td>
                     </tr>
                 }
             </tbody>

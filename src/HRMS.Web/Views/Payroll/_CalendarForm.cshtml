@@ -77,11 +77,44 @@
             </select>
             <span class="form-text">@L["pr.cal_freq_kuwait_hint"]</span>
         </div>
-        <div class="col-md-6">
+        @*
+            Monthly: the day each period starts (1 - 28) and the first payroll month - the period then ends the day
+            before, in the next month (start 25 -> 25 Dec - 24 Jan = January). Weekly / bi-weekly: the first start date.
+        *@
+        @{
+            var startDay = c.FirstPeriodStartDate?.Day ?? 1;
+            if (startDay > 28) { startDay = 28; }
+            var firstMonth = c.FirstPeriodStartDate is { } fps
+                ? (fps.Day == 1 ? fps : fps.AddMonths(1))
+                : new DateTime(DateTime.Today.Year, 1, 1);
+        }
+        <div class="col-md-6" data-freq-monthly hidden="@(!monthly)">
+            <div class="row g-2">
+                <div class="col-5">
+                    <label class="form-label" for="cal-day">@L["pr.cal_start_day"] <span class="req" aria-hidden="true">*</span></label>
+                    <select class="form-select" id="cal-day" name="@(Model.ScheduleLocked ? null : "StartDay")" data-cal-start-day disabled="@lockedAttr">
+                        @for (var dd = 1; dd <= 28; dd++)
+                        {
+                            <option value="@dd" selected="@(dd == startDay)">@dd</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-7">
+                    <label class="form-label" for="cal-first">@L["pr.cal_first_month"] <span class="req" aria-hidden="true">*</span></label>
+                    <input class="form-control" type="month" id="cal-first" name="@(Model.ScheduleLocked ? null : "FirstMonth")" data-cal-first-month
+                           value="@firstMonth.ToString("yyyy-MM", inv)" disabled="@lockedAttr" />
+                </div>
+            </div>
+            <div class="pr-cal-span" data-cal-span aria-live="polite"
+                 data-one="@L["pr.cal_span_month"]" data-many="@L["pr.cal_span_0_1"]" data-first="@L["pr.cal_span_first_0_1_2"]"
+                 data-lang="@(L.IsArabic ? "ar" : "en-GB")"></div>
+            <span class="field-validation-error" data-valmsg-for="FirstMonth"></span>
+        </div>
+        <div class="col-md-6" data-freq-weekly hidden="@(monthly)">
             <label class="form-label" for="cal-start">@L["pr.first_period_starts"] <span class="req" aria-hidden="true">*</span></label>
             <input class="form-control" type="date" id="cal-start" name="@(Model.ScheduleLocked ? null : "FirstPeriodStartDate")"
                    value="@c.FirstPeriodStartDate?.ToString("yyyy-MM-dd", inv)" disabled="@lockedAttr" />
-            <span class="form-text">@L["pr.monthly_day_1_28_a_start_day_of_21_gives_21_sep_20_oct_o"]</span>
+            <span class="form-text">@L["pr.cal_weekly_start_hint"]</span>
             <span class="field-validation-error" data-valmsg-for="FirstPeriodStartDate"></span>
         </div>
     </div>

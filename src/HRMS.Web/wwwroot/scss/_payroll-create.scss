@@ -400,3 +400,18 @@
   small { font-size: $fs-xs; font-weight: $fw-semibold; color: $ink-500; }
   &.is-some { color: $ink-500; }
 }
+
+// Payroll Calendar form (db/134): where each period starts and ends, worked out from the start day
+.pr-cal-span {
+  display: grid;
+  gap: 2px;
+  margin-block-start: space("2");
+  padding: space("2") space("3");
+  border-radius: $radius;
+  background: $blue-050;
+  border: 1px solid $blue-100;
+  font-size: $fs-sm;
+  color: $ink-600;
+  &:empty { display: none; }
+  &__main { font-weight: $fw-semibold; color: $blue-700; }
+}

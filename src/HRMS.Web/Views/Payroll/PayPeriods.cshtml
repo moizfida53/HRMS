@@ -33,11 +33,7 @@
                         <option value="@y" selected="@(y == year)">@y</option>
                     }
                 </select>
-                @if (Model.CanSetup && Model.Calendars.Count > 0)
-                {
-                    <button type="button" class="btn btn-primary pr-toolbar-action" data-periods-generate
-                            data-url="@Url.Action("PeriodsGenerate", "Payroll")">@Html.Icon("plus", 15)<span>@L["pr.generate_periods"]</span></button>
-                }
+                @* view only: the periods are generated from the payroll calendar when a payroll is created *@
             </div>
         </div>
         @if (Model.Calendars.Count == 0)
