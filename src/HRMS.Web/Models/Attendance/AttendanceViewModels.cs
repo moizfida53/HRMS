@@ -114,7 +114,8 @@ public sealed class AttPatternFormModel
 }
 
 /// <summary>A day of the Attendance Sheet: what is shown (✓, ✗, L 12 ...) and what a click does.</summary>
-public sealed record AttSheetCell(string Text, string Kind, string? Title, long RecordId, string? Sub = null, bool Manual = false, int Minutes = 0);
+/// <param name="AlsoShort">Late and short hours the same day (shown L, counted in both).</param>
+public sealed record AttSheetCell(string Text, string Kind, string? Title, long RecordId, string? Sub = null, bool Manual = false, int Minutes = 0, bool AlsoShort = false);
 
 public sealed class AttSheetRow
 {
@@ -122,6 +123,7 @@ public sealed class AttSheetRow
     public required IReadOnlyList<AttSheetCell> Cells { get; init; }
     public int Present { get; init; }
     public int Late { get; init; }
+    public int Short { get; init; }
     public int Absent { get; init; }
     public int Leave { get; init; }
     public decimal Deduction { get; init; }
@@ -175,7 +177,7 @@ public sealed class AttSheetModel
         foreach (var e in employees)
         {
             var cells = new List<AttSheetCell>();
-            int present = 0, late = 0, absent = 0, onLeave = 0;
+            int present = 0, late = 0, shortDays = 0, absent = 0, onLeave = 0;
             decimal ded = 0;
             var empAssign = assignments.Where(a => a.EmployeeId == e.EmployeeId).OrderBy(a => a.EffectiveFrom).ToList();
             for (var i = 0; i < days.Count; i++)
@@ -200,9 +202,11 @@ public sealed class AttSheetModel
                         _ => new("✓", "nopattern", title, r.RecordId)
                     };
                     if (manual) cell = cell with { Manual = true };
+                    if (r.Status == "LATE_SHORT") cell = cell with { AlsoShort = true };
                     cells.Add(cell);
                     if (PresentCodes.Contains(r.Status)) { present++; perDay[i]++; }
                     if (r.Status is "LATE" or "LATE_SHORT") late++;
+                    if (r.Status is "SHORT" or "LATE_SHORT") shortDays++;
                     if (r.Status == "ABSENT") absent++;
                     if (r.Status == "LEAVE") onLeave++;
                     ded += r.DeductionAmount;
@@ -221,7 +225,7 @@ public sealed class AttSheetModel
                 }
                 cells.Add(new(d > today ? "" : "–", d > today ? "future" : "none", null, 0));
             }
-            rows.Add(new AttSheetRow { Employee = e, Cells = cells, Present = present, Late = late, Absent = absent, Leave = onLeave, Deduction = ded });
+            rows.Add(new AttSheetRow { Employee = e, Cells = cells, Present = present, Late = late, Short = shortDays, Absent = absent, Leave = onLeave, Deduction = ded });
         }
         return (rows, perDay);
     }

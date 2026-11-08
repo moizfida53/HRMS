@@ -453,13 +453,13 @@ public sealed class AttendanceController : Controller
         var inv = CultureInfo.InvariantCulture;
         var headers = new List<string> { _l["emp.employee_no"], _l["att.col_employee"], _l["common.department"] };
         headers.AddRange(model.Days.Select(d => d.ToString("dd ddd", _l.IsArabic ? CultureInfo.GetCultureInfo("ar-KW") : inv)));
-        headers.AddRange([_l["att.t_present"], _l["att.t_late"], _l["att.t_absent"], _l["att.t_leave"], _l["att.t_ded"]]);
+        headers.AddRange([_l["att.t_present"], _l["att.t_late"], _l["att.t_short"], _l["att.t_absent"], _l["att.t_leave"], _l["att.t_ded"]]);
         var bytes = XlsxFile.Write(_l["att.nav_sheet"], headers,
             model.Rows.Select(r =>
             {
                 var cells = new List<object?> { r.Employee.EmployeeNo, PayrollFormat.EmployeeName(_l, r.Employee.EmployeeName, r.Employee.ArabicName), r.Employee.DepartmentName };
                 cells.AddRange(r.Cells.Select(c => (object?)(c.Sub is null ? c.Text : $"{c.Text} {c.Sub}")));
-                cells.AddRange([r.Present, r.Late, r.Absent, r.Leave, r.Deduction]);
+                cells.AddRange([r.Present, r.Late, r.Short, r.Absent, r.Leave, r.Deduction]);
                 return (IReadOnlyList<object?>)cells;
             }), rightToLeft: _l.IsArabic);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

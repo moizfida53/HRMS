@@ -564,6 +564,7 @@ button.att-cell {
     &--ded { min-width: 80px; text-align: end; }
     &.is-p   { color: $green-700; }
     &.is-l   { color: $amber-700; }
+    &.is-s   { color: $amber-600; }
     &.is-a   { color: $red-700; }
     &.is-lv  { color: $blue-700; }
     &.is-ded { color: $red-700; }

@@ -166,6 +166,7 @@
                             }
                             <th scope="col" class="att-sheet__tot att-sheet__tot--first" title="@L["att.t_present_hint"]">@L["att.t_present"]</th>
                             <th scope="col" class="att-sheet__tot" title="@L["att.t_late_hint"]">@L["att.t_late"]</th>
+                            <th scope="col" class="att-sheet__tot" title="@L["att.t_short_hint"]">@L["att.t_short"]</th>
                             <th scope="col" class="att-sheet__tot" title="@L["att.t_absent_hint"]">@L["att.t_absent"]</th>
                             <th scope="col" class="att-sheet__tot" title="@L["att.t_leave_hint"]">@L["att.t_leave"]</th>
                             <th scope="col" class="att-sheet__tot att-sheet__tot--ded">@L["att.t_ded"]</th>
@@ -196,7 +197,7 @@
                                     var locked = Model.LockedDays.Count > i && Model.LockedDays[i];
                                     var clickable = canEdit && !locked && c.Kind is not ("out" or "future") && (c.RecordId > 0 || d <= today);
                                     <td class="att-sheet__c @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null) @(locked ? "is-locked" : null)"
-                                        data-att-day="@i" data-date="@d.ToString("yyyy-MM-dd", inv)" data-rec="@c.RecordId" data-kind="@c.Kind" data-min="@c.Minutes"
+                                        data-att-day="@i" data-date="@d.ToString("yyyy-MM-dd", inv)" data-rec="@c.RecordId" data-kind="@c.Kind" data-min="@c.Minutes" data-also-short="@(c.AlsoShort ? "1" : null)"
                                         data-can="@(clickable ? "1" : "0")">
                                         @if (clickable)
                                         {
@@ -213,6 +214,7 @@
                                 }
                                 <td class="att-sheet__tot att-sheet__tot--first is-p" data-tot="p">@r.Present</td>
                                 <td class="att-sheet__tot @(r.Late > 0 ? "is-l" : "is-zero")" data-tot="l">@r.Late</td>
+                                <td class="att-sheet__tot @(r.Short > 0 ? "is-s" : "is-zero")" data-tot="s">@r.Short</td>
                                 <td class="att-sheet__tot @(r.Absent > 0 ? "is-a" : "is-zero")" data-tot="a">@r.Absent</td>
                                 <td class="att-sheet__tot @(r.Leave > 0 ? "is-lv" : "is-zero")" data-tot="lv">@r.Leave</td>
                                 <td class="att-sheet__tot att-sheet__tot--ded @(r.Deduction > 0 ? "is-ded" : "is-zero")" data-tot="ded">@(r.Deduction > 0 ? PayrollFormat.Money(r.Deduction) : "—")</td>
@@ -229,6 +231,7 @@
                             }
                             <td class="att-sheet__tot att-sheet__tot--first is-p">@Model.Rows.Sum(x => x.Present)</td>
                             <td class="att-sheet__tot is-l">@Model.Rows.Sum(x => x.Late)</td>
+                            <td class="att-sheet__tot is-s">@Model.Rows.Sum(x => x.Short)</td>
                             <td class="att-sheet__tot is-a">@Model.Rows.Sum(x => x.Absent)</td>
                             <td class="att-sheet__tot is-lv">@Model.Rows.Sum(x => x.Leave)</td>
                             <td class="att-sheet__tot att-sheet__tot--ded is-ded">@PayrollFormat.Money(Model.Rows.Sum(x => x.Deduction))</td>

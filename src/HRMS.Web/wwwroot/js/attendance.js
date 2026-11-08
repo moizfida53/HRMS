@@ -372,6 +372,8 @@
                 pending[key] = { before: { html: el.innerHTML, cls: el.className, kind: td.getAttribute("data-kind"), title: el.getAttribute("title") } };
             }
             var p = pending[key];
+            if (p.before.alsoShort === undefined) { p.before.alsoShort = td.hasAttribute("data-also-short"); }
+            td.removeAttribute("data-also-short");
             p.employeeId = parseInt(td.closest("tr").getAttribute("data-emp"), 10);
             p.date = td.getAttribute("data-date");
             p.status = mark; p.minutes = minutes; p.note = note;
@@ -388,6 +390,7 @@
             el.className = p.before.cls; el.innerHTML = p.before.html;
             if (p.before.title) { el.setAttribute("title", p.before.title); }
             td.setAttribute("data-kind", p.before.kind);
+            if (p.before.alsoShort) { td.setAttribute("data-also-short", "1"); }
             delete pending[key];
             recount(td);
             syncSave();
@@ -395,15 +398,16 @@
         // the row's totals and the day's count follow the marks (the deduction is worked out on save)
         function recount(td) {
             var tr = td.closest("tr"), cells = $all("td[data-att-day]", tr);
-            var c = { p: 0, l: 0, a: 0, lv: 0 };
+            var c = { p: 0, l: 0, s: 0, a: 0, lv: 0 };
             cells.forEach(function (x) {
                 var k = x.getAttribute("data-kind");
                 if (PRESENT_KINDS[k]) { c.p++; }
                 if (k === "late") { c.l++; }
+                if (k === "short" || (k === "late" && x.hasAttribute("data-also-short"))) { c.s++; }
                 if (k === "absent") { c.a++; }
                 if (k === "leave") { c.lv++; }
             });
-            [["p", "is-p"], ["l", "is-l"], ["a", "is-a"], ["lv", "is-lv"]].forEach(function (t) {
+            [["p", "is-p"], ["l", "is-l"], ["s", "is-s"], ["a", "is-a"], ["lv", "is-lv"]].forEach(function (t) {
                 var cell = $('[data-tot="' + t[0] + '"]', tr);
                 if (!cell) { return; }
                 cell.textContent = c[t[0]];

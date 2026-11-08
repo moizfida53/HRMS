@@ -22674,6 +22674,9 @@ button.att-cell.att-cell--none:hover::after {
 .att-sheet__tot.is-l {
   color: #b54708;
 }
+.att-sheet__tot.is-s {
+  color: #d97706;
+}
 .att-sheet__tot.is-a {
   color: #b42318;
 }
