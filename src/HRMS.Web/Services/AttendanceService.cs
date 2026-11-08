@@ -59,7 +59,8 @@ public interface IAttendanceService
     Task<SaveResult> ConfirmAsync(string token, IReadOnlyDictionary<int, AttColumn> roles, IReadOnlyDictionary<string, long> links, bool remember,
                                   CancellationToken ct = default);
     /// <summary>Works the months out again (after an import, a change of a day, a pattern or an assignment).</summary>
-    Task RecalculateAsync(IEnumerable<AttMonth> months, long? employeeId = null, CancellationToken ct = default);
+    /// <summary>Works the months out again - not a month whose payroll is created or whose attendance is posted (returned).</summary>
+    Task<IReadOnlyList<AttMonth>> RecalculateAsync(IEnumerable<AttMonth> months, long? employeeId = null, CancellationToken ct = default);
 }
 
 public sealed class AttendanceService : IAttendanceService
@@ -241,8 +242,9 @@ public sealed class AttendanceService : IAttendanceService
         return result;
     }
 
-    public async Task RecalculateAsync(IEnumerable<AttMonth> months, long? employeeId = null, CancellationToken ct = default)
+    public async Task<IReadOnlyList<AttMonth>> RecalculateAsync(IEnumerable<AttMonth> months, long? employeeId = null, CancellationToken ct = default)
     {
+        var locked = new List<AttMonth>();
         var scope = Scope;
         var patterns = (await _repo.PatternsAsync(scope, ct: ct)).ToDictionary(p => p.PatternId);
         var assignments = await _repo.AssignmentsAsync(scope, employeeId, ct);
@@ -253,6 +255,14 @@ public sealed class AttendanceService : IAttendanceService
             var range = await _repo.SheetPeriodAsync(scope, m.CompanyId, month, ct);
             DateOnly? monthFrom = range is null ? null : DateOnly.FromDateTime(range.StartDate);
             DateOnly? monthTo = range is null ? null : DateOnly.FromDateTime(range.EndDate);
+            // a payroll created for the month (Registered or later): it stays as it is (a posted month can be posted again)
+            var lockFrom = range?.StartDate ?? month;
+            var lockTo = range?.EndDate ?? month.AddMonths(1).AddDays(-1);
+            if ((await _repo.SheetLocksAsync(scope, m.CompanyId, lockFrom, lockTo, ct)).Any(l => l.Reason == "PAYROLL"))
+            {
+                locked.Add(m);
+                continue;
+            }
             var days = (await _repo.MonthDaysAsync(scope, m.CompanyId, month, employeeId, ct)).Where(d => d.Source != "GENERATED").ToList();
             var employees = await _repo.MonthEmployeesAsync(scope, m.CompanyId, month, employeeId, ct);
             var leave = await _repo.MonthLeaveAsync(m.CompanyId, month, ct);
@@ -269,5 +279,6 @@ public sealed class AttendanceService : IAttendanceService
             }
             await _repo.SaveMonthAsync(scope, m.CompanyId, month, employeeId, results, _user.UserId, ct);
         }
+        return locked;
     }
 }

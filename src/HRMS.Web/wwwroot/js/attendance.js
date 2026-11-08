@@ -372,7 +372,13 @@
                 pending[key] = { before: { html: el.innerHTML, cls: el.className, kind: td.getAttribute("data-kind"), title: el.getAttribute("title") } };
             }
             var p = pending[key];
-            if (p.before.alsoShort === undefined) { p.before.alsoShort = td.hasAttribute("data-also-short"); }
+            if (p.before.alsoShort === undefined) {
+                p.before.alsoShort = td.hasAttribute("data-also-short");
+                p.before.lateMin = td.getAttribute("data-late-min") || "0";
+                p.before.shortMin = td.getAttribute("data-short-min") || "0";
+            }
+            td.setAttribute("data-late-min", mark === "LATE" ? String(minutes || 0) : "0");
+            td.setAttribute("data-short-min", mark === "SHORT" ? String(minutes || 0) : "0");
             td.removeAttribute("data-also-short");
             p.employeeId = parseInt(td.closest("tr").getAttribute("data-emp"), 10);
             p.date = td.getAttribute("data-date");
@@ -391,6 +397,8 @@
             if (p.before.title) { el.setAttribute("title", p.before.title); }
             td.setAttribute("data-kind", p.before.kind);
             if (p.before.alsoShort) { td.setAttribute("data-also-short", "1"); }
+            td.setAttribute("data-late-min", p.before.lateMin || "0");
+            td.setAttribute("data-short-min", p.before.shortMin || "0");
             delete pending[key];
             recount(td);
             syncSave();
@@ -398,20 +406,28 @@
         // the row's totals and the day's count follow the marks (the deduction is worked out on save)
         function recount(td) {
             var tr = td.closest("tr"), cells = $all("td[data-att-day]", tr);
+            // L and S are the late / short time (h:mm) the deduction is worked out on
             var c = { p: 0, l: 0, s: 0, a: 0, lv: 0 };
             cells.forEach(function (x) {
                 var k = x.getAttribute("data-kind");
                 if (PRESENT_KINDS[k]) { c.p++; }
-                if (k === "late") { c.l++; }
-                if (k === "short" || (k === "late" && x.hasAttribute("data-also-short"))) { c.s++; }
+                c.l += parseInt(x.getAttribute("data-late-min"), 10) || 0;
+                c.s += parseInt(x.getAttribute("data-short-min"), 10) || 0;
                 if (k === "absent") { c.a++; }
                 if (k === "leave") { c.lv++; }
             });
             [["p", "is-p"], ["l", "is-l"], ["s", "is-s"], ["a", "is-a"], ["lv", "is-lv"]].forEach(function (t) {
                 var cell = $('[data-tot="' + t[0] + '"]', tr);
                 if (!cell) { return; }
-                cell.textContent = c[t[0]];
+                cell.textContent = t[0] === "l" || t[0] === "s" ? hm(c[t[0]], "\u2014") : c[t[0]];
                 if (t[0] !== "p") { cell.classList.toggle(t[1], c[t[0]] > 0); cell.classList.toggle("is-zero", c[t[0]] === 0); }
+            });
+            ["l", "s"].forEach(function (k) {
+                var f = $('[data-foot-tot="' + k + '"]', page);
+                if (!f) { return; }
+                var sum = 0;
+                $all("td[data-att-day]", page).forEach(function (x) { sum += parseInt(x.getAttribute(k === "l" ? "data-late-min" : "data-short-min"), 10) || 0; });
+                f.textContent = hm(sum, "0:00");
             });
             var ded = $('[data-tot="ded"]', tr);
             if (ded) { ded.classList.toggle("is-stale", $all(".att-cell.is-pending", tr).length > 0); }
@@ -421,13 +437,26 @@
                 foot.textContent = n;
             }
         }
+        function hm(min, zero) { return min > 0 ? Math.floor(min / 60) + ":" + ("0" + (min % 60)).slice(-2) : zero; }
         function syncSave() {
             var n = pendingKeys().length;
             if (saveBtn) {
                 saveBtn.hidden = n === 0;
                 $("[data-att-mk-save-text]", saveBtn).textContent = (saveBtn.getAttribute("data-text") || "Save changes ({0})").replace("{0}", n);
             }
-            if (discardBtn) { discardBtn.hidden = n === 0; }
+            // work the payroll month out again (the changes not saved yet are saved first)
+        var recalcBtn = $("[data-att-recalc]");
+        if (recalcBtn) {
+            recalcBtn.addEventListener("click", function () {
+                saveMarks(recalcBtn).then(function (ok) {
+                    if (!ok) { return; }
+                    post(url("recalc"), { company: recalcBtn.getAttribute("data-company"), month: recalcBtn.getAttribute("data-month") }, recalcBtn).then(function (res) {
+                        if (res && res.success) { keepScroll(); leaving = true; reloadWith(res.message); }
+                    });
+                });
+            });
+        }
+        if (discardBtn) { discardBtn.hidden = n === 0; }
         }
         /** Saves the marks; resolves true when saved. */
         function saveMarks(button) {
@@ -590,6 +619,15 @@
     /* ====================================================== Monthly Summary */
     if (mode === "summary") {
         var sform = $("[data-att-filters]", page);
+        // work the month out again with the attendance settings now (the page action, outside the page element)
+        var sRecalc = $("[data-att-recalc]");
+        if (sRecalc) {
+            sRecalc.addEventListener("click", function () {
+                post(url("recalc"), { company: sRecalc.getAttribute("data-company"), month: sRecalc.getAttribute("data-month") }, sRecalc).then(function (res) {
+                    if (res && res.success) { reloadWith(res.message); }
+                });
+            });
+        }
         $all("[data-att-filter]", sform).forEach(function (el) {
             el.addEventListener("change", function () { HRMS.go(qs(sform.getAttribute("action"), { company: $("[name=company]", sform).value, month: $("[name=month]", sform).value })); });
         });

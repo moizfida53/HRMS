@@ -153,6 +153,12 @@
 @section PageActions {
     @if (Model.CompanyId is { } co && Model.Rows.Count > 0)
     {
+        @if (Model.Rights.CanImport)
+        {
+            @* work the month out again with the attendance settings now - not once its payroll is created *@
+            <button type="button" class="btn btn-outline-secondary" data-att-recalc data-company="@co" data-month="@monthKey"
+                    disabled="@Model.Locked" title="@(Model.Locked ? L["att.recalc_locked"] : L["att.recalculate_hint"])">@Html.Icon("refresh", 15)<span>@L["att.recalculate"]</span></button>
+        }
         <a class="btn btn-outline-secondary" href="@Url.Action("Export", "Attendance", new { company = co, month = monthKey })">@Html.Icon("download", 15)<span>@L["common.export"]</span></a>
         @if (Model.Rights.CanPost)
         {

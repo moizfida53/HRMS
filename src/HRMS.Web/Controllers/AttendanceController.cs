@@ -193,8 +193,12 @@ public sealed class AttendanceController : Controller
         if (ParseMonth(month) is not { } m) return Json(ActionResponse.Failed(_l.Tr("Select the month."), "VALIDATION"));
         var companies = await CompaniesAsync();
         var list = company is { } c ? companies.Where(x => x.Id == c).ToList() : companies.ToList();
-        await _service.RecalculateAsync(list.Select(x => new AttMonth(x.Id, m)), null, Ct);
-        return Result(SaveResult.Ok(0, "The month was worked out again."));
+        var locked = await _service.RecalculateAsync(list.Select(x => new AttMonth(x.Id, m)), null, Ct);
+        if (locked.Count > 0 && locked.Count == list.Count)
+            return Json(ActionResponse.Failed(_l["att.recalc_locked"], "LOCKED"));
+        return Result(SaveResult.Ok(0, locked.Count > 0
+            ? $"The month was worked out again - not for {locked.Count} company(ies) whose payroll is already created."
+            : "The month was worked out again with the attendance settings now."));
     }
 
     // =======================================================================
@@ -319,6 +323,7 @@ public sealed class AttendanceController : Controller
         {
             Rights = rights, Companies = companies, CompanyId = co, Months = months, Month = m,
             From = range?.StartDate, To = range?.EndDate,
+            Locked = co is { } lk && range is not null && (await _repo.SheetLocksAsync(Scope, lk, range.StartDate, range.EndDate, Ct)).Any(l => l.Reason == "PAYROLL"),
             Rows = co is { } c ? await _repo.SummaryAsync(Scope, c, m, Ct) : [],
             Kpis = co is { } c2 ? await _repo.KpisAsync(Scope, c2, m, null, Ct) : new AttendanceKpis()
         });
@@ -414,7 +419,8 @@ public sealed class AttendanceController : Controller
         {
             Rights = Rights, Companies = companies, CompanyId = co, Months = months, Month = m,
             From = f.Value, To = t.Value, IsPeriod = isPeriod, Clipped = clipped, Search = q,
-            Days = days, Rows = rows, PresentPerDay = perDay, LockedDays = lockedDays
+            Days = days, Rows = rows, PresentPerDay = perDay, LockedDays = lockedDays,
+            PayrollCreated = locks.Any(l => l.Reason == "PAYROLL")
         };
     }
 
@@ -459,7 +465,7 @@ public sealed class AttendanceController : Controller
             {
                 var cells = new List<object?> { r.Employee.EmployeeNo, PayrollFormat.EmployeeName(_l, r.Employee.EmployeeName, r.Employee.ArabicName), r.Employee.DepartmentName };
                 cells.AddRange(r.Cells.Select(c => (object?)(c.Sub is null ? c.Text : $"{c.Text} {c.Sub}")));
-                cells.AddRange([r.Present, r.Late, r.Short, r.Absent, r.Leave, r.Deduction]);
+                cells.AddRange([r.Present, AttFormat.HmOrZero(r.LateMinutes), AttFormat.HmOrZero(r.ShortMinutes), r.Absent, r.Leave, r.Deduction]);
                 return (IReadOnlyList<object?>)cells;
             }), rightToLeft: _l.IsArabic);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

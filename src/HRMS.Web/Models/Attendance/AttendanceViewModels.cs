@@ -67,6 +67,8 @@ public sealed class AttSummaryModel
     /// <summary>The days of the payroll month (db/137: the payroll calendar's start day).</summary>
     public DateTime? From { get; init; }
     public DateTime? To { get; init; }
+    /// <summary>A payroll is created for the month (or it is posted): it cannot be worked out again.</summary>
+    public bool Locked { get; init; }
 
     public bool AnyPosted => Rows.Any(r => r.IsPosted);
     public bool AnyChanged => Rows.Any(r => r.ChangedSincePosted) || (AnyPosted && Rows.Any(r => !r.IsPosted && (r.DeductionAmount > 0 || r.OvertimeAmount > 0)));
@@ -115,7 +117,8 @@ public sealed class AttPatternFormModel
 
 /// <summary>A day of the Attendance Sheet: what is shown (✓, ✗, L 12 ...) and what a click does.</summary>
 /// <param name="AlsoShort">Late and short hours the same day (shown L, counted in both).</param>
-public sealed record AttSheetCell(string Text, string Kind, string? Title, long RecordId, string? Sub = null, bool Manual = false, int Minutes = 0, bool AlsoShort = false);
+public sealed record AttSheetCell(string Text, string Kind, string? Title, long RecordId, string? Sub = null, bool Manual = false, int Minutes = 0, bool AlsoShort = false,
+                                  int LateMin = 0, int ShortMin = 0);
 
 public sealed class AttSheetRow
 {
@@ -124,6 +127,9 @@ public sealed class AttSheetRow
     public int Present { get; init; }
     public int Late { get; init; }
     public int Short { get; init; }
+    /// <summary>The late / short time the deduction is worked out on (minutes).</summary>
+    public int LateMinutes { get; init; }
+    public int ShortMinutes { get; init; }
     public int Absent { get; init; }
     public int Leave { get; init; }
     public decimal Deduction { get; init; }
@@ -153,6 +159,8 @@ public sealed class AttSheetModel
     public IReadOnlyList<int> PresentPerDay { get; init; } = [];
     /// <summary>Per day: the payroll is generated (or the month posted) - it cannot be marked.</summary>
     public IReadOnlyList<bool> LockedDays { get; init; } = [];
+    /// <summary>A payroll is created for (part of) the range: it cannot be worked out again.</summary>
+    public bool PayrollCreated { get; init; }
 
     private static readonly HashSet<string> PresentCodes = ["PRESENT", "LATE", "SHORT", "LATE_SHORT", "EXCUSED", "NO_PATTERN"];
 
@@ -177,7 +185,7 @@ public sealed class AttSheetModel
         foreach (var e in employees)
         {
             var cells = new List<AttSheetCell>();
-            int present = 0, late = 0, shortDays = 0, absent = 0, onLeave = 0;
+            int present = 0, late = 0, shortDays = 0, absent = 0, onLeave = 0, lateMin = 0, shortMin = 0;
             decimal ded = 0;
             var empAssign = assignments.Where(a => a.EmployeeId == e.EmployeeId).OrderBy(a => a.EffectiveFrom).ToList();
             for (var i = 0; i < days.Count; i++)
@@ -186,7 +194,15 @@ public sealed class AttSheetModel
                 if (byKey.TryGetValue((e.EmployeeId, d), out var r))
                 {
                     var times = $"{T(r.ClockIn)} – {T(r.ClockOut)}";
-                    var title = r.DeductionAmount > 0 ? $"{times} · {r.DeductionNote}" : r.DeductionNote is null ? times : $"{times} · {r.DeductionNote}";
+                    // the tooltip: the times, the late / short time (also under the first slab), the deduction, then any other note
+                    var tip = new List<string> { times };
+                    if (r.LateMinutes > 0) tip.Add($"Late {AttFormat.Hm(r.LateMinutes)}");
+                    if (r.ShortMinutes > 0) tip.Add($"Short {AttFormat.Hm(r.ShortMinutes)}");
+                    if (r.LateMinutes > 0 || r.ShortMinutes > 0 || r.DeductionAmount > 0)
+                        tip.Add($"Deduction {r.DeductionAmount.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)}");
+                    if (!string.IsNullOrWhiteSpace(r.DeductionNote) && (r.LateMinutes == 0 && r.ShortMinutes == 0 || !string.IsNullOrEmpty(r.ManualStatus)))
+                        tip.Add(r.DeductionNote!);
+                    var title = string.Join(" · ", tip);
                     var manual = !string.IsNullOrEmpty(r.ManualStatus);
                     AttSheetCell cell = r.Status switch
                     {
@@ -203,6 +219,9 @@ public sealed class AttSheetModel
                     };
                     if (manual) cell = cell with { Manual = true };
                     if (r.Status == "LATE_SHORT") cell = cell with { AlsoShort = true };
+                    cell = cell with { LateMin = r.LateMinutes, ShortMin = r.ShortMinutes };
+                    lateMin += r.LateMinutes;
+                    shortMin += r.ShortMinutes;
                     cells.Add(cell);
                     if (PresentCodes.Contains(r.Status)) { present++; perDay[i]++; }
                     if (r.Status is "LATE" or "LATE_SHORT") late++;
@@ -225,7 +244,7 @@ public sealed class AttSheetModel
                 }
                 cells.Add(new(d > today ? "" : "–", d > today ? "future" : "none", null, 0));
             }
-            rows.Add(new AttSheetRow { Employee = e, Cells = cells, Present = present, Late = late, Short = shortDays, Absent = absent, Leave = onLeave, Deduction = ded });
+            rows.Add(new AttSheetRow { Employee = e, Cells = cells, Present = present, Late = late, Short = shortDays, LateMinutes = lateMin, ShortMinutes = shortMin, Absent = absent, Leave = onLeave, Deduction = ded });
         }
         return (rows, perDay);
     }

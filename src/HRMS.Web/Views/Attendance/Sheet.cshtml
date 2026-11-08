@@ -25,7 +25,7 @@
 }
 <div class="pr-stack att-page" data-att-page="sheet" data-company="@Model.CompanyId"
      data-url-day="@Url.Action("Day", "Attendance")" data-url-save="@Url.Action("SaveDay", "Attendance")"
-     data-url-marks="@Url.Action("SheetSave", "Attendance")">
+     data-url-marks="@Url.Action("SheetSave", "Attendance")" data-url-recalc="@Url.Action("Recalculate", "Attendance")">
 
     <section class="hrms-card att-sheet-card">
         @* ---- the filters: company, payroll month, From / To, search ---- *@
@@ -197,7 +197,7 @@
                                     var locked = Model.LockedDays.Count > i && Model.LockedDays[i];
                                     var clickable = canEdit && !locked && c.Kind is not ("out" or "future") && (c.RecordId > 0 || d <= today);
                                     <td class="att-sheet__c @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null) @(locked ? "is-locked" : null)"
-                                        data-att-day="@i" data-date="@d.ToString("yyyy-MM-dd", inv)" data-rec="@c.RecordId" data-kind="@c.Kind" data-min="@c.Minutes" data-also-short="@(c.AlsoShort ? "1" : null)"
+                                        data-att-day="@i" data-date="@d.ToString("yyyy-MM-dd", inv)" data-rec="@c.RecordId" data-kind="@c.Kind" data-min="@c.Minutes" data-also-short="@(c.AlsoShort ? "1" : null)" data-late-min="@c.LateMin" data-short-min="@c.ShortMin"
                                         data-can="@(clickable ? "1" : "0")">
                                         @if (clickable)
                                         {
@@ -213,8 +213,8 @@
                                     </td>
                                 }
                                 <td class="att-sheet__tot att-sheet__tot--first is-p" data-tot="p">@r.Present</td>
-                                <td class="att-sheet__tot @(r.Late > 0 ? "is-l" : "is-zero")" data-tot="l">@r.Late</td>
-                                <td class="att-sheet__tot @(r.Short > 0 ? "is-s" : "is-zero")" data-tot="s">@r.Short</td>
+                                <td class="att-sheet__tot att-sheet__tot--hm @(r.LateMinutes > 0 ? "is-l" : "is-zero")" data-tot="l" title="@L["att.t_days_0", r.Late]">@AttFormat.Hm(r.LateMinutes)</td>
+                                <td class="att-sheet__tot att-sheet__tot--hm @(r.ShortMinutes > 0 ? "is-s" : "is-zero")" data-tot="s" title="@L["att.t_days_0", r.Short]">@AttFormat.Hm(r.ShortMinutes)</td>
                                 <td class="att-sheet__tot @(r.Absent > 0 ? "is-a" : "is-zero")" data-tot="a">@r.Absent</td>
                                 <td class="att-sheet__tot @(r.Leave > 0 ? "is-lv" : "is-zero")" data-tot="lv">@r.Leave</td>
                                 <td class="att-sheet__tot att-sheet__tot--ded @(r.Deduction > 0 ? "is-ded" : "is-zero")" data-tot="ded">@(r.Deduction > 0 ? PayrollFormat.Money(r.Deduction) : "—")</td>
@@ -230,8 +230,8 @@
                                 <td class="att-sheet__c att-sheet__foot @(d == today ? "is-today" : null) @(d.Day == 1 ? "is-first" : null)" data-foot="@i">@(Model.PresentPerDay[i] > 0 ? Model.PresentPerDay[i] : d > today ? "" : "0")</td>
                             }
                             <td class="att-sheet__tot att-sheet__tot--first is-p">@Model.Rows.Sum(x => x.Present)</td>
-                            <td class="att-sheet__tot is-l">@Model.Rows.Sum(x => x.Late)</td>
-                            <td class="att-sheet__tot is-s">@Model.Rows.Sum(x => x.Short)</td>
+                            <td class="att-sheet__tot att-sheet__tot--hm is-l" data-foot-tot="l">@AttFormat.HmOrZero(Model.Rows.Sum(x => x.LateMinutes))</td>
+                            <td class="att-sheet__tot att-sheet__tot--hm is-s" data-foot-tot="s">@AttFormat.HmOrZero(Model.Rows.Sum(x => x.ShortMinutes))</td>
                             <td class="att-sheet__tot is-a">@Model.Rows.Sum(x => x.Absent)</td>
                             <td class="att-sheet__tot is-lv">@Model.Rows.Sum(x => x.Leave)</td>
                             <td class="att-sheet__tot att-sheet__tot--ded is-ded">@PayrollFormat.Money(Model.Rows.Sum(x => x.Deduction))</td>
@@ -324,6 +324,12 @@
 }
 
 @section PageActions {
+    @if (canEdit && Model.CompanyId is not null)
+    {
+        @* work the payroll month out again with the attendance settings now (not once its payroll is created) *@
+        <button type="button" class="btn btn-outline-secondary" data-att-recalc data-company="@Model.CompanyId" data-month="@monthKey"
+                disabled="@Model.PayrollCreated" title="@(Model.PayrollCreated ? L["att.recalc_locked"] : L["att.recalculate_hint"])">@Html.Icon("refresh", 15)<span>@L["att.recalculate"]</span></button>
+    }
     @if (canEdit)
     {
         <button type="button" class="btn btn-outline-secondary" data-att-mk-discard hidden>@Html.Icon("close", 15)<span>@L["att.mk_discard"]</span></button>
