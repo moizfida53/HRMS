@@ -810,6 +810,12 @@
     function renderPeople() {
         var people = current.people || [];
         var unmatched = 0;
+        // an employee matched (or linked) to one ID of the file is not offered for another ID
+        var takenBy = {};
+        people.forEach(function (p) {
+            var id = links.hasOwnProperty(p.deviceId) ? links[p.deviceId] : (p.employeeId || 0);
+            if (id) { takenBy[id] = p.deviceId; }
+        });
         $("[data-att-p-people-list]").innerHTML = people.map(function (p) {
             var linked = links.hasOwnProperty(p.deviceId) ? links[p.deviceId] : (p.employeeId || 0);
             if (!linked) { unmatched++; }
@@ -818,7 +824,8 @@
                 ? '<span class="hrms-table__primary">' + esc(p.employeeName) + '</span><span class="pr-emp-sub">' + esc(p.employeeNo || "") + (p.companyName ? " · " + esc(p.companyName) : "") +
                   ' · <button type="button" class="btn btn-link btn-sm p-0" data-att-relink="' + esc(p.deviceId) + '">' + esc(lab("pick")) + "</button></span>"
                 : '<select class="form-select form-select-sm att-link" data-att-link="' + esc(p.deviceId) + '"><option value="0">' + esc(lab("leave-out")) + "</option>" +
-                  (employees || []).map(function (e) { return '<option value="' + e.id + '"' + (e.id === linked ? " selected" : "") + ">" + esc(e.text) + "</option>"; }).join("") + "</select>";
+                  (employees || []).filter(function (e) { return !takenBy[e.id] || takenBy[e.id] === p.deviceId; })
+                      .map(function (e) { return '<option value="' + e.id + '"' + (e.id === linked ? " selected" : "") + ">" + esc(e.text) + "</option>"; }).join("") + "</select>";
             return '<tr class="' + (linked ? "" : "is-unmatched") + '"><td><span class="hrms-code-chip">' + esc(p.deviceId) + "</span></td><td dir=\"auto\">" + esc(p.fileName || "—") +
                 '</td><td class="text-center">' + p.days + "</td><td>" + cell + '</td><td><span class="att-m att-m--' + esc(by) + '">' + esc(lab("m-" + by)) + "</span></td></tr>";
         }).join("");
