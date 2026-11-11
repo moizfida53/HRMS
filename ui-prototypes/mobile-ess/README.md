@@ -67,7 +67,18 @@ Mobile UX details already in the prototype: 16 px inputs (stop iOS auto-zoom), â
 `100dvh`, `env(safe-area-inset-*)`, `prefers-reduced-motion`, and `inset-inline`/`border-inline-*` logical
 properties so the **existing `bootstrap.rtl` + Arabic** setup works without extra CSS.
 
-## 6. Suggested implementation shape (when you're ready)
+## 6. Suggested implementation shape (when you're ready) â€“ .NET 10 branch
+
+The `Attendance` and `Leave` schemas and the `AttendanceController` / `LeaveController` already exist,
+so ESS is mostly a **thin employee-scoped layer** over them. No new leave or attendance engine is needed.
+
+| ESS feature | Reuse | Add |
+|---|---|---|
+| Punch In/Out | `[Attendance].[Records]`, `usp_AttRecord_Manage` (the same table the import feeds) | `Source = 'ESS'`, Lat/Lng/Accuracy/DistanceM columns; `[Organization].[Locations].GeoFenceRadiusM` |
+| Present / Absent / Short | `usp_AttSheet` / `usp_AttSummary_Manage` (Short column from 138/139) | Filter to the signed-in employee only |
+| Annual balance + history | `[Leave].[LeaveLedger]`, `usp_LeaveBalance_Manage`, `[Leave].[LeaveRequests]` | Filter to the Annual leave type only (hide sick and other types) |
+| Submit annual leave | `usp_LeaveRequest_Manage` (with `LeaveRequestHistory`) | Force LeaveType = Annual and Status = Pending; EmployeeId taken from the login claim, never from the form |
+| Profile | existing Employee select procs | Read-only view model |
 
 ```
 src/HRMS.Web/
@@ -76,10 +87,9 @@ src/HRMS.Web/
   wwwroot/scss/_ess.scss   prototype styles moved onto _tokens.scss variables
   wwwroot/manifest.webmanifest, wwwroot/ess-sw.js, icons 192/512 + apple-touch-icon 180
 db/
-  4x_Attendance_Tables.sql        AttendancePunch, AttendanceDay (Present/Absent/Short/Leave)
-  4x_Leave_Tables.sql             LeaveRequest (Annual only exposed to ESS), LeaveBalance
-  4x_Ess_StoredProcedures.sql     usp_Ess_Punch, usp_Ess_AttendanceMonth, usp_Ess_LeaveSummary, usp_Ess_LeaveSubmit, usp_Ess_Profile
+  1xx_Ess_Geofence.sql            Locations.GeoFenceRadiusM, Records geo columns, ESS role
+  1xx_Ess_StoredProcedures.sql    usp_Ess_Punch (Haversine + radius + accuracy check), thin ESS wrappers
 ```
 
-If you later want a React or Angular front end for ESS instead of Razor, the same `EssApiController` JSON
-endpoints can serve it unchanged. The layout and SCSS in the prototype map 1:1 onto Bootstrap components.
+This follows the same pattern as the existing `Areas/Items` and `Areas/POS`. If you later want a React or Angular
+front end for ESS, the same `EssApiController` JSON endpoints can serve it unchanged.
