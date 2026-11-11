@@ -172,8 +172,9 @@ BEGIN
            (SELECT COUNT(1) FROM [Security].[Users]) AS Users,
            (SELECT COUNT(1) FROM [Security].[Roles]) AS Roles;
 
-    PRINT CONCAT(N'PREVIEW only - nothing was changed. ', (SELECT COUNT(1) FROM @Clear), N' tables, ',
-                 (SELECT ISNULL(SUM(RowsBefore), 0) FROM @Clear), N' rows would be removed (@ClearSetup = ', @ClearSetup, N').');
+    DECLARE @PTables INT = (SELECT COUNT(1) FROM @Clear), @PRows BIGINT = (SELECT ISNULL(SUM(RowsBefore), 0) FROM @Clear);
+    PRINT CONCAT(N'PREVIEW only - nothing was changed. ', @PTables, N' tables, ',
+                 @PRows, N' rows would be removed (@ClearSetup = ', @ClearSetup, N').');
     PRINT N'Take a backup, set @Mode = ''EXECUTE'' and run again.';
     RETURN;
 END;
@@ -269,7 +270,8 @@ BEGIN TRANSACTION;
 COMMIT TRANSACTION;
 
     SELECT FullName AS [Cleared table], RowsBefore AS [Rows removed] FROM @Clear WHERE RowsBefore > 0 ORDER BY FullName;
-    PRINT CONCAT(N'Done - ', (SELECT COUNT(1) FROM @Clear), N' tables emptied, ', (SELECT ISNULL(SUM(RowsBefore), 0) FROM @Clear),
+    DECLARE @Tables INT = (SELECT COUNT(1) FROM @Clear), @Removed BIGINT = (SELECT ISNULL(SUM(RowsBefore), 0) FROM @Clear);
+    PRINT CONCAT(N'Done - ', @Tables, N' tables emptied, ', @Removed,
                  N' rows removed. Kept: ', @Companies, N' companies, ', @Employees, N' employees, ', @Users, N' users, ', @Roles, N' roles.');
 END TRY
 BEGIN CATCH
