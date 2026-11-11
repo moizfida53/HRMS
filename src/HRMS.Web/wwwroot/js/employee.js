@@ -283,7 +283,17 @@
             switch (action.dataset.action) {
                 case "toggle":
                     event.preventDefault();
-                    toggleRecord(row.dataset.id, action);
+                    // Deactivate asks first; Activate is harmless and goes straight through
+                    if (row.dataset.active === "false") { toggleRecord(row.dataset.id, action); }
+                    else {
+                        HRMS.confirm({
+                            tone: "primary", icon: false, note: "",
+                            title: HRMS.t("js.deactivate_title", "Deactivate this employee?"),
+                            text: HRMS.t("js.deactivate_text", "They are marked inactive and left out of new payrolls. You can activate them again at any time."),
+                            name: row.dataset.name || "",
+                            ok: HRMS.t("js.deactivate", "Deactivate")
+                        }).then(function (ok) { if (ok) { toggleRecord(row.dataset.id, action); } });
+                    }
                     break;
 
                 case "delete":
@@ -335,7 +345,9 @@
                     r.active = !r.active;
                     r.tr.dataset.active = String(r.active);
                     if (button) {
-                        button.title = r.active ? button.dataset.textOn : button.dataset.textOff;
+                        // the menu item says what a click does next
+                        var label = button.querySelector("[data-toggle-label]");
+                        if (label) { label.textContent = r.active ? button.dataset.textOn : button.dataset.textOff; }
                         button.setAttribute("aria-label", r.active ? button.dataset.ariaOn : button.dataset.ariaOff);
                     }
                     render();

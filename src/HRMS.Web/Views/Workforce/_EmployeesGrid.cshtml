@@ -107,17 +107,21 @@
                                                 <li><button type="button" class="dropdown-item is-danger" data-lv-ledger="@row.EmployeeId" data-category="ANNUAL" data-lv-focus-eliminate>@Html.Icon("x-circle", 15)<span>@L["emp.act_eliminate_leave"]</span></button></li>
                                             }
                                         }
-                                        <li><hr class="dropdown-divider" /></li>
-                                        <li><a class="dropdown-item" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId" asp-route-tab="personal">@Html.Icon("user", 15)<span>@L["emp.act_general"]</span></a></li>
+                                        @if (canDelete)
+                                        {
+                                            @* Activate / Deactivate lives here (Deactivate asks first) *@
+                                            <li><hr class="dropdown-divider" /></li>
+                                            <li><button type="button" class="dropdown-item" data-action="toggle"
+                                                        data-text-on="@L["common.deactivate"]" data-text-off="@L["common.activate"]"
+                                                        data-aria-on="@L["common.deactivate_named", name]" data-aria-off="@L["common.activate_named", name]">@Html.Icon("power", 15)<span data-toggle-label>@(row.IsActive ? L["common.deactivate"] : L["common.activate"])</span></button></li>
+                                        }
                                     </ul>
                                 </div>
+                                @* Edit: the employee's General details *@
+                                <a class="btn-icon" asp-controller="Employees" asp-action="Profile" asp-route-id="@row.EmployeeId" asp-route-tab="personal"
+                                   title="@L["common.edit"]" aria-label="@L["common.edit_named", name]">@Html.Icon("edit", 15)</a>
                                 @if (canDelete)
                                 {
-                                    <button type="button" class="btn-icon btn-icon--success" data-action="toggle"
-                                            data-text-on="@L["common.deactivate"]" data-text-off="@L["common.activate"]"
-                                            data-aria-on="@L["common.deactivate_named", name]" data-aria-off="@L["common.activate_named", name]"
-                                            title="@(row.IsActive ? L["common.deactivate"] : L["common.activate"])"
-                                            aria-label="@(row.IsActive ? L["common.deactivate_named", name] : L["common.activate_named", name])">@Html.Icon("power", 15)</button>
                                     <button type="button" class="btn-icon btn-icon--danger" data-action="delete"
                                             title="@L["common.delete"]" aria-label="@L["common.delete_named", name]">@Html.Icon("trash", 15)</button>
                                 }
