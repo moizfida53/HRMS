@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f2a4d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>HRMS Self Service</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;display=swap" />
+    <link rel="stylesheet" href="../payroll/assets/bootstrap.min.css" />
+    <!--
+        PROTOTYPE ONLY - static mockup of the proposed Employee Self Service (ESS) PWA.
+        In the real build this CSS becomes wwwroot/scss/_ess.scss (using the same
+        _tokens.scss), and each "screen" becomes a Razor view under Areas/Ess.
+    -->
+    <style>
+        :root {
+            --ess-navy: #0f2a4d; --ess-blue: #1d5fbf; --ess-blue-100: #e4edfb; --ess-blue-050: #f2f7fd;
+            --ess-ink: #101828; --ess-ink-600: #475467; --ess-ink-400: #98a2b3;
+            --ess-line: #e4e7ec; --ess-surface: #f5f7fa; --ess-white: #fff;
+            --ess-green: #16a34a; --ess-green-050: #ecfdf3; --ess-amber: #d97706; --ess-amber-050: #fffaeb;
+            --ess-red: #dc2626; --ess-red-050: #fef3f2;
+            --ess-radius: 16px; --ess-radius-sm: 10px;
+            --ess-shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 16px rgba(16,24,40,.06);
+            --ess-nav-h: 64px;
+            --safe-b: env(safe-area-inset-bottom, 0px);
+            --safe-t: env(safe-area-inset-top, 0px);
+        }
+        html, body { background: var(--ess-surface); }
+        body { font-family: "Public Sans", system-ui, sans-serif; color: var(--ess-ink); -webkit-tap-highlight-color: transparent; }
+        h1, h2, h3, .ess-display { font-family: "Lexend", "Public Sans", sans-serif; }
+
+        /* ---------- prototype controls (not part of the product) ---------- */
+        .proto-bar { background: #fff8db; border-bottom: 1px dashed #e5c84a; font-size: .8rem; }
+        .proto-bar .btn { font-size: .75rem; }
+
+        /* ---------- login ---------- */
+        .ess-login { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; background: var(--ess-navy); }
+        .ess-login__hero { color: #fff; padding: calc(2.5rem + var(--safe-t)) 1.5rem 3.5rem; text-align: center; }
+        .ess-login__logo { width: 64px; height: 64px; border-radius: 18px; background: #fff; color: var(--ess-navy);
+            display: inline-grid; place-items: center; font: 700 1.4rem Lexend; margin-bottom: 1rem; }
+        .ess-login__card { background: #fff; border-radius: 28px 28px 0 0; padding: 2rem 1.5rem calc(2rem + var(--safe-b)); }
+        .ess-login .form-control { height: 52px; border-radius: var(--ess-radius-sm); font-size: 16px; /* 16px stops iOS zoom */ }
+        .ess-login .btn-primary { height: 52px; border-radius: var(--ess-radius-sm); }
+        .ess-install { border: 1px dashed var(--ess-blue); background: var(--ess-blue-050); border-radius: var(--ess-radius-sm); }
+        @media (min-width: 768px) {
+            .ess-login { grid-template-rows: none; grid-template-columns: 1fr 1fr; }
+            .ess-login__hero { display: flex; flex-direction: column; justify-content: center; padding: 3rem; }
+            .ess-login__card { border-radius: 0; display: flex; align-items: center; justify-content: center; }
+            .ess-login__card > div { width: 100%; max-width: 380px; }
+        }
+
+        /* ---------- app shell ---------- */
+        .ess-app { min-height: 100dvh; }
+        .ess-topbar { position: sticky; top: 0; z-index: 20; background: var(--ess-navy); color: #fff;
+            padding: calc(.75rem + var(--safe-t)) 1rem .75rem; }
+        .ess-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--ess-blue); color: #fff;
+            display: grid; place-items: center; font-weight: 600; flex: none; }
+        .ess-main { padding: 1rem 1rem calc(var(--ess-nav-h) + 1.5rem + var(--safe-b)); max-width: 1180px; margin-inline: auto; }
+
+        /* bottom tab bar (phones) -> side rail (tablet/desktop) */
+        .ess-nav { position: fixed; inset-inline: 0; bottom: 0; z-index: 30; background: #fff; border-top: 1px solid var(--ess-line);
+            display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: var(--safe-b); height: calc(var(--ess-nav-h) + var(--safe-b)); }
+        .ess-nav__btn { border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 2px; font-size: .7rem; font-weight: 600; color: var(--ess-ink-400); min-height: 44px; }
+        .ess-nav__btn svg { width: 22px; height: 22px; }
+        .ess-nav__btn.active { color: var(--ess-blue); }
+        @media (min-width: 768px) {
+            .ess-app { display: grid; grid-template-columns: 96px 1fr; grid-template-rows: auto 1fr; }
+            .ess-topbar { grid-column: 1 / -1; }
+            .ess-nav { position: sticky; top: 72px; height: calc(100dvh - 72px); grid-template-columns: none; grid-auto-rows: 80px;
+                border-top: 0; border-inline-end: 1px solid var(--ess-line); padding-top: 1rem; }
+            .ess-main { padding: 1.5rem 2rem 2rem; width: 100%; }
+        }
+        @media (min-width: 1200px) {
+            .ess-app { grid-template-columns: 220px 1fr; }
+            .ess-nav__btn { flex-direction: row; justify-content: flex-start; gap: .75rem; padding-inline: 1.5rem; font-size: .9rem; }
+            .ess-nav__btn.active { background: var(--ess-blue-050); border-inline-start: 3px solid var(--ess-blue); }
+        }
+
+        /* ---------- cards ---------- */
+        .ess-card { background: #fff; border-radius: var(--ess-radius); box-shadow: var(--ess-shadow); padding: 1.25rem; }
+        .ess-card__title { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ess-ink-600); font-weight: 600; }
+        .ess-screen { display: none; }
+        .ess-screen.active { display: block; animation: ess-in .2s ease-out; }
+        @keyframes ess-in { from { opacity: 0; transform: translateY(6px); } }
+        @media (prefers-reduced-motion: reduce) { .ess-screen.active { animation: none; } }
+
+        /* ---------- punch card ---------- */
+        .ess-punch { text-align: center; }
+        .ess-clock { font: 600 2.75rem/1 Lexend; letter-spacing: -.02em; }
+        .ess-geo { display: inline-flex; align-items: center; gap: .5rem; border-radius: 999px; padding: .4rem .9rem; font-size: .85rem; font-weight: 600; }
+        .ess-geo--in   { background: var(--ess-green-050); color: var(--ess-green); }
+        .ess-geo--out  { background: var(--ess-red-050);   color: var(--ess-red); }
+        .ess-geo--wait { background: var(--ess-amber-050); color: var(--ess-amber); }
+        .ess-geo__dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+        .ess-geo--wait .ess-geo__dot { animation: ess-pulse 1s infinite; }
+        @keyframes ess-pulse { 50% { opacity: .3; } }
+
+        .ess-punch-btn { width: 168px; height: 168px; border-radius: 50%; border: 0; color: #fff; font: 600 1.1rem Lexend;
+            display: inline-grid; place-items: center; margin: 1.5rem auto 1rem; position: relative;
+            background: radial-gradient(circle at 30% 25%, #3373d6, var(--ess-blue) 60%, #1b4f91);
+            box-shadow: 0 0 0 12px var(--ess-blue-100), 0 12px 28px rgba(29,95,191,.35); transition: transform .15s; }
+        .ess-punch-btn:active { transform: scale(.96); }
+        .ess-punch-btn--out { background: radial-gradient(circle at 30% 25%, #f97066, var(--ess-red) 60%, #b42318);
+            box-shadow: 0 0 0 12px var(--ess-red-050), 0 12px 28px rgba(220,38,38,.3); }
+        .ess-punch-btn:disabled { background: #d0d5dd; box-shadow: 0 0 0 12px var(--ess-line); cursor: not-allowed; }
+        @media (max-width: 359.98px) { .ess-punch-btn { width: 140px; height: 140px; } .ess-clock { font-size: 2.25rem; } }
+
+        .ess-today { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--ess-line); margin-top: .5rem; padding-top: 1rem; }
+        .ess-today div + div { border-inline-start: 1px solid var(--ess-line); }
+        .ess-today small { display: block; color: var(--ess-ink-600); font-size: .72rem; }
+        .ess-today strong { font: 600 1rem Lexend; }
+
+        /* ---------- stats ---------- */
+        .ess-stat { border-radius: var(--ess-radius-sm); padding: .9rem; height: 100%; }
+        .ess-stat strong { display: block; font: 600 1.6rem/1.1 Lexend; }
+        .ess-stat span { font-size: .78rem; font-weight: 600; }
+        .ess-stat--present { background: var(--ess-green-050); color: var(--ess-green); }
+        .ess-stat--absent  { background: var(--ess-red-050);   color: var(--ess-red); }
+        .ess-stat--short   { background: var(--ess-amber-050); color: var(--ess-amber); }
+        .ess-stat--leave   { background: var(--ess-blue-050);  color: var(--ess-blue); }
+
+        .ess-balance { display: flex; align-items: center; gap: 1.25rem; }
+        .ess-ring { --p: 60; width: 96px; height: 96px; border-radius: 50%; flex: none; display: grid; place-items: center;
+            background: conic-gradient(var(--ess-blue) calc(var(--p) * 1%), var(--ess-blue-100) 0); }
+        .ess-ring > div { width: 74px; height: 74px; border-radius: 50%; background: #fff; display: grid; place-items: center; text-align: center; }
+        .ess-ring strong { font: 700 1.5rem/1 Lexend; } .ess-ring small { font-size: .65rem; color: var(--ess-ink-600); }
+
+        /* ---------- attendance calendar ---------- */
+        .ess-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+        .ess-cal__h { font-size: .7rem; color: var(--ess-ink-400); font-weight: 600; padding-bottom: 4px; }
+        .ess-cal__d { aspect-ratio: 1; border-radius: 8px; display: grid; place-items: center; font-size: .82rem; font-weight: 600; }
+        .ess-cal__d.p { background: var(--ess-green-050); color: var(--ess-green); }
+        .ess-cal__d.a { background: var(--ess-red-050); color: var(--ess-red); }
+        .ess-cal__d.s { background: var(--ess-amber-050); color: var(--ess-amber); }
+        .ess-cal__d.l { background: var(--ess-blue-050); color: var(--ess-blue); }
+        .ess-cal__d.w { color: var(--ess-ink-400); }
+        .ess-cal__d.t { outline: 2px solid var(--ess-navy); }
+        .ess-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-inline-end: 4px; vertical-align: -1px; }
+
+        /* list rows: stacked on phones, table from md */
+        .ess-row { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .85rem 0; border-bottom: 1px solid var(--ess-line); }
+        .ess-row:last-child { border-bottom: 0; }
+        .ess-row small { color: var(--ess-ink-600); }
+        .ess-pill { font-size: .72rem; font-weight: 600; border-radius: 999px; padding: .2rem .6rem; white-space: nowrap; }
+
+        /* ---------- leave request bottom sheet (phone) / modal (desktop) ---------- */
+        .ess-sheet .offcanvas-bottom { height: auto; max-height: 92dvh; border-radius: 24px 24px 0 0; }
+        .ess-sheet .offcanvas-body { padding-bottom: calc(1.5rem + var(--safe-b)); }
+        .ess-grabber { width: 40px; height: 4px; background: var(--ess-line); border-radius: 4px; margin: .5rem auto 0; }
+        .form-control, .form-select { font-size: 16px; min-height: 48px; border-radius: var(--ess-radius-sm); }
+        @media (min-width: 768px) {
+            .ess-sheet .offcanvas-bottom { inset-inline: 50%; width: 520px; transform: translate(-50%, 100%); bottom: 50%;
+                border-radius: 20px; max-height: 80dvh; }
+            .ess-sheet .offcanvas-bottom.show, .ess-sheet .offcanvas-bottom.showing { transform: translate(-50%, 50%); }
+            .ess-fab { display: none !important; }
+        }
+        .ess-fab { position: fixed; inset-inline-end: 1rem; bottom: calc(var(--ess-nav-h) + 1rem + var(--safe-b)); z-index: 25;
+            border-radius: 999px; padding: .85rem 1.25rem; box-shadow: 0 8px 20px rgba(29,95,191,.35); }
+
+        /* ---------- profile (read-only) ---------- */
+        .ess-profile-head { background: linear-gradient(135deg, var(--ess-navy), var(--ess-blue)); color: #fff; border-radius: var(--ess-radius); padding: 1.5rem; }
+        .ess-profile-head .ess-avatar { width: 72px; height: 72px; font-size: 1.5rem; background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.6); }
+        .ess-field { padding: .75rem 0; border-bottom: 1px solid var(--ess-line); }
+        .ess-field:last-child { border-bottom: 0; }
+        .ess-field dt { font-size: .72rem; color: var(--ess-ink-600); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+        .ess-field dd { margin: 0; font-weight: 500; }
+        .ess-lock { font-size: .75rem; color: var(--ess-ink-600); }
+    </style>
+</head>
+<body>
+
+<!-- Prototype-only controls -->
+<div class="proto-bar px-3 py-2 d-flex flex-wrap gap-2 align-items-center">
+    <strong>Prototype</strong>
+    <button class="btn btn-sm btn-outline-dark" data-proto="login">Show Login</button>
+    <button class="btn btn-sm btn-outline-dark" data-proto="app">Show App</button>
+    <span class="ms-md-3">GPS simulation:</span>
+    <button class="btn btn-sm btn-success" data-geo="in">Inside 15 m</button>
+    <button class="btn btn-sm btn-danger" data-geo="out">Outside (240 m)</button>
+    <button class="btn btn-sm btn-warning" data-geo="wait">Locating…</button>
+</div>
+
+<!-- ============================ LOGIN ============================ -->
+<section class="ess-login" id="view-login" hidden>
+    <div class="ess-login__hero">
+        <div><span class="ess-login__logo">HR</span></div>
+        <h1 class="h3 mb-1">Employee Self Service</h1>
+        <p class="opacity-75 mb-0">Punch in, check attendance and apply for leave.</p>
+    </div>
+    <div class="ess-login__card">
+        <div>
+            <h2 class="h5 mb-4">Sign in</h2>
+            <form onsubmit="event.preventDefault(); show('app');">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold" for="emp">Employee No. or Civil ID</label>
+                    <input class="form-control" id="emp" inputmode="numeric" autocomplete="username" placeholder="e.g. 10245" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-semibold" for="pwd">Password</label>
+                    <input class="form-control" id="pwd" type="password" autocomplete="current-password" />
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-4 small">
+                    <div class="form-check"><input class="form-check-input" type="checkbox" id="rem" checked /><label class="form-check-label" for="rem">Keep me signed in</label></div>
+                    <a href="#" class="text-decoration-none">العربية</a>
+                </div>
+                <button class="btn btn-primary w-100 fw-semibold">Sign in</button>
+            </form>
+
+            <!-- "Add to Home Screen" helper - Android shows a real button, iOS shows instructions -->
+            <div class="ess-install p-3 mt-4 small">
+                <div class="fw-semibold mb-1">Install on your phone</div>
+                <div class="text-secondary mb-2">Android: one tap. iPhone: tap <b>Share</b> → <b>Add to Home Screen</b>.</div>
+                <button class="btn btn-sm btn-outline-primary" type="button">Add to Home Screen</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================ APP ============================ -->
+<div class="ess-app" id="view-app">
+    <header class="ess-topbar d-flex align-items-center gap-3">
+        <div class="ess-avatar">AM</div>
+        <div class="flex-grow-1 lh-sm">
+            <div class="small opacity-75">Good morning</div>
+            <div class="fw-semibold">Ahmed Al-Mutairi</div>
+        </div>
+        <button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="show('login')">Sign out</button>
+    </header>
+
+    <nav class="ess-nav" aria-label="Main">
+        <button class="ess-nav__btn active" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Punch</button>
+        <button class="ess-nav__btn" data-tab="attendance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Attendance</button>
+        <button class="ess-nav__btn" data-tab="leave"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h16M6 16l4-10 4 6 2-3 2 7"/></svg>Leave</button>
+        <button class="ess-nav__btn" data-tab="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Profile</button>
+    </nav>
+
+    <main class="ess-main">
+
+        <!-- ---------------- HOME / PUNCH ---------------- -->
+        <section class="ess-screen active" id="tab-home">
+            <div class="row g-3">
+                <div class="col-12 col-lg-5">
+                    <div class="ess-card ess-punch">
+                        <div class="ess-card__title mb-2">Wednesday, 11 Nov 2026</div>
+                        <div class="ess-clock" id="clock">08:02</div>
+                        <div class="mt-3"><span class="ess-geo ess-geo--in" id="geo"><span class="ess-geo__dot"></span><span id="geo-text">At Sharq Head Office · 6 m away</span></span></div>
+                        <button class="ess-punch-btn" id="punch">Punch In</button>
+                        <p class="small text-secondary mb-0" id="geo-hint">You are within 15 m of your branch.</p>
+                        <div class="ess-today">
+                            <div><small>Punch In</small><strong id="t-in">--:--</strong></div>
+                            <div><small>Punch Out</small><strong id="t-out">--:--</strong></div>
+                            <div><small>Worked</small><strong>0h 00m</strong></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-7">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="ess-card ess-balance">
+                                <div class="ess-ring" style="--p:60"><div><span><strong>18</strong><br><small>days left</small></span></div></div>
+                                <div class="flex-grow-1">
+                                    <div class="ess-card__title">Annual Leave</div>
+                                    <div class="small text-secondary">30 entitled · 12 taken · 2 pending approval</div>
+                                    <button class="btn btn-primary btn-sm mt-2 rounded-pill px-3" data-bs-toggle="offcanvas" data-bs-target="#leaveSheet">Request leave</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="ess-card">
+                                <div class="d-flex justify-content-between mb-3"><span class="ess-card__title">This month</span><a href="#" class="small" data-goto="attendance">View sheet</a></div>
+                                <div class="row g-2 text-center">
+                                    <div class="col-4"><div class="ess-stat ess-stat--present"><strong>7</strong><span>Present</span></div></div>
+                                    <div class="col-4"><div class="ess-stat ess-stat--absent"><strong>1</strong><span>Absent</span></div></div>
+                                    <div class="col-4"><div class="ess-stat ess-stat--short"><strong>1</strong><span>Short</span></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ---------------- ATTENDANCE ---------------- -->
+        <section class="ess-screen" id="tab-attendance">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="h5 mb-0">Attendance Sheet</h1>
+                <select class="form-select form-select-sm w-auto" style="min-height:38px"><option>November 2026</option><option>October 2026</option></select>
+            </div>
+            <div class="row g-3">
+                <div class="col-12 col-md-6 col-xl-5">
+                    <div class="row g-2 mb-3 text-center">
+                        <div class="col-3"><div class="ess-stat ess-stat--present"><strong>7</strong><span>Present</span></div></div>
+                        <div class="col-3"><div class="ess-stat ess-stat--absent"><strong>1</strong><span>Absent</span></div></div>
+                        <div class="col-3"><div class="ess-stat ess-stat--short"><strong>1</strong><span>Short</span></div></div>
+                        <div class="col-3"><div class="ess-stat ess-stat--leave"><strong>0</strong><span>Leave</span></div></div>
+                    </div>
+                    <div class="ess-card">
+                        <div class="ess-cal" id="cal"></div>
+                        <div class="ess-legend small text-secondary mt-3 d-flex flex-wrap gap-3">
+                            <span><i style="background:var(--ess-green)"></i>Present</span><span><i style="background:var(--ess-red)"></i>Absent</span>
+                            <span><i style="background:var(--ess-amber)"></i>Short</span><span><i style="background:var(--ess-blue)"></i>Leave</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-xl-7">
+                    <div class="ess-card">
+                        <div class="ess-card__title mb-1">Daily log</div>
+                        <!-- Phone: stacked rows. md+: Bootstrap table -->
+                        <div class="d-md-none" id="log-rows"></div>
+                        <div class="table-responsive d-none d-md-block">
+                            <table class="table align-middle mb-0 small">
+                                <thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Status</th></tr></thead>
+                                <tbody id="log-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ---------------- LEAVE ---------------- -->
+        <section class="ess-screen" id="tab-leave">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h1 class="h5 mb-0">Annual Leave</h1>
+                <button class="btn btn-primary btn-sm rounded-pill px-3 d-none d-md-inline-block" data-bs-toggle="offcanvas" data-bs-target="#leaveSheet">+ New request</button>
+            </div>
+            <div class="row g-3">
+                <div class="col-12 col-lg-4">
+                    <div class="ess-card ess-balance">
+                        <div class="ess-ring" style="--p:60"><div><span><strong>18</strong><br><small>days left</small></span></div></div>
+                        <dl class="mb-0 small flex-grow-1">
+                            <div class="d-flex justify-content-between"><dt class="fw-normal text-secondary">Entitled</dt><dd class="mb-1 fw-semibold">30</dd></div>
+                            <div class="d-flex justify-content-between"><dt class="fw-normal text-secondary">Taken</dt><dd class="mb-1 fw-semibold">12</dd></div>
+                            <div class="d-flex justify-content-between"><dt class="fw-normal text-secondary">Pending</dt><dd class="mb-0 fw-semibold text-warning">2</dd></div>
+                        </dl>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-8">
+                    <div class="ess-card">
+                        <div class="ess-card__title mb-1">Leave history</div>
+                        <div class="ess-row"><div><div class="fw-semibold">24 – 25 Nov 2026</div><small>2 days · Family event</small></div><span class="ess-pill bg-warning-subtle text-warning-emphasis">Pending</span></div>
+                        <div class="ess-row"><div><div class="fw-semibold">10 – 21 Aug 2026</div><small>10 days · Summer travel</small></div><span class="ess-pill bg-success-subtle text-success-emphasis">Approved</span></div>
+                        <div class="ess-row"><div><div class="fw-semibold">02 Mar 2026</div><small>1 day · Personal</small></div><span class="ess-pill bg-danger-subtle text-danger-emphasis">Rejected</span></div>
+                        <div class="ess-row"><div><div class="fw-semibold">05 – 06 Jan 2026</div><small>2 days · Personal</small></div><span class="ess-pill bg-success-subtle text-success-emphasis">Approved</span></div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary ess-fab fw-semibold" data-bs-toggle="offcanvas" data-bs-target="#leaveSheet">+ Request leave</button>
+        </section>
+
+        <!-- ---------------- PROFILE (read-only) ---------------- -->
+        <section class="ess-screen" id="tab-profile">
+            <div class="ess-profile-head d-flex align-items-center gap-3 mb-3">
+                <div class="ess-avatar">AM</div>
+                <div><div class="h5 mb-0">Ahmed Al-Mutairi</div><div class="small opacity-75">Senior Accountant · Finance</div><div class="small opacity-75">Emp. No. 10245</div></div>
+            </div>
+            <p class="ess-lock mb-3">🔒 This information is read-only. Contact HR to request a change.</p>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <div class="ess-card"><div class="ess-card__title mb-1">Personal</div>
+                        <dl class="mb-0">
+                            <div class="ess-field"><dt>Civil ID</dt><dd>2900•••••123</dd></div>
+                            <div class="ess-field"><dt>Nationality</dt><dd>Kuwaiti</dd></div>
+                            <div class="ess-field"><dt>Date of birth</dt><dd>14 Feb 1990</dd></div>
+                            <div class="ess-field"><dt>Mobile</dt><dd dir="ltr">+965 •••• 4521</dd></div>
+                        </dl>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="ess-card"><div class="ess-card__title mb-1">Employment</div>
+                        <dl class="mb-0">
+                            <div class="ess-field"><dt>Company</dt><dd>Al Noor Trading Co.</dd></div>
+                            <div class="ess-field"><dt>Branch</dt><dd>Sharq Head Office</dd></div>
+                            <div class="ess-field"><dt>Joining date</dt><dd>01 Apr 2019</dd></div>
+                            <div class="ess-field"><dt>Reporting to</dt><dd>Fatima Al-Sabah</dd></div>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- Leave request: bottom sheet on phones, centred dialog on md+ -->
+<div class="ess-sheet">
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="leaveSheet" aria-labelledby="leaveSheetLabel">
+        <div class="ess-grabber d-md-none"></div>
+        <div class="offcanvas-header pb-0">
+            <h2 class="h5 offcanvas-title" id="leaveSheetLabel">Request Annual Leave</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="alert alert-primary py-2 small">Available balance: <b>18 days</b></div>
+            <form onsubmit="event.preventDefault();">
+                <div class="row g-3">
+                    <div class="col-6"><label class="form-label small fw-semibold">From</label><input type="date" class="form-control" value="2026-12-20" /></div>
+                    <div class="col-6"><label class="form-label small fw-semibold">To</label><input type="date" class="form-control" value="2026-12-24" /></div>
+                    <div class="col-12"><div class="small text-secondary">Working days requested: <b class="text-dark">5</b> · Balance after: <b class="text-dark">13</b></div></div>
+                    <div class="col-12"><label class="form-label small fw-semibold">Reason (optional)</label><textarea class="form-control" rows="3"></textarea></div>
+                    <div class="col-12"><button class="btn btn-primary w-100 fw-semibold" style="min-height:52px">Submit request</button></div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="../payroll/assets/bootstrap.bundle.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js'"></script>
+<script>
+    // ---------- prototype-only wiring ----------
+    function show(v) {
+        document.getElementById('view-login').hidden = v !== 'login';
+        document.getElementById('view-app').hidden = v !== 'app';
+    }
+    document.querySelectorAll('[data-proto]').forEach(b => b.onclick = () => show(b.dataset.proto));
+
+    function goTab(t) {
+        document.querySelectorAll('.ess-screen').forEach(s => s.classList.toggle('active', s.id === 'tab-' + t));
+        document.querySelectorAll('.ess-nav__btn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+        window.scrollTo({ top: 0 });
+    }
+    document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => goTab(b.dataset.tab));
+    document.querySelectorAll('[data-goto]').forEach(a => a.onclick = e => { e.preventDefault(); goTab(a.dataset.goto); });
+
+    // geofence states
+    const geo = document.getElementById('geo'), geoText = document.getElementById('geo-text'),
+          hint = document.getElementById('geo-hint'), punch = document.getElementById('punch');
+    const states = {
+        in:   ['ess-geo--in',   'At Sharq Head Office · 6 m away', 'You are within 15 m of your branch.', false],
+        out:  ['ess-geo--out',  'Outside branch · 240 m away',     'Move within 15 m of Sharq Head Office to punch.', true],
+        wait: ['ess-geo--wait', 'Getting your location…',          'Keep the app open; accuracy improves in a few seconds.', true]
+    };
+    function setGeo(k) {
+        const [cls, txt, h, dis] = states[k];
+        geo.className = 'ess-geo ' + cls; geoText.textContent = txt; hint.textContent = h; punch.disabled = dis;
+    }
+    document.querySelectorAll('[data-geo]').forEach(b => b.onclick = () => setGeo(b.dataset.geo));
+
+    let punchedIn = false;
+    punch.onclick = () => {
+        const now = new Date().toTimeString().slice(0, 5);
+        if (!punchedIn) { document.getElementById('t-in').textContent = now; punch.textContent = 'Punch Out'; punch.classList.add('ess-punch-btn--out'); }
+        else { document.getElementById('t-out').textContent = now; punch.disabled = true; punch.textContent = 'Done'; }
+        punchedIn = !punchedIn;
+    };
+    setInterval(() => document.getElementById('clock').textContent = new Date().toTimeString().slice(0, 5), 1000);
+
+    // calendar + log (Nov 2026 starts on Sunday; Kuwait weekend Fri/Sat)
+    const marks = { 1:'p',2:'p',3:'s',4:'p',5:'a',8:'p',9:'p',10:'p' };
+    const cal = document.getElementById('cal');
+    cal.innerHTML = ['S','M','T','W','T','F','S'].map(d => `<div class="ess-cal__h">${d}</div>`).join('') +
+        Array.from({ length: 30 }, (_, i) => {
+            const d = i + 1, dow = i % 7, wk = dow === 5 || dow === 6;
+            return `<div class="ess-cal__d ${wk ? 'w' : (marks[d] || '')} ${d === 11 ? 't' : ''}">${d}</div>`;
+        }).join('');
+    const log = [['10 Nov','07:58','15:04','7h 06m','Present','success'],['09 Nov','08:01','15:00','6h 59m','Present','success'],
+                 ['08 Nov','07:55','15:10','7h 15m','Present','success'],['05 Nov','—','—','—','Absent','danger'],
+                 ['04 Nov','08:00','15:02','7h 02m','Present','success'],['03 Nov','08:40','13:30','4h 50m','Short','warning']];
+    document.getElementById('log-rows').innerHTML = log.map(r => `<div class="ess-row"><div><div class="fw-semibold">${r[0]}</div><small>${r[1]} → ${r[2]} · ${r[3]}</small></div><span class="ess-pill bg-${r[5]}-subtle text-${r[5]}-emphasis">${r[4]}</span></div>`).join('');
+    document.getElementById('log-table').innerHTML = log.map(r => `<tr><td class="fw-semibold">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="ess-pill bg-${r[5]}-subtle text-${r[5]}-emphasis">${r[4]}</span></td></tr>`).join('');
+</script>
+</body>
+</html>
