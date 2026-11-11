@@ -1,0 +1,22 @@
+@{
+    ViewData["Title"] = "Self Service";
+}
+@* A signed-in user with no employee behind the account (e.g. an administrator). *@
+<main class="ess-login">
+    <section class="ess-login__hero">
+        <img class="ess-login__logo" src="~/img/tmm-logo-dark.svg" alt="TMM" />
+        <div class="ess-login__brand">TMM<small>@L.Tr("Self Service")</small></div>
+    </section>
+    <section class="ess-login__panel">
+        <div class="ess-login__form text-center">
+            <div class="ess-alert ess-alert--info text-start" role="status">@Html.Icon("info", 17)<span>@L.Tr("Your account is not linked to an employee. Contact your HR administrator.")</span></div>
+            <div class="d-grid gap-2">
+                <a class="btn btn-outline-primary btn-lg" href="@Url.Content("~/apps")">@L.Tr("Open the full HR system")</a>
+                <form method="post" action="@Url.Content("~/ess/logout")" class="d-grid">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-link">@L.Tr("Sign out")</button>
+                </form>
+            </div>
+        </div>
+    </section>
+</main>

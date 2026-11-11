@@ -1,0 +1,806 @@
+// ============================================================================
+// Employee Self Service (/ess) - db/146
+// ----------------------------------------------------------------------------
+// The phone app employees install on their home screen: Punch, Attendance,
+// Leave, Profile. Same TMM theme as the main application (white surfaces,
+// TMM teal, the logo ink), built mobile-first:
+//
+//   < 768px   sticky top bar + fixed bottom tab bar (safe-area aware: iPhone
+//             notch and home indicator), one column, leave form as a sheet
+//   >= 768px  the tab bar becomes an icon rail on the side, two columns
+//   >= 1200px the rail shows its labels
+//
+// Everything is scoped under .ess-body so nothing leaks into the main app.
+// Logical properties (inline-start / end) keep the Arabic (RTL) layout right.
+// ============================================================================
+
+@use "sass:color";
+@use "sass:list";
+@use "tokens" as *;
+@use "mixins" as *;
+
+$ess-nav-h: 64px;
+$ess-top-h: 60px;
+$ess-rail: 92px;
+$ess-rail-wide: 220px;
+$ess-max: 1180px;
+
+// status colours (calendar, pills, figures)
+$ess-tones: (
+  "present": ($green-600, $green-050),
+  "late":    ($amber-700, $amber-050),
+  "short":   ($amber-600, $amber-050),
+  "absent":  ($red-600, $red-050),
+  "leave":   ($blue-600, $blue-050),
+  "off":     ($ink-500, $line-100),
+  "missing": ($purple-700, $purple-050),
+  "none":    ($ink-400, transparent)
+);
+
+.ess-body {
+  --ess-safe-top: env(safe-area-inset-top, 0px);
+  --ess-safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: $surface;
+  color: $ink-900;
+  font-family: $font-sans;
+  font-size: 0.95rem;               // phones: a touch larger than the desktop app
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+
+  &[dir="rtl"], [dir="rtl"] & { font-family: $font-arabic; }
+
+  h1, h2, h3, .ess-display { font-family: $font-display; letter-spacing: -0.01em; }
+
+  // 16px inputs: iOS Safari zooms into anything smaller
+  .form-control, .form-select { font-size: 1rem; min-block-size: 48px; border-radius: $radius-md; background-color: $white; }
+  .btn { border-radius: $radius-md; }
+  .btn-lg { min-block-size: 52px; font-weight: $fw-semibold; display: inline-flex; align-items: center; justify-content: center; gap: space("2"); }
+}
+
+// ---------------------------------------------------------------- sign in ----
+.ess-login {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: $white;
+
+  &__hero {
+    position: relative;
+    overflow: hidden;
+    padding: calc(#{space("8")} + var(--ess-safe-top)) space("6") space("10");
+    background: linear-gradient(160deg, $blue-050 0%, $blue-100 100%);
+    text-align: center;
+  }
+
+  &__glow {
+    position: absolute;
+    inset-block-start: -40%;
+    inset-inline-end: -30%;
+    inline-size: 80%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba($blue-500, 0.18), transparent 70%);
+    pointer-events: none;
+  }
+
+  &__logo { inline-size: 64px; block-size: 64px; }
+
+  &__brand {
+    margin-block-start: space("3");
+    font-family: $font-display;
+    font-weight: $fw-bold;
+    font-size: 1.35rem;
+    color: $ink-900;
+
+    small {
+      display: block;
+      font-family: $font-sans;
+      font-weight: $fw-medium;
+      font-size: $fs-sm;
+      color: $blue-700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+  }
+
+  &__lede { margin: space("3") auto 0; max-inline-size: 30ch; color: $ink-600; }
+
+  &__panel {
+    position: relative;
+    margin-block-start: -#{space("6")};
+    padding: space("8") space("6") calc(#{space("8")} + var(--ess-safe-bottom));
+    background: $white;
+    border-radius: 28px 28px 0 0;
+  }
+
+  &__form { max-inline-size: 400px; margin-inline: auto; }
+
+  &__title { font-size: $fs-xl; font-weight: $fw-bold; margin: 0 0 space("1"); }
+  &__sub { color: $ink-500; margin-block-end: space("6"); }
+
+  &__lang {
+    position: absolute;
+    inset-block-start: calc(#{space("4")} + var(--ess-safe-top));
+    inset-inline-end: space("4");
+    z-index: 2;
+  }
+
+  &__footer { margin-block-start: space("6"); text-align: center; font-size: $fs-sm; color: $ink-400; }
+
+  @include up("md") {
+    grid-template-rows: none;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+    &__hero { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: space("12"); }
+    &__panel { margin: 0; border-radius: 0; display: flex; flex-direction: column; justify-content: center; }
+    &__logo { inline-size: 96px; block-size: 96px; }
+    &__brand { font-size: 1.75rem; }
+  }
+}
+
+.ess-alert {
+  display: flex;
+  gap: space("2");
+  align-items: flex-start;
+  padding: space("3");
+  margin-block-end: space("4");
+  border-radius: $radius-md;
+  font-size: $fs-md;
+
+  svg { flex: none; margin-block-start: 2px; }
+
+  &--error { @include soft-badge($red-700, $red-050); }
+  &--info  { @include soft-badge($blue-700, $blue-050); }
+}
+
+.ess-install {
+  margin-block-start: space("6");
+  padding: space("4");
+  border: 1px dashed $blue-200;
+  border-radius: $radius-md;
+  background: $blue-050;
+  font-size: $fs-md;
+
+  &__title { display: flex; align-items: center; gap: space("2"); font-weight: $fw-semibold; color: $ink-900; }
+  &__text { color: $ink-600; margin: space("1") 0 space("3"); }
+}
+
+// -------------------------------------------------------------- app shell ----
+.ess-app { min-height: 100vh; min-height: 100dvh; }
+
+.ess-topbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  gap: space("3");
+  min-block-size: calc(#{$ess-top-h} + var(--ess-safe-top));
+  padding: var(--ess-safe-top) space("4") 0;
+  background: rgba($white, 0.92);
+  backdrop-filter: saturate(1.4) blur(10px);
+  border-block-end: 1px solid $line-200;
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: space("2");
+    min-inline-size: 0;
+    color: $ink-900;
+    text-decoration: none;
+
+    img { inline-size: 32px; block-size: 32px; flex: none; }
+
+    span { display: flex; flex-direction: column; line-height: 1.1; min-inline-size: 0; }
+    strong { font-family: $font-display; font-size: 1rem; }
+    small { font-size: $fs-xs; color: $blue-700; font-weight: $fw-semibold; letter-spacing: 0.04em; text-transform: uppercase; }
+  }
+
+  &__actions { margin-inline-start: auto; display: flex; align-items: center; gap: space("2"); }
+
+  &__icon-btn {
+    display: inline-grid;
+    place-items: center;
+    inline-size: 40px;
+    block-size: 40px;
+    padding: 0;
+    border: 1px solid $line-200;
+    border-radius: 50%;
+    background: $white;
+    color: $ink-600;
+    font-size: $fs-sm;
+    font-weight: $fw-bold;
+
+    &:hover, &:focus-visible { color: $blue-700; border-color: $blue-200; background: $blue-050; }
+  }
+}
+
+.ess-avatar {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: $blue-600;
+  color: $white;
+  font-weight: $fw-semibold;
+  font-size: $fs-md;
+}
+
+// bottom tab bar (phones) -> side rail (tablet / desktop)
+.ess-nav {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 1030;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  block-size: calc(#{$ess-nav-h} + var(--ess-safe-bottom));
+  padding-block-end: var(--ess-safe-bottom);
+  background: $white;
+  border-block-start: 1px solid $line-200;
+  box-shadow: 0 -4px 16px rgba($navy-900, 0.04);
+
+  &__btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-block-size: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: $ink-400;
+    font-size: $fs-xs;
+    font-weight: $fw-semibold;
+    position: relative;
+
+    &::before {                       // active indicator
+      content: "";
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline: 30%;
+      block-size: 3px;
+      border-radius: 0 0 3px 3px;
+      background: transparent;
+    }
+
+    &.is-active { color: $blue-600; &::before { background: $blue-600; } }
+    &:focus-visible { outline: none; color: $blue-700; background: $blue-050; }
+  }
+}
+
+.ess-main {
+  inline-size: 100%;
+  max-inline-size: $ess-max;
+  margin-inline: auto;
+  padding: space("4") space("4") calc(#{$ess-nav-h} + #{space("6")} + var(--ess-safe-bottom));
+}
+
+@include up("md") {
+  .ess-app {
+    display: grid;
+    grid-template-columns: $ess-rail minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+
+  .ess-topbar { grid-column: 1 / -1; padding-inline: space("6"); }
+
+  .ess-nav {
+    position: sticky;
+    inset-block-start: calc(#{$ess-top-h} + var(--ess-safe-top));
+    align-self: start;
+    grid-template-columns: none;
+    grid-auto-rows: 76px;
+    block-size: calc(100dvh - #{$ess-top-h});
+    padding: space("3") 0 0;
+    border-block-start: 0;
+    border-inline-end: 1px solid $line-200;
+    box-shadow: none;
+
+    &__btn {
+      font-size: $fs-xs;
+
+      &::before { inset-block: 25%; inset-inline: 0 auto; inline-size: 3px; block-size: auto; border-radius: 0 3px 3px 0; }
+    }
+  }
+
+  .ess-main { padding: space("6") space("8") space("8"); }
+}
+
+@include up("xl") {
+  .ess-app { grid-template-columns: $ess-rail-wide minmax(0, 1fr); }
+
+  .ess-nav {
+    grid-auto-rows: 52px;
+    padding-inline: space("3");
+
+    &__btn {
+      flex-direction: row;
+      justify-content: flex-start;
+      gap: space("3");
+      padding-inline: space("4");
+      border-radius: $radius-md;
+      font-size: $fs-md;
+
+      &::before { display: none; }
+      &.is-active { background: $blue-050; color: $blue-700; }
+    }
+  }
+}
+
+// --------------------------------------------------------------- panels ----
+.ess-panel { display: none; }
+.ess-panel.is-active { display: block; animation: ess-in 0.2s $ease-out; }
+
+@keyframes ess-in { from { opacity: 0; transform: translateY(6px); } }
+
+.ess-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: space("3");
+  margin-block-end: space("4");
+
+  h1 { font-size: $fs-xl; font-weight: $fw-bold; margin: 0; min-inline-size: 0; }
+  .form-select { inline-size: auto; min-block-size: 40px; font-size: $fs-md; }
+}
+
+.ess-card {
+  @include card-surface($radius-xl);
+  padding: space("5");
+
+  &__title {
+    @include label-caps;
+    color: $ink-500;
+    margin-block-end: space("2");
+  }
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: space("2");
+    margin-block-end: space("3");
+
+    .ess-card__title { margin: 0; }
+    a { font-size: $fs-sm; font-weight: $fw-semibold; color: $blue-700; text-decoration: none; }
+  }
+}
+
+// ----------------------------------------------------------------- punch ----
+.ess-punch {
+  text-align: center;
+
+  &__date { @include label-caps; color: $ink-500; }
+
+  &__clock {
+    font-family: $font-display;
+    font-size: 3rem;
+    font-weight: $fw-semibold;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    margin-block-start: space("2");
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+  }
+
+  &__hint { margin: 0; min-block-size: 2.6em; font-size: $fs-md; color: $ink-500; }
+}
+
+.ess-geo {
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  max-inline-size: 100%;
+  margin-block-start: space("4");
+  padding: 6px 14px;
+  border-radius: $radius-pill;
+  font-size: $fs-md;
+  font-weight: $fw-semibold;
+
+  &__dot { inline-size: 8px; block-size: 8px; flex: none; border-radius: 50%; background: currentColor; }
+  &__text { @include truncate; }
+
+  &--in   { @include soft-badge($green-700, $green-050); }
+  &--out  { @include soft-badge($red-700, $red-050); }
+  &--wait { @include soft-badge($amber-700, $amber-050); .ess-geo__dot { animation: ess-pulse 1s infinite; } }
+  &--off  { @include soft-badge($ink-600, $line-100); }
+}
+
+@keyframes ess-pulse { 50% { opacity: 0.25; } }
+
+.ess-punch-btn {
+  --ess-btn: #{$blue-600};
+  --ess-btn-dark: #{$blue-700};
+  --ess-btn-light: #{$blue-500};
+  --ess-ring: #{$blue-100};
+
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: space("2");
+  inline-size: 172px;
+  block-size: 172px;
+  margin: space("6") auto space("4");
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 25%, var(--ess-btn-light), var(--ess-btn) 58%, var(--ess-btn-dark));
+  box-shadow: 0 0 0 12px var(--ess-ring), 0 14px 30px rgba($blue-700, 0.32);
+  color: $white;
+  font-family: $font-display;
+  font-size: 1.15rem;
+  font-weight: $fw-semibold;
+  transition: transform $dur-fast, box-shadow $dur, filter $dur;
+
+  &:active:not(:disabled) { transform: scale(0.96); }
+  &:focus-visible { outline: none; box-shadow: 0 0 0 12px var(--ess-ring), 0 0 0 16px rgba($blue-600, 0.35); }
+
+  svg { display: block; }
+
+  &--out {
+    --ess-btn: #{$ink-800};
+    --ess-btn-dark: #{$ink-900};
+    --ess-btn-light: #{$ink-600};
+    --ess-ring: #{$line-100};
+    box-shadow: 0 0 0 12px var(--ess-ring), 0 14px 30px rgba($ink-900, 0.28);
+  }
+
+  &:disabled {
+    background: $line-200;
+    box-shadow: 0 0 0 12px $line-100;
+    color: $ink-400;
+    cursor: not-allowed;
+  }
+
+  &.is-busy { filter: saturate(0.6); pointer-events: none; }
+  &.is-busy::after {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-block-start-color: var(--ess-btn);
+    animation: ess-spin 0.8s linear infinite;
+  }
+
+  @media (max-width: 359.98px) { inline-size: 144px; block-size: 144px; }
+}
+
+@keyframes ess-spin { to { transform: rotate(360deg); } }
+
+.ess-today {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-block-start: space("2");
+  padding-block-start: space("4");
+  border-block-start: 1px solid $line-200;
+
+  > div + div { border-inline-start: 1px solid $line-200; }
+  small { display: block; font-size: $fs-xs; color: $ink-500; }
+  strong { font-family: $font-display; font-size: 1.05rem; font-variant-numeric: tabular-nums; direction: ltr; display: inline-block; }
+}
+
+// ------------------------------------------------------------ figures ----
+.ess-stats {
+  display: grid;
+  grid-template-columns: repeat(var(--ess-cols, 3), minmax(0, 1fr));
+  gap: space("2");
+
+  &--4 { --ess-cols: 4; }
+}
+
+.ess-stat {
+  padding: space("3") space("2");
+  border-radius: $radius-md;
+  text-align: center;
+
+  strong { display: block; font-family: $font-display; font-size: 1.6rem; line-height: 1.1; }
+  span { font-size: $fs-xs; font-weight: $fw-semibold; }
+
+  @each $name, $pair in $ess-tones {
+    &--#{$name} { color: list.nth($pair, 1); background: list.nth($pair, 2); }
+  }
+}
+
+.ess-balance {
+  display: flex;
+  align-items: center;
+  gap: space("5");
+
+  &__body { flex: 1; min-inline-size: 0; }
+  &__meta { font-size: $fs-md; color: $ink-500; margin-block-end: space("3"); }
+
+  dl { margin: 0; font-size: $fs-md; }
+  dl div { display: flex; justify-content: space-between; gap: space("3"); padding-block: 3px; }
+  dt { font-weight: $fw-regular; color: $ink-500; }
+  dd { margin: 0; font-weight: $fw-semibold; }
+}
+
+.ess-ring {
+  --p: 0;
+  display: grid;
+  place-items: center;
+  inline-size: 104px;
+  block-size: 104px;
+  flex: none;
+  border-radius: 50%;
+  background: conic-gradient($blue-600 calc(var(--p) * 1%), $blue-100 0);
+
+  &__inner {
+    display: grid;
+    place-items: center;
+    inline-size: 80px;
+    block-size: 80px;
+    border-radius: 50%;
+    background: $white;
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  strong { display: block; font-family: $font-display; font-size: 1.55rem; }
+  small { font-size: 0.68rem; color: $ink-500; }
+}
+
+// ------------------------------------------------------------ calendar ----
+.ess-cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+  text-align: center;
+
+  &__head { font-size: $fs-xs; font-weight: $fw-bold; color: $ink-400; padding-block-end: 2px; }
+
+  &__day {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border-radius: $radius;
+    font-size: $fs-md;
+    font-weight: $fw-semibold;
+    font-variant-numeric: tabular-nums;
+    color: $ink-600;
+
+    @each $name, $pair in $ess-tones {
+      &--#{$name} { color: list.nth($pair, 1); background: list.nth($pair, 2); }
+    }
+
+    &--weekend { color: $ink-300; }
+    &--future { color: $ink-300; }
+    &--today { box-shadow: inset 0 0 0 2px $ink-900; }
+  }
+}
+
+.ess-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space("2") space("4");
+  margin-block-start: space("4");
+  font-size: $fs-sm;
+  color: $ink-500;
+
+  i { display: inline-block; inline-size: 10px; block-size: 10px; margin-inline-end: 5px; border-radius: 3px; vertical-align: -1px; }
+
+  @each $name, $pair in $ess-tones {
+    .ess-legend--#{$name} { background: list.nth($pair, 1); }
+  }
+}
+
+// rows: stacked on phones (the table takes over from md)
+.ess-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: space("3");
+  padding-block: space("3");
+  border-block-end: 1px solid $line-100;
+
+  &:last-child { border-block-end: 0; }
+  &__main { min-inline-size: 0; }
+  &__title { font-weight: $fw-semibold; }
+  &__sub { font-size: $fs-sm; color: $ink-500; }
+  .ltr { direction: ltr; unicode-bidi: isolate; }
+}
+
+.ess-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: $radius-pill;
+  font-size: $fs-xs;
+  font-weight: $fw-bold;
+  white-space: nowrap;
+
+  @each $name, $pair in $ess-tones {
+    $bg: list.nth($pair, 2);
+    @if $bg == transparent { $bg: $line-100; }
+    &--#{$name} { @include soft-badge(list.nth($pair, 1), $bg); }
+  }
+
+  &--pending   { @include soft-badge($amber-700, $amber-050); }
+  &--approved  { @include soft-badge($green-700, $green-050); }
+  &--rejected  { @include soft-badge($red-700, $red-050); }
+  &--cancelled { @include soft-badge($ink-600, $line-100); }
+  &--returned  { @include soft-badge($blue-700, $blue-050); }
+}
+
+.ess-table {
+  margin: 0;
+  font-size: $fs-md;
+
+  th { @include label-caps; color: $ink-500; border-block-end-color: $line-200; }
+  td { vertical-align: middle; border-block-end-color: $line-100; font-variant-numeric: tabular-nums; }
+}
+
+.ess-empty {
+  padding: space("8") space("4");
+  text-align: center;
+  color: $ink-500;
+
+  svg { color: $ink-300; margin-block-end: space("2"); }
+}
+
+// ----------------------------------------------- leave request (sheet) ----
+.ess-fab {
+  position: fixed;
+  inset-inline-end: space("4");
+  inset-block-end: calc(#{$ess-nav-h} + #{space("4")} + var(--ess-safe-bottom));
+  z-index: 1025;
+  display: inline-flex;
+  align-items: center;
+  gap: space("2");
+  padding: 14px 20px;
+  border-radius: $radius-pill !important;
+  box-shadow: 0 10px 24px rgba($blue-700, 0.35);
+
+  @include up("md") { display: none !important; }
+}
+
+.ess-sheet.offcanvas-bottom {
+  block-size: auto;
+  max-block-size: 92dvh;
+  border-radius: 24px 24px 0 0;
+  border: 0;
+  background: $white;
+
+  .offcanvas-body { padding-block-end: calc(#{space("6")} + var(--ess-safe-bottom)); }
+
+  // tablet / desktop: a centred dialog instead of a sheet
+  @include up("md") {
+    inset-inline: 0;
+    inline-size: min(520px, calc(100vw - 48px));
+    margin-inline: auto;
+    inset-block-end: auto;
+    inset-block-start: 50%;
+    border-radius: $radius-xl;
+    transform: translateY(-40%) scale(0.98);
+    opacity: 0;
+
+    &.show, &.showing { transform: translateY(-50%); opacity: 1; }
+    &.hiding { opacity: 0; }
+  }
+}
+
+.ess-grabber {
+  inline-size: 40px;
+  block-size: 4px;
+  margin: space("2") auto 0;
+  border-radius: 4px;
+  background: $line-300;
+
+  @include up("md") { display: none; }
+}
+
+.ess-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: space("1") space("4");
+  padding: space("3");
+  border-radius: $radius-md;
+  background: $surface;
+  font-size: $fs-md;
+  color: $ink-600;
+
+  b { color: $ink-900; }
+}
+
+.ess-problems {
+  margin: space("2") 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: $fs-md;
+  color: $red-700;
+
+  li { display: flex; gap: space("2"); align-items: flex-start; }
+}
+
+// ---------------------------------------------------- profile (read-only) ----
+.ess-profile-head {
+  display: flex;
+  align-items: center;
+  gap: space("4");
+  padding: space("5");
+  margin-block-end: space("3");
+  border-radius: $radius-xl;
+  background: linear-gradient(135deg, $ink-900 0%, $ink-800 55%, color.adjust($blue-700, $lightness: -6%) 100%);
+  color: $white;
+
+  .ess-avatar {
+    inline-size: 64px;
+    block-size: 64px;
+    font-size: 1.35rem;
+    background: rgba($white, 0.14);
+    border: 2px solid rgba($white, 0.5);
+  }
+
+  &__name { font-family: $font-display; font-size: 1.15rem; font-weight: $fw-semibold; }
+  &__sub { font-size: $fs-md; opacity: 0.8; }
+}
+
+.ess-lock { display: flex; align-items: center; gap: space("2"); margin-block-end: space("3"); font-size: $fs-sm; color: $ink-500; }
+
+.ess-fields {
+  margin: 0;
+
+  > div { padding-block: space("3"); border-block-end: 1px solid $line-100; }
+  > div:last-child { border-block-end: 0; }
+  dt { @include label-caps; color: $ink-500; font-size: 0.68rem; }
+  dd { margin: 2px 0 0; font-weight: $fw-medium; overflow-wrap: anywhere; }
+}
+
+// ------------------------------------------------------------ toast ----
+.ess-toast-host {
+  position: fixed;
+  inset-inline: space("4");
+  inset-block-start: calc(#{$ess-top-h} + #{space("3")} + var(--ess-safe-top));
+  z-index: 1090;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: space("2");
+  pointer-events: none;
+}
+
+.ess-toast {
+  display: flex;
+  align-items: center;
+  gap: space("2");
+  max-inline-size: 440px;
+  padding: space("3") space("4");
+  border-radius: $radius-md;
+  background: $ink-900;
+  color: $white;
+  font-size: $fs-md;
+  box-shadow: $shadow-lg;
+  pointer-events: auto;
+  animation: ess-in 0.2s $ease-out;
+
+  &--success { background: $green-700; }
+  &--error { background: $red-700; }
+}
+
+.ess-offline {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-start: 0;
+  z-index: 1100;
+  padding: calc(6px + var(--ess-safe-top)) space("4") 6px;
+  background: $amber-700;
+  color: $white;
+  text-align: center;
+  font-size: $fs-sm;
+  font-weight: $fw-semibold;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ess-panel.is-active, .ess-toast { animation: none; }
+  .ess-geo--wait .ess-geo__dot, .ess-punch-btn.is-busy::after { animation-duration: 3s; }
+}

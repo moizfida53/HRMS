@@ -1,0 +1,73 @@
+@model EssLeaveModel
+@{
+    static (string Tone, string Text) StatusOf(LeaveRequest r) => r.Status switch
+    {
+        LeaveStatus.Approved when r.ActualReturnDate is not null => ("returned", "Returned"),
+        LeaveStatus.Approved => ("approved", "Approved"),
+        LeaveStatus.Rejected => ("rejected", "Rejected"),
+        LeaveStatus.Cancelled => ("cancelled", "Cancelled"),
+        _ => ("pending", "Pending")
+    };
+}
+<div class="ess-page-head">
+    <h1>@L.Tr("Annual Leave")</h1>
+    @if (Model.Annual is not null)
+    {
+        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 d-none d-md-inline-flex align-items-center gap-1"
+                data-bs-toggle="offcanvas" data-bs-target="#ess-leave-sheet">@Html.Icon("plus", 15) @L.Tr("Request leave")</button>
+    }
+</div>
+
+@if (Model.Annual is not { } a)
+{
+    <div class="ess-card">
+        <div class="ess-empty">@Html.Icon("briefcase", 32)<div>@L.Tr("Annual leave is not set up for your company yet.")</div></div>
+    </div>
+}
+else
+{
+    <div class="row g-3" data-ess-leave-free-value="@LeaveFormat.Days(Model.DaysLeft)">
+        <div class="col-12 col-lg-4">
+            <div class="ess-card ess-balance">
+                <div class="ess-ring" style="--p:@Model.Percent">
+                    <div class="ess-ring__inner"><span><strong>@LeaveFormat.Days(Model.DaysLeft)</strong><small>@L.Tr("days left")</small></span></div>
+                </div>
+                <dl class="ess-balance__body">
+                    <div><dt>@L.Tr("Entitled")</dt><dd>@LeaveFormat.Days(a.Entitled)</dd></div>
+                    <div><dt>@L.Tr("Taken")</dt><dd>@LeaveFormat.Days(a.Taken)</dd></div>
+                    <div><dt>@L.Tr("Pending")</dt><dd class="text-warning-emphasis">@LeaveFormat.Days(a.Pending)</dd></div>
+                </dl>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="ess-card">
+                <div class="ess-card__title">@L.Tr("Leave history")</div>
+                @if (Model.Requests.Count == 0)
+                {
+                    <div class="ess-empty">@Html.Icon("calendar", 32)<div>@L.Tr("No annual leave requests yet.")</div></div>
+                }
+                @foreach (var r in Model.Requests)
+                {
+                    var (tone, text) = StatusOf(r);
+                    var end = r.ActualEndDate ?? r.EndDate;
+                    <div class="ess-row">
+                        <div class="ess-row__main">
+                            <div class="ess-row__title">
+                                @(r.StartDate.Date == end.Date ? L.Date(r.StartDate) : $"{L.DayMonth(r.StartDate)} – {L.Date(end)}")
+                            </div>
+                            <div class="ess-row__sub">
+                                @LeaveFormat.Days(r.Days) @L.Tr("days") · @r.RequestNo@if (!string.IsNullOrWhiteSpace(r.Reason)) { <text> · @r.Reason</text> }
+                            </div>
+                        </div>
+                        <span class="ess-pill ess-pill--@tone">@L.Tr(text)</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <button type="button" class="btn btn-primary btn-lg ess-fab" data-bs-toggle="offcanvas" data-bs-target="#ess-leave-sheet">
+        @Html.Icon("plus", 18) @L.Tr("Request leave")
+    </button>
+}

@@ -19,12 +19,22 @@ public sealed class LauncherController : Controller
 {
     private const string OnlineOrderCode = "APP_ONLINE_ORDER";
 
+    private static readonly AppItem SelfServiceTile = new(
+        "ess", "APP_ESS", "Self Service", "Punch in and out, your attendance, annual leave and profile.", "clock", "/ess/");
+
     [HttpGet("/")]
     [HttpGet("/apps")]
     public IActionResult Index(string? notice)
     {
         var (permissions, isAdmin) = Rights();
         var tiles = AccessCatalog.Apps.Where(a => isAdmin || permissions.Contains(a.Code)).ToList();
+
+        // Employee Self Service (/ess, db/146): every user linked to an employee - their own
+        // punch, attendance, annual leave and profile, so no role right is needed.
+        if (User.HasClaim(c => c.Type == HrmsClaims.EmployeeId))
+        {
+            tiles.Insert(0, SelfServiceTile);
+        }
 
         ViewData["Title"] = "Apps";
         ViewData["Notice"] = notice == "online-order"

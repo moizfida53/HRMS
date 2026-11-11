@@ -29,8 +29,11 @@ public sealed class SecurityHeadersMiddleware
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
 
         // Turn off browser features the application never uses.
+        // Employee Self Service (/ess) reads the phone's location to punch in / out within the
+        // branch geofence - allowed there (own origin only), still off everywhere else.
+        var geolocation = context.Request.Path.StartsWithSegments("/ess") ? "geolocation=(self)" : "geolocation=()";
         headers["Permissions-Policy"] =
-            "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()";
+            $"accelerometer=(), camera=(), {geolocation}, gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()";
 
         // Content Security Policy.
         // 'unsafe-inline' on style-src is required by Bootstrap's own inline

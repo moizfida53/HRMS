@@ -273,9 +273,21 @@ public sealed class AttendanceService : IAttendanceService
             DateOnly? coverTo = imported.Count == 0 ? null : DateOnly.FromDateTime(imported.Max(d => d.WorkDate));
 
             var results = new List<AttDayResult>();
+            var yesterday = DateOnly.FromDateTime(LocalClock.Today).AddDays(-1);
             foreach (var e in employees)
             {
-                results.AddRange(AttendanceCalculator.Month(DateOnly.FromDateTime(month), e, assignments, patterns, days, leave, holidays, coverFrom, coverTo, monthFrom, monthTo));
+                // db/146: an employee who punches from the phone (Self Service) is covered from their first
+                // phone punch of the month up to yesterday - a working day in it with no punch is absent,
+                // as on a day the device file covers. Today is never absent (the day is not over).
+                var (empFrom, empTo) = (coverFrom, coverTo);
+                var mobileDays = days.Where(d => d.EmployeeId == e.EmployeeId && d.Source == "MOBILE")
+                                     .Select(d => DateOnly.FromDateTime(d.WorkDate)).ToList();
+                if (mobileDays.Count > 0 && mobileDays.Min() is var firstMobile && firstMobile <= yesterday)
+                {
+                    empFrom = empFrom is { } f && f < firstMobile ? f : firstMobile;
+                    empTo = empTo is { } t && t > yesterday ? t : yesterday;
+                }
+                results.AddRange(AttendanceCalculator.Month(DateOnly.FromDateTime(month), e, assignments, patterns, days, leave, holidays, empFrom, empTo, monthFrom, monthTo));
             }
             await _repo.SaveMonthAsync(scope, m.CompanyId, month, employeeId, results, _user.UserId, ct);
         }

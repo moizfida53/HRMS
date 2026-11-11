@@ -134,6 +134,14 @@ builder.Services
                 return Task.CompletedTask;
             }
 
+            // Employee Self Service (/ess) has its own phone-sized sign-in page.
+            if (context.Request.Path.StartsWithSegments("/ess"))
+            {
+                var back = context.Request.PathBase + context.Request.Path + context.Request.QueryString;
+                context.Response.Redirect($"{context.Request.PathBase}/ess/login?returnUrl={Uri.EscapeDataString(back)}");
+                return Task.CompletedTask;
+            }
+
             context.Response.Redirect(context.RedirectUri);
             return Task.CompletedTask;
         };
@@ -212,6 +220,12 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IPayrollNavCounts, PayrollNavCounts>();
 builder.Services.AddScoped<IPayrollWorkspace, PayrollWorkspace>();   // db/123: the payroll workspace (Approved / Execution / Completed)
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();   // db/126: Time & Attendance
+
+// Employee Self Service (/ess, db/146): punch radius, GPS accuracy, local time zone.
+builder.Services
+    .AddOptions<SelfServiceOptions>()
+    .Bind(builder.Configuration.GetSection(SelfServiceOptions.SectionName));
+LocalClock.Configure(builder.Configuration[$"{SelfServiceOptions.SectionName}:TimeZone"]);
 builder.Services.AddScoped<IApprovalNotifications, ApprovalNotifications>();
 builder.Services.AddScoped<IComponentAccess, ComponentAccess>();   // db/111: Payroll Components rights
 builder.Services.AddScoped<IEmployeeNames, EmployeeNames>();

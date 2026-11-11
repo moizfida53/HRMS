@@ -1,0 +1,116 @@
+@model EssMonthModel
+@{
+    var first = Model.Month;
+    var daysInMonth = DateTime.DaysInMonth(first.Year, first.Month);
+    var lead = (int)first.DayOfWeek;                       // the week starts on Sunday (Kuwait)
+    string[] dowKeys = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+    var log = Model.Days.Where(d => d.ClockIn is not null || d.ClockOut is not null || d.Status is "ABSENT" or "LEAVE")
+                        .OrderByDescending(d => d.WorkDate).ToList();
+}
+<div class="ess-page-head">
+    <h1>@L.Tr("Attendance Sheet")</h1>
+    <select class="form-select" data-ess-month aria-label="@L.Tr("Attendance Sheet")">
+        @foreach (var m in Model.Months)
+        {
+            <option value="@m.ToString("yyyy-MM")" selected="@(m == first)">@L.MonthYear(m)</option>
+        }
+    </select>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-md-6 col-xl-5">
+        <div class="ess-stats ess-stats--4 mb-3">
+            <div class="ess-stat ess-stat--present"><strong>@Model.Present</strong><span>@L.Tr("Present")</span></div>
+            <div class="ess-stat ess-stat--absent"><strong>@Model.Absent</strong><span>@L.Tr("Absent")</span></div>
+            <div class="ess-stat ess-stat--short"><strong>@Model.Short</strong><span>@L.Tr("Short")</span></div>
+            <div class="ess-stat ess-stat--leave"><strong>@Model.Leave</strong><span>@L.Tr("Leave")</span></div>
+        </div>
+
+        <div class="ess-card">
+            <div class="ess-cal" role="grid" aria-label="@L.MonthYear(first)">
+                @foreach (var k in dowKeys)
+                {
+                    <div class="ess-cal__head" role="columnheader">@L.Tr(k)</div>
+                }
+                @for (var i = 0; i < lead; i++)
+                {
+                    <div aria-hidden="true"></div>
+                }
+                @for (var d = 1; d <= daysInMonth; d++)
+                {
+                    var date = new DateTime(first.Year, first.Month, d);
+                    var day = Model.DayOf(date);
+                    var openToday = day is { ClockIn: not null, ClockOut: null } && date == Model.Today;
+                    var tone = day is null || openToday ? null : EssFormat.Tone(day.Status);
+                    var weekend = date.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
+                    var classes = "ess-cal__day"
+                        + (tone is not null and not "none" ? $" ess-cal__day--{tone}" : "")
+                        + (day is null && weekend ? " ess-cal__day--weekend" : "")
+                        + (date > Model.Today ? " ess-cal__day--future" : "")
+                        + (date == Model.Today ? " ess-cal__day--today" : "");
+                    <div class="@classes" role="gridcell"
+                         title="@L.Date(date)@(day is null ? "" : " · " + L.Tr(EssFormat.StatusText(day.Status)))">@d</div>
+                }
+            </div>
+            <div class="ess-legend">
+                <span><i class="ess-legend--present"></i>@L.Tr("Present")</span>
+                <span><i class="ess-legend--late"></i>@L.Tr("Late")</span>
+                <span><i class="ess-legend--short"></i>@L.Tr("Short")</span>
+                <span><i class="ess-legend--absent"></i>@L.Tr("Absent")</span>
+                <span><i class="ess-legend--leave"></i>@L.Tr("Leave")</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-xl-7">
+        <div class="ess-card">
+            <div class="ess-card__title">@L.Tr("Daily log")</div>
+
+            @if (log.Count == 0)
+            {
+                <div class="ess-empty">@Html.Icon("calendar", 32)<div>@L.Tr("No attendance recorded for this month yet.")</div></div>
+            }
+            else
+            {
+                @* phones: stacked rows *@
+                <div class="d-md-none">
+                    @foreach (var day in log)
+                    {
+                        var open = day.ClockIn is not null && day.ClockOut is null && day.WorkDate.Date == Model.Today;
+                        var tone = open ? "none" : EssFormat.Tone(day.Status);
+                        <div class="ess-row">
+                            <div class="ess-row__main">
+                                <div class="ess-row__title">@L.Tr(day.WorkDate.DayOfWeek.ToString()) · @L.DayMonth(day.WorkDate)</div>
+                                <div class="ess-row__sub"><span class="ltr">@EssFormat.Time(day.ClockIn) → @EssFormat.Time(day.ClockOut)</span> · @EssFormat.Hours(day.WorkedMinutes)</div>
+                            </div>
+                            <span class="ess-pill ess-pill--@tone">@(open ? L.Tr("In progress") : L.Tr(EssFormat.StatusText(day.Status)))</span>
+                        </div>
+                    }
+                </div>
+
+                @* md and up: a Bootstrap table *@
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table ess-table align-middle">
+                        <thead>
+                            <tr><th>@L.Tr("Date")</th><th>@L.Tr("In")</th><th>@L.Tr("Out")</th><th>@L.Tr("Hours")</th><th>@L.Tr("Status")</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var day in log)
+                            {
+                                var open = day.ClockIn is not null && day.ClockOut is null && day.WorkDate.Date == Model.Today;
+                                var tone = open ? "none" : EssFormat.Tone(day.Status);
+                                <tr>
+                                    <td class="fw-semibold">@L.DayMonth(day.WorkDate)</td>
+                                    <td>@EssFormat.Time(day.ClockIn)</td>
+                                    <td>@EssFormat.Time(day.ClockOut)</td>
+                                    <td>@EssFormat.Hours(day.WorkedMinutes)</td>
+                                    <td><span class="ess-pill ess-pill--@tone">@(open ? L.Tr("In progress") : L.Tr(EssFormat.StatusText(day.Status)))</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

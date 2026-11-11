@@ -1,5 +1,22 @@
 # Employee Self Service (ESS) – Mobile Proposal
 
+> **Implemented (Nov 2026).** The real module now lives in the application at **`/ess`**
+> (`src/HRMS.Web/Areas/Ess`, `wwwroot/js/ess.js`, `wwwroot/scss/_ess.scss`, `db/146_Employee_Self_Service.sql`),
+> in the TMM theme and logo. This folder keeps the original proposal and static mockup for reference.
+>
+> **Go-live checklist**
+> 1. Run `db/146_Employee_Self_Service.sql` on the database.
+> 2. Organization > Locations: enter the **Latitude / Longitude** of each branch location.
+>    The employee punches at their *Work Location* (Employee > Employment) or any location of their *Branch*.
+>    The default radius is 15 m (`appsettings.json` > `SelfService:PunchRadiusMeters`); a location can have its own in `Core.Locations.PunchRadiusM`.
+> 3. Security > Manage Users: give each employee a user **linked to the employee** (any role, even one with no rights).
+> 4. Give the employee an **attendance pattern** (Time & Attendance), so late / short / absent days are worked out.
+> 5. Publish over **HTTPS** (phones only allow GPS on HTTPS). Employees open `https://<your-site>/ess`, sign in,
+>    and tap *Add to Home Screen* (Android) or *Share > Add to Home Screen* (iPhone).
+>
+> Every punch attempt, accepted or refused, is logged in `Attendance.MobilePunches` (position, distance, accuracy, IP).
+
+
 Status: **proposal + static prototype only** – nothing here is wired into `HRMS.Web` or deployed.
 Open `index.html` in a browser (use DevTools device mode for phone sizes). The yellow bar at
 the top is a prototype-only control to switch Login/App and simulate GPS states.

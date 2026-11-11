@@ -1,0 +1,49 @@
+@*
+    Employee Self Service (/ess) - the page frame of the phone app.
+    Installable (manifest + service worker): Android offers "Add to Home Screen"
+    with one tap, iPhone through Share > Add to Home Screen. Same TMM theme and
+    logo as the main application (hrms.css, scss/_ess.scss).
+*@
+<!DOCTYPE html>
+<html lang="@L.Lang" dir="@L.Dir">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TMM ESS" />
+    <meta name="application-name" content="TMM ESS" />
+    <title>@L.Tr(ViewData["Title"] as string ?? "Self Service") &middot; TMM</title>
+
+    <link rel="manifest" href="~/ess/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href="~/img/tmm-logo-dark.svg" />
+    <link rel="apple-touch-icon" href="~/ess/icons/apple-touch-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Lexend:wght@500;600;700&amp;family=Public+Sans:wght@400;500;600;700&amp;family=Noto+Kufi+Arabic:wght@500;600;700&amp;display=swap" />
+    @if (L.IsArabic)
+    {
+        <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    }
+    else
+    {
+        <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    }
+    <link rel="stylesheet" href="~/css/hrms.css" asp-append-version="true" />
+</head>
+<body class="ess-body" data-ess-sw="@Url.Content("~/ess/sw.js")" data-ess-scope="@Url.Content("~/ess/")">
+
+@RenderBody()
+
+<div class="ess-toast-host" id="ess-toasts" role="status" aria-live="polite"></div>
+
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/ess.js" asp-append-version="true"></script>
+</body>
+</html>

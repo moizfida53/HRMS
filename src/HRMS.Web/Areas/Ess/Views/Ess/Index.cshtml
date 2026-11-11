@@ -1,0 +1,153 @@
+@model EssPageModel
+@{
+    ViewData["Title"] = "Self Service";
+    var today = Model.Home.Today;
+    var name = L.IsArabic && !string.IsNullOrWhiteSpace(today.ArabicName) ? today.ArabicName : today.EmployeeName;
+    // text used by ess.js (translated here, so the script needs no label lookup)
+    var text = new Dictionary<string, string>
+    {
+        ["punchIn"] = L.Tr("Punch In"),
+        ["punchOut"] = L.Tr("Punch Out"),
+        ["done"] = L.Tr("Done for today"),
+        ["locating"] = L.Tr("Getting your location…"),
+        ["inside"] = L["ess.inside"],
+        ["outside"] = L["ess.outside"],
+        ["hintInside"] = L.Tr("You are within range of your branch."),
+        ["hintOutside"] = L["ess.hint_outside"],
+        ["hintLocating"] = L.Tr("Keep this screen open - accuracy improves in a few seconds."),
+        ["hintWeak"] = L["ess.hint_weak"],
+        ["gpsDenied"] = L.Tr("Location is turned off for this app. Allow location in your phone settings to punch."),
+        ["gpsUnsupported"] = L.Tr("This browser cannot read your location."),
+        ["noLocation"] = L.Tr("Mobile punch is not set up for your branch yet. Contact your HR administrator."),
+        ["offline"] = L.Tr("You are offline. Connect to the internet to punch."),
+        ["error"] = L.Tr("Something went wrong. Please try again."),
+        ["daysRequested"] = L.Tr("Days requested"),
+        ["balanceAfter"] = L.Tr("Balance after"),
+        ["confirmUnpaid"] = L.Tr("Send anyway")
+    };
+}
+
+<div class="ess-app" data-ess-app
+     data-url-home="@Url.Content("~/ess/home")"
+     data-url-locations="@Url.Content("~/ess/locations")"
+     data-url-punch="@Url.Content("~/ess/punch")"
+     data-url-attendance="@Url.Content("~/ess/attendance")"
+     data-url-leave="@Url.Content("~/ess/leave")"
+     data-url-leave-preview="@Url.Content("~/ess/leave/preview")"
+     data-url-leave-submit="@Url.Content("~/ess/leave/submit")"
+     data-url-login="@Url.Content("~/ess/login")">
+
+    @Html.AntiForgeryToken()
+    <script type="application/json" id="ess-text">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(text))</script>
+
+    @* ------------------------------------------------------------ top bar *@
+    <header class="ess-topbar">
+        <a class="ess-topbar__brand" href="@Url.Content("~/ess/")">
+            <img src="~/img/tmm-logo-dark.svg" alt="" />
+            <span><strong>TMM</strong><small>@L.Tr("Self Service")</small></span>
+        </a>
+
+        <div class="ess-topbar__actions">
+            <form method="post" action="@Url.Content("~/account/language")" class="m-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="lang" value="@(L.IsArabic ? "en" : "ar")" />
+                <input type="hidden" name="returnUrl" value="@Url.Content("~/ess/")" />
+                <button type="submit" class="ess-topbar__icon-btn" title="@(L.IsArabic ? "English" : "العربية")"
+                        lang="@(L.IsArabic ? "en" : "ar")">@(L.IsArabic ? "EN" : "ع")</button>
+            </form>
+
+            <div class="dropdown">
+                <button type="button" class="ess-avatar border-0" data-bs-toggle="dropdown" aria-expanded="false"
+                        aria-label="@name">@Model.Initials</button>
+                <div class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <div class="px-3 py-2 small">
+                        <div class="fw-semibold">@name</div>
+                        <div class="text-secondary">@today.EmployeeNo · @today.CompanyName</div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    @if (Model.CanOpenDesktop)
+                    {
+                        <a class="dropdown-item d-flex align-items-center gap-2" href="@Url.Content("~/apps")">@Html.Icon("apps", 16) @L.Tr("Open the full HR system")</a>
+                    }
+                    <form method="post" action="@Url.Content("~/ess/logout")" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="dropdown-item d-flex align-items-center gap-2 text-danger">@Html.Icon("logout", 16) @L.Tr("Sign out")</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    @* ------------------------------------------- tabs: bottom bar / side rail *@
+    <nav class="ess-nav" aria-label="@L.Tr("Self Service")" role="tablist">
+        <button type="button" class="ess-nav__btn is-active" role="tab" data-ess-tab="punch" aria-selected="true">@Html.Icon("clock", 22)<span>@L.Tr("Punch")</span></button>
+        <button type="button" class="ess-nav__btn" role="tab" data-ess-tab="attendance" aria-selected="false">@Html.Icon("calendar", 22)<span>@L.Tr("Attendance")</span></button>
+        <button type="button" class="ess-nav__btn" role="tab" data-ess-tab="leave" aria-selected="false">@Html.Icon("briefcase", 22)<span>@L.Tr("Leave")</span></button>
+        <button type="button" class="ess-nav__btn" role="tab" data-ess-tab="profile" aria-selected="false">@Html.Icon("user", 22)<span>@L.Tr("Profile")</span></button>
+    </nav>
+
+    <main class="ess-main">
+        <section class="ess-panel is-active" data-ess-panel="punch" role="tabpanel">
+            <div data-ess-home>
+                <partial name="_Home" model="Model.Home" />
+            </div>
+        </section>
+
+        <section class="ess-panel" data-ess-panel="attendance" role="tabpanel">
+            <div data-ess-attendance>
+                <partial name="_Attendance" model="Model.Home.Month" />
+            </div>
+        </section>
+
+        <section class="ess-panel" data-ess-panel="leave" role="tabpanel">
+            <div data-ess-leave>
+                <partial name="_Leave" model="Model.Home.Leave" />
+            </div>
+        </section>
+
+        <section class="ess-panel" data-ess-panel="profile" role="tabpanel">
+            <partial name="_Profile" model="Model" />
+        </section>
+    </main>
+
+    @* --------------------- annual leave request: a sheet on phones, a dialog from md *@
+    <div class="offcanvas offcanvas-bottom ess-sheet" tabindex="-1" id="ess-leave-sheet" aria-labelledby="ess-leave-title">
+        <div class="ess-grabber"></div>
+        <div class="offcanvas-header pb-0">
+            <h2 class="h5 offcanvas-title fw-bold" id="ess-leave-title">@L.Tr("Request Annual Leave")</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="@L.Tr("Cancel")"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form data-ess-leave-form novalidate>
+                <div class="ess-alert ess-alert--info mb-3" data-ess-leave-balance>
+                    @Html.Icon("info", 17)
+                    <span>@L.Tr("Available balance"): <b data-ess-leave-free>@LeaveFormat.Days(Model.Home.Leave.DaysLeft)</b></span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label fw-semibold" for="ess-from">@L.Tr("From")</label>
+                        <input class="form-control" type="date" id="ess-from" name="StartDate" required min="@today.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold" for="ess-to">@L.Tr("To")</label>
+                        <input class="form-control" type="date" id="ess-to" name="EndDate" required min="@today.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-12" data-ess-leave-preview hidden>
+                        <div class="ess-preview"></div>
+                        <ul class="ess-problems"></ul>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" for="ess-reason">@L.Tr("Reason (optional)")</label>
+                        <textarea class="form-control" id="ess-reason" name="Reason" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <div class="col-12" data-ess-leave-unpaid hidden>
+                        <div class="ess-alert ess-alert--error mb-0">@Html.Icon("alert", 17)<span></span></div>
+                    </div>
+                    <div class="col-12 d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg" data-ess-leave-submit>@L.Tr("Submit request")</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

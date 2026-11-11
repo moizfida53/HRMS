@@ -1,0 +1,92 @@
+@model EssHomeModel
+@{
+    var t = Model.Today;
+    var next = t.NextPunch;
+    var clockIn = t.ShownClockIn;
+    var clockOut = t.OpenRecordId is null ? t.TodayClockOut : null;
+    var worked = clockIn is { } i && clockOut is { } o && o > i ? (int)(o - i).TotalMinutes : 0;
+    var leave = Model.Leave;
+}
+<div class="row g-3">
+    @* -------------------------------------------------------- punch card *@
+    <div class="col-12 col-lg-5">
+        <div class="ess-card ess-punch" data-ess-punch data-next="@next" data-has-location="@(t.HasLocation ? "1" : "0")">
+            <div class="ess-punch__date">@(L.Tr(t.Today.DayOfWeek.ToString())) · @L.Date(t.Today)</div>
+            <div class="ess-punch__clock" data-ess-clock>@HRMS.Web.Services.LocalClock.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture)</div>
+
+            @if (next == "DONE")
+            {
+                <div class="ess-geo ess-geo--off">@Html.Icon("check", 15)<span class="ess-geo__text">@L.Tr("Done for today")</span></div>
+                <button type="button" class="ess-punch-btn" disabled>@Html.Icon("check", 30)@L.Tr("Done for today")</button>
+                <p class="ess-punch__hint"></p>
+            }
+            else if (!t.HasLocation)
+            {
+                <div class="ess-geo ess-geo--off">@Html.Icon("pin", 15)<span class="ess-geo__text">@L.Tr("Mobile punch is not set up for your branch yet. Contact your HR administrator.")</span></div>
+                <button type="button" class="ess-punch-btn @(next == "OUT" ? "ess-punch-btn--out" : null)" disabled>@Html.Icon("clock", 30)@(next == "OUT" ? L.Tr("Punch Out") : L.Tr("Punch In"))</button>
+                <p class="ess-punch__hint"></p>
+            }
+            else
+            {
+                <div class="ess-geo ess-geo--wait" data-ess-geo><span class="ess-geo__dot"></span><span class="ess-geo__text" data-ess-geo-text>@L.Tr("Getting your location…")</span></div>
+                <button type="button" class="ess-punch-btn @(next == "OUT" ? "ess-punch-btn--out" : null)" data-ess-punch-btn data-type="@next" disabled>
+                    @Html.Icon(next == "OUT" ? "logout" : "clock", 30)@(next == "OUT" ? L.Tr("Punch Out") : L.Tr("Punch In"))
+                </button>
+                <p class="ess-punch__hint" data-ess-geo-hint>@L.Tr("Keep this screen open - accuracy improves in a few seconds.")</p>
+            }
+
+            <div class="ess-today">
+                <div><small>@L.Tr("In")</small><strong data-ess-in>@EssFormat.Time(clockIn)</strong></div>
+                <div><small>@L.Tr("Out")</small><strong data-ess-out>@EssFormat.Time(clockOut)</strong></div>
+                <div><small>@L.Tr("Worked")</small><strong>@(worked > 0 ? EssFormat.Hours(worked) : "—")</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-7">
+        <div class="row g-3">
+            @* ------------------------------------------------ annual leave *@
+            <div class="col-12">
+                <div class="ess-card">
+                    @if (leave.Annual is { } a)
+                    {
+                        <div class="ess-balance">
+                            <div class="ess-ring" style="--p:@leave.Percent">
+                                <div class="ess-ring__inner"><span><strong>@LeaveFormat.Days(leave.DaysLeft)</strong><small>@L.Tr("days left")</small></span></div>
+                            </div>
+                            <div class="ess-balance__body">
+                                <div class="ess-card__title">@L.Tr("Annual Leave")</div>
+                                <div class="ess-balance__meta">
+                                    @L.Tr("Entitled") @LeaveFormat.Days(a.Entitled) · @L.Tr("Taken") @LeaveFormat.Days(a.Taken)@if (a.Pending > 0) { <text> · @L.Tr("Pending") @LeaveFormat.Days(a.Pending)</text> }
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" data-bs-toggle="offcanvas" data-bs-target="#ess-leave-sheet">
+                                    @Html.Icon("plus", 15) @L.Tr("Request leave")
+                                </button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="ess-card__title">@L.Tr("Annual Leave")</div>
+                        <p class="mb-0 text-secondary">@L.Tr("Annual leave is not set up for your company yet.")</p>
+                    }
+                </div>
+            </div>
+
+            @* ------------------------------------------------- this month *@
+            <div class="col-12">
+                <div class="ess-card">
+                    <div class="ess-card__head">
+                        <span class="ess-card__title">@L.Tr("This month") · @L.MonthYear(Model.Month.Month)</span>
+                        <a href="#attendance" data-ess-goto="attendance">@L.Tr("View sheet")</a>
+                    </div>
+                    <div class="ess-stats">
+                        <div class="ess-stat ess-stat--present"><strong>@Model.Month.Present</strong><span>@L.Tr("Present")</span></div>
+                        <div class="ess-stat ess-stat--absent"><strong>@Model.Month.Absent</strong><span>@L.Tr("Absent")</span></div>
+                        <div class="ess-stat ess-stat--short"><strong>@Model.Month.Short</strong><span>@L.Tr("Short")</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,79 @@
+@model EssLoginModel
+@{
+    ViewData["Title"] = "Employee sign in";
+}
+@*
+    /ess/login - the phone-sized sign-in for employees. The same accounts, password
+    rules and lockout as the main sign-in (ISignInService); only a user linked to an
+    employee gets in. Text is English here and translated by L.Tr (db/146 labels).
+*@
+<main class="ess-login">
+
+    <section class="ess-login__hero">
+        <div class="ess-login__glow" aria-hidden="true"></div>
+
+        <form method="post" action="@Url.Content("~/account/language")" class="ess-login__lang">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="lang" value="@(L.IsArabic ? "en" : "ar")" />
+            <input type="hidden" name="returnUrl" value="@(Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString)" />
+            <button type="submit" class="ess-topbar__icon-btn" title="@(L.IsArabic ? "English" : "العربية")"
+                    lang="@(L.IsArabic ? "en" : "ar")">@(L.IsArabic ? "EN" : "ع")</button>
+        </form>
+
+        <img class="ess-login__logo" src="~/img/tmm-logo-dark.svg" alt="TMM" />
+        <div class="ess-login__brand">TMM<small>@L.Tr("Self Service")</small></div>
+        <p class="ess-login__lede">@L.Tr("Punch in, check your attendance and apply for annual leave.")</p>
+    </section>
+
+    <section class="ess-login__panel">
+        <div class="ess-login__form">
+            <h1 class="ess-login__title">@L.Tr("Employee sign in")</h1>
+            <p class="ess-login__sub">@L.Tr("Sign in to continue to your workspace.")</p>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="ess-alert ess-alert--error" role="alert">@Html.Icon("alert", 17)<span>@L.Tr(Model.ErrorMessage, capture: true)</span></div>
+            }
+            @if (!string.IsNullOrEmpty(Model.InfoMessage))
+            {
+                <div class="ess-alert ess-alert--info" role="status">@Html.Icon("info", 17)<span>@L.Tr(Model.InfoMessage, capture: true)</span></div>
+            }
+
+            <form method="post" action="@Url.Content("~/ess/login")" novalidate data-ess-login>
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="ess-user">@L["auth.username_or_company_email"]</label>
+                    <input class="form-control" id="ess-user" name="Username" value="@Model.Username"
+                           autocomplete="username" autocapitalize="none" spellcheck="false" required />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="ess-pass">@L["auth.password"]</label>
+                    <input class="form-control" id="ess-pass" name="Password" type="password"
+                           autocomplete="current-password" required />
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="ess-remember" name="RememberMe" value="true" checked="@Model.RememberMe" />
+                    <input type="hidden" name="RememberMe" value="false" />
+                    <label class="form-check-label" for="ess-remember">@L["auth.keep_me_signed_in"]</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100" data-ess-submit>@L["auth.sign_in"]</button>
+            </form>
+
+            @* Add to Home Screen: Android / desktop Chrome get a real button (beforeinstallprompt);
+               iPhone cannot be installed from a button - the steps are shown instead. *@
+            <div class="ess-install" data-ess-install hidden>
+                <div class="ess-install__title">@Html.Icon("smartphone", 18) @L.Tr("Install on your phone")</div>
+                <p class="ess-install__text" data-ess-install-android hidden>@L.Tr("Add the app to your home screen for one-tap access.")</p>
+                <p class="ess-install__text" data-ess-install-ios hidden>@L.Tr("On iPhone: tap Share, then Add to Home Screen.")</p>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-ess-install-btn hidden>@Html.Icon("download", 15) @L.Tr("Add to Home Screen")</button>
+            </div>
+
+            <p class="ess-login__footer">@L["auth.trouble_signing_in_contact_your_hr_administrator"]</p>
+        </div>
+    </section>
+</main>
