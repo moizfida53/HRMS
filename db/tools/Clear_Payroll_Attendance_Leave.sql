@@ -7,7 +7,7 @@
    rows are really removed (not flagged as deleted) and the numbering of
    the emptied tables starts again from 1.
 
-   CLEARED (all rows) - @ClearSetup = 0, the default
+   CLEARED (all rows)
      Payroll     payrolls (runs, lines, issues, history, funding),
                  payslips, pay items (allowances / deductions / one-time
                  items) and their history, collections, final
@@ -22,7 +22,7 @@
      Payroll periods   kept (they are the calendar), every one set back
                        to OPEN
 
-   KEPT
+   KEPT (always)
      Core / Organization  companies, branches, departments, sections,
                           positions, designations, grades, cost centres,
                           locations, labels, countries, currencies
@@ -41,12 +41,19 @@
      Leave set-up         leave types and pay bands, settings, public
                           holidays
 
-   @ClearSetup = 1  also removes the payroll, attendance and leave
-                    SET-UP above (components, calendars, periods, rules,
-                    patterns, leave types, holidays ...). The Kuwait
-                    reference data (banks, PIFSS rates, indemnity rules,
-                    bank file formats) is always kept. An employee's
-                    link to a removed calendar is emptied.
+   THE SET-UP is chosen by two switches at the top of the script:
+     @ClearPayrollSetup = 1 (default)  also removes the PAYROLL set-up: pay
+                    components, payroll calendars and periods, salary
+                    structures, deduction policies / priorities, proration
+                    and overtime rules, GL mappings, accounting defaults,
+                    approval processes, company bank accounts. Employees
+                    lose their payroll calendar link (assign it again).
+                    The Kuwait reference data (banks, PIFSS rates,
+                    indemnity rules, bank file formats) is always kept.
+     @ClearPayrollSetup = 0  keeps all of that; the periods are reopened.
+     @ClearAttLeaveSetup = 1  also removes the attendance patterns and their
+                    assignments, device IDs, leave types, leave settings and
+                    public holidays (default 0 = kept).
 
    NOT TOUCHED
      * An employee terminated by a final settlement stays terminated
@@ -73,7 +80,8 @@ SET ANSI_NULLS ON;
 GO
 
 DECLARE @Mode       VARCHAR(10) = 'PREVIEW';   -- <-- 'PREVIEW' (list only) or 'EXECUTE' (remove)
-DECLARE @ClearSetup BIT         = 0;           -- <-- 0 = records only (recommended), 1 = the set-up too
+DECLARE @ClearPayrollSetup  BIT = 1;           -- <-- 1 = also the payroll set-up (all payroll data goes), 0 = keep it
+DECLARE @ClearAttLeaveSetup BIT = 0;           -- <-- 1 = also the attendance patterns, leave types and holidays
 
 /* ---------------------------------------------------------------------
    1. What is cleared: every table of these schemas, minus what is kept.
@@ -88,15 +96,19 @@ INSERT INTO @Keep VALUES
     (N'Payroll', N'IndemnityRuleSets'), (N'Payroll', N'IndemnityServiceSlabs'), (N'Payroll', N'IndemnityEntitlementFactors'),
     (N'Payroll', N'BankFileFormats'), (N'Payroll', N'BankFileFormatFields');
 
-/* kept unless @ClearSetup = 1: the set-up */
-IF @ClearSetup = 0
+/* kept unless asked: the payroll set-up */
+IF @ClearPayrollSetup = 0
     INSERT INTO @Keep VALUES
         (N'Payroll', N'PayComponents'), (N'Payroll', N'PayrollCalendars'), (N'Payroll', N'PayrollPeriods'),
         (N'Payroll', N'SalaryStructures'), (N'Payroll', N'SalaryStructureComponents'),
         (N'Payroll', N'DeductionPolicies'), (N'Payroll', N'DeductionPriorities'),
         (N'Payroll', N'ProrationRules'), (N'Payroll', N'OvertimeRates'),
         (N'Payroll', N'GLMappings'), (N'Payroll', N'AccountingDefaults'),
-        (N'Payroll', N'ApprovalProcesses'), (N'Payroll', N'CompanyBankAccounts'),
+        (N'Payroll', N'ApprovalProcesses'), (N'Payroll', N'CompanyBankAccounts');
+
+/* kept unless asked: the attendance and leave set-up */
+IF @ClearAttLeaveSetup = 0
+    INSERT INTO @Keep VALUES
         (N'Attendance', N'Patterns'), (N'Attendance', N'PatternSlabs'),
         (N'Attendance', N'EmployeePatterns'), (N'Attendance', N'EmployeeSettings'),
         (N'Leave', N'LeaveTypes'), (N'Leave', N'LeaveTypeTiers'), (N'Leave', N'Settings'), (N'Leave', N'PublicHolidays');
@@ -157,13 +169,15 @@ END;
    --------------------------------------------------------------------- */
 IF @Mode <> 'EXECUTE'
 BEGIN
+    SELECT N'PREVIEW ONLY - NOTHING WAS DELETED. To remove the data set @Mode = ''EXECUTE'' at the top and run again.' AS [Result];
+
     SELECT FullName AS [Table to clear], RowsBefore AS [Rows now]
     FROM   @Clear ORDER BY FullName;
 
     SELECT KeptTable AS [Kept table], ColumnName AS [Column], N'emptied (set to NULL)' AS [What happens], ClearedTable AS [Points at]
     FROM   @Links ORDER BY KeptTable, ColumnName;
 
-    IF @ClearSetup = 0 AND OBJECT_ID(N'[Payroll].[PayrollPeriods]', N'U') IS NOT NULL
+    IF @ClearPayrollSetup = 0 AND OBJECT_ID(N'[Payroll].[PayrollPeriods]', N'U') IS NOT NULL
         SELECT N'[Payroll].[PayrollPeriods]' AS [Kept table], COUNT(1) AS [Periods not OPEN - set back to OPEN]
         FROM   [Payroll].[PayrollPeriods] WHERE Status <> N'OPEN';
 
@@ -174,7 +188,7 @@ BEGIN
 
     DECLARE @PTables INT = (SELECT COUNT(1) FROM @Clear), @PRows BIGINT = (SELECT ISNULL(SUM(RowsBefore), 0) FROM @Clear);
     PRINT CONCAT(N'PREVIEW only - nothing was changed. ', @PTables, N' tables, ',
-                 @PRows, N' rows would be removed (@ClearSetup = ', @ClearSetup, N').');
+                 @PRows, N' rows would be removed (@ClearPayrollSetup = ', @ClearPayrollSetup, N', @ClearAttLeaveSetup = ', @ClearAttLeaveSetup, N').');
     PRINT N'Take a backup, set @Mode = ''EXECUTE'' and run again.';
     RETURN;
 END;
@@ -242,7 +256,7 @@ BEGIN TRANSACTION;
     EXEC (@sql);
 
     /* f. the payroll periods that are kept: open again (their payrolls are gone) */
-    IF @ClearSetup = 0 AND OBJECT_ID(N'[Payroll].[PayrollPeriods]', N'U') IS NOT NULL
+    IF @ClearPayrollSetup = 0 AND OBJECT_ID(N'[Payroll].[PayrollPeriods]', N'U') IS NOT NULL
     BEGIN
         SET @sql = N'UPDATE [Payroll].[PayrollPeriods] SET Status = N''OPEN'''
                  + CASE WHEN COL_LENGTH(N'Payroll.PayrollPeriods', N'StatusChangedBy') IS NOT NULL
@@ -269,7 +283,18 @@ BEGIN TRANSACTION;
 
 COMMIT TRANSACTION;
 
+    SELECT N'EXECUTED - THE DATA WAS DELETED.' AS [Result];
     SELECT FullName AS [Cleared table], RowsBefore AS [Rows removed] FROM @Clear WHERE RowsBefore > 0 ORDER BY FullName;
+
+    /* proof: every table of these schemas that still holds rows (kept set-up and Kuwait reference data only) */
+    SELECT QUOTENAME(sc.name) + N'.' + QUOTENAME(tb.name) AS [Still holds rows (kept on purpose)], SUM(ps.row_count) AS [Rows]
+    FROM   sys.tables AS tb
+    JOIN   sys.schemas AS sc ON sc.schema_id = tb.schema_id
+    JOIN   sys.dm_db_partition_stats AS ps ON ps.object_id = tb.object_id AND ps.index_id IN (0, 1)
+    WHERE  sc.name IN (SELECT SchemaName FROM @ClearSchemas) AND tb.is_ms_shipped = 0
+    GROUP BY sc.name, tb.name
+    HAVING SUM(ps.row_count) > 0
+    ORDER BY 1;
     DECLARE @Tables INT = (SELECT COUNT(1) FROM @Clear), @Removed BIGINT = (SELECT ISNULL(SUM(RowsBefore), 0) FROM @Clear);
     PRINT CONCAT(N'Done - ', @Tables, N' tables emptied, ', @Removed,
                  N' rows removed. Kept: ', @Companies, N' companies, ', @Employees, N' employees, ', @Users, N' users, ', @Roles, N' roles.');
