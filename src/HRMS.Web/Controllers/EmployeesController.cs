@@ -293,7 +293,8 @@ public sealed class EmployeesController : Controller
     {
         if (!Access.Create) return Forbid();
         // Pre-select the company when the top-bar filter is narrowed to exactly one.
-        var employee = new Employee { CompanyId = _currentUser.ActiveCompanyId ?? _companyFilter.SingleCompanyId ?? 0 };
+        // a new employee starts on probation: not in the Ministry Payroll until confirmed (db/143)
+        var employee = new Employee { CompanyId = _currentUser.ActiveCompanyId ?? _companyFilter.SingleCompanyId ?? 0, EmploymentStatus = "Probation" };
         var alertsTask = TryListDateAlertsAsync();
         var lookups = await LoadProfileLookupsAsync(includeInactive: false);
 

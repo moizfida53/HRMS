@@ -123,6 +123,9 @@ public sealed class BankStages
     public int MinistryCount { get; set; }
     public int MissingWpsCount { get; set; }
     public string? MissingWpsNames { get; set; }
+    /// <summary>db/143: employees on probation - not in the Ministry Payroll, step 2 pays their whole net pay.</summary>
+    public int ProbationCount { get; set; }
+    public decimal ProbationAmount { get; set; }
     public decimal CompanyAmount { get; set; }
     public int CompanyCount { get; set; }
     /// <summary>Employees whose Ministry transfer is more than their net pay - left out of step 2.</summary>

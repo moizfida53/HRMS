@@ -342,6 +342,10 @@
                                                     <div><dt>@L["pr.amount_kwd"]</dt><dd class="pr-money">@PayrollFormat.Money(st.MinistryDone ? st.MinistryFileAmount ?? st.MinistryAmount : st.MinistryAmount)</dd></div>
                                                     <div><dt>@L["fin.bank_file"]</dt><dd>@(st.MinistryFileNos ?? (string)L["fin.not_generated"])</dd></div>
                                                 </dl>
+                                                @if (st.ProbationCount > 0)
+                                                {
+                                                    <p class="bf-step__note">@Html.Icon("user", 14)<span>@L["fin.step_probation_0_1", st.ProbationCount, PayrollFormat.Money(st.ProbationAmount)]</span></p>
+                                                }
                                                 @if (st.MissingWpsCount > 0)
                                                 {
                                                     <div class="pr-banner pr-banner--err mb-3" role="alert">
@@ -399,6 +403,10 @@
                                                 @if (st.OverCount > 0)
                                                 {
                                                     <p class="bf-step__note">@Html.Icon("info", 14)<span>@L["fin.step2_over_0_1", st.OverCount, PayrollFormat.Money(st.OverAmount)]</span></p>
+                                                }
+                                                @if (st.ProbationCount > 0)
+                                                {
+                                                    <p class="bf-step__note">@Html.Icon("user", 14)<span>@L["fin.step_probation_0_1", st.ProbationCount, PayrollFormat.Money(st.ProbationAmount)]</span></p>
                                                 }
                                                 @if (st.CashCount > 0)
                                                 {

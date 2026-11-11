@@ -86,7 +86,7 @@ public sealed class PayrollFundingRow
 /// <summary>db/121: the funding summary of a payroll - the totals and the cases, from its rows.</summary>
 public sealed class PayrollFunding
 {
-    public static readonly IReadOnlyList<string> Cases = ["EQUAL", "COLLECT", "BALANCE", "CASH", "NO_WPS"];
+    public static readonly IReadOnlyList<string> Cases = ["EQUAL", "COLLECT", "BALANCE", "PROBATION", "CASH", "NO_WPS"];
 
     public IReadOnlyList<PayrollFundingRow> Rows { get; init; } = Array.Empty<PayrollFundingRow>();
 
