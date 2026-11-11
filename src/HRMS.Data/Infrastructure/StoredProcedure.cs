@@ -195,6 +195,9 @@ public static class StoredProcedure
 
     /// <summary>Security > Create Roles / Manage Users (db/57).</summary>
     public const string SecurityAdminManage = "Security.usp_SecurityAdmin_Manage";
+
+    /// <summary>Delete a user, and a role together with the users who hold only that role (db/147).</summary>
+    public const string SecurityDeleteManage = "Security.usp_SecurityDelete_Manage";
 }
 
 /// <summary>

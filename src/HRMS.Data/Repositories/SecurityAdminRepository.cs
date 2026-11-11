@@ -18,7 +18,15 @@ public interface ISecurityAdminRepository
     Task<RoleSummary?> RoleAsync(int? companyId, int roleId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<string>> RoleCodesAsync(int? companyId, int roleId, CancellationToken cancellationToken = default);
     Task<SaveResult> SaveRoleAsync(int? companyId, RoleSaveRequest role, long? userId, CancellationToken cancellationToken = default);
-    Task<SaveResult> DeleteRoleAsync(int? companyId, int roleId, long? userId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Deletes a role (db/147). With <paramref name="confirm"/> the users who hold it are dealt with: those whose only
+    /// role it is are deleted, the others just lose it. Without it, a role still held is refused (IN_USE).
+    /// </summary>
+    Task<SaveResult> DeleteRoleAsync(int? companyId, int roleId, bool confirm, long? userId, CancellationToken cancellationToken = default);
+    /// <summary>The users who hold a role and what deleting it would do to each (db/147); the result says if it cannot be deleted.</summary>
+    Task<(SaveResult Result, IReadOnlyList<RoleHolderImpact> Holders)> RoleImpactAsync(int? companyId, int roleId, long? userId, CancellationToken cancellationToken = default);
+    /// <summary>Deletes a user and their role links (db/147).</summary>
+    Task<SaveResult> DeleteUserAsync(int? companyId, long targetUserId, bool callerIsSysAdmin, long? userId, CancellationToken cancellationToken = default);
     Task<UserRoleRow?> UserAsync(int? companyId, long userId, CancellationToken cancellationToken = default);
     Task<PagedResult<UserRoleRow>> UsersAsync(int? companyId, string? search, int? roleFilter, int page, int pageSize, CancellationToken cancellationToken = default);
     Task<SaveResult> SetUserRolesAsync(int? companyId, long targetUserId, IReadOnlyCollection<int> roleIds, bool callerIsSysAdmin, long? userId,
@@ -71,13 +79,35 @@ public sealed class SecurityAdminRepository : ISecurityAdminRepository
         return PayrollRunRepository.ReadResult(p, role.RoleId);
     }
 
-    public async Task<SaveResult> DeleteRoleAsync(int? companyId, int roleId, long? userId, CancellationToken cancellationToken = default)
+    public async Task<SaveResult> DeleteRoleAsync(int? companyId, int roleId, bool confirm, long? userId, CancellationToken cancellationToken = default)
     {
         var p = Env("ROLE_DELETE", companyId);
         p.Add("@RoleId", roleId, DbType.Int32);
+        p.Add("@Confirm", confirm, DbType.Boolean);
         p.Add("@ActionBy", userId, DbType.Int64);
-        await _sql.ExecuteAsync(StoredProcedure.SecurityAdminManage, p, cancellationToken).ConfigureAwait(false);
+        await _sql.ExecuteAsync(StoredProcedure.SecurityDeleteManage, p, cancellationToken).ConfigureAwait(false);
         return PayrollRunRepository.ReadResult(p, roleId);
+    }
+
+    public async Task<(SaveResult Result, IReadOnlyList<RoleHolderImpact> Holders)> RoleImpactAsync(
+        int? companyId, int roleId, long? userId, CancellationToken cancellationToken = default)
+    {
+        var p = Env("ROLE_IMPACT", companyId);
+        p.Add("@RoleId", roleId, DbType.Int32);
+        p.Add("@ActionBy", userId, DbType.Int64);
+        var rows = await _sql.QueryAsync<RoleHolderImpact>(StoredProcedure.SecurityDeleteManage, p, cancellationToken).ConfigureAwait(false);
+        return (PayrollRunRepository.ReadResult(p, roleId), rows);
+    }
+
+    public async Task<SaveResult> DeleteUserAsync(int? companyId, long targetUserId, bool callerIsSysAdmin, long? userId,
+                                                  CancellationToken cancellationToken = default)
+    {
+        var p = Env("USER_DELETE", companyId);
+        p.Add("@UserId", targetUserId, DbType.Int64);
+        p.Add("@CallerIsSysAdmin", callerIsSysAdmin, DbType.Boolean);
+        p.Add("@ActionBy", userId, DbType.Int64);
+        await _sql.ExecuteAsync(StoredProcedure.SecurityDeleteManage, p, cancellationToken).ConfigureAwait(false);
+        return PayrollRunRepository.ReadResult(p, targetUserId);
     }
 
     public async Task<PagedResult<UserRoleRow>> UsersAsync(int? companyId, string? search, int? roleFilter, int page, int pageSize,

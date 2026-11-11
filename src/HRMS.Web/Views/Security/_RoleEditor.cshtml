@@ -352,7 +352,7 @@
             @if (Model.CanDelete)
             {
                 <button type="button" class="btn btn-outline-danger" data-sec-delete
-                        data-confirm="@L["sec.delete_confirm", r!.RoleName]">@Html.Icon("trash", 15)<span>@L["sec.delete_role"]</span></button>
+                        data-sec-role-name="@r!.RoleName">@Html.Icon("trash", 15)<span>@L["sec.delete_role"]</span></button>
             }
             <button type="button" class="btn btn-outline-secondary" data-sec-discard>@L["sec.discard"]</button>
             <button type="submit" class="btn btn-primary" data-sec-save>@Html.Icon("check", 15)<span>@(Model.IsNew ? L["sec.create_role"] : L["sec.save_role"])</span></button>

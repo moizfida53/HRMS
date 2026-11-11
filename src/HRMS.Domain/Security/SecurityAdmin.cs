@@ -48,6 +48,19 @@ public sealed class UserRoleRow
         (RoleNames ?? string.Empty).Split('|', StringSplitOptions.RemoveEmptyEntries);
 }
 
+/// <summary>
+/// A user who holds a role about to be deleted (db/147, ROLE_IMPACT): <see cref="WillDelete"/> is true when it
+/// is their only role, so the account goes with it; otherwise they keep the account and lose just that role.
+/// </summary>
+public sealed class RoleHolderImpact
+{
+    public long UserId { get; init; }
+    public string Username { get; init; } = string.Empty;
+    public string? DisplayName { get; init; }
+    public int OtherRoles { get; init; }
+    public bool WillDelete { get; init; }
+}
+
 /// <summary>What Create Roles saves.</summary>
 public sealed class RoleSaveRequest
 {

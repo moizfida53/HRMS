@@ -18337,6 +18337,7 @@ html.nav-mini:not(.nav-peek) .hrms-nav-link--apps {
 }
 .hrms-confirm__text {
   margin: 0 0 0.5rem;
+  white-space: pre-line;
   color: #3a3f3d;
   font-size: 0.9rem;
   line-height: 1.5;

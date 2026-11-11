@@ -226,12 +226,39 @@ public sealed class SecurityController : Controller
         });
     }
 
-    [HttpPost("roles/delete")]
-    public async Task<IActionResult> DeleteRole([FromForm(Name = "ref")] string? roleRef)
+    /// <summary>
+    /// What deleting a role would do to the users who hold it - for the confirmation popup. A user whose
+    /// only role it is would be deleted too; one with other roles only loses this one.
+    /// </summary>
+    [HttpPost("roles/impact")]
+    public async Task<IActionResult> RoleImpact([FromForm(Name = "ref")] string? roleRef)
     {
         if (!Can(PermRoleDelete)) return Denied();
         if (_refs.One(RefPurpose.Role, roleRef) is not { } id) return NotFoundJson();
-        var result = await _security.DeleteRoleAsync(OwnCompany, (int)id, _currentUser.UserId, Ct);
+        var (result, holders) = await _security.RoleImpactAsync(OwnCompany, (int)id, _currentUser.UserId, Ct);
+        if (!result.Success) return Json(ActionResponse.Failed(result.Message, result.ErrorCode));
+        return Json(new
+        {
+            success = true,
+            users = holders.Select(h => new
+            {
+                name = string.IsNullOrWhiteSpace(h.DisplayName) ? h.Username : h.DisplayName,
+                username = h.Username,
+                willDelete = h.WillDelete
+            })
+        });
+    }
+
+    /// <summary>
+    /// Deletes a role. <paramref name="confirm"/> = the person agreed (popup) that the users holding it are dealt
+    /// with: those whose only role it is are deleted, the others just lose it. Without it a role in use is refused.
+    /// </summary>
+    [HttpPost("roles/delete")]
+    public async Task<IActionResult> DeleteRole([FromForm(Name = "ref")] string? roleRef, [FromForm] bool confirm = false)
+    {
+        if (!Can(PermRoleDelete)) return Denied();
+        if (_refs.One(RefPurpose.Role, roleRef) is not { } id) return NotFoundJson();
+        var result = await _security.DeleteRoleAsync(OwnCompany, (int)id, confirm, _currentUser.UserId, Ct);
         return Json(result.Success ? ActionResponse.Ok(0, result.Message) : ActionResponse.Failed(result.Message, result.ErrorCode));
     }
 
@@ -448,6 +475,23 @@ public sealed class SecurityController : Controller
             return Json(ActionResponse.Failed("You can only change accounts whose rights you hold yourself.", "FORBIDDEN"));
         }
         var result = await _security.SetUserActiveAsync(OwnCompany, user.UserId, active, IsSysAdmin, _currentUser.UserId, Ct);
+        return Json(result.Success ? ActionResponse.Ok(0, result.Message) : ActionResponse.Failed(result.Message, result.ErrorCode));
+    }
+
+    /// <summary>
+    /// Deletes a user: the account and its roles (the employee record stays). The Full level of Manage Users
+    /// (the same right as activate / deactivate). Not your own account; a System Administrator's only by one.
+    /// </summary>
+    [HttpPost("users/delete")]
+    public async Task<IActionResult> DeleteUser([FromForm(Name = "ref")] string? userRef)
+    {
+        if (!Can(PermUserDisable)) return Denied();
+        if (await FindUserAsync(userRef) is not { } user) return NotFoundJson();
+        if (!await MayManageAsync(user))
+        {
+            return Json(ActionResponse.Failed("You can only change accounts whose rights you hold yourself.", "FORBIDDEN"));
+        }
+        var result = await _security.DeleteUserAsync(OwnCompany, user.UserId, IsSysAdmin, _currentUser.UserId, Ct);
         return Json(result.Success ? ActionResponse.Ok(0, result.Message) : ActionResponse.Failed(result.Message, result.ErrorCode));
     }
 

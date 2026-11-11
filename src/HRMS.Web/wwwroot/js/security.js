@@ -291,20 +291,56 @@
                 }
                 var del = e.target.closest("[data-sec-delete]");
                 if (del) {
-                    HRMS.confirm({ title: HRMS.t("js.sec_delete_role", "Delete role"), text: del.getAttribute("data-confirm") }).then(function (ok) {
-                        if (!ok) { return; }
-                        busy(del, true);
-                        HRMS.post(rolesPage.getAttribute("data-urls-delete"), fd({ ref: current })).then(function (res) {
-                            busy(del, false);
-                            if (res && res.success) {
-                                f.setAttribute("data-dirty", "false");
-                                store(FLASH, res.message);
-                                HRMS.reload();
-                            } else {
-                                HRMS.toast((res && res.message) || failed(), "error");
+                    // first ask the server who holds the role: users whose ONLY role it is are deleted with it,
+                    // users with other roles just lose this one - the person must see that before agreeing
+                    var roleName = del.getAttribute("data-sec-role-name") || "";
+                    busy(del, true);
+                    HRMS.post(rolesPage.getAttribute("data-urls-impact"), fd({ ref: current })).then(function (impact) {
+                        busy(del, false);
+                        if (!impact || !impact.success) { HRMS.toast((impact && impact.message) || failed(), "error"); return; }
+
+                        var users = impact.users || [];
+                        var names = function (list) {
+                            var shown = list.slice(0, 8).map(function (u) { return u.name; }).join(", ");
+                            return list.length > 8 ? shown + " " + HRMS.t("js.sec_and_more", "and {0} more").replace("{0}", list.length - 8) : shown;
+                        };
+                        var gone = users.filter(function (u) { return u.willDelete; });
+                        var kept = users.filter(function (u) { return !u.willDelete; });
+                        var lines = [];
+                        if (users.length === 0) {
+                            lines.push(HRMS.t("js.sec_role_no_users", "Delete the role {0}? No user has it.").replace("{0}", roleName));
+                        } else {
+                            lines.push(HRMS.t("js.sec_role_impact_intro", "Delete the role {0}? It is assigned to {1} user(s).")
+                                .replace("{0}", roleName).replace("{1}", users.length));
+                            if (gone.length) {
+                                lines.push(HRMS.t("js.sec_role_impact_delete", "These users have only this role, so their accounts will be DELETED: {0}")
+                                    .replace("{0}", names(gone)));
                             }
-                        }, function (err) { busy(del, false); HRMS.toast((err && err.message) || failed(), "error"); });
-                    });
+                            if (kept.length) {
+                                lines.push(HRMS.t("js.sec_role_impact_keep", "These users have other roles: they only lose this role and keep their account: {0}")
+                                    .replace("{0}", names(kept)));
+                            }
+                        }
+
+                        HRMS.confirm({
+                            title: HRMS.t("js.sec_delete_role", "Delete role"),
+                            text: lines.join("\n\n"),
+                            ok: HRMS.t("js.sec_delete_role_ok", "Delete role")
+                        }).then(function (ok) {
+                            if (!ok) { return; }
+                            busy(del, true);
+                            HRMS.post(rolesPage.getAttribute("data-urls-delete"), fd({ ref: current, confirm: "true" })).then(function (res) {
+                                busy(del, false);
+                                if (res && res.success) {
+                                    f.setAttribute("data-dirty", "false");
+                                    store(FLASH, res.message);
+                                    HRMS.reload();
+                                } else {
+                                    HRMS.toast((res && res.message) || failed(), "error");
+                                }
+                            }, function (err) { busy(del, false); HRMS.toast((err && err.message) || failed(), "error"); });
+                        });
+                    }, function (err) { busy(del, false); HRMS.toast((err && err.message) || failed(), "error"); });
                 }
             });
 
@@ -585,6 +621,26 @@
                         if (res && res.success) { HRMS.toast(res.message, "success"); loadUsers(); }
                         else { HRMS.toast((res && res.message) || failed(), "error"); }
                     }, function (err) { busy(tg, false); HRMS.toast((err && err.message) || failed(), "error"); });
+                });
+                return;
+            }
+
+            var rm = e.target.closest("[data-sec-user-delete]");
+            if (rm) {
+                var victim = rm.getAttribute("data-sec-user-name") || "";
+                HRMS.confirm({
+                    title: HRMS.t("js.sec_delete_user", "Delete user"),
+                    name: victim,
+                    text: HRMS.t("js.sec_delete_user_text", "The account and all its roles are removed and the user can no longer sign in. The employee record is not affected."),
+                    ok: HRMS.t("js.sec_delete_user_ok", "Delete user")
+                }).then(function (ok) {
+                    if (!ok) { return; }
+                    busy(rm, true);
+                    HRMS.post(url("delete"), fd({ ref: rm.getAttribute("data-sec-user-delete") })).then(function (res) {
+                        busy(rm, false);
+                        if (res && res.success) { HRMS.toast(res.message, "success"); loadUsers(); }
+                        else { HRMS.toast((res && res.message) || failed(), "error"); }
+                    }, function (err) { busy(rm, false); HRMS.toast((err && err.message) || failed(), "error"); });
                 });
                 return;
             }

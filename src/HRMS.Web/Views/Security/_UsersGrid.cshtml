@@ -89,6 +89,11 @@ else
                                             title="@(u.IsActive ? L["common.deactivate"] : L["common.activate"])">
                                         @Html.Icon("power", 14)<span class="sec-row-actions__text">@(u.IsActive ? L["common.deactivate"] : L["common.activate"])</span>
                                     </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger sec-assign-btn"
+                                            data-sec-user-delete="@uref" data-sec-user-name="@name"
+                                            title="@L["common.delete"]" aria-label="@L["common.delete"]">
+                                        @Html.Icon("trash", 14)<span class="sec-row-actions__text">@L["common.delete"]</span>
+                                    </button>
                                 }
                             </span>
                         </td>
