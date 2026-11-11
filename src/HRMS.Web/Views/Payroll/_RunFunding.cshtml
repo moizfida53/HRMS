@@ -18,11 +18,11 @@
     string Key(string c) => c switch
     {
         "EQUAL" => "fund.case_equal", "COLLECT" => "fund.case_collect", "BALANCE" => "fund.case_balance",
-        "CASH" => "fund.case_cash", "PROBATION" => "fund.case_probation", _ => "fund.case_no_wps"
+        "CASH" => "fund.case_cash", "PROBATION" => "fund.case_probation", "COMPANY" => "fund.case_company", _ => "fund.case_no_wps"
     };
     string Tone(string c) => c switch
     {
-        "EQUAL" => "info", "COLLECT" => "warning", "BALANCE" => "success", "CASH" => "muted", "PROBATION" => "purple", _ => "danger"
+        "EQUAL" => "info", "COLLECT" => "warning", "BALANCE" => "success", "CASH" => "muted", "PROBATION" or "COMPANY" => "purple", _ => "danger"
     };
     string M(decimal v) => v == 0 ? "—" : PayrollFormat.Money(v);
     var popup = ViewData["Popup"] is true;
