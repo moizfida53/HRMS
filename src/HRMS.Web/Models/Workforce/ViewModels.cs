@@ -238,6 +238,9 @@ public sealed class EmployeeProfileViewModel
     /// </summary>
     public bool Wizard { get; init; }
 
+    /// <summary>The active banks of Payroll Settings > Banks - the Bank Name list of the Employment tab.</summary>
+    public IReadOnlyList<HRMS.Domain.Payroll.Bank> Banks { get; init; } = [];
+
     /// <summary>Dropdown data keyed by <see cref="LookupType"/>.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<LookupItem>> Lookups { get; init; } =
         new Dictionary<string, IReadOnlyList<LookupItem>>();

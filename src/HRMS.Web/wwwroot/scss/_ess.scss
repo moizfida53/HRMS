@@ -219,6 +219,37 @@ $ess-tones: (
   }
 }
 
+// "Install app" - always in the top bar until the app runs from the home screen
+.ess-topbar__install {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 40px;
+  padding: 0 space("3");
+  border: 1px solid $blue-200;
+  border-radius: $radius-pill;
+  background: $blue-050;
+  color: $blue-700;
+  font-size: $fs-sm;
+  font-weight: $fw-bold;
+  white-space: nowrap;
+
+  &:hover, &:focus-visible { background: $blue-100; border-color: $blue-600; }
+  &[hidden] { display: none; }
+
+  // the narrowest phones keep only the icon
+  @media (max-width: 379.98px) { span { @include visually-hidden; } padding: 0; inline-size: 40px; justify-content: center; }
+}
+
+.ess-steps {
+  margin-block-end: space("4");
+
+  &__title { margin: 0 0 space("2"); font-size: $fs-md; font-weight: $fw-bold; }
+  ol { margin: 0; padding-inline-start: 1.25rem; font-size: $fs-md; color: $ink-700; }
+  li { margin-block-end: space("1"); }
+  &[hidden] { display: none; }
+}
+
 .ess-avatar {
   display: inline-grid;
   place-items: center;

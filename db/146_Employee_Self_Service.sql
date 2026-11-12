@@ -18,7 +18,7 @@
 
    Changes:
      1. Core.Locations.PunchRadiusM      - optional radius per location (NULL = the
-                                           app setting SelfService:PunchRadiusMeters, 15 m)
+                                           app setting SelfService:PunchRadiusMeters, 50 m)
      2. Attendance.Records.Source        - 'MOBILE' allowed
      3. Attendance.MobilePunches         - the log of every punch attempt
      4. Attendance.usp_EssSelfService    - TODAY, LOCATIONS, PUNCH, MONTH, PROFILE
@@ -105,7 +105,7 @@ CREATE OR ALTER PROCEDURE [Attendance].[usp_EssSelfService]
     @Latitude        DECIMAL(10,7)   = NULL,
     @Longitude       DECIMAL(10,7)   = NULL,
     @AccuracyM       DECIMAL(9,2)    = NULL,
-    @DefaultRadiusM  INT             = 15,
+    @DefaultRadiusM  INT             = 50,
     @MaxAccuracyM    INT             = 50,
     @IpAddress       NVARCHAR(64)    = NULL,
     @UserAgent       NVARCHAR(400)   = NULL,

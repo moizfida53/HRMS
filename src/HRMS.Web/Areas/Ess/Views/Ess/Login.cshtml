@@ -64,13 +64,12 @@
                 <button type="submit" class="btn btn-primary btn-lg w-100" data-ess-submit>@L["auth.sign_in"]</button>
             </form>
 
-            @* Add to Home Screen: Android / desktop Chrome get a real button (beforeinstallprompt);
-               iPhone cannot be installed from a button - the steps are shown instead. *@
-            <div class="ess-install" data-ess-install hidden>
+            @* Add to Home Screen: always offered (until the app runs from the home screen). One tap installs it where the
+               browser allows it; otherwise the steps for this phone are shown. *@
+            <div class="ess-install" data-ess-install-box hidden>
                 <div class="ess-install__title">@Html.Icon("smartphone", 18) @L.Tr("Install on your phone")</div>
-                <p class="ess-install__text" data-ess-install-android hidden>@L.Tr("Add the app to your home screen for one-tap access.")</p>
-                <p class="ess-install__text" data-ess-install-ios hidden>@L.Tr("On iPhone: tap Share, then Add to Home Screen.")</p>
-                <button type="button" class="btn btn-outline-primary btn-sm" data-ess-install-btn hidden>@Html.Icon("download", 15) @L.Tr("Add to Home Screen")</button>
+                <p class="ess-install__text">@L.Tr("Add the app to your home screen for one-tap access.")</p>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-ess-install-trigger>@Html.Icon("download", 15) @L.Tr("Add to Home Screen")</button>
             </div>
 
             <p class="ess-login__footer">@L["auth.trouble_signing_in_contact_your_hr_administrator"]</p>

@@ -40,36 +40,59 @@
         });
     }
 
-    // ---------------------------------------------- Add to Home Screen (login)
+    // ------------------------------------------------- Add to Home Screen
+    // An "Install" button is on every page (the sign-in box, the top bar and the account menu) as long as the app is
+    // not already running from the home screen. Where the browser can install the app itself (Android Chrome, Edge,
+    // desktop Chrome) the button does it with one tap; everywhere else (iPhone / iPad, a browser that has not offered
+    // it yet, or an app that is already installed) it shows the steps. Installing again replaces the old icon on
+    // Android (the same app id); on iPhone the old icon is deleted first (the steps say so).
     (function install() {
-        var box = document.querySelector("[data-ess-install]");
-        if (!box) return;
+        var triggers = Array.prototype.slice.call(document.querySelectorAll("[data-ess-install-trigger], [data-ess-install-box]"));
         var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-        if (standalone) return;
+        if (standalone || triggers.length === 0) return;
+        triggers.forEach(function (el) { el.hidden = false; });
+
+        var deferred = null;
+        window.addEventListener("beforeinstallprompt", function (e) {
+            e.preventDefault();          // keep the browser's own mini bar away: the button is the way in
+            deferred = e;
+        });
+        window.addEventListener("appinstalled", function () {
+            deferred = null;
+            triggers.forEach(function (el) { el.hidden = true; });
+        });
 
         var ua = window.navigator.userAgent || "";
         var ios = /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
-        if (ios) {
-            box.hidden = false;
-            box.querySelector("[data-ess-install-ios]").hidden = false;
-            return;
+        var android = /android/i.test(ua);
+
+        function showSteps() {
+            var modal = document.getElementById("ess-install-modal");
+            if (!modal || !window.bootstrap) { return; }
+            // the steps of this phone first; both when it is not clear which one it is
+            Array.prototype.forEach.call(modal.querySelectorAll("[data-ess-steps]"), function (box) {
+                var kind = box.getAttribute("data-ess-steps");
+                box.hidden = (ios && kind !== "ios") || (android && kind !== "android");
+            });
+            window.bootstrap.Modal.getOrCreateInstance(modal).show();
         }
 
-        var deferred = null;
-        var btn = box.querySelector("[data-ess-install-btn]");
-        window.addEventListener("beforeinstallprompt", function (e) {
+        document.addEventListener("click", function (e) {
+            var button = e.target.closest("[data-ess-install-trigger]");
+            if (!button) { return; }
             e.preventDefault();
-            deferred = e;
-            box.hidden = false;
-            box.querySelector("[data-ess-install-android]").hidden = false;
-            btn.hidden = false;
+            if (deferred) {
+                var prompt = deferred;
+                deferred = null;                       // the browser allows one prompt per event
+                prompt.prompt();
+                prompt.userChoice.then(function (choice) {
+                    if (choice && choice.outcome !== "accepted") { return; }
+                    triggers.forEach(function (el) { el.hidden = true; });
+                }, function () { /* closed */ });
+                return;
+            }
+            showSteps();
         });
-        btn.addEventListener("click", function () {
-            if (!deferred) return;
-            deferred.prompt();
-            deferred.userChoice.finally(function () { deferred = null; box.hidden = true; });
-        });
-        window.addEventListener("appinstalled", function () { box.hidden = true; });
     })();
 
     // the sign-in button: no double submit
@@ -185,10 +208,22 @@
 
         stop: function () {
             if (this.watch !== null) { navigator.geolocation.clearWatch(this.watch); this.watch = null; }
+            this.recent = [];
         },
 
+        // the readings of the last seconds: the most accurate one is used, not the latest (a phone's position jumps
+        // by 10-20 m from one reading to the next, and the latest is often the worst)
+        recent: [],
+        WINDOW_MS: 15000,
+
         update: function (c) {
-            this.fix = { lat: c.latitude, lng: c.longitude, accuracy: c.accuracy };
+            var now = Date.now();
+            this.recent.push({ t: now, lat: c.latitude, lng: c.longitude, accuracy: c.accuracy });
+            var window_ = this.WINDOW_MS;
+            this.recent = this.recent.filter(function (r) { return now - r.t <= window_; });
+            var pick = this.recent.reduce(function (a, b) { return b.accuracy <= a.accuracy ? b : a; });
+            this.fix = { lat: pick.lat, lng: pick.lng, accuracy: pick.accuracy };
+            c = { latitude: pick.lat, longitude: pick.lng, accuracy: pick.accuracy };
             var best = null;
             (this.places || []).forEach(function (p) {
                 var d = distance(c.latitude, c.longitude, p.lat, p.lng);

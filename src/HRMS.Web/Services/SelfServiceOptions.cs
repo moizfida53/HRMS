@@ -8,15 +8,18 @@ public sealed class SelfServiceOptions
     public const string SectionName = "SelfService";
 
     /// <summary>
-    /// How close (metres) the phone must be to the branch location to punch. A location can
-    /// have its own radius (Core.Locations.PunchRadiusM, db/146); this is the default.
+    /// The overall punch radius: how close (metres) the phone must be to the branch location to punch.
+    /// A phone's GPS is rarely better than 10-25 m inside or beside a building, and the branch's own
+    /// latitude / longitude is itself only as exact as it was typed - a radius under about 30 m turns
+    /// away people who are standing in the building. 50 m keeps the punch to the building and its
+    /// surroundings. A location can have its own radius (Core.Locations.PunchRadiusM, db/146).
     /// </summary>
-    public int PunchRadiusMeters { get; set; } = 15;
+    public int PunchRadiusMeters { get; set; } = 50;
 
     /// <summary>
     /// The worst GPS accuracy (metres) a punch is accepted with. Indoors a phone often reports
     /// 10-50 m; a reading worse than this is refused ("wait for a stronger signal"), since a
-    /// 15 m fence means nothing with a 200 m reading.
+    /// 50 m fence means nothing with a 200 m reading.
     /// </summary>
     public int MaxAccuracyMeters { get; set; } = 50;
 

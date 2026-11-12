@@ -43,6 +43,47 @@
 
 <div class="ess-toast-host" id="ess-toasts" role="status" aria-live="polite"></div>
 
+@* How to add the app to the home screen, when the browser cannot do it with one tap (iPhone, or no prompt offered) *@
+<div class="modal fade" id="ess-install-modal" tabindex="-1" aria-labelledby="ess-install-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5 fw-bold" id="ess-install-title">@L.Tr("Add to Home Screen")</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@L.Tr("Close")"></button>
+            </div>
+            <div class="modal-body">
+                <p>@L.Tr("Add Self Service to your home screen to open it like an app.")</p>
+
+                <section class="ess-steps" data-ess-steps="ios">
+                    <h3 class="ess-steps__title">@L.Tr("iPhone and iPad")</h3>
+                    <ol>
+                        <li>@L.Tr("Open this page in Safari.")</li>
+                        <li>@L.Tr("Tap the Share button (the square with an arrow).")</li>
+                        <li>@L.Tr("Choose Add to Home Screen, then tap Add.")</li>
+                    </ol>
+                </section>
+
+                <section class="ess-steps" data-ess-steps="android">
+                    <h3 class="ess-steps__title">@L.Tr("Android")</h3>
+                    <ol>
+                        <li>@L.Tr("Open this page in Chrome.")</li>
+                        <li>@L.Tr("Tap the menu (three dots) at the top right.")</li>
+                        <li>@L.Tr("Choose Install app (or Add to Home screen), then tap Install.")</li>
+                    </ol>
+                </section>
+
+                <div class="ess-alert ess-alert--info mb-0">
+                    @Html.Icon("info", 17)
+                    <span>@L.Tr("Already added? On Android, adding it again replaces the old icon. On iPhone, delete the old icon first (touch and hold it), then add it again.")</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">@L.Tr("OK")</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="~/js/ess.js" asp-append-version="true"></script>
 </body>

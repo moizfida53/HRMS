@@ -8,7 +8,7 @@
 > 1. Run `db/146_Employee_Self_Service.sql` on the database.
 > 2. Organization > Locations: enter the **Latitude / Longitude** of each branch location.
 >    The employee punches at their *Work Location* (Employee > Employment) or any location of their *Branch*.
->    The default radius is 15 m (`appsettings.json` > `SelfService:PunchRadiusMeters`); a location can have its own in `Core.Locations.PunchRadiusM`.
+>    The overall radius is 50 m (`appsettings.json` > `SelfService:PunchRadiusMeters`; phone GPS is rarely better than 10-25 m near a building, so keep it at 30 m or more); a location can have its own in `Core.Locations.PunchRadiusM`.
 > 3. Security > Manage Users: give each employee a user **linked to the employee** (any role, even one with no rights).
 > 4. Give the employee an **attendance pattern** (Time & Attendance), so late / short / absent days are worked out.
 > 5. Publish over **HTTPS** (phones only allow GPS on HTTPS). Employees open `https://<your-site>/ess`, sign in,

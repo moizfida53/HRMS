@@ -48,6 +48,10 @@
         </a>
 
         <div class="ess-topbar__actions">
+            @* Add to Home Screen - always here until the app runs from the home screen *@
+            <button type="button" class="ess-topbar__install" data-ess-install-trigger hidden title="@L.Tr("Add to Home Screen")">
+                @Html.Icon("download", 16)<span>@L.Tr("Install app")</span>
+            </button>
             <form method="post" action="@Url.Content("~/account/language")" class="m-0">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="lang" value="@(L.IsArabic ? "en" : "ar")" />
@@ -65,6 +69,7 @@
                         <div class="text-secondary">@today.EmployeeNo · @today.CompanyName</div>
                     </div>
                     <div class="dropdown-divider"></div>
+                    <button type="button" class="dropdown-item d-flex align-items-center gap-2" data-ess-install-trigger hidden>@Html.Icon("download", 16) @L.Tr("Add to Home Screen")</button>
                     @if (Model.CanOpenDesktop)
                     {
                         <a class="dropdown-item d-flex align-items-center gap-2" href="@Url.Content("~/apps")">@Html.Icon("apps", 16) @L.Tr("Open the full HR system")</a>

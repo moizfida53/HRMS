@@ -34,6 +34,7 @@ public sealed class EmployeesController : Controller
     private readonly ICurrentUser _currentUser;
     private readonly ICompanyFilter _companyFilter;
     private readonly IPayrollCalendarRepository _calendars;
+    private readonly IBankRepository _banks;
     private readonly IEmployeePayrollCalendarRepository _payrollCalendar;
     private readonly IEmployeeAuditor _auditor;
     private readonly ILogger<EmployeesController> _logger;
@@ -65,8 +66,10 @@ public sealed class EmployeesController : Controller
         IEmployeeProfileRepository profile,
         ILeaveRepository leave,
         IPayItemRepository payItems,
+        IBankRepository banks,
         ILogger<EmployeesController> logger)
     {
+        _banks = banks;
         _payItems = payItems;
         _profile = profile;
         _leave = leave;
@@ -310,7 +313,8 @@ public sealed class EmployeesController : Controller
             PayrollCalendars = await LoadPayrollCalendarsAsync(lookups, null),
             CanChangePayrollCalendar = _currentUser.CanChangePayrollCalendar(),
             CanManageDateAlerts = _currentUser.CanManageDateAlerts(),
-            DateAlertRules = await alertsTask
+            DateAlertRules = await alertsTask,
+            Banks = await TryListBanksAsync()
         });
     }
 
@@ -414,6 +418,7 @@ public sealed class EmployeesController : Controller
             DateAlertRules = alertsTask.Result,
             LeaveTerms = leaveTermsTask.Result,
             Assets = assetsTask.Result,
+            Banks = await TryListBanksAsync(),
             // the Dependents / Documents tabs and the compliance images, drawn into the page:
             // the browser does not ask for them again
             Preloaded = data is null ? [] : PreloadedPanels(data, id, compliance, showComplianceImages)
@@ -565,6 +570,20 @@ public sealed class EmployeesController : Controller
 
     /// <summary>The employee's payroll calendar; null when db/60 has not been run yet.</summary>
     /// <summary>The reminders on every date field (db/65), for the bells - only for a user who sets them.</summary>
+    /// <summary>The active banks of Payroll Settings > Banks, for the Bank Name list of the Employment tab.</summary>
+    private async Task<IReadOnlyList<Bank>> TryListBanksAsync()
+    {
+        try
+        {
+            return (await _banks.BanksAsync(null, true, 1, Ct)).Items;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "The bank list could not be read (Payroll > Settings > Banks).");
+            return Array.Empty<Bank>();
+        }
+    }
+
     private async Task<IReadOnlyList<DateAlertRule>> TryListDateAlertsAsync()
     {
         if (!_currentUser.CanManageDateAlerts()) return Array.Empty<DateAlertRule>();

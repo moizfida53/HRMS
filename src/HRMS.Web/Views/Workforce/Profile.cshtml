@@ -935,14 +935,30 @@
                     <div class="w-100 d-none d-lg-block" aria-hidden="true"></div>
                     <div class="col-12 col-sm-6 col-lg-3">
                         <label class="form-label" for="f-BankName">@L["emp.bank_name"] @if (mustFill) { <span class="req" aria-hidden="true">*</span> }</label>
-                        <input class="form-control" required="@(mustFill ? "required" : null)" data-must-fill="all"  id="f-BankName" form="employee-form" name="BankName" type="text"
-                               value="@e.BankName" maxlength="100" list="kw-banks" placeholder="@L["emp.e_g_nbk"]" />
-                        <datalist id="kw-banks">
-                            @foreach (var bank in new[] { "NBK", "Gulf Bank", "CBK", "ABK", "Burgan Bank", "KFH", "Boubyan Bank", "Warba Bank", "KIB", "Ahli United Bank" })
+                        @* The banks of Payroll Settings > Banks (the same list the bank file uses). The bank's name is what is
+                           saved, so the bank file finds it. A value typed before this list existed ("NBK", a short name or code) is
+                           matched to its bank; one that matches none stays selectable so nothing is lost on save. *@
+                        @{
+                            var currentBank = e.BankName?.Trim();
+                            var currentIsBank = false;
+                            var currentMatchesNone = !string.IsNullOrEmpty(currentBank);
+                        }
+                        <select class="form-select" required="@(mustFill ? "required" : null)" data-must-fill="all" id="f-BankName" form="employee-form" name="BankName">
+                            <option value="">@L["common.select"]</option>
+                            @foreach (var bank in Model.Banks)
                             {
-                                <option value="@bank"></option>
+                                var isCurrent = !string.IsNullOrEmpty(currentBank) && !currentIsBank
+                                    && (string.Equals(bank.BankName, currentBank, StringComparison.OrdinalIgnoreCase)
+                                        || string.Equals(bank.ShortName, currentBank, StringComparison.OrdinalIgnoreCase)
+                                        || string.Equals(bank.BankCode, currentBank, StringComparison.OrdinalIgnoreCase));
+                                if (isCurrent) { currentIsBank = true; currentMatchesNone = false; }
+                                <option value="@bank.BankName" selected="@isCurrent">@(L.IsArabic && !string.IsNullOrWhiteSpace(bank.ArabicName) ? bank.ArabicName : bank.BankName)</option>
                             }
-                        </datalist>
+                            @if (currentMatchesNone)
+                            {
+                                <option value="@currentBank" selected="selected">@currentBank</option>
+                            }
+                        </select>
                         <span class="field-validation-error" data-valmsg-for="BankName"></span>
                     </div>
                     <div class="col-12 col-lg-6">
